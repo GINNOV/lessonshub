@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLessonsForTeacher } from "../actions/lessonActions";
 import { Role } from "@prisma/client";
+import { Button } from "@/components/ui/button"; // Import the Shadcn Button
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -17,7 +18,7 @@ export default async function DashboardPage() {
   const lessons = await getLessonsForTeacher(session.user.id);
 
   return (
-    <div className="container mx-auto p-8">
+    <div>
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
@@ -25,12 +26,9 @@ export default async function DashboardPage() {
             Welcome, {session.user?.name}!
           </p>
         </div>
-        <Link
-          href="/dashboard/create"
-          className="px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-        >
-          Create New Lesson
-        </Link>
+        <Button asChild>
+          <Link href="/dashboard/create">Create New Lesson</Link>
+        </Button>
       </div>
 
       <div className="mt-10 bg-white shadow-md rounded-lg p-6">
@@ -51,12 +49,15 @@ export default async function DashboardPage() {
                       {completedAssignments} of {totalAssignments} submissions complete
                     </p>
                   </div>
-                  <Link
-                    href={`/dashboard/submissions/${lesson.id}`}
-                    className="px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700"
-                  >
-                    View Submissions
-                  </Link>
+                  {/* Add a container for the two buttons */}
+                  <div className="flex items-center space-x-2">
+                    <Button variant="outline" asChild>
+                      <Link href={`/dashboard/assign/${lesson.id}`}>Assign</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link href={`/dashboard/submissions/${lesson.id}`}>View Submissions</Link>
+                    </Button>
+                  </div>
                 </li>
               );
             })}
