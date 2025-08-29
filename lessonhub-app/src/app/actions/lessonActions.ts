@@ -19,6 +19,14 @@ export async function getLessonsForTeacher(teacherId: string) {
       where: {
         teacherId: teacherId,
       },
+      // Add this include block
+      include: {
+        assignments: {
+          select: {
+            status: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -26,6 +34,34 @@ export async function getLessonsForTeacher(teacherId: string) {
     return lessons;
   } catch (error) {
     console.error("Failed to fetch lessons:", error);
+    return [];
+  }
+}
+
+export async function getSubmissionsForLesson(lessonId: string, teacherId: string) {
+  if (!lessonId || !teacherId) {
+    return [];
+  }
+
+  try {
+    const assignments = await prisma.assignment.findMany({
+      where: {
+        lessonId: lessonId,
+        // Security Check: Ensures the lesson belongs to the logged-in teacher
+        lesson: {
+          teacherId: teacherId,
+        },
+      },
+      include: {
+        student: true, // Include the student's details (name, email, etc.)
+      },
+      orderBy: {
+        assignedAt: 'asc',
+      },
+    });
+    return assignments;
+  } catch (error) {
+    console.error("Failed to fetch submissions:", error);
     return [];
   }
 }
