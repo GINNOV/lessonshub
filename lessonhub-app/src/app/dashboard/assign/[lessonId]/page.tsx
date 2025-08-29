@@ -14,7 +14,7 @@ export default async function AssignPage({ params }: { params: { lessonId: strin
   }
 
   // Destructure lessonId from params here
-  const { lessonId } = params;
+  const { lessonId } = await params;
 
   const lesson = await getLessonById(lessonId); // Use the variable
   const students = await getAllStudents();
