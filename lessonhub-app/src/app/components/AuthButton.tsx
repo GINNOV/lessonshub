@@ -1,8 +1,9 @@
-// file: app/components/AuthButton.tsx
+// file: src/app/components/AuthButton.tsx
 
 'use client';
 
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
 
 export default function AuthButton() {
   const { data: session } = useSession();
@@ -21,14 +22,11 @@ export default function AuthButton() {
     );
   }
   return (
-    <div className="flex items-center gap-4">
-      <p>Not signed in</p>
-      <button
-        onClick={() => signIn('google')}
-        className="px-4 py-2 font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600"
-      >
-        Sign In with Google
-      </button>
-    </div>
+    <Link 
+      href="/signin" 
+      className="px-4 py-2 font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600"
+    >
+      Sign In
+    </Link>
   );
 }
