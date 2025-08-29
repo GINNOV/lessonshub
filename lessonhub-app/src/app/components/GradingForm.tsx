@@ -46,8 +46,8 @@ export default function GradingForm({ assignment }: GradingFormProps) {
       
       router.push(`/dashboard/submissions/${assignment.lessonId}`);
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // Corrected type
+      setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +59,6 @@ export default function GradingForm({ assignment }: GradingFormProps) {
       <div>
         <Label className="text-base font-medium text-gray-900">Score</Label>
         <RadioGroup 
-          // This line is changed from `defaultValue` to `value`
           value={score?.toString()} 
           onValueChange={(value) => setScore(Number(value))} 
           className="mt-2"

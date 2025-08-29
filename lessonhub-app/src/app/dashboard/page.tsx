@@ -63,7 +63,7 @@ export default async function DashboardPage() {
             })}
           </ul>
         ) : (
-          <p>You haven't created any lessons yet.</p>
+          <p>You haven&apos;t created any lessons yet.</p>
         )}
       </div>
     </div>

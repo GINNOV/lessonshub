@@ -4,15 +4,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-
-interface PatchParams {
-  params: { assignmentId: string };
-}
-
-export async function PATCH(request: Request, { params }: PatchParams) {
+export async function PATCH(
+  request: Request, 
+  { params }: { params: Promise<{ assignmentId: string }> }
+) {
   // 1. Get session and assignment ID
   const session = await getServerSession(authOptions);
-  const { assignmentId } = params;
+  const { assignmentId } = await params;
 
   // 2. Security: Find the assignment and ensure the logged-in user is the assigned student
   const assignment = await prisma.assignment.findFirst({

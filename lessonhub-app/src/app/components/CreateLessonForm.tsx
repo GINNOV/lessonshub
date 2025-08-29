@@ -4,6 +4,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image'; // Import next/image
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,31 +24,28 @@ export default function CreateLessonForm() {
   const [error, setError] = useState<string | null>(null);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    // ... (This function remains the same)
     event.preventDefault();
     if (!inputFileRef.current?.files) {
       throw new Error("No file selected");
     }
     const file = inputFileRef.current.files[0];
     if (!file) return;
-
     setIsUploading(true);
     try {
-      const response = await fetch(
-        `/api/upload?filename=${file.name}`,
-        { method: 'POST', body: file },
-      );
+      const response = await fetch(`/api/upload?filename=${file.name}`, { method: 'POST', body: file });
       if (!response.ok) throw new Error("Upload failed.");
-
       const newBlob = await response.json();
       setAssignmentImageUrl(newBlob.url);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // FIX: Changed 'any' to 'unknown'
+      setError((err as Error).message);
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // ... (This function has one small change)
     e.preventDefault();
     setIsLoading(true);
     setError(null);
@@ -56,9 +54,7 @@ export default function CreateLessonForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title,
-          assignmentText,
-          contextText,
+          title, assignmentText, contextText,
           assignment_image_url: assignmentImageUrl,
         }),
       });
@@ -66,8 +62,8 @@ export default function CreateLessonForm() {
       
       router.push('/dashboard');
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // FIX: Changed 'any' to 'unknown'
+      setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -84,15 +80,10 @@ export default function CreateLessonForm() {
 
       <div className="space-y-2">
         <Label htmlFor="assignmentImage">Assignment Image (Optional)</Label>
-        <Input
-          id="assignmentImage"
-          type="file"
-          ref={inputFileRef}
-          onChange={handleImageUpload}
-          disabled={isLoading || isUploading}
-        />
+        <Input id="assignmentImage" type="file" ref={inputFileRef} onChange={handleImageUpload} disabled={isLoading || isUploading} />
         {isUploading && <p className="text-sm text-gray-500">Uploading...</p>}
-        {assignmentImageUrl && <img src={assignmentImageUrl} alt="Uploaded preview" className="mt-4 w-full h-auto rounded-md border" />}
+        {/* FIX: Replaced <img> with next/image <Image> */}
+        {assignmentImageUrl && <Image src={assignmentImageUrl} alt="Uploaded preview" width={500} height={300} className="mt-4 w-full h-auto rounded-md border" />}
       </div>
 
       <div className="space-y-2">

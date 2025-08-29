@@ -7,41 +7,48 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSubmissionForGrading } from "@/app/actions/lessonActions";
 import { Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
+import { Button } from "@/components/ui/button";
 
-// Ensure this line has "export default"
 export default async function GradeSubmissionPage({ params }: { params: { assignmentId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
   }
 
-  const { assignmentId } = await params;
+  const { assignmentId } = params;
   const submission = await getSubmissionForGrading(assignmentId, session.user.id);
 
   if (!submission) {
-    return <div className="p-8">Submission not found or you do not have permission to view it.</div>;
+    return (
+        <div className="text-center">
+            <p>Submission not found or you don&apos;t have permission to view it.</p>
+            <Button asChild className="mt-4">
+                <Link href="/dashboard">Return to Dashboard</Link>
+            </Button>
+        </div>
+    );
   }
 
   return (
-    <div className="container mx-auto p-8">
-      <Link href={`/dashboard/submissions/${submission.lessonId}`} className="text-blue-600 hover:underline mb-4 inline-block">&larr; Back to Submissions</Link>
+    <div>
+      <Button variant="link" asChild className="mb-4 pl-0">
+          <Link href={`/dashboard/submissions/${submission.lessonId}`}>&larr; Back to Submissions</Link>
+      </Button>
       <h1 className="text-3xl font-bold">Grade Submission</h1>
       <p className="text-gray-600 mt-1">Student: {submission.student.name || submission.student.email}</p>
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left side: Original Lesson and Student Response */}
-        <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
+        <div className="bg-white p-6 rounded-lg shadow-md space-y-6 border">
           <div>
             <h2 className="text-xl font-semibold border-b pb-2">Original Lesson: {submission.lesson.title}</h2>
             <div className="prose prose-sm mt-4 max-w-none">{submission.lesson.assignment_text}</div>
           </div>
           <div>
-            <h2 className="text-xl font-semibold border-b pb-2">Student's Response</h2>
+            <h2 className="text-xl font-semibold border-b pb-2">Student&apos;s Response</h2>
             <p className="mt-4 whitespace-pre-wrap">{submission.responseText || "No response submitted."}</p>
           </div>
         </div>
-        {/* Right side: Grading Form */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-6 rounded-lg shadow-md border">
           <GradingForm assignment={submission} />
         </div>
       </div>

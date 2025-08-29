@@ -5,6 +5,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lesson, User } from '@prisma/client';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 interface AssignLessonFormProps {
   lesson: Lesson;
@@ -47,12 +50,11 @@ export default function AssignLessonForm({ lesson, students }: AssignLessonFormP
         throw new Error(errorData.error || 'Failed to assign lesson');
       }
 
-      // On success, redirect to the dashboard
       router.push('/dashboard');
-      router.refresh(); // Refreshes the server components on the dashboard
+      router.refresh();
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // Corrected type
+      setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -61,13 +63,13 @@ export default function AssignLessonForm({ lesson, students }: AssignLessonFormP
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
-
+      
       <div>
-        <h3 className="text-lg font-medium">Students</h3>
+        <Label className="text-lg font-medium">Students</Label>
         <div className="mt-4 space-y-2 max-h-60 overflow-y-auto border p-4 rounded-md">
           {students.map(student => (
             <div key={student.id} className="flex items-center">
-              <input
+              <Input
                 id={`student-${student.id}`}
                 type="checkbox"
                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
@@ -75,36 +77,35 @@ export default function AssignLessonForm({ lesson, students }: AssignLessonFormP
                 onChange={() => handleStudentSelect(student.id)}
                 disabled={isLoading}
               />
-              <label htmlFor={`student-${student.id}`} className="ml-3 block text-sm font-medium text-gray-700">
+              <Label htmlFor={`student-${student.id}`} className="ml-3 block text-sm font-medium text-gray-700">
                 {student.email}
-              </label>
+              </Label>
             </div>
           ))}
         </div>
       </div>
 
       <div>
-        <label htmlFor="deadline" className="block text-sm font-medium text-gray-700">
+        <Label htmlFor="deadline" className="block text-sm font-medium text-gray-700">
           Deadline
-        </label>
-        <input
+        </Label>
+        <Input
           type="datetime-local"
           id="deadline"
           value={deadline}
           onChange={e => setDeadline(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           required
           disabled={isLoading}
         />
       </div>
-
-      <button
+      
+      <Button
         type="submit"
         disabled={isLoading || selectedStudentIds.length === 0}
-        className="w-full px-4 py-2 font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
+        className="w-full"
       >
         {isLoading ? 'Assigning...' : 'Confirm Assignment'}
-      </button>
+      </Button>
     </form>
   );
 }

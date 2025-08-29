@@ -86,7 +86,7 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
                         <p className="text-2xl font-bold mt-2">Score: {assignment.score}</p>
                         {assignment.teacherComments && (
                           <blockquote className="mt-2 pl-4 border-l-4 border-gray-300 italic">
-                            "{assignment.teacherComments}"
+                            &quot;{assignment.teacherComments}&quot;
                           </blockquote>
                         )}
                       </div>
@@ -99,7 +99,7 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
         ) : (
           <div className="text-center py-12 px-6 bg-white border rounded-lg">
             <h3 className="text-lg font-semibold">No Lessons Yet</h3>
-            <p className="text-gray-500 mt-1">You don't have any assigned lessons at the moment.</p>
+            <p className="text-gray-600 mt-1">You haven&apos;t been assigned any lessons yet. Check back later!</p>
           </div>
         )}
       </div>
@@ -110,7 +110,11 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
           className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center p-4"
           onClick={closeModal}
         >
-          <div className="relative max-w-4xl max-h-[80vh]">
+          {/* Add the onClick handler to this inner div */}
+          <div 
+            className="relative max-w-4xl max-h-[80vh]"
+            onClick={(e) => e.stopPropagation()} // This prevents the modal from closing when you click the image
+          >
             <Image
               src={selectedImageUrl}
               alt="Enlarged lesson image"

@@ -2,22 +2,26 @@
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 
-interface PatchParams {
-  params: { assignmentId: string };
+// This type now correctly reflects what Next.js 15 provides
+interface RouteContext {
+  params: Promise<{
+    assignmentId: string;
+  }>;
 }
 
-export async function PATCH(request: Request, { params }: PatchParams) {
+export async function PATCH(request: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== Role.TEACHER) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
   try {
-    const { assignmentId } = params;
+    // Await the promise to get the actual params object
+    const { assignmentId } = await context.params;
     const body = await request.json();
     const { score, teacherComments } = body;
 

@@ -5,6 +5,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -29,49 +32,63 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Failed to register');
       }
 
-      // Redirect to sign-in page on successful registration
       router.push('/signin');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 p-8 bg-white shadow-md rounded-lg">
-        <h1 className="text-2xl font-bold text-center">Create an Account</h1>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <input
-          type="text"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full px-3 py-2 border rounded-md"
-          required
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-3 py-2 border rounded-md"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full px-3 py-2 border rounded-md"
-          required
-        />
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
-          Register
-        </button>
-        <p className="text-center text-sm">
+    <div className="flex items-center justify-center py-12">
+      <div className="w-full max-w-sm space-y-4 p-8 bg-white shadow-md rounded-lg border">
+        <form onSubmit={handleSubmit}> {/* Add the form tag and onSubmit handler */}
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Create an Account</h1>
+            <p className="text-sm text-muted-foreground">Enter your details to get started.</p>
+          </div>
+          {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Register
+            </Button>
+          </div>
+        </form>
+        <p className="text-center text-sm pt-4">
           Already have an account? <Link href="/signin" className="text-blue-600 hover:underline">Sign In</Link>
         </p>
-      </form>
+      </div>
     </div>
   );
 }
