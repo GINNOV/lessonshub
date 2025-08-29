@@ -9,9 +9,13 @@ import Link from 'next/link';
 
 export default function SignInPage() {
   const router = useRouter();
-  // State for both forms
-  const [email, setEmail] = useState('');
+  // State for the credentials form
+  const [credentialsEmail, setCredentialsEmail] = useState('');
   const [password, setPassword] = useState('');
+  
+  // State for the magic link form
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
+
   // General state
   const [error, setError] = useState('');
   const [magicLinkMessage, setMagicLinkMessage] = useState('');
@@ -20,7 +24,7 @@ export default function SignInPage() {
     e.preventDefault();
     setError('');
     setMagicLinkMessage('');
-    const result = await signIn('email', { email, redirect: false });
+    const result = await signIn('email', { email: magicLinkEmail, redirect: false });
     if (result?.error) {
       setError('Could not send sign-in link.');
     } else {
@@ -31,7 +35,7 @@ export default function SignInPage() {
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const result = await signIn('credentials', { redirect: false, email, password });
+    const result = await signIn('credentials', { redirect: false, email: credentialsEmail, password });
     if (result?.error) {
       setError('Invalid email or password');
     } else {
@@ -50,8 +54,8 @@ export default function SignInPage() {
            <input
             type="email"
             placeholder="your@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={magicLinkEmail}
+            onChange={(e) => setMagicLinkEmail(e.target.value)}
             className="w-full px-3 py-2 border rounded-md"
             required
           />
@@ -61,20 +65,16 @@ export default function SignInPage() {
         </form>
 
         <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-gray-500">Or</span>
-          </div>
+          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300" /></div>
+          <div className="relative flex justify-center text-sm"><span className="bg-white px-2 text-gray-500">Or</span></div>
         </div>
 
         <form onSubmit={handleCredentialsSubmit} className="space-y-4">
           <input
             type="email"
             placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={credentialsEmail}
+            onChange={(e) => setCredentialsEmail(e.target.value)}
             className="w-full px-3 py-2 border rounded-md"
             required
           />
@@ -100,7 +100,6 @@ export default function SignInPage() {
           </div>
         </div>
         
-        {/* Corrected Google Button */}
         <button 
           onClick={() => signIn('google', { callbackUrl: '/dashboard' })} 
           className="w-full flex justify-center items-center bg-white border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
