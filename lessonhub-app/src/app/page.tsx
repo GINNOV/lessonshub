@@ -1,13 +1,24 @@
-// file: app/page.tsx
+// file: src/app/page.tsx
 
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "./api/auth/[...nextauth]/route";
-import AuthButton from "./components/AuthButton";
+import { redirect } from "next/navigation";
+import { Role } from "@prisma/client";
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
 
+  // If a user is logged in, redirect them based on their role
+  if (session) {
+    if (session.user.role === Role.TEACHER) {
+      redirect('/dashboard');
+    } else {
+      redirect('/my-lessons');
+    }
+  }
+
+  // This content will only be shown to users who are NOT logged in
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50">
       <div className="text-center">
@@ -17,17 +28,13 @@ export default async function Home() {
         <p className="mt-6 text-lg leading-8 text-gray-600">
           The platform for modern learning.
         </p>
-        <div className="mt-10 flex flex-col items-center justify-center gap-4">
-          <AuthButton />
-          {/* This link will only show if the user is signed in */}
-          {session && (
-            <Link
-              href="/dashboard"
-              className="px-6 py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700"
-            >
-              Go to Dashboard
-            </Link>
-          )}
+        <div className="mt-10">
+          <Link 
+            href="/signin" 
+            className="px-4 py-2 font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600"
+          >
+            Sign In or Register
+          </Link>
         </div>
       </div>
     </main>

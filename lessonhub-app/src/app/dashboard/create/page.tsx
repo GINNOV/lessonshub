@@ -1,14 +1,16 @@
-// file: app/dashboard/create/page.tsx
+// file: src/app/dashboard/create/page.tsx
 
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Using alias @
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import CreateLessonForm from "@/app/components/CreateLessonForm";
+import { Role } from "@prisma/client"; // Import the Role enum
 
 export default async function CreateLessonPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session) {
+  // Add the role check here
+  if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
   }
 

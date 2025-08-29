@@ -5,18 +5,18 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getLessonById, getAllStudents } from '@/app/actions/lessonActions';
 import AssignLessonForm from '@/app/components/AssignLessonForm';
+import { Role } from '@prisma/client'; // Import the Role enum
 
-// Notice the change in the function signature
 export default async function AssignPage({ params }: { params: { lessonId: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+
+  // Add the role check here
+  if (!session || session.user.role !== Role.TEACHER) {
     redirect('/');
   }
 
-  // Destructure lessonId from params here
-  const { lessonId } = await params;
-
-  const lesson = await getLessonById(lessonId); // Use the variable
+  const { lessonId } = params;
+  const lesson = await getLessonById(lessonId);
   const students = await getAllStudents();
 
   if (!lesson) {

@@ -5,10 +5,16 @@ import { authOptions } from "../api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLessonsForTeacher } from "../actions/lessonActions";
+import { Role } from "@prisma/client"; // Import the Role enum
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
-  if (!session) { redirect('/'); }
+
+  // Add the role check here
+  if (!session || session.user.role !== Role.TEACHER) {
+    redirect("/");
+  }
+
   const lessons = await getLessonsForTeacher(session.user.id);
 
   return (
@@ -37,7 +43,6 @@ export default async function DashboardPage() {
                 <li key={lesson.id} className="p-4 border rounded-md flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-lg">{lesson.title}</h3>
-                    {/* This line has been corrected */}
                     <p className="text-sm text-gray-500">Created on: {new Date(lesson.createdAt).toLocaleDateString()}</p>
                   </div>
                   <Link
