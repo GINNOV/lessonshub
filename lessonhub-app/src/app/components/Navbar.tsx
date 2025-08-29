@@ -4,15 +4,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
-import AuthButton from "./AuthButton";
+import SignOutButton from "./SignOutButton"; // Import the new button
+import { Button } from "@/components/ui/button";
 
 export default async function Navbar() {
   const session = await getServerSession(authOptions);
 
   return (
-    <header className="bg-white shadow-md">
-      <nav className="container mx-auto px-6 py-3 flex justify-between items-center">
-        <Link href="/" className="text-xl font-bold text-gray-800">
+    <header className="bg-white/95 backdrop-blur-sm sticky top-0 z-50 border-b">
+      <nav className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+        <Link href="/" className="text-lg font-bold text-gray-800">
           LessonHub
         </Link>
         <div className="flex items-center space-x-4">
@@ -22,18 +23,21 @@ export default async function Navbar() {
                 <Image
                   src={session.user.image}
                   alt={session.user.name ?? 'User Avatar'}
-                  width={40}
-                  height={40}
+                  width={32}
+                  height={32}
                   className="rounded-full"
                 />
               )}
-              <span className="text-gray-700 hidden sm:block">
-                Welcome, {session.user.name}
+              {/* Sleeker email display */}
+              <span className="text-sm text-gray-500 hidden sm:block">
+                {session.user.email}
               </span>
-              <AuthButton />
+              <SignOutButton />
             </>
           ) : (
-            <AuthButton />
+            <Button asChild>
+              <Link href="/signin">Sign In</Link>
+            </Button>
           )}
         </div>
       </nav>
