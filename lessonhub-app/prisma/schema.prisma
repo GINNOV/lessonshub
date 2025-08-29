@@ -61,7 +61,8 @@ model Assignment {
   status     AssignmentStatus @default(PENDING)
   score      Int?
   gradedAt   DateTime?
-
+  responseText String?
+  
   lessonId   String
   lesson     Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 

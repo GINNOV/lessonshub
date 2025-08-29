@@ -1,0 +1,53 @@
+// file: src/app/assignments/[assignmentId]/page.tsx
+
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAssignmentById } from "@/app/actions/lessonActions";
+import LessonResponseForm from "@/app/components/LessonResponseForm"; // Import the new component
+
+export default async function AssignmentPage({ params }: { params: { assignmentId: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    redirect("/signin");
+  }
+
+  const assignment = await getAssignmentById(params.assignmentId, session.user.id);
+
+  if (!assignment) {
+    return (
+      <div className="text-center p-8">
+        <h1 className="text-2xl font-bold">Assignment not found</h1>
+        <p>This assignment may not exist or you may not have permission to view it.</p>
+      </div>
+    );
+  }
+
+  const { lesson } = assignment;
+
+  return (
+    <div className="container mx-auto p-8">
+      <div className="bg-white p-8 rounded-lg shadow-md">
+        <h1 className="text-3xl font-bold mb-2">{lesson.title}</h1>
+        <p className="text-sm text-gray-500 mb-6">
+          Deadline: {new Date(assignment.deadline).toLocaleString()}
+        </p>
+
+        <div className="prose max-w-none">
+          <h2 className="text-xl font-semibold">Assignment</h2>
+          <p>{lesson.assignment_text}</p>
+
+          {lesson.context_text && (
+            <>
+              <h3 className="text-lg font-semibold mt-4">Context</h3>
+              <p>{lesson.context_text}</p>
+            </>
+          )}
+        </div>
+
+        {/* Replace the placeholder with our new functional component */}
+        <LessonResponseForm assignment={assignment} />
+      </div>
+    </div>
+  );
+}

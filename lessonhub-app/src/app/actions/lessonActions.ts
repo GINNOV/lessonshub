@@ -96,3 +96,24 @@ export async function getAssignmentsForStudent(studentId: string) {
     return [];
   }
 }
+
+export async function getAssignmentById(assignmentId: string, studentId: string) {
+  if (!assignmentId || !studentId) {
+    return null;
+  }
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        studentId: studentId, // Security check!
+      },
+      include: {
+        lesson: true,
+      },
+    });
+    return assignment;
+  } catch (error) {
+    console.error("Failed to fetch assignment:", error);
+    return null;
+  }
+}

@@ -2,15 +2,13 @@
 
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import Link from "next/link"; // Import Link
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import { getAssignmentsForStudent } from "../actions/lessonActions";
 
 export default async function StudentDashboardPage() {
   const session = await getServerSession(authOptions);
-
-  if (!session) {
-    redirect("/signin");
-  }
+  if (!session) { redirect("/signin"); }
 
   const assignments = await getAssignmentsForStudent(session.user.id);
 
@@ -39,11 +37,17 @@ export default async function StudentDashboardPage() {
                   {assignment.status}
                 </span>
               </div>
-              <div className="mt-4 border-t pt-4">
+              <div className="mt-4 border-t pt-4 flex justify-between items-center">
                 <p className="text-sm">
                   <strong>Deadline:</strong> {new Date(assignment.deadline).toLocaleString()}
                 </p>
-                {/* We'll add a "Start Lesson" button here later */}
+                {/* Add this link to start the lesson */}
+                <Link 
+                  href={`/assignments/${assignment.id}`} 
+                  className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                >
+                  Start Lesson
+                </Link>
               </div>
             </div>
           ))
