@@ -133,6 +133,30 @@ export async function getAssignmentsForStudent(studentId: string) {
   }
 }
 
+export async function getSubmissionForGrading(assignmentId: string, teacherId: string) {
+  if (!assignmentId || !teacherId) {
+    return null;
+  }
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        lesson: {
+          teacherId: teacherId, // Security check!
+        },
+      },
+      include: {
+        lesson: true,
+        student: true,
+      },
+    });
+    return assignment;
+  } catch (error) {
+    console.error("Failed to fetch submission for grading:", error);
+    return null;
+  }
+}
+
 export async function getAssignmentById(assignmentId: string, studentId: string) {
   if (!assignmentId || !studentId) {
     return null;
