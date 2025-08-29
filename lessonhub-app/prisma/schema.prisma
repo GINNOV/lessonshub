@@ -1,0 +1,82 @@
+// file: prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+// Enum for user roles as per the PRD
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+// Main User model
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String?         @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role            @default(STUDENT) // Default role is STUDENT
+  accounts      Account[]
+  sessions      Session[]
+  lessons       Lesson[] 
+}
+
+// NextAuth.js required models
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Model for Lessons
+model Lesson {
+  id                  String    @id @default(cuid())
+  title               String    // We'll add a title for easier management
+  assignment_text     String    @db.Text
+  assignment_image_url String?
+  context_text        String?   @db.Text
+  context_image_url   String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  teacherId           String
+  teacher             User      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
