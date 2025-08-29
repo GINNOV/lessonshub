@@ -6,6 +6,7 @@ import Link from "next/link";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSubmissionsForLesson, getLessonById } from "@/app/actions/lessonActions";
 import { Role } from "@prisma/client";
+import { Button } from "@/components/ui/button";
 
 export default async function SubmissionsPage({ params }: { params: { lessonId: string } }) {
   const session = await getServerSession(authOptions);
@@ -22,8 +23,10 @@ export default async function SubmissionsPage({ params }: { params: { lessonId: 
   }
 
   return (
-    <div className="container mx-auto p-8">
-      <Link href="/dashboard" className="text-blue-600 hover:underline mb-4 inline-block">&larr; Back to Dashboard</Link>
+    <div>
+      <Button variant="link" asChild className="mb-4">
+        <Link href="/dashboard">&larr; Back to Dashboard</Link>
+      </Button>
       <h1 className="text-3xl font-bold">Submissions for: {lesson.title}</h1>
 
       <div className="mt-6 bg-white shadow-md rounded-lg overflow-hidden">
@@ -33,7 +36,7 @@ export default async function SubmissionsPage({ params }: { params: { lessonId: 
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-              <th scope="col" className="relative px-6 py-3"><span className="sr-only">Grade</span></th>
+              <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -51,10 +54,16 @@ export default async function SubmissionsPage({ params }: { params: { lessonId: 
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.score ?? 'N/A'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  {/* --- THIS LOGIC IS UPDATED --- */}
                   {sub.status === 'COMPLETED' && (
-                    <Link href={`/dashboard/grade/${sub.id}`} className="text-indigo-600 hover:text-indigo-900">
-                      Grade
-                    </Link>
+                    <Button variant="link" asChild>
+                      <Link href={`/dashboard/grade/${sub.id}`}>Grade</Link>
+                    </Button>
+                  )}
+                  {sub.status === 'GRADED' && (
+                    <Button variant="link" asChild>
+                      <Link href={`/dashboard/grade/${sub.id}`}>Edit Grade</Link>
+                    </Button>
                   )}
                 </td>
               </tr>

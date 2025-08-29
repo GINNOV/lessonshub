@@ -15,7 +15,7 @@ export default async function GradeSubmissionPage({ params }: { params: { assign
     redirect("/");
   }
 
-  const { assignmentId } = params;
+  const { assignmentId } = await params;
   const submission = await getSubmissionForGrading(assignmentId, session.user.id);
 
   if (!submission) {

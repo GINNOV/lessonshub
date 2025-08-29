@@ -5,6 +5,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Assignment } from '@prisma/client';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
 
 interface GradingFormProps {
   assignment: Assignment;
@@ -18,8 +22,8 @@ const scoreOptions = [
 
 export default function GradingForm({ assignment }: GradingFormProps) {
   const router = useRouter();
-  const [score, setScore] = useState<number | null>(null);
-  const [teacherComments, setTeacherComments] = useState('');
+  const [score, setScore] = useState<number | null>(assignment.score ?? null);
+  const [teacherComments, setTeacherComments] = useState(assignment.teacherComments || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +43,7 @@ export default function GradingForm({ assignment }: GradingFormProps) {
         body: JSON.stringify({ score, teacherComments }),
       });
       if (!response.ok) throw new Error('Failed to submit grade.');
-
+      
       router.push(`/dashboard/submissions/${assignment.lessonId}`);
       router.refresh();
     } catch (err: any) {
@@ -50,49 +54,42 @@ export default function GradingForm({ assignment }: GradingFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 border-t pt-6 space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {error && <p className="text-red-500">{error}</p>}
       <div>
-        <h3 className="text-lg font-medium text-gray-900">Score</h3>
-        <fieldset className="mt-2">
-          <legend className="sr-only">Scoring options</legend>
-          <div className="space-y-2">
-            {scoreOptions.map((option) => (
-              <div key={option.value} className="flex items-center">
-                <input
-                  id={option.label}
-                  name="score"
-                  type="radio"
-                  value={option.value}
-                  onChange={(e) => setScore(Number(e.target.value))}
-                  className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                />
-                <label htmlFor={option.label} className="ml-3 block text-sm font-medium text-gray-700">
-                  {option.label} ({option.value} points)
-                </label>
-              </div>
-            ))}
-          </div>
-        </fieldset>
+        <Label className="text-base font-medium text-gray-900">Score</Label>
+        <RadioGroup 
+          // This line is changed from `defaultValue` to `value`
+          value={score?.toString()} 
+          onValueChange={(value) => setScore(Number(value))} 
+          className="mt-2"
+        >
+          {scoreOptions.map((option) => (
+            <div key={option.value} className="flex items-center space-x-2">
+              <RadioGroupItem value={option.value.toString()} id={option.label} />
+              <Label htmlFor={option.label}>
+                {option.label} ({option.value} points)
+              </Label>
+            </div>
+          ))}
+        </RadioGroup>
       </div>
       <div>
-        <label htmlFor="comments" className="block text-sm font-medium text-gray-700">Comments</label>
-        <textarea
+        <Label htmlFor="comments">Comments</Label>
+        <Textarea
           id="comments"
-          rows={4}
           value={teacherComments}
           onChange={(e) => setTeacherComments(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           placeholder="Provide feedback for the student..."
         />
       </div>
-      <button
+      <Button
         type="submit"
         disabled={isLoading}
-        className="w-full px-4 py-2 font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
+        className="w-full"
       >
         {isLoading ? 'Submitting...' : 'Submit Grade'}
-      </button>
+      </Button>
     </form>
   );
 }
