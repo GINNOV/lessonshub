@@ -2,9 +2,10 @@
 
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getAssignmentById } from "@/app/actions/lessonActions";
-import LessonResponseForm from "@/app/components/LessonResponseForm"; // Import the new component
+import LessonResponseForm from "@/app/components/LessonResponseForm";
 
 export default async function AssignmentPage({ params }: { params: { assignmentId: string } }) {
   const session = await getServerSession(authOptions);
@@ -26,28 +27,39 @@ export default async function AssignmentPage({ params }: { params: { assignmentI
   const { lesson } = assignment;
 
   return (
-    <div className="container mx-auto p-8">
-      <div className="bg-white p-8 rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold mb-2">{lesson.title}</h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Deadline: {new Date(assignment.deadline).toLocaleString()}
-        </p>
+    <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-2">{lesson.title}</h1>
+      <p className="text-sm text-gray-500 mb-6">
+        Deadline: {new Date(assignment.deadline).toLocaleString()}
+      </p>
 
-        <div className="prose max-w-none">
-          <h2 className="text-xl font-semibold">Assignment</h2>
-          <p>{lesson.assignment_text}</p>
+      <div className="prose max-w-none">
+        <h2 className="text-xl font-semibold">Assignment</h2>
 
-          {lesson.context_text && (
-            <>
-              <h3 className="text-lg font-semibold mt-4">Context</h3>
-              <p>{lesson.context_text}</p>
-            </>
-          )}
-        </div>
+        {/* Display the uploaded image if it exists */}
+        {lesson.assignment_image_url && (
+          <div className="my-4">
+            <Image
+              src={lesson.assignment_image_url}
+              alt={`Image for ${lesson.title}`}
+              width={600}
+              height={400}
+              className="w-full h-auto rounded-lg object-contain"
+            />
+          </div>
+        )}
 
-        {/* Replace the placeholder with our new functional component */}
-        <LessonResponseForm assignment={assignment} />
+        <p>{lesson.assignment_text}</p>
+
+        {lesson.context_text && (
+          <>
+            <h3 className="text-lg font-semibold mt-4">Context</h3>
+            <p>{lesson.context_text}</p>
+          </>
+        )}
       </div>
+
+      <LessonResponseForm assignment={assignment} />
     </div>
   );
 }

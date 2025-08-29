@@ -29,14 +29,15 @@ export async function POST(request: Request) {
 
   try {
     // 4. Create the lesson in the database
-    const newLesson = await prisma.lesson.create({
-      data: {
-        title: title,
-        assignment_text: assignmentText,
-        context_text: contextText,
-        teacherId: session.user.id,
-      },
-    });
+  const newLesson = await prisma.lesson.create({
+  data: {
+    title: title,
+    assignment_text: assignmentText,
+    context_text: contextText,
+    assignment_image_url: assignment_image_url, // Add this line
+    teacherId: session.user.id,
+  },
+});
 
     // 5. Return the new lesson
     return NextResponse.json(newLesson, { status: 201 });

@@ -13,7 +13,7 @@ export default async function SubmissionsPage({ params }: { params: { lessonId: 
     redirect("/");
   }
 
-  const { lessonId } = params;
+  const { lessonId } = await params;
   const submissions = await getSubmissionsForLesson(lessonId, session.user.id);
   const lesson = await getLessonById(lessonId);
 
