@@ -8,8 +8,8 @@ import { auth } from "@/auth";
 export default async function Home() {
   const session = await auth();
 
-  // If a user is logged in, redirect them based on their role
-  if (session) {
+  // This check is now more robust
+  if (session && session.user) {
     if (session.user.role === Role.TEACHER) {
       redirect('/dashboard');
     } else {

@@ -6,10 +6,11 @@ import Image from "next/image";
 import { getAssignmentById } from "@/app/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
 
+// Corrected type for Next.js 14
 interface AssignmentPageProps {
-  params: Promise<{
+  params: {
     assignmentId: string;
-  }>;
+  };
 }
 
 export default async function AssignmentPage({ params }: AssignmentPageProps) {
@@ -18,7 +19,7 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
     redirect("/signin");
   }
 
-  const { assignmentId } = await params; // Await the promise
+  const { assignmentId } = params; // No longer needs await
   const assignment = await getAssignmentById(assignmentId, session.user.id);
 
   if (!assignment) {
