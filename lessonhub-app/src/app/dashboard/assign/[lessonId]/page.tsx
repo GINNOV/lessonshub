@@ -1,14 +1,13 @@
 // file: src/app/dashboard/assign/[lessonId]/page.tsx
 
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from "@/auth";
 import { getLessonById, getAllStudents } from '@/app/actions/lessonActions';
 import AssignLessonForm from '@/app/components/AssignLessonForm';
 import { Role } from '@prisma/client'; // Import the Role enum
 
 export default async function AssignPage({ params }: { params: { lessonId: string } }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   // Add the role check here
   if (!session || session.user.role !== Role.TEACHER) {

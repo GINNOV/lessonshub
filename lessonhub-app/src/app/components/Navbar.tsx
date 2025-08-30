@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
-import SignOutButton from "./SignOutButton"; // Import the new button
+import { auth } from "@/auth"; 
+import SignOutButton from "./SignOutButton";
 import { Button } from "@/components/ui/button";
 
 export default async function Navbar() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   return (
     <header className="bg-white/95 backdrop-blur-sm sticky top-0 z-50 border-b">
@@ -28,7 +27,6 @@ export default async function Navbar() {
                   className="rounded-full"
                 />
               )}
-              {/* Sleeker email display */}
               <span className="text-sm text-gray-500 hidden sm:block">
                 {session.user.email}
               </span>

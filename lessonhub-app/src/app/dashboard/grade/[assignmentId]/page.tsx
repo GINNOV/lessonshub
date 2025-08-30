@@ -1,16 +1,15 @@
 // file: src/app/dashboard/grade/[assignmentId]/page.tsx
 
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import { getSubmissionForGrading } from "@/app/actions/lessonActions";
 import { Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
 import { Button } from "@/components/ui/button";
 
 export default async function GradeSubmissionPage({ params }: { params: { assignmentId: string } }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
   }

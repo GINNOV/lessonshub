@@ -1,14 +1,13 @@
 // file: src/app/my-lessons/page.tsx
 
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import { getAssignmentsForStudent } from "../actions/lessonActions";
 import StudentLessonList from "../components/StudentLessonList";
 import { AssignmentStatus } from "@prisma/client";
 
 export default async function StudentDashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session) {
     redirect("/signin");
   }

@@ -1,13 +1,12 @@
 // file: src/app/page.tsx
 
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "./api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
+import { auth } from "@/auth";
 
 export default async function Home() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   // If a user is logged in, redirect them based on their role
   if (session) {

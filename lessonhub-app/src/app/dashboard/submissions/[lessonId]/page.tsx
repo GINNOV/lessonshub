@@ -1,15 +1,14 @@
 // file: src/app/dashboard/submissions/[lessonId]/page.tsx
 
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import { getSubmissionsForLesson, getLessonById } from "@/app/actions/lessonActions";
 import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 
 export default async function SubmissionsPage({ params }: { params: { lessonId: string } }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
   }

@@ -1,14 +1,13 @@
 // file: src/app/assignments/[assignmentId]/page.tsx
 
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import { getAssignmentById } from "@/app/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
 
 export default async function AssignmentPage({ params }: { params: { assignmentId: string } }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session) {
     redirect("/signin");
   }

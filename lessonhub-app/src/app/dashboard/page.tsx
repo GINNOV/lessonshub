@@ -1,7 +1,5 @@
 // file: src/app/dashboard/page.tsx
-
-import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLessonsForTeacher } from "../actions/lessonActions";
@@ -9,7 +7,7 @@ import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button"; // Import the Shadcn Button
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
