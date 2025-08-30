@@ -1,25 +1,48 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+// file: eslint.config.mjs
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import nextPlugin from "@next/eslint-plugin-next";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
+import tsParser from "@typescript-eslint/parser";
+import reactPlugin from "eslint-plugin-react";
+import globals from "globals";
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+const config = [
   {
-    ignores: [
-      "node_modules/**",
-      ".next/**",
-      "out/**",
-      "build/**",
-      "next-env.d.ts",
-    ],
+    ignores: [".next/**"],
+  },
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    plugins: {
+      "@typescript-eslint": tsPlugin,
+      react: reactPlugin,
+      "@next/next": nextPlugin,
+    },
+    languageOptions: {
+      parser: tsParser,
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+        project: "./tsconfig.json",
+      },
+    },
+    rules: {
+      ...tsPlugin.configs["eslint-recommended"].rules,
+      ...tsPlugin.configs["recommended"].rules,
+      ...reactPlugin.configs.recommended.rules,
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs["core-web-vitals"].rules,
+      "react/react-in-jsx-scope": "off",
+      "@typescript-eslint/no-unused-vars": "warn",
+    },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
   },
 ];
 
-export default eslintConfig;
+export default config;

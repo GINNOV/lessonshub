@@ -8,13 +8,13 @@ import { Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
 import { Button } from "@/components/ui/button";
 
-export default async function GradeSubmissionPage({ params }: { params: { assignmentId: string } }) {
+export default async function GradeSubmissionPage({ params }: { params: Promise<{ assignmentId: string }> }) {
   const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
   }
 
-  const { assignmentId } = params;
+  const { assignmentId } = await params;
   const submission = await getSubmissionForGrading(assignmentId, session.user.id);
 
   if (!submission) {

@@ -7,7 +7,7 @@ import { getSubmissionsForLesson, getLessonById } from "@/app/actions/lessonActi
 import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 
-export default async function SubmissionsPage({ params }: { params: { lessonId: string } }) {
+export default async function SubmissionsPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
@@ -53,7 +53,6 @@ export default async function SubmissionsPage({ params }: { params: { lessonId: 
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.score ?? 'N/A'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  {/* --- THIS LOGIC IS UPDATED --- */}
                   {sub.status === 'COMPLETED' && (
                     <Button variant="link" asChild>
                       <Link href={`/dashboard/grade/${sub.id}`}>Grade</Link>

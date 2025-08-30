@@ -1,14 +1,12 @@
 // file: src/app/api/assignments/route.ts
-
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 
 export async function POST(request: Request) {
   // 1. Authenticate and authorize the user
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user || session.user.role !== Role.TEACHER) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,

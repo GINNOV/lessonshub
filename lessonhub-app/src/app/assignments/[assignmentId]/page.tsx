@@ -1,18 +1,25 @@
 // file: src/app/assignments/[assignmentId]/page.tsx
 
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { auth } from "@/auth";
 import { getAssignmentById } from "@/app/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
 
-export default async function AssignmentPage({ params }: { params: { assignmentId: string } }) {
+interface AssignmentPageProps {
+  params: Promise<{
+    assignmentId: string;
+  }>;
+}
+
+export default async function AssignmentPage({ params }: AssignmentPageProps) {
   const session = await auth();
   if (!session) {
     redirect("/signin");
   }
 
-  const assignment = await getAssignmentById(params.assignmentId, session.user.id);
+  const { assignmentId } = await params; // Await the promise
+  const assignment = await getAssignmentById(assignmentId, session.user.id);
 
   if (!assignment) {
     return (
@@ -31,11 +38,10 @@ export default async function AssignmentPage({ params }: { params: { assignmentI
       <p className="text-sm text-gray-500 mb-6">
         Deadline: {new Date(assignment.deadline).toLocaleString()}
       </p>
-
+      
       <div className="prose max-w-none">
         <h2 className="text-xl font-semibold">Assignment</h2>
 
-        {/* Display the uploaded image if it exists */}
         {lesson.assignment_image_url && (
           <div className="my-4">
             <Image
@@ -49,7 +55,7 @@ export default async function AssignmentPage({ params }: { params: { assignmentI
         )}
 
         <p>{lesson.assignment_text}</p>
-
+        
         {lesson.context_text && (
           <>
             <h3 className="text-lg font-semibold mt-4">Context</h3>
