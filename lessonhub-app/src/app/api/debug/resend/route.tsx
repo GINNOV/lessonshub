@@ -1,15 +1,13 @@
-// file: src/app/api/_debug/resend/route.ts
-// to test use the curl below and remove the _ from the folder name
-// curl -X POST http://localhost:3000/api/debug/resend \
-// -H "Content-Type: application/json" \
-// -d '{"to": "doe@example.com", "subject": "Resend smoke test"}'
-export const runtime = 'edge'; // works with fetch
+// file: src/app/api/debug/resend/route.tsx
+export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from "next/server";
+import { render } from '@react-email/render';
+import WelcomeEmail from '@/emails/WelcomeEmail';
 
 export async function POST(req: NextRequest) {
   try {
-    const { to, subject = "Resend debug", html = "<strong>Hi from Resend</strong>" } = await req.json();
+    const { to, name = "Test User" } = await req.json();
 
     if (!process.env.RESEND_API_KEY) {
       return NextResponse.json({ error: "Missing RESEND_API_KEY" }, { status: 500 });
@@ -18,8 +16,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing EMAIL_FROM" }, { status: 500 });
     }
     if (!to) {
-      return NextResponse.json({ error: "Missing 'to'" }, { status: 400 });
+      return NextResponse.json({ error: "Missing 'to' field" }, { status: 400 });
     }
+
+    // ✅ Await the render so we get a string
+    const emailHtml = await render(
+      <WelcomeEmail userName={name} userEmail={to} />,
+      { pretty: true } // optional
+    );
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -30,18 +34,17 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         from: process.env.EMAIL_FROM,
         to,
-        subject,
-        html,
-        text: "Plaintext fallback",
+        subject: `Welcome to LessonHub, ${name}!`,
+        html: emailHtml, // now a string ✅
       }),
     });
 
-    const body = await res.text();
+    const body = await res.json();
     if (!res.ok) {
       console.error("[resend:debug] error", res.status, body);
-      return NextResponse.json({ error: body }, { status: 502 });
+      return NextResponse.json({ error: body }, { status: res.status });
     }
-    return NextResponse.json({ ok: true, body: body ? JSON.parse(body) : null });
+    return NextResponse.json({ ok: true, body });
   } catch (e: any) {
     console.error("[resend:debug] exception", e?.message || e);
     return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
