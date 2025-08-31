@@ -1,3 +1,5 @@
+
+export const runtime = 'nodejs';
 // file: src/app/api/assignments/[assignmentId]/grade/route.ts
 
 import { auth } from "@/auth";
@@ -8,7 +10,7 @@ import { Role } from "@prisma/client";
 // This is the corrected type signature for the route handler
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ assignmentId: string }> }
+  { params }: { params: { assignmentId: string } }
 ) {
   const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
@@ -16,7 +18,7 @@ export async function PATCH(
   }
 
   try {
-    const { assignmentId } = await params; // Await the promise
+    const { assignmentId } = params;
     const body = await request.json();
     const { score, teacherComments } = body;
 
