@@ -1,4 +1,8 @@
 // file: src/auth.ts
+// remove the underscore to enable the route for testing
+// test using: curl -X POST http://localhost:3000/api/debug/resend \
+// -H "Content-Type: application/json" \
+// -d '{"to": "example@example.com", "subject": "Resend smoke test"}'
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
@@ -28,9 +32,6 @@ export const {
     ResendProvider({
       apiKey: process.env.RESEND_API_KEY!,
       from: process.env.EMAIL_FROM!, // must be on a verified Resend domain
-      // You can optionally customize subject/body with these:
-      // subject: "Sign in to LessonHub",
-      // maxAge: 24 * 60 * 60, // seconds, default 24h
     }),
 
     GoogleProvider({
@@ -62,10 +63,36 @@ export const {
 
   session: { strategy: "jwt" },
 
-  // Auth.js v5
   secret: process.env.AUTH_SECRET,
 
+  // ---- Logging ----
   debug: process.env.NODE_ENV === "development",
+
+  logger: {
+    error(code, metadata) {
+      console.error("[auth:error]", code, metadata);
+    },
+    warn(code) {
+      console.warn("[auth:warn]", code);
+    },
+    debug(code, metadata) {
+      console.log("[auth:debug]", code, metadata);
+    },
+  },
+
+  events: {
+    async sendVerificationRequest(message) {
+      console.log("[auth:event] sendVerificationRequest →", {
+        to: Array.isArray((message as any).to) ? (message as any).to.join(",") : String((message as any).to),
+        from: (message as any).from,
+        subject: (message as any).subject,
+      });
+    },
+    async signIn(message) {
+      console.log("[auth:event] signIn", { userId: message?.user?.id, account: message?.account?.provider });
+    },
+  },
+  // ---- End Logging ----
 
   callbacks: {
     async jwt({ token, user }) {
@@ -84,3 +111,4 @@ export const {
     },
   },
 });
+
