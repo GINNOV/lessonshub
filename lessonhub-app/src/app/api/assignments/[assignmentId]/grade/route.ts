@@ -1,51 +1,43 @@
-
-export const runtime = 'nodejs';
 // file: src/app/api/assignments/[assignmentId]/grade/route.ts
 
+export const runtime = 'nodejs';
+
 import { auth } from "@/auth";
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 
-// This is the corrected type signature for the route handler
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { assignmentId: string } }
-) {
+export async function POST(request: Request) {
   const session = await auth();
-  if (!session || session.user.role !== Role.TEACHER) {
-    return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  
+  if (!session || !session.user || session.user.role !== Role.TEACHER) {
+    return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
   }
 
   try {
-    const { assignmentId } = params;
     const body = await request.json();
-    const { score, teacherComments } = body;
+    const { lessonId, studentIds, deadline } = body;
 
-    const assignment = await prisma.assignment.findFirst({
-      where: {
-        id: assignmentId,
-        lesson: { teacherId: session.user.id },
-      },
-    });
-
-    if (!assignment) {
-      return new NextResponse(JSON.stringify({ error: "Assignment not found or you don't have permission to grade it." }), { status: 404 });
+    if (!lessonId || !studentIds || !Array.isArray(studentIds) || studentIds.length === 0 || !deadline) {
+      return new NextResponse(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
 
-    const updatedAssignment = await prisma.assignment.update({
-      where: { id: assignmentId },
-      data: {
-        score: Number(score),
-        teacherComments,
-        status: 'GRADED',
-        gradedAt: new Date(),
-      },
+    const assignmentsData = studentIds.map((studentId: string) => ({
+      lessonId: lessonId,
+      studentId: studentId,
+      deadline: new Date(deadline),
+    }));
+
+    const result = await prisma.assignment.createMany({
+      data: assignmentsData,
+      skipDuplicates: true,
     });
 
-    return NextResponse.json(updatedAssignment);
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    console.error("GRADING_ERROR", error);
-    return new NextResponse(JSON.stringify({ error: "Failed to submit grade" }), { status: 500 });
+    console.error("ASSIGNMENT_ERROR", error);
+    return new NextResponse(JSON.stringify({ error: "Failed to create assignments" }), { status: 500 });
   }
 }

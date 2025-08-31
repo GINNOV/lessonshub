@@ -5,8 +5,9 @@ import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 
 export async function POST(request: Request) {
-  // 1. Authenticate and authorize the user
+  // Move the auth() call inside the handler
   const session = await auth();
+  
   if (!session || !session.user || session.user.role !== Role.TEACHER) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
@@ -14,26 +15,22 @@ export async function POST(request: Request) {
   }
 
   try {
-    // 2. Parse the request body
     const body = await request.json();
     const { lessonId, studentIds, deadline } = body;
 
-    // 3. Validate the data
     if (!lessonId || !studentIds || !Array.isArray(studentIds) || studentIds.length === 0 || !deadline) {
       return new NextResponse(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
 
-    // 4. Prepare the data for bulk creation
     const assignmentsData = studentIds.map((studentId: string) => ({
       lessonId: lessonId,
       studentId: studentId,
       deadline: new Date(deadline),
     }));
 
-    // 5. Use `createMany` for an efficient bulk insert
     const result = await prisma.assignment.createMany({
       data: assignmentsData,
-      skipDuplicates: true, // Prevents errors if an assignment already exists
+      skipDuplicates: true,
     });
 
     return NextResponse.json(result, { status: 201 });

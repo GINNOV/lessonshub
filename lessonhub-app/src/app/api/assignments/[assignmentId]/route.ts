@@ -1,4 +1,5 @@
 // file: src/app/api/assignments/[assignmentId]/route.ts
+export const runtime = 'nodejs';
 
 import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
@@ -6,15 +7,19 @@ import prisma from "@/lib/prisma";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ assignmentId: string }> }
+  { params }: { params: { assignmentId: string } }
 ) {
   const session = await auth();
-  const { assignmentId } = await params; // Await the promise
+  const { assignmentId } = params; 
+
+  if (!session?.user?.id) {
+    return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
 
   const assignment = await prisma.assignment.findFirst({
     where: {
       id: assignmentId,
-      studentId: session?.user?.id,
+      studentId: session.user.id,
     },
   });
 
