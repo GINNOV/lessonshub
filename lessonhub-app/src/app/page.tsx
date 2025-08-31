@@ -1,41 +1,107 @@
 // file: src/app/page.tsx
 
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Role } from "@prisma/client";
-import { auth } from "@/auth";
+import { Button } from '@/components/ui/button';
 
-export default async function Home() {
-  const session = await auth();
+const testimonials = [
+  {
+    quote: "LessonHub has transformed how I create and manage assignments. My students are more engaged than ever!",
+    author: "Jane Doe, 5th Grade Teacher",
+  },
+  {
+    quote: "The platform is incredibly intuitive. I was able to build and assign my first lesson in under 10 minutes.",
+    author: "John Smith, High School History",
+  },
+  {
+    quote: "My students love the clear deadlines and easy submission process. It's made a huge difference in my classroom.",
+    author: "Emily White, Middle School Science",
+  },
+];
 
-  // This check is now more robust
-  if (session && session.user) {
-    if (session.user.role === Role.TEACHER) {
-      redirect('/dashboard');
-    } else {
-      redirect('/my-lessons');
+export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [isFading, setIsFading] = useState(false);
+
+  // This effect handles redirecting logged-in users
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      const userRole = (session.user as any).role;
+      if (userRole === Role.TEACHER) {
+        router.push('/dashboard');
+      } else {
+        router.push('/my-lessons');
+      }
     }
+  }, [session, status, router]);
+
+  // This effect handles the rotating testimonials
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIsFading(true);
+      setTimeout(() => {
+        setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+        setIsFading(false);
+      }, 500); // Wait for fade-out to complete
+    }, 5000); // Change testimonial every 5 seconds
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Show a loading state while session is being determined
+  if (status === 'loading') {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50">
+        <p>Loading...</p>
+      </main>
+    );
   }
 
-  // This content will only be shown to users who are NOT logged in
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-          Welcome to LessonHub
-        </h1>
-        <p className="mt-6 text-lg leading-8 text-gray-600">
-          The platform for modern learning.
-        </p>
-        <div className="mt-10">
-          <Link 
-            href="/signin" 
-            className="px-4 py-2 font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600"
-          >
-            Sign In or Register
-          </Link>
+  // Only render the homepage for unauthenticated users
+  if (status === 'unauthenticated') {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-8 sm:p-24 bg-gray-50 text-center">
+        <div className="max-w-2xl">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+            Welcome to LessonHUB
+          </h1>
+          <p className="mt-6 text-lg leading-8 text-gray-600">
+            The modern platform for creating, assigning, and grading lessons with ease.
+          </p>
+          
+          {/* Rotating Testimonials Section */}
+          <div className="mt-12 h-32 flex items-center justify-center">
+            <div 
+              className={`transition-opacity duration-500 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}
+            >
+              <blockquote className="text-xl italic text-gray-800">
+                &quot;{testimonials[currentTestimonial].quote}&quot;
+              </blockquote>
+              <p className="mt-4 text-md text-gray-500 font-medium">
+                - {testimonials[currentTestimonial].author}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-10">
+            <Button asChild size="lg">
+              <Link href="/register">
+                SIGN UP NOW!
+              </Link>
+            </Button>
+          </div>
         </div>
-      </div>
-    </main>
-  );
+      </main>
+    );
+  }
+
+  // Return null or a placeholder while redirecting
+  return null;
 }
