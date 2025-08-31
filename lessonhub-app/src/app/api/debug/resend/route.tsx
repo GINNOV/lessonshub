@@ -1,5 +1,5 @@
 // file: src/app/api/debug/resend/route.tsx
-export const runtime = 'edge';
+export const runtime = 'nodejs'; // Use Node.js runtime for robust rendering
 
 import { NextRequest, NextResponse } from "next/server";
 import { render } from '@react-email/render';
@@ -7,6 +7,11 @@ import WelcomeEmail from '@/emails/WelcomeEmail';
 
 export async function POST(req: NextRequest) {
   try {
+    // Derive a "smart" sign-in URL based on the incoming request
+    const headers = req.headers;
+    const protocol = headers.get('x-forwarded-proto') || 'http';
+    const host = headers.get('host') || 'localhost:3000';
+    const signInUrl = `${protocol}://${host}/signin`;
     const { to, name = "Test User" } = await req.json();
 
     if (!process.env.RESEND_API_KEY) {
@@ -19,10 +24,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing 'to' field" }, { status: 400 });
     }
 
-    // ✅ Await the render so we get a string
+    // Await the render function to get the final HTML string.
     const emailHtml = await render(
-      <WelcomeEmail userName={name} userEmail={to} />,
-      { pretty: true } // optional
+      <WelcomeEmail userName={name} userEmail={to} signInUrl={signInUrl} />,
+      { pretty: true }
     );
 
     const res = await fetch("https://api.resend.com/emails", {
@@ -35,7 +40,7 @@ export async function POST(req: NextRequest) {
         from: process.env.EMAIL_FROM,
         to,
         subject: `Welcome to LessonHub, ${name}!`,
-        html: emailHtml, // now a string ✅
+        html: emailHtml, // Use the rendered HTML
       }),
     });
 
@@ -50,3 +55,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
   }
 }
+

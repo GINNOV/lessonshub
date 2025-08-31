@@ -1,82 +1,64 @@
-// file: src/app/api/register/route.tsx
+// file: src/app/api/debug/resend/route.tsx
+// to secure this route add a _ in front of the folder name: _debug; remove to test
+// to test use:
+// curl -X POST http://localhost:3000/api/debug/resend \
+// -H "Content-Type: application/json" \
+// -d '{"to": "windrago@gmail.com", "name": "Alex"}'
 
-import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import prisma from "@/lib/prisma";
+export const runtime = 'nodejs'; 
+
+import { NextRequest, NextResponse } from "next/server";
 import { render } from '@react-email/render';
-import NewAccountEmail from '@/emails/NewAccountEmail';
+import WelcomeEmail from '@/emails/WelcomeEmail'; 
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, password, name } = body;
+    // Determine the base URL from the request headers for the "smart" sign-in link
+    const headers = req.headers;
+    const protocol = headers.get('x-forwarded-proto') || 'http';
+    const host = headers.get('host') || 'localhost:3000';
+    const signInUrl = `${protocol}://${host}/signin`;
 
-    if (!email || !password) {
-      return new NextResponse(JSON.stringify({ error: "Email and password are required" }), { status: 400 });
+    const { to, name = "Test User" } = await req.json();
+
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json({ error: "Missing RESEND_API_KEY" }, { status: 500 });
+    }
+    if (!process.env.EMAIL_FROM) {
+      return NextResponse.json({ error: "Missing EMAIL_FROM" }, { status: 500 });
+    }
+    if (!to) {
+      return NextResponse.json({ error: "Missing 'to' field" }, { status: 400 });
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    // Await the render function with all the correct component props
+    const emailHtml = await render(
+      <WelcomeEmail userName={name} userEmail={to} signInUrl={signInUrl} />
+    );
 
-    if (existingUser) {
-      return new NextResponse(JSON.stringify({ error: "User with this email already exists" }), { status: 409 });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name,
-        hashedPassword: hashedPassword,
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        from: process.env.EMAIL_FROM,
+        to,
+        subject: `Welcome to LessonHub, ${name}!`,
+        html: emailHtml,
+      }),
     });
-    
-    // --- New Email Sending Logic with Debugging ---
-    try {
-      console.log(`[register:email] Rendering welcome email for: ${user.email}`);
-      const emailHtml = render(
-        <NewAccountEmail userName={user.name} userEmail={user.email} />
-      );
 
-      // --- Defensive Check & Logging ---
-      console.log("[register:email] Rendered HTML type:", typeof emailHtml);
-      if (typeof emailHtml !== 'string') {
-        throw new Error(`Rendered email is not a string. Render output type was: ${typeof emailHtml}`);
-      }
-      
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: process.env.EMAIL_FROM,
-          to: user.email,
-          subject: "Welcome to LessonHub!",
-          html: emailHtml,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.json();
-        console.error("[register:email] Resend API Error:", errorBody);
-      } else {
-        console.log("[register:email] Welcome email sent successfully.");
-      }
-
-    } catch (emailError) {
-      console.error("Failed to send welcome email:", emailError);
-      // We don't block registration if the email fails, but we should log it.
+    const body = await res.json();
+    if (!res.ok) {
+      console.error("[resend:debug] error", res.status, body);
+      return NextResponse.json({ error: body }, { status: res.status });
     }
-    // --- End of Email Sending Logic ---
-
-    return NextResponse.json(user, { status: 201 });
-  } catch (error) {
-    console.error("REGISTRATION ERROR", error);
-    return new NextResponse(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+    return NextResponse.json({ ok: true, body });
+  } catch (e: any) {
+    console.error("[resend:debug] exception", e?.message || e);
+    return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
   }
 }
 

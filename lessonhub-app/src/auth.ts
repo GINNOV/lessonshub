@@ -69,27 +69,23 @@ export const {
   debug: process.env.NODE_ENV === "development",
 
   logger: {
-    error(code, metadata) {
-      console.error("[auth:error]", code, metadata);
+    error(error: Error) {
+      console.error("[auth:error]", error);
     },
-    warn(code) {
+    warn(code: string) {
       console.warn("[auth:warn]", code);
     },
-    debug(code, metadata) {
+    debug(code: string, metadata?: unknown) {
       console.log("[auth:debug]", code, metadata);
     },
   },
 
   events: {
-    async sendVerificationRequest(message) {
-      console.log("[auth:event] sendVerificationRequest →", {
-        to: Array.isArray((message as any).to) ? (message as any).to.join(",") : String((message as any).to),
-        from: (message as any).from,
-        subject: (message as any).subject,
-      });
-    },
     async signIn(message) {
-      console.log("[auth:event] signIn", { userId: message?.user?.id, account: message?.account?.provider });
+      console.log("[auth:event] signIn", {
+        userId: message?.user?.id,
+        account: message?.account?.provider,
+      });
     },
   },
   // ---- End Logging ----
@@ -111,4 +107,3 @@ export const {
     },
   },
 });
-
