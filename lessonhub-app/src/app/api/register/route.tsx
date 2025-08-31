@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         from: process.env.EMAIL_FROM,
         to,
-        subject: `Welcome to LessonHub, ${name}!`,
+        subject: `Welcome to LessonHUB, ${name}!`,
         html: emailHtml,
       }),
     });

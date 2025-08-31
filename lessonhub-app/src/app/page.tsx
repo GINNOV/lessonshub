@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Role } from "@prisma/client";
@@ -11,7 +12,7 @@ import { Button } from '@/components/ui/button';
 
 const testimonials = [
   {
-    quote: "LessonHub has transformed how I create and manage assignments. My students are more engaged than ever!",
+    quote: "LessonHUB has transformed how I create and manage assignments. My students are more engaged than ever!",
     author: "Jane Doe, 5th Grade Teacher",
   },
   {
@@ -67,8 +68,21 @@ export default function Home() {
   // Only render the homepage for unauthenticated users
   if (status === 'unauthenticated') {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-8 sm:p-24 bg-gray-50 text-center">
-        <div className="max-w-2xl">
+      <main className="flex min-h-screen flex-col items-center justify-start p-8 pt-24 sm:pt-32 bg-gray-50 text-center">
+        <div className="max-w-2xl w-full">
+
+          {/* Hero Image Section */}
+          <div className="mb-12">
+            <Image
+              src="/hero_image_1.png"
+              alt="An illustration showing a vibrant and modern learning environment."
+              width={600}
+              height={400}
+              className="w-full h-auto rounded-lg shadow-md" // <-- CORRECTED: Removed max-w-md and mx-auto
+              priority 
+            />
+          </div>
+
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
             Welcome to LessonHUB
           </h1>
@@ -105,3 +119,4 @@ export default function Home() {
   // Return null or a placeholder while redirecting
   return null;
 }
+

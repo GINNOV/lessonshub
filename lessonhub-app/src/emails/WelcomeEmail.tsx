@@ -79,7 +79,7 @@ const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
   userEmail,
   signInUrl,
 }) => {
-  const previewText = `Welcome to LessonHub, ${userName || ''}!`;
+  const previewText = `Welcome to LessonHUB, ${userName || ''}!`;
 
   return (
     <Html>
@@ -88,7 +88,7 @@ const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
       <Body style={main}>
         <Container style={container}>
           <Section style={box}>
-            <Heading style={h1}>Welcome to LessonHub!</Heading>
+            <Heading style={h1}>Welcome to LessonHUB!</Heading>
             <Text style={paragraph}>Hi {userName || 'there'},</Text>
             {userEmail ? (
               <Text style={paragraph}>
@@ -104,7 +104,7 @@ const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
             </Button>
             <Hr style={hr} />
             <Text style={footer}>
-              LessonHub — The modern platform for modern learning.
+              LessonHUB — The modern platform for modern learning.
             </Text>
           </Section>
         </Container>
