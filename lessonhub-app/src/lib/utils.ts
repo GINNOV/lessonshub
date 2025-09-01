@@ -8,13 +8,13 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Generates a string with the week number and day of the week.
- * e.g., "35w fri"
+ * e.g., "35-SUN"
  * @param date The date to format.
  * @returns A formatted string.
  */
 export function getWeekAndDay(date: Date): string {
   const d = new Date(date);
-  const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   const dayOfWeek = dayNames[d.getUTCDay()];
 
   // Create a copy of the date to avoid modifying the original
@@ -24,5 +24,5 @@ export function getWeekAndDay(date: Date): string {
   // Calculate full weeks to nearest Thursday
   const weekNo = Math.ceil((((tempDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 
-  return `${weekNo}w ${dayOfWeek}`;
+  return `${weekNo}-${dayOfWeek}`;
 }

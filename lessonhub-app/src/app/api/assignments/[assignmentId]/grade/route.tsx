@@ -7,13 +7,7 @@ import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role, AssignmentStatus } from "@prisma/client";
 import { render } from '@react-email/render';
-import * as React from 'react';
-import * as fs from 'fs';
-import * as path from 'path';
-
-// Dynamically import the email component to prevent build-time resolution issues
-const GradedEmail = (await import('@/emails/GradedEmail')).default;
-
+import GradedEmail from '@/emails/GradedEmail';
 
 // Helper function to get base URL
 function getBaseUrl(req: NextRequest): string {
@@ -57,6 +51,8 @@ export async function PATCH(
       }
     });
 
+    console.log("Fetched assignment for grading:", JSON.stringify(assignment, null, 2));
+
     if (!assignment) {
       return new NextResponse(JSON.stringify({ error: "Assignment not found or you don't have permission to grade it." }), { status: 404 });
     }
@@ -71,33 +67,44 @@ export async function PATCH(
       },
     });
 
-    // Send email notification
-    if (assignment.student.email) {
-      const assignmentUrl = `${getBaseUrl(request)}/assignments/${assignment.id}`;
-      
-      const emailHtml = render(
-        React.createElement(GradedEmail, {
-          studentName: assignment.student.name,
-          lessonTitle: assignment.lesson.title,
-          score: score,
-          teacherComments: teacherComments,
-          assignmentUrl: assignmentUrl,
-        })
-      );
+    if (assignment.student?.email) {
+      try {
+        const assignmentUrl = `${getBaseUrl(request)}/assignments/${assignment.id}`;
+        
+        // --- FIX: Added the 'await' keyword here ---
+        const emailHtml = await render(
+          <GradedEmail
+            studentName={assignment.student.name}
+            lessonTitle={assignment.lesson.title}
+            score={score}
+            teacherComments={teacherComments}
+            assignmentUrl={assignmentUrl}
+          />
+        );
 
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: process.env.EMAIL_FROM,
-          to: assignment.student.email,
-          subject: `Your assignment "${assignment.lesson.title}" has been graded`,
-          html: emailHtml,
-        }),
-      });
+        const emailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: process.env.EMAIL_FROM,
+            to: assignment.student.email,
+            subject: `Your assignment "${assignment.lesson.title}" has been graded`,
+            html: emailHtml,
+          }),
+        });
+
+        if (emailResponse.ok) {
+          console.log(`Successfully sent graded email to ${assignment.student.email} for assignment ${assignment.id}`);
+        } else {
+          const errorBody = await emailResponse.json();
+          console.error("Failed to send graded email:", errorBody);
+        }
+      } catch (emailError) {
+        console.error("An unexpected error occurred while sending the email:", emailError);
+      }
     }
 
     return NextResponse.json(updatedAssignment, { status: 200 });

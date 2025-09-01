@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getAssignmentsForStudent } from "../actions/lessonActions";
-import StudentLessonList from "../components/StudentLessonList";
+import FilteredLessonList from "../components/FilteredLessonList"; // <-- UPDATED IMPORT
 import { AssignmentStatus } from "@prisma/client";
 
 export default async function StudentDashboardPage() {
@@ -14,14 +14,12 @@ export default async function StudentDashboardPage() {
 
   const assignments = await getAssignmentsForStudent(session.user.id);
 
-  // --- Calculate the summary stats ---
   const stats = {
     pending: assignments.filter(a => a.status === AssignmentStatus.PENDING).length,
     completed: assignments.filter(a => a.status === AssignmentStatus.COMPLETED).length,
     graded: assignments.filter(a => a.status === AssignmentStatus.GRADED).length,
   };
 
-  // --- Calculate the total points ---
   const totalPoints = assignments
     .filter(a => a.status === AssignmentStatus.GRADED)
     .reduce((sum, a) => sum + (a.score || 0), 0);
@@ -39,7 +37,6 @@ export default async function StudentDashboardPage() {
         <h1 className="text-3xl font-bold">My Lessons</h1>
       </div>
 
-      {/* --- New Sleeker Summary Header --- */}
       <div className="bg-white p-6 rounded-lg shadow-sm border mb-8">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
           {statCards.map(card => (
@@ -52,13 +49,14 @@ export default async function StudentDashboardPage() {
         </div>
       </div>
       
-      <StudentLessonList assignments={assignments} />
+      {/* --- USE THE NEW FILTERABLE COMPONENT --- */}
+      <FilteredLessonList assignments={assignments} />
     </div>
   );
 }
 
 
-// --- SVG Icon Components (for a cleaner look) ---
+// --- SVG Icon Components ---
 
 function StarIcon(props: React.SVGProps<SVGSVGElement>) {
   return (

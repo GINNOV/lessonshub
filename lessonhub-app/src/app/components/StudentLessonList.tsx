@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Assignment, Lesson, User } from '@prisma/client';
 import { cn, getWeekAndDay } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 type AssignmentWithDetails = Assignment & {
   lesson: Lesson & {
@@ -32,53 +33,64 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
             <div 
               key={assignment.id} 
               className={cn(
-                "p-6 border rounded-lg shadow-sm",
-                index % 2 === 0 ? 'bg-white' : 'bg-slate-50' // Alternate background color
+                "p-4 sm:p-6 border rounded-lg shadow-sm",
+                index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
               )}
             >
-              {/* --- TOP ROW: Lesson Info and Actions --- */}
               <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-4">
-                  <span className="text-xs font-semibold text-gray-500 uppercase">
+                <div>
+                  <span className="text-sm font-bold text-gray-600 uppercase">
                     Lesson #{getWeekAndDay(new Date(assignment.assignedAt))}
                   </span>
-                  <span 
-                    className={`px-3 py-1 text-xs font-medium rounded-full
-                      ${assignment.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
-                      ${assignment.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' : ''}
-                      ${assignment.status === 'GRADED' ? 'bg-green-100 text-green-800' : ''}
-                    `}
-                  >
-                    {assignment.status}
-                  </span>
+                  <div className="mt-1 sm:hidden">
+                    <span 
+                      className={`px-3 py-1 text-xs font-medium rounded-full
+                        ${assignment.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
+                        ${assignment.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' : ''}
+                        ${assignment.status === 'GRADED' ? 'bg-green-100 text-green-800' : ''}
+                      `}
+                    >
+                      {assignment.status}
+                    </span>
+                  </div>
                 </div>
                 {assignment.status === 'PENDING' && (
-                  <Link 
-                    href={`/assignments/${assignment.id}`} 
-                    className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                  >
-                    Start Lesson
-                  </Link>
+                  <Button asChild size="sm" className="sm:size-auto">
+                    <Link href={`/assignments/${assignment.id}`}>
+                      {/* This span is the key to preventing the React error */}
+                      <span>Start Lesson</span>
+                    </Link>
+                  </Button>
                 )}
               </div>
 
-              {/* --- MIDDLE ROW: Content --- */}
               <div className="flex flex-col sm:flex-row gap-6">
                 {assignment.lesson.assignment_image_url && (
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 w-full sm:w-auto">
                     <Image
                       src={assignment.lesson.assignment_image_url}
                       alt={`Image for ${assignment.lesson.title}`}
                       width={150}
                       height={100}
-                      className="rounded-md object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                      className="rounded-md object-cover w-full h-auto sm:w-[150px] sm:h-[100px] cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => openModal(assignment.lesson.assignment_image_url!)}
                     />
                   </div>
                 )}
                 <div className="flex-grow">
-                  <h2 className="text-xl font-semibold">{assignment.lesson.title}</h2>
-                  <p className="text-sm text-gray-500">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-semibold">🧀 {assignment.lesson.title}</h2>
+                    <span 
+                      className={`hidden sm:inline-flex px-3 py-1 text-xs font-medium rounded-full
+                        ${assignment.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}
+                        ${assignment.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' : ''}
+                        ${assignment.status === 'GRADED' ? 'bg-green-100 text-green-800' : ''}
+                      `}
+                    >
+                      {assignment.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
                     Assigned by: {assignment.lesson.teacher.name}
                   </p>
                   
@@ -96,10 +108,9 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
                 </div>
               </div>
 
-              {/* --- BOTTOM ROW: Deadline --- */}
               <div className="mt-4 border-t pt-4">
                   <p className="text-sm text-right text-gray-500">
-                    <strong>Deadline:</strong> {new Date(assignment.deadline).toLocaleString()}
+                    <strong className="text-red-600">Deadline:</strong> {new Date(assignment.deadline).toLocaleString()}
                   </p>
               </div>
             </div>
