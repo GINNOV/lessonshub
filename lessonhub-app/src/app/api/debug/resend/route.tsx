@@ -1,4 +1,8 @@
 // file: src/app/api/debug/resend/route.tsx
+// remove the underscore to enable the route for testing
+// test using: curl -X POST http://localhost:3000/api/debug/resend \
+// -H "Content-Type: application/json" \
+// -d '{"to": "example@example.com", "subject": "Resend smoke test"}'
 export const runtime = 'nodejs'; // Use Node.js runtime for robust rendering
 
 import { NextRequest, NextResponse } from "next/server";

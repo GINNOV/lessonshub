@@ -1,8 +1,5 @@
 // file: src/auth.ts
-// remove the underscore to enable the route for testing
-// test using: curl -X POST http://localhost:3000/api/debug/resend \
-// -H "Content-Type: application/json" \
-// -d '{"to": "example@example.com", "subject": "Resend smoke test"}'
+
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
@@ -65,30 +62,7 @@ export const {
 
   secret: process.env.AUTH_SECRET,
 
-  // ---- Logging ----
   debug: process.env.NODE_ENV === "development",
-
-  logger: {
-    error(error: Error) {
-      console.error("[auth:error]", error);
-    },
-    warn(code: string) {
-      console.warn("[auth:warn]", code);
-    },
-    debug(code: string, metadata?: unknown) {
-      console.log("[auth:debug]", code, metadata);
-    },
-  },
-
-  events: {
-    async signIn(message) {
-      console.log("[auth:event] signIn", {
-        userId: message?.user?.id,
-        account: message?.account?.provider,
-      });
-    },
-  },
-  // ---- End Logging ----
 
   callbacks: {
     async jwt({ token, user }) {
@@ -107,3 +81,4 @@ export const {
     },
   },
 });
+

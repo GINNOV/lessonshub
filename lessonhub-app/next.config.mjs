@@ -4,7 +4,8 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'nani7mvpzafhmd04.public.blob.vercel-storage.com',
+        // Use a wildcard to allow images from any Vercel Blob Storage hostname.
+        hostname: '*.public.blob.vercel-storage.com',
         port: '',
         pathname: '/**',
       },
@@ -13,4 +14,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-
