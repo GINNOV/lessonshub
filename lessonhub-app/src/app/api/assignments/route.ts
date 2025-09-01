@@ -4,10 +4,9 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 
-export async function POST(request: Request) {
-  // Move the auth() call inside the handler
+export async function PATCH(request: Request) {
   const session = await auth();
-  
+
   if (!session || !session.user || session.user.role !== Role.TEACHER) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
@@ -16,26 +15,49 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { lessonId, studentIds, deadline } = body;
+    const { lessonId, studentIdsToAssign, studentIdsToUnassign, deadline } = body;
 
-    if (!lessonId || !studentIds || !Array.isArray(studentIds) || studentIds.length === 0 || !deadline) {
-      return new NextResponse(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
+    if (!lessonId || !deadline) {
+      return new NextResponse(JSON.stringify({ error: "Lesson ID and deadline are required" }), { status: 400 });
     }
 
-    const assignmentsData = studentIds.map((studentId: string) => ({
-      lessonId: lessonId,
-      studentId: studentId,
-      deadline: new Date(deadline),
-    }));
+    const operations = [];
 
-    const result = await prisma.assignment.createMany({
-      data: assignmentsData,
-      skipDuplicates: true,
-    });
+    // 1. Unassign students who were deselected
+    if (studentIdsToUnassign && studentIdsToUnassign.length > 0) {
+      const deleteOperation = prisma.assignment.deleteMany({
+        where: {
+          lessonId: lessonId,
+          studentId: {
+            in: studentIdsToUnassign,
+          },
+        },
+      });
+      operations.push(deleteOperation);
+    }
 
-    return NextResponse.json(result, { status: 201 });
+    // 2. Assign new students who were selected
+    if (studentIdsToAssign && studentIdsToAssign.length > 0) {
+      const assignmentsData = studentIdsToAssign.map((studentId: string) => ({
+        lessonId: lessonId,
+        studentId: studentId,
+        deadline: new Date(deadline),
+      }));
+      const createOperation = prisma.assignment.createMany({
+        data: assignmentsData,
+        skipDuplicates: true, // This is a safeguard
+      });
+      operations.push(createOperation);
+    }
+    
+    // 3. Execute all operations in a single transaction
+    if (operations.length > 0) {
+      await prisma.$transaction(operations);
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error("ASSIGNMENT_ERROR", error);
-    return new NextResponse(JSON.stringify({ error: "Failed to create assignments" }), { status: 500 });
+    console.error("ASSIGNMENT_UPDATE_ERROR", error);
+    return new NextResponse(JSON.stringify({ error: "Failed to update assignments" }), { status: 500 });
   }
 }

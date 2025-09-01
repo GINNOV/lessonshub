@@ -2,13 +2,15 @@
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { auth } from "@/auth";
 import { getSubmissionForGrading } from "@/app/actions/lessonActions";
 import { Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
 import { Button } from "@/components/ui/button";
+import { marked } from 'marked'; // <-- Import marked
 
-export default async function GradeSubmissionPage({ params }: { params: Promise<{ assignmentId: string }> }) {
+export default async function GradeSubmissionPage({ params }: { params: { assignmentId: string } }) {
   const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
@@ -28,6 +30,9 @@ export default async function GradeSubmissionPage({ params }: { params: Promise<
     );
   }
 
+  // Parse the markdown content to HTML
+  const assignmentHtml = marked.parse(submission.lesson.assignment_text);
+
   return (
     <div>
       <Button variant="link" asChild className="mb-4 pl-0">
@@ -40,7 +45,19 @@ export default async function GradeSubmissionPage({ params }: { params: Promise<
         <div className="bg-white p-6 rounded-lg shadow-md space-y-6 border">
           <div>
             <h2 className="text-xl font-semibold border-b pb-2">Original Lesson: {submission.lesson.title}</h2>
-            <div className="prose prose-sm mt-4 max-w-none">{submission.lesson.assignment_text}</div>
+            {submission.lesson.assignment_image_url && (
+              <div className="my-4">
+                <Image
+                  src={submission.lesson.assignment_image_url}
+                  alt={`Image for ${submission.lesson.title}`}
+                  width={500}
+                  height={300}
+                  className="w-full h-auto rounded-md border"
+                />
+              </div>
+            )}
+            {/* --- UPDATED TO RENDER MARKDOWN --- */}
+            <div className="prose prose-sm mt-4 max-w-none" dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
           </div>
           <div>
             <h2 className="text-xl font-semibold border-b pb-2">Student&apos;s Response</h2>

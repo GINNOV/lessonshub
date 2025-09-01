@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { getAssignmentById } from "@/app/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
+import { marked } from 'marked'; // <-- Import marked
 
 // Corrected type for Next.js 14
 interface AssignmentPageProps {
@@ -19,7 +20,7 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
     redirect("/signin");
   }
 
-  const { assignmentId } = params; // No longer needs await
+  const { assignmentId } = params;
   const assignment = await getAssignmentById(assignmentId, session.user.id);
 
   if (!assignment) {
@@ -32,6 +33,11 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
   }
 
   const { lesson } = assignment;
+  
+  // Parse the markdown content to HTML
+  const assignmentHtml = marked.parse(lesson.assignment_text);
+  const contextHtml = lesson.context_text ? marked.parse(lesson.context_text) : '';
+
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
@@ -55,12 +61,14 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
           </div>
         )}
 
-        <p>{lesson.assignment_text}</p>
+        {/* --- UPDATED TO RENDER MARKDOWN --- */}
+        <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
         
         {lesson.context_text && (
           <>
             <h3 className="text-lg font-semibold mt-4">Context</h3>
-            <p>{lesson.context_text}</p>
+            {/* --- UPDATED TO RENDER MARKDOWN --- */}
+            <div dangerouslySetInnerHTML={{ __html: contextHtml }} />
           </>
         )}
       </div>

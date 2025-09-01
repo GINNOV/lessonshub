@@ -2,20 +2,25 @@
 
 import { redirect } from 'next/navigation';
 import { auth } from "@/auth";
-import { getLessonById, getAllStudents } from '@/app/actions/lessonActions';
+import { getLessonById, getAllStudents, getSubmissionsForLesson } from '@/app/actions/lessonActions';
 import AssignLessonForm from '@/app/components/AssignLessonForm';
 import { Role } from '@prisma/client';
 
-export default async function AssignPage({ params }: { params: Promise<{ lessonId: string }> }) {
+export default async function AssignPage({ params }: { params: { lessonId: string } }) {
   const session = await auth();
 
   if (!session || session.user.role !== Role.TEACHER) {
     redirect('/');
   }
 
-  const { lessonId } = await params;
-  const lesson = await getLessonById(lessonId);
-  const students = await getAllStudents();
+  const { lessonId } = params;
+  
+  // Fetch all necessary data in parallel
+  const [lesson, students, existingAssignments] = await Promise.all([
+    getLessonById(lessonId),
+    getAllStudents(),
+    getSubmissionsForLesson(lessonId, session.user.id)
+  ]);
 
   if (!lesson) {
     return <div>Lesson not found.</div>;
@@ -26,7 +31,11 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
       <div className="w-full max-w-lg">
         <h1 className="text-3xl font-bold mb-2">Assign Lesson</h1>
         <h2 className="text-xl text-gray-600 mb-6">{lesson.title}</h2>
-        <AssignLessonForm lesson={lesson} students={students} />
+        <AssignLessonForm 
+          lesson={lesson} 
+          students={students} 
+          existingAssignments={existingAssignments} 
+        />
       </div>
     </div>
   );

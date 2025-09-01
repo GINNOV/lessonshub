@@ -25,6 +25,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.400.0",
+    "marked": "^16.2.1",
     "next": "^14.2.4",
     "next-auth": "^5.0.0-beta.19",
     "nodemailer": "^6.9.14",
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/marked": "^5.0.2",
     "@types/node": "^20.14.9",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",

@@ -1,4 +1,4 @@
-// file: src/app/api/assignments/[assignmentId]/grade/route.ts
+// file: src/app/api/assignments/[assignmentId]/grade/route.tsx
 
 export const runtime = 'nodejs';
 
@@ -6,6 +6,22 @@ import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role, AssignmentStatus } from "@prisma/client";
+import { render } from '@react-email/render';
+import * as React from 'react';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Dynamically import the email component to prevent build-time resolution issues
+const GradedEmail = (await import('@/emails/GradedEmail')).default;
+
+
+// Helper function to get base URL
+function getBaseUrl(req: NextRequest): string {
+  const headers = req.headers;
+  const protocol = headers.get('x-forwarded-proto') || 'http';
+  const host = headers.get('host') || 'localhost:3000';
+  return `${protocol}://${host}`;
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -28,7 +44,6 @@ export async function PATCH(
       return new NextResponse(JSON.stringify({ error: "Score is required and must be a number" }), { status: 400 });
     }
 
-    // Ensure the assignment exists and belongs to a lesson taught by this teacher.
     const assignment = await prisma.assignment.findFirst({
       where: {
         id: assignmentId,
@@ -36,6 +51,10 @@ export async function PATCH(
           teacherId: session.user.id,
         },
       },
+      include: {
+        student: true,
+        lesson: true,
+      }
     });
 
     if (!assignment) {
@@ -51,6 +70,35 @@ export async function PATCH(
         gradedAt: new Date(),
       },
     });
+
+    // Send email notification
+    if (assignment.student.email) {
+      const assignmentUrl = `${getBaseUrl(request)}/assignments/${assignment.id}`;
+      
+      const emailHtml = render(
+        React.createElement(GradedEmail, {
+          studentName: assignment.student.name,
+          lessonTitle: assignment.lesson.title,
+          score: score,
+          teacherComments: teacherComments,
+          assignmentUrl: assignmentUrl,
+        })
+      );
+
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: process.env.EMAIL_FROM,
+          to: assignment.student.email,
+          subject: `Your assignment "${assignment.lesson.title}" has been graded`,
+          html: emailHtml,
+        }),
+      });
+    }
 
     return NextResponse.json(updatedAssignment, { status: 200 });
   } catch (error) {

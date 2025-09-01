@@ -47,8 +47,11 @@ export default async function DashboardPage() {
                       {completedAssignments} of {totalAssignments} submissions complete
                     </p>
                   </div>
-                  {/* Add a container for the two buttons */}
                   <div className="flex items-center space-x-2">
+                    {/* --- EDIT BUTTON --- */}
+                    <Button variant="outline" asChild>
+                      <Link href={`/dashboard/edit/${lesson.id}`}>Edit</Link>
+                    </Button>
                     <Button variant="outline" asChild>
                       <Link href={`/dashboard/assign/${lesson.id}`}>Assign</Link>
                     </Button>
