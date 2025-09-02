@@ -3,7 +3,8 @@
 'use server';
 
 import prisma from "@/lib/prisma";
-import { Role } from "@prisma/client";
+// --- FIX: Added AssignmentStatus to the import ---
+import { Role, AssignmentStatus } from "@prisma/client";
 
 /**
  * Fetches all lessons created by a specific teacher.
@@ -174,5 +175,50 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
   } catch (error) {
     console.error("Failed to fetch assignment:", error);
     return null;
+  }
+}
+
+
+/**
+ * Fetches all students and enriches them with stats like total points and last seen date.
+ * @returns A promise that resolves to an array of student users with their stats.
+ */
+export async function getStudentsWithStats() {
+  try {
+    const students = await prisma.user.findMany({
+      where: { role: Role.STUDENT },
+      include: {
+        assignments: {
+          where: { status: AssignmentStatus.GRADED },
+          select: {
+            score: true,
+          },
+        },
+        sessions: {
+          orderBy: {
+            expires: 'desc',
+          },
+          take: 1,
+          select: {
+            expires: true,
+          },
+        },
+      },
+      orderBy: { email: 'asc' },
+    });
+
+    // Process the data to calculate total points
+    return students.map(student => {
+      const totalPoints = student.assignments.reduce((sum, a) => sum + (a.score || 0), 0);
+      return {
+        ...student,
+        totalPoints,
+        lastSeen: student.sessions[0]?.expires,
+      };
+    });
+
+  } catch (error) {
+    console.error("Failed to fetch students with stats:", error);
+    return [];
   }
 }

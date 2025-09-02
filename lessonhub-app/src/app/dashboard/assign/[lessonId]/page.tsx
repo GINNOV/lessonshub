@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { auth } from "@/auth";
-import { getLessonById, getAllStudents, getSubmissionsForLesson } from "../../../actions/lessonActions";
+import { getLessonById, getSubmissionsForLesson, getStudentsWithStats } from "../../../actions/lessonActions";
 import AssignLessonForm from '@/app/components/AssignLessonForm';
 import { Role } from '@prisma/client';
 
@@ -13,12 +13,12 @@ export default async function AssignPage({ params }: { params: { lessonId: strin
     redirect('/');
   }
 
-  const { lessonId } = params;
+  const { lessonId } = await params;
   
-  // Fetch all necessary data in parallel
+  // Fetch all necessary data in parallel for better performance
   const [lesson, students, existingAssignments] = await Promise.all([
     getLessonById(lessonId),
-    getAllStudents(),
+    getStudentsWithStats(), // <-- Use the new function
     getSubmissionsForLesson(lessonId, session.user.id)
   ]);
 
@@ -28,7 +28,7 @@ export default async function AssignPage({ params }: { params: { lessonId: strin
 
   return (
     <div className="flex justify-center">
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-4xl"> {/* Increased max-width for the table */}
         <h1 className="text-3xl font-bold mb-2">Assign Lesson</h1>
         <h2 className="text-xl text-gray-600 mb-6">{lesson.title}</h2>
         <AssignLessonForm 
