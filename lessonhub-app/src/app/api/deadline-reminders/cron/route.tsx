@@ -58,7 +58,7 @@ export async function GET(request: Request) {
           body: JSON.stringify({
             from: process.env.EMAIL_FROM,
             to: assignment.student.email,
-            subject: `Reminder: Assignment "${assignment.lesson.title}" is due soon`,
+            subject: `🔔 Reminder: Assignment "${assignment.lesson.title}" is due soon`,
             html: emailHtml,
           }),
         });

@@ -299,7 +299,7 @@ export async function sendManualReminder(assignmentId: string) {
       body: JSON.stringify({
         from: process.env.EMAIL_FROM,
         to: assignment.student.email,
-        subject: `Reminder: Your assignment "${assignment.lesson.title}"`,
+        subject: `🚨 Reminder: Your assignment "${assignment.lesson.title}"`,
         html: emailHtml,
       }),
     });

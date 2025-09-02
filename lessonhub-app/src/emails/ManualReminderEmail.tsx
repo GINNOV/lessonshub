@@ -99,7 +99,7 @@ const ManualReminderEmail: React.FC<Readonly<ManualReminderEmailProps>> = ({
               View Assignment
             </Button>
             <Text style={paragraph}>
-              🇮🇹 Vergogna e svergognamento! Non hai ancora fatto i compiti. {teacherName || 'your teacher'}, to complete the assignment.
+              🇮🇹 Vergogna e svergognamento! Non hai ancora fatto i compiti. {teacherName|| 'your teacher'}, says to complete the assignment.
             </Text>
             <Hr style={hr} />
             <Text style={footer}>
