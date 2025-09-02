@@ -5,13 +5,24 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { getAssignmentById } from "../../actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
-import { marked } from 'marked'; // <-- Import marked
+import { marked } from 'marked';
 
 // Corrected type for Next.js 14
 interface AssignmentPageProps {
   params: {
     assignmentId: string;
   };
+}
+
+// --- NEW SVG Icon for the banner ---
+function AlertTriangleIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </svg>
+  );
 }
 
 export default async function AssignmentPage({ params }: AssignmentPageProps) {
@@ -34,13 +45,25 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
 
   const { lesson } = assignment;
   
-  // Parse the markdown content to HTML
   const assignmentHtml = marked.parse(lesson.assignment_text);
   const contextHtml = lesson.context_text ? marked.parse(lesson.context_text) : '';
+  const isPastDeadline = new Date() > new Date(assignment.deadline);
 
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
+      
+      {/* --- NEW: Past Deadline Banner --- */}
+      {isPastDeadline && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6 flex items-center">
+          <AlertTriangleIcon className="h-6 w-6 mr-3" />
+          <div>
+            <p className="font-bold">Deadline Passed</p>
+            <p className="text-sm">This assignment is past its deadline. You can still view the content, but you are not able to submit a response.</p>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-3xl font-bold mb-2">{lesson.title}</h1>
       <p className="text-sm text-gray-500 mb-6">
         Deadline: {new Date(assignment.deadline).toLocaleString()}
@@ -61,13 +84,11 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
           </div>
         )}
 
-        {/* --- UPDATED TO RENDER MARKDOWN --- */}
         <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
         
         {lesson.context_text && (
           <>
             <h3 className="text-lg font-semibold mt-4">Context</h3>
-            {/* --- UPDATED TO RENDER MARKDOWN --- */}
             <div dangerouslySetInnerHTML={{ __html: contextHtml }} />
           </>
         )}
