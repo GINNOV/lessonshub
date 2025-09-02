@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getLessonsForTeacher } from "@/actions/lessonActions";
 import { Role, AssignmentStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
+import DeleteLessonButton from "@/app/components/DeleteLessonButton"; // <-- Import the new component
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -69,7 +70,6 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {/* --- Re-added the Edit button with outline style --- */}
                     <Button variant="outline" asChild>
                       <Link href={`/dashboard/edit/${lesson.id}`}>Edit</Link>
                     </Button>
@@ -79,6 +79,8 @@ export default async function DashboardPage() {
                     <Button asChild>
                       <Link href={`/dashboard/submissions/${lesson.id}`}>View Submissions</Link>
                     </Button>
+                    {/* --- ADDED DELETE BUTTON --- */}
+                    <DeleteLessonButton lessonId={lesson.id} />
                   </div>
                 </li>
               );

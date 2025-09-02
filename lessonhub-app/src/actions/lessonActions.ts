@@ -1,10 +1,10 @@
-// file: src/app/actions/lessonActions.ts
+// file: src/actions/lessonActions.ts
 
 'use server';
 
 import prisma from "@/lib/prisma";
-// --- FIX: Added AssignmentStatus to the import ---
 import { Role, AssignmentStatus } from "@prisma/client";
+import { revalidatePath } from 'next/cache';
 
 /**
  * Fetches all lessons created by a specific teacher.
@@ -178,7 +178,6 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
   }
 }
 
-
 /**
  * Fetches all students and enriches them with stats like total points and last seen date.
  * @returns A promise that resolves to an array of student users with their stats.
@@ -198,18 +197,41 @@ export async function getStudentsWithStats() {
       orderBy: { email: 'asc' },
     });
 
-    // Process the data to calculate total points
     return students.map(student => {
       const totalPoints = student.assignments.reduce((sum, a) => sum + (a.score || 0), 0);
       return {
         ...student,
         totalPoints,
-        // The lastSeen field now comes directly and reliably from the user model
       };
     });
 
   } catch (error) {
     console.error("Failed to fetch students with stats:", error);
     return [];
+  }
+}
+
+/**
+ * Deletes a lesson by its ID.
+ * @param lessonId The ID of the lesson to delete.
+ * @returns An object indicating success or failure.
+ */
+export async function deleteLesson(lessonId: string) {
+  try {
+    const response = await fetch(`${process.env.AUTH_URL}/api/lessons/${lessonId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to delete lesson from API');
+    }
+    
+    // Revalidate the dashboard path to show the updated list of lessons
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete lesson:", error);
+    return { success: false, error: (error as Error).message };
   }
 }

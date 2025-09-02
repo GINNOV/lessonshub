@@ -63,3 +63,47 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { lessonId: string } }
+) {
+  const session = await auth();
+  const { lessonId } = params;
+
+  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+    return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
+
+  try {
+    // First, verify that the lesson belongs to the teacher making the request
+    const lesson = await prisma.lesson.findFirst({
+      where: {
+        id: lessonId,
+        teacherId: session.user.id,
+      },
+    });
+
+    if (!lesson) {
+      return new NextResponse(
+        JSON.stringify({ error: "Lesson not found or you don't have permission to delete it." }),
+        { status: 404 }
+      );
+    }
+
+    // If the lesson exists and belongs to the teacher, delete it
+    await prisma.lesson.delete({
+      where: { id: lessonId },
+    });
+
+    return new NextResponse(null, { status: 204 }); // 204 No Content for successful deletion
+  } catch (error) {
+    console.error("DELETE_LESSON_ERROR", error);
+    return new NextResponse(
+      JSON.stringify({ error: "Failed to delete lesson" }),
+      { status: 500 }
+    );
+  }
+}
