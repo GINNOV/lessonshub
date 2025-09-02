@@ -10,6 +10,7 @@ import {
   Section,
   Text,
   Hr,
+  Link,
 } from '@react-email/components';
 import * as React from 'react';
 
@@ -115,7 +116,14 @@ const GradedEmail: React.FC<Readonly<GradedEmailProps>> = ({
             </Button>
             <Hr style={hr} />
             <Text style={footer}>
-              LessonHUB — The modern platform for modern learning.
+              <Link
+                href="https://quantifythis.com"
+                target="_blank"
+                style={{ color: '#8898aa', textDecoration: 'underline' }}
+              >
+                LessonHUB
+              </Link>{' '}
+              — The modern platform for modern learning.
             </Text>
           </Section>
         </Container>
