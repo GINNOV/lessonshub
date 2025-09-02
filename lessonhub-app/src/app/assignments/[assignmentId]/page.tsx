@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { getAssignmentById } from "@/app/actions/lessonActions";
+import { getAssignmentById } from "../../actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
 import { marked } from 'marked'; // <-- Import marked
 

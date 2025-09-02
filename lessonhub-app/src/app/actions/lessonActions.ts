@@ -19,11 +19,11 @@ export async function getLessonsForTeacher(teacherId: string) {
       where: {
         teacherId: teacherId,
       },
-      // Add this include block
       include: {
         assignments: {
           select: {
             status: true,
+            deadline: true,
           },
         },
       },
@@ -47,13 +47,12 @@ export async function getSubmissionsForLesson(lessonId: string, teacherId: strin
     const assignments = await prisma.assignment.findMany({
       where: {
         lessonId: lessonId,
-        // Security Check: Ensures the lesson belongs to the logged-in teacher
         lesson: {
           teacherId: teacherId,
         },
       },
       include: {
-        student: true, // Include the student's details (name, email, etc.)
+        student: true,
       },
       orderBy: {
         assignedAt: 'asc',
@@ -116,14 +115,14 @@ export async function getAssignmentsForStudent(studentId: string) {
         studentId: studentId,
       },
       include: {
-        lesson: { // For each assignment, include the lesson details
+        lesson: {
           include: {
-            teacher: true, // In the lesson details, include the teacher's info
+            teacher: true,
           },
         },
       },
       orderBy: {
-        deadline: 'asc', // Show assignments with the soonest deadline first
+        deadline: 'asc',
       },
     });
     return assignments;
@@ -142,7 +141,7 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
       where: {
         id: assignmentId,
         lesson: {
-          teacherId: teacherId, // Security check!
+          teacherId: teacherId,
         },
       },
       include: {
@@ -165,7 +164,7 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
     const assignment = await prisma.assignment.findFirst({
       where: {
         id: assignmentId,
-        studentId: studentId, // Security check!
+        studentId: studentId,
       },
       include: {
         lesson: true,

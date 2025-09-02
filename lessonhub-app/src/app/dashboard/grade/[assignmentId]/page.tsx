@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { auth } from "@/auth";
-import { getSubmissionForGrading } from "@/app/actions/lessonActions";
+import { getSubmissionForGrading } from "../../../actions/lessonActions";
 import { Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
 import { Button } from "@/components/ui/button";

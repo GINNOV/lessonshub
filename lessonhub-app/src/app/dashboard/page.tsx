@@ -3,8 +3,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLessonsForTeacher } from "../actions/lessonActions";
-import { Role } from "@prisma/client";
-import { Button } from "@/components/ui/button"; // Import the Shadcn Button
+import { Role, AssignmentStatus } from "@prisma/client";
+import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -34,21 +34,37 @@ export default async function DashboardPage() {
         {lessons.length > 0 ? (
           <ul className="space-y-4">
             {lessons.map((lesson) => {
-              const totalAssignments = lesson.assignments.length;
-              const completedAssignments = lesson.assignments.filter(
-                (a) => a.status === 'COMPLETED'
+              const now = new Date();
+              const graded = lesson.assignments.filter(
+                (a) => a.status === AssignmentStatus.GRADED
+              ).length;
+              const pending = lesson.assignments.filter(
+                (a) => a.status === AssignmentStatus.PENDING && new Date(a.deadline) > now
+              ).length;
+              const pastDue = lesson.assignments.filter(
+                (a) => a.status === AssignmentStatus.PENDING && new Date(a.deadline) <= now
               ).length;
 
               return (
                 <li key={lesson.id} className="p-4 border rounded-md flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-lg">{lesson.title}</h3>
-                    <p className="text-sm text-gray-500">
-                      {completedAssignments} of {totalAssignments} submissions complete
-                    </p>
+                    {/* --- NEW STATUS BADGES --- */}
+                    <div className="flex items-center space-x-2 mt-2">
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        {pending} Pending
+                      </span>
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        {graded} Graded
+                      </span>
+                      {pastDue > 0 && (
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                          {pastDue} Past Due
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {/* --- EDIT BUTTON --- */}
                     <Button variant="outline" asChild>
                       <Link href={`/dashboard/edit/${lesson.id}`}>Edit</Link>
                     </Button>

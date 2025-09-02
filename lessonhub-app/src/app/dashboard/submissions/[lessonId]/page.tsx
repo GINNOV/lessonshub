@@ -7,7 +7,7 @@ import { getSubmissionsForLesson, getLessonById } from "@/app/actions/lessonActi
 import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 
-export default async function SubmissionsPage({ params }: { params: Promise<{ lessonId: string }> }) {
+export default async function SubmissionsPage({ params }: { params: { lessonId: string } }) {
   const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
