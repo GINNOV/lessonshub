@@ -48,8 +48,12 @@ export default async function DashboardPage() {
               return (
                 <li key={lesson.id} className="p-4 border rounded-md flex justify-between items-center">
                   <div>
-                    <h3 className="font-bold text-lg">{lesson.title}</h3>
-                    {/* --- NEW STATUS BADGES --- */}
+                    <Link href={`/dashboard/edit/${lesson.id}`} className="font-bold text-lg hover:underline">
+                      {lesson.title}
+                    </Link>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Created on: {new Date(lesson.createdAt).toLocaleDateString()}
+                    </p>
                     <div className="flex items-center space-x-2 mt-2">
                       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
                         {pending} Pending
@@ -65,6 +69,7 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    {/* --- Re-added the Edit button with outline style --- */}
                     <Button variant="outline" asChild>
                       <Link href={`/dashboard/edit/${lesson.id}`}>Edit</Link>
                     </Button>
