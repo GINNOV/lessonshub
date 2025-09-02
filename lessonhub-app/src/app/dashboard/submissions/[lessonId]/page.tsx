@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { getSubmissionsForLesson, getLessonById } from "@/actions/lessonActions";
-import { Role } from "@prisma/client";
+import { Role, AssignmentStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
+import ReminderButton from "@/components/ReminderButton"; // <-- Import the new component
 
 export default async function SubmissionsPage({ params }: { params: { lessonId: string } }) {
   const session = await auth();
@@ -52,7 +53,11 @@ export default async function SubmissionsPage({ params }: { params: { lessonId: 
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.score ?? 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                  {/* --- NEW: Conditionally render the ReminderButton --- */}
+                  {sub.status === AssignmentStatus.PENDING && (
+                    <ReminderButton assignmentId={sub.id} />
+                  )}
                   {sub.status === 'COMPLETED' && (
                     <Button variant="link" asChild>
                       <Link href={`/dashboard/grade/${sub.id}`}>Grade</Link>

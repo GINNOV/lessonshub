@@ -5,6 +5,8 @@
 import prisma from "@/lib/prisma";
 import { Role, AssignmentStatus } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
+import { render } from '@react-email/render';
+import ManualReminderEmail from '@/emails/ManualReminderEmail';
 
 /**
  * Fetches all lessons created by a specific teacher.
@@ -39,11 +41,16 @@ export async function getLessonsForTeacher(teacherId: string) {
   }
 }
 
+/**
+ * Fetches all submissions for a given lesson, ensuring the request is made by the lesson's teacher.
+ * @param lessonId The ID of the lesson.
+ * @param teacherId The ID of the teacher making the request.
+ * @returns A promise that resolves to an array of assignments with student details.
+ */
 export async function getSubmissionsForLesson(lessonId: string, teacherId: string) {
   if (!lessonId || !teacherId) {
     return [];
   }
-
   try {
     const assignments = await prisma.assignment.findMany({
       where: {
@@ -109,7 +116,6 @@ export async function getAssignmentsForStudent(studentId: string) {
   if (!studentId) {
     return [];
   }
-
   try {
     const assignments = await prisma.assignment.findMany({
       where: {
@@ -133,6 +139,12 @@ export async function getAssignmentsForStudent(studentId: string) {
   }
 }
 
+/**
+ * Fetches a specific assignment submission for a teacher to grade.
+ * @param assignmentId The ID of the assignment.
+ * @param teacherId The ID of the teacher.
+ * @returns A promise that resolves to the assignment object or null if not found.
+ */
 export async function getSubmissionForGrading(assignmentId: string, teacherId: string) {
   if (!assignmentId || !teacherId) {
     return null;
@@ -157,6 +169,12 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
   }
 }
 
+/**
+ * Fetches a specific assignment for a student.
+ * @param assignmentId The ID of the assignment.
+ * @param studentId The ID of the student.
+ * @returns A promise that resolves to the assignment object or null if not found.
+ */
 export async function getAssignmentById(assignmentId: string, studentId: string) {
   if (!assignmentId || !studentId) {
     return null;
@@ -227,11 +245,75 @@ export async function deleteLesson(lessonId: string) {
       throw new Error(errorData.error || 'Failed to delete lesson from API');
     }
     
-    // Revalidate the dashboard path to show the updated list of lessons
     revalidatePath('/dashboard');
     return { success: true };
   } catch (error) {
     console.error("Failed to delete lesson:", error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Sends a manual reminder email to a student for a pending assignment.
+ * @param assignmentId The ID of the assignment.
+ * @returns An object indicating success or failure.
+ */
+export async function sendManualReminder(assignmentId: string) {
+  try {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        student: true,
+        lesson: {
+          include: {
+            teacher: true,
+          },
+        },
+      },
+    });
+
+    if (!assignment || !assignment.student.email) {
+      throw new Error("Assignment or student email not found.");
+    }
+
+    if (assignment.status !== AssignmentStatus.PENDING) {
+      return { success: false, error: 'This assignment is not pending.' };
+    }
+
+    const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
+    const emailHtml = await render(
+      <ManualReminderEmail
+        studentName={assignment.student.name}
+        teacherName={assignment.lesson.teacher.name}
+        lessonTitle={assignment.lesson.title}
+        assignmentUrl={assignmentUrl}
+      />
+    );
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: process.env.EMAIL_FROM,
+        to: assignment.student.email,
+        subject: `Reminder: Your assignment "${assignment.lesson.title}"`,
+        html: emailHtml,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json();
+      throw new Error(errorBody.message || 'Failed to send email.');
+    }
+
+    console.log(`Successfully sent manual reminder to ${assignment.student.email}`);
+    return { success: true };
+
+  } catch (error) {
+    console.error("Failed to send reminder:", error);
     return { success: false, error: (error as Error).message };
   }
 }
