@@ -2,7 +2,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getLessonsForTeacher } from "../actions/lessonActions";
+import { getLessonsForTeacher } from "@/actions/lessonActions";
 import { Role, AssignmentStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 

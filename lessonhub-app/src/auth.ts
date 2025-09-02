@@ -66,16 +66,24 @@ export const {
 
   callbacks: {
     async jwt({ token, user }) {
-      if (user && (user as any).id) {
-        (token as any).id = (user as any).id;
-        (token as any).role = (user as any).role as Role;
+      if (user?.id) {
+        token.id = user.id;
+        token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && (token as any)?.id) {
-        (session.user as any).id = (token as any).id as string;
-        (session.user as any).role = (token as any).role as Role;
+      if (session.user && token.id) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as Role;
+
+        // --- NEW: Update lastSeen on session validation ---
+        if (session.user.role === Role.STUDENT) {
+          await prisma.user.update({
+            where: { id: session.user.id },
+            data: { lastSeen: new Date() },
+          });
+        }
       }
       return session;
     },

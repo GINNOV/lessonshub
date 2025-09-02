@@ -1,8 +1,9 @@
 // file: src/app/dashboard/assign/[lessonId]/page.tsx
 
+// Corrected Imports
 import { redirect } from 'next/navigation';
 import { auth } from "@/auth";
-import { getLessonById, getSubmissionsForLesson, getStudentsWithStats } from "../../../actions/lessonActions";
+import { getLessonById, getSubmissionsForLesson, getStudentsWithStats } from "@/actions/lessonActions";
 import AssignLessonForm from '@/app/components/AssignLessonForm';
 import { Role } from '@prisma/client';
 

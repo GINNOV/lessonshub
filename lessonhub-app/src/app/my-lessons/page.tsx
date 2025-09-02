@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getAssignmentsForStudent } from "../actions/lessonActions";
-import FilteredLessonList from "../components/FilteredLessonList"; // <-- UPDATED IMPORT
+import { getAssignmentsForStudent } from "@/actions/lessonActions";
+import FilteredLessonList from "../components/FilteredLessonList";
 import { AssignmentStatus } from "@prisma/client";
 
 export default async function StudentDashboardPage() {

@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
-// Define a more specific type for our enriched student data
+// --- FIX: Update the type to allow for null ---
 type StudentWithStats = User & {
   totalPoints: number;
-  lastSeen?: Date;
+  lastSeen?: Date | null; // Changed from Date | undefined
 };
 
 interface AssignLessonFormProps {
@@ -23,6 +23,14 @@ interface AssignLessonFormProps {
 
 export default function AssignLessonForm({ lesson, students, existingAssignments }: AssignLessonFormProps) {
   const router = useRouter();
+
+  const assignmentDateMap = useMemo(() => {
+    const map = new Map<string, Date>();
+    existingAssignments.forEach(a => {
+      map.set(a.studentId, a.assignedAt);
+    });
+    return map;
+  }, [existingAssignments]);
 
   const initialAssignedIds = useMemo(() => 
     new Set(existingAssignments.map(a => a.studentId)), 
@@ -38,7 +46,6 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Set the default deadline to 36 hours from now
   useEffect(() => {
     const defaultDeadline = new Date(Date.now() + 36 * 60 * 60 * 1000);
     const formattedDeadline = defaultDeadline.toISOString().slice(0, 16);
@@ -105,9 +112,12 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
   };
 
   const hasChanged = useMemo(() => {
-    if (selectedStudentIds.length !== initialAssignedIds.size) return true;
-    for (const id of selectedStudentIds) {
-      if (!initialAssignedIds.has(id)) return true;
+    const initialIds = new Set(initialAssignedIds);
+    const selectedIds = new Set(selectedStudentIds);
+
+    if (initialIds.size !== selectedIds.size) return true;
+    for (const id of initialIds) {
+      if (!selectedIds.has(id)) return true;
     }
     return false;
   }, [selectedStudentIds, initialAssignedIds]);
@@ -169,28 +179,36 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredStudents.map(student => (
-                <tr key={student.id}>
-                  <td className="px-6 py-4">
-                    <Input
-                      id={`student-${student.id}`}
-                      type="checkbox"
-                      className="h-4 w-4 rounded"
-                      checked={selectedStudentIds.includes(student.id)}
-                      onChange={() => handleStudentSelect(student.id)}
-                      disabled={isLoading}
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{student.name || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{student.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.totalPoints}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {student.lastSeen ? new Date(student.lastSeen).toLocaleDateString() : 'Never'}
-                  </td>
-                </tr>
-              ))}
+              {filteredStudents.map(student => {
+                const assignedDate = assignmentDateMap.get(student.id);
+                return (
+                  <tr key={student.id}>
+                    <td className="px-6 py-4">
+                      <Input
+                        id={`student-${student.id}`}
+                        type="checkbox"
+                        className="h-4 w-4 rounded"
+                        checked={selectedStudentIds.includes(student.id)}
+                        onChange={() => handleStudentSelect(student.id)}
+                        disabled={isLoading}
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{student.name || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">{student.email}</div>
+                      {assignedDate && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          Assigned: {new Date(assignedDate).toLocaleDateString()}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.totalPoints}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {student.lastSeen ? new Date(student.lastSeen).toLocaleDateString() : 'Never'}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

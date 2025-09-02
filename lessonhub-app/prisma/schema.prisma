@@ -26,6 +26,7 @@ model User {
   emailVerified  DateTime?
   image          String?
   role           Role      @default(STUDENT)
+  lastSeen       DateTime?
   accounts       Account[]
   sessions       Session[]
   lessons        Lesson[]

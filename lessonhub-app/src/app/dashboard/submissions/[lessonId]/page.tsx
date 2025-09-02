@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
-import { getSubmissionsForLesson, getLessonById } from "@/app/actions/lessonActions";
+import { getSubmissionsForLesson, getLessonById } from "@/actions/lessonActions";
 import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 

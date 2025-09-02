@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { getLessonById } from "@/app/actions/lessonActions";
+import { getLessonById } from "@/actions/lessonActions";
 import LessonForm from "@/app/components/LessonForm";
 import { Role } from "@prisma/client";
 

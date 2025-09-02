@@ -4,11 +4,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { auth } from "@/auth";
-import { getSubmissionForGrading } from "../../../actions/lessonActions";
+import { getSubmissionForGrading } from "@/actions/lessonActions";
 import { Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
 import { Button } from "@/components/ui/button";
-import { marked } from 'marked'; // <-- Import marked
+import { marked } from 'marked';
 
 export default async function GradeSubmissionPage({ params }: { params: { assignmentId: string } }) {
   const session = await auth();

@@ -194,15 +194,6 @@ export async function getStudentsWithStats() {
             score: true,
           },
         },
-        sessions: {
-          orderBy: {
-            expires: 'desc',
-          },
-          take: 1,
-          select: {
-            expires: true,
-          },
-        },
       },
       orderBy: { email: 'asc' },
     });
@@ -213,7 +204,7 @@ export async function getStudentsWithStats() {
       return {
         ...student,
         totalPoints,
-        lastSeen: student.sessions[0]?.expires,
+        // The lastSeen field now comes directly from the user model
       };
     });
 
