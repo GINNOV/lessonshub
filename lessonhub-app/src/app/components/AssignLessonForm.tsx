@@ -1,5 +1,3 @@
-// file: src/app/components/AssignLessonForm.tsx
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -9,10 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
-// --- FIX: Update the type to allow for null ---
 type StudentWithStats = User & {
   totalPoints: number;
-  lastSeen?: Date | null; // Changed from Date | undefined
+  lastSeen?: Date | null;
 };
 
 interface AssignLessonFormProps {
@@ -24,10 +21,10 @@ interface AssignLessonFormProps {
 export default function AssignLessonForm({ lesson, students, existingAssignments }: AssignLessonFormProps) {
   const router = useRouter();
 
-  const assignmentDateMap = useMemo(() => {
-    const map = new Map<string, Date>();
+  const assignmentDetailsMap = useMemo(() => {
+    const map = new Map<string, { assignedAt: Date; deadline: Date }>();
     existingAssignments.forEach(a => {
-      map.set(a.studentId, a.assignedAt);
+      map.set(a.studentId, { assignedAt: a.assignedAt, deadline: a.deadline });
     });
     return map;
   }, [existingAssignments]);
@@ -130,7 +127,7 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <div className="w-full sm:w-auto">
             <Label htmlFor="deadline" className="block text-sm font-medium text-gray-700 mb-1">
-              Deadline
+              Deadline for New Assignments
             </Label>
             <Input
               type="datetime-local"
@@ -153,7 +150,7 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
         </div>
       </div>
       
-      <div className="p-4 border rounded-lg">
+      <div className="p-4 border rounded-lg flex flex-col h-full">
         <div className="flex flex-col sm:flex-row gap-4 mb-4">
           <Input
             type="search"
@@ -168,7 +165,7 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
           </div>
         </div>
         
-        <div className="max-h-96 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 sticky top-0">
               <tr>
@@ -180,7 +177,7 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredStudents.map(student => {
-                const assignedDate = assignmentDateMap.get(student.id);
+                const assignmentDetails = assignmentDetailsMap.get(student.id);
                 return (
                   <tr key={student.id}>
                     <td className="px-6 py-4">
@@ -196,15 +193,18 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{student.name || 'N/A'}</div>
                       <div className="text-sm text-gray-500">{student.email}</div>
-                      {assignedDate && (
+                      {/* --- Displays the assignment date/time --- */}
+                      {assignmentDetails && (
                         <div className="text-xs text-gray-400 mt-1">
-                          Assigned: {new Date(assignedDate).toLocaleDateString()}
+                          Assigned: {new Date(assignmentDetails.assignedAt).toLocaleString()}
+                          <br />
+                          Deadline: {new Date(assignmentDetails.deadline).toLocaleString()}
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.totalPoints}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {student.lastSeen ? new Date(student.lastSeen).toLocaleDateString() : 'Never'}
+                      {student.lastSeen ? new Date(student.lastSeen).toLocaleString() : 'Never'}
                     </td>
                   </tr>
                 )

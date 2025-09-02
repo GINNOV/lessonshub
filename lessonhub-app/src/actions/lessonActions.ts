@@ -204,7 +204,7 @@ export async function getStudentsWithStats() {
       return {
         ...student,
         totalPoints,
-        // The lastSeen field now comes directly from the user model
+        // The lastSeen field now comes directly and reliably from the user model
       };
     });
 
