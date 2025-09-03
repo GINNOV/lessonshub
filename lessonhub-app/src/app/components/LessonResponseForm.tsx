@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Assignment } from '@prisma/client';
+import { Assignment, AssignmentStatus } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -19,6 +19,7 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
   const [error, setError] = useState<string | null>(null);
   
   const isPastDeadline = new Date() > new Date(assignment.deadline);
+  const isReadOnly = assignment.status === AssignmentStatus.GRADED || assignment.status === AssignmentStatus.FAILED;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +47,13 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
       setIsLoading(false);
     }
   };
+  
+  const getButtonText = () => {
+    if (isLoading) return 'Submitting...';
+    if (isReadOnly) return 'Submission Closed';
+    if (isPastDeadline) return 'Deadline Passed';
+    return 'Submit Response';
+  };
 
   return (
     <form onSubmit={handleSubmit} className="mt-8 border-t pt-6">
@@ -57,15 +65,15 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
         placeholder="Type your answer here..."
         value={responseText}
         onChange={(e) => setResponseText(e.target.value)}
-        disabled={isLoading || isPastDeadline}
+        disabled={isLoading || isPastDeadline || isReadOnly}
       />
 
       <Button
         type="submit"
-        disabled={isLoading || isPastDeadline}
+        disabled={isLoading || isPastDeadline || isReadOnly}
         className="mt-4"
       >
-        {isPastDeadline ? 'Deadline Passed' : (isLoading ? 'Submitting...' : 'Submit Response')}
+        {getButtonText()}
       </Button>
     </form>
   );

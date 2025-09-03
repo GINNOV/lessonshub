@@ -185,7 +185,11 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
         studentId: studentId,
       },
       include: {
-        lesson: true,
+        lesson: {
+          include: {
+            teacher: true,
+          },
+        },
       },
     });
     return assignment;
