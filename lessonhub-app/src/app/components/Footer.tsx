@@ -4,12 +4,9 @@ import Link from 'next/link';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-  // Vercel provides these variables during the build. We use them for the version.
-  const rawSha =
-    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ||
-    process.env.NEXT_PUBLIC_COMMIT_SHA ||
-    process.env.VERCEL_GIT_COMMIT_SHA ||
-    '';
+  
+  // Vercel provides this variable during the build, which is passed via next.config.mjs
+  const rawSha = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || '';
   const buildVersion = rawSha ? rawSha.substring(0, 7) : 'dev';
   const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || '';
 

@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { render } from '@react-email/render';
 import ManualReminderEmail from '@/emails/ManualReminderEmail';
 import FailedEmail from '@/emails/FailedEmail';
+import { auth } from "@/auth";
 
 /**
  * Fetches all lessons created by a specific teacher.
@@ -238,21 +239,36 @@ export async function getStudentsWithStats() {
  * @returns An object indicating success or failure.
  */
 export async function deleteLesson(lessonId: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
-    const response = await fetch(`${process.env.AUTH_URL}/api/lessons/${lessonId}`, {
-      method: 'DELETE',
+    // Ensure the lesson belongs to the logged-in teacher before deleting
+    const lesson = await prisma.lesson.findFirst({
+      where: {
+        id: lessonId,
+        teacherId: session.user.id,
+      },
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to delete lesson from API');
+    if (!lesson) {
+      return { success: false, error: "Lesson not found or you don't have permission to delete it." };
     }
-    
+
+    await prisma.lesson.delete({
+      where: {
+        id: lessonId,
+      },
+    });
+
     revalidatePath('/dashboard');
     return { success: true };
   } catch (error) {
     console.error("Failed to delete lesson:", error);
-    return { success: false, error: (error as Error).message };
+    // Be careful not to leak sensitive error details
+    return { success: false, error: "An error occurred while deleting the lesson." };
   }
 }
 

@@ -14,9 +14,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Role } from "@prisma/client";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
+  const userRole = (session?.user as any)?.role;
 
   // Helper to get user initials for avatar fallback
   const getInitials = (name: string | null | undefined) => {
@@ -52,6 +54,11 @@ export default function Navbar() {
                   <div className="font-normal text-sm text-gray-500">{session.user.email}</div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {userRole === Role.ADMIN && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">Admin Panel</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>
