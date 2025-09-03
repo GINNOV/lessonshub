@@ -55,9 +55,14 @@ export default function Navbar() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {userRole === Role.ADMIN && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin">Admin Panel</Link>
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/users">User Management</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/lessons">Lesson Management</Link>
+                    </DropdownMenuItem>
+                  </>
                 )}
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Profile</Link>
