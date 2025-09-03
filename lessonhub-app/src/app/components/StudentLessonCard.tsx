@@ -19,11 +19,12 @@ interface StudentLessonCardProps {
   index: number;
 }
 
-const statusStyles = {
+const statusStyles: { [key in AssignmentStatus | 'PAST_DUE']: string } = {
   [AssignmentStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
   [AssignmentStatus.COMPLETED]: 'bg-blue-100 text-blue-800',
   [AssignmentStatus.GRADED]: 'bg-green-100 text-green-800',
   [AssignmentStatus.FAILED]: 'bg-red-100 text-red-800',
+  'PAST_DUE': 'bg-red-100 text-red-800',
 };
 
 const getGradeBackground = (score: number | null) => {
@@ -36,7 +37,8 @@ const getGradeBackground = (score: number | null) => {
 
 export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {
   const isPastDeadline = new Date() > new Date(assignment.deadline);
-  const status: AssignmentStatus = isPastDeadline && assignment.status === "PENDING" ? AssignmentStatus.FAILED : assignment.status;
+  const isPendingAndPastDue = isPastDeadline && assignment.status === "PENDING";
+  const displayStatus = isPendingAndPastDue ? 'FAILED' : assignment.status;
 
   return (
     <div className={cn(
@@ -63,8 +65,8 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                 Lesson {getWeekAndDay(assignment.lesson.createdAt)} - Assigned by: {assignment.lesson.teacher.name}
               </p>
             </div>
-            <span className={cn('px-3 py-1 text-xs font-medium rounded-full', statusStyles[status])}>
-              {status}
+            <span className={cn('px-3 py-1 text-xs font-medium rounded-full', statusStyles[displayStatus as keyof typeof statusStyles])}>
+              {displayStatus}
             </span>
           </div>
 
@@ -95,17 +97,17 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
             <p className="text-sm text-gray-500">
               <strong>Deadline:</strong> {new Date(assignment.deadline).toLocaleString()}
             </p>
-            {status === 'PENDING' && (
+            {assignment.status === 'PENDING' && !isPastDeadline && (
               <Button asChild>
                 <Link href={`/assignments/${assignment.id}`}>Start Lesson</Link>
               </Button>
             )}
-             {status === 'GRADED' && (
+             {assignment.status === 'GRADED' && (
               <Button variant="outline" asChild>
                 <Link href={`/assignments/${assignment.id}`}>Review Results</Link>
               </Button>
             )}
-             {status === 'FAILED' && (
+             {(isPendingAndPastDue || assignment.status === 'FAILED') && (
               <Button variant="secondary" asChild>
                 <Link href={`/assignments/${assignment.id}`}>View Lesson</Link>
               </Button>

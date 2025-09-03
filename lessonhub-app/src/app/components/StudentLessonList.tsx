@@ -32,19 +32,21 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
   const sortedAndFilteredAssignments = useMemo(() => {
     const now = new Date();
     return assignments
-      .map(a => {
-        const isPastDue = now > new Date(a.deadline);
-        const status = (isPastDue && a.status === AssignmentStatus.PENDING) ? 'PAST_DUE' : a.status;
-        const week = parseInt(getWeekAndDay(a.assignedAt).split('-')[0], 10);
-        return { ...a, status, week };
-      })
+      .map(a => ({
+        ...a,
+        week: parseInt(getWeekAndDay(a.assignedAt).split('-')[0], 10),
+      }))
       .filter(a => a.lesson.title.toLowerCase().includes(searchTerm.toLowerCase()))
       .sort((a, b) => {
+        const isPastDueA = now > new Date(a.deadline) && a.status === AssignmentStatus.PENDING;
+        const isPastDueB = now > new Date(b.deadline) && b.status === AssignmentStatus.PENDING;
+        
+        const statusA = isPastDueA ? 0 : statusOrder[a.status];
+        const statusB = isPastDueB ? 0 : statusOrder[b.status];
+
         if (a.week !== b.week) {
           return b.week - a.week; // Sort by week descending
         }
-        const statusA = statusOrder[a.status as keyof typeof statusOrder] ?? 5;
-        const statusB = statusOrder[b.status as keyof typeof statusOrder] ?? 5;
         if (statusA !== statusB) {
           return statusA - statusB; // Sort by status
         }
