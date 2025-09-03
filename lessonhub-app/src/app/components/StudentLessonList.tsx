@@ -67,13 +67,13 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
 
       <div className="space-y-4">
         {sortedAndFilteredAssignments.length > 0 ? (
-          sortedAndFilteredAssignments.map((assignment) => {
+          sortedAndFilteredAssignments.map((assignment, index) => {
             const showDivider = assignment.week !== lastWeek;
             lastWeek = assignment.week;
             return (
               <div key={assignment.id}>
                 {showDivider && <WeekDivider weekNumber={assignment.week} />}
-                <StudentLessonCard assignment={assignment} />
+                <StudentLessonCard assignment={assignment} index={index} />
               </div>
             );
           })

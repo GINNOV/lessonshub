@@ -16,6 +16,7 @@ type AssignmentWithDetails = Assignment & {
 
 interface StudentLessonCardProps {
   assignment: AssignmentWithDetails;
+  index: number;
 }
 
 const statusStyles = {
@@ -23,15 +24,25 @@ const statusStyles = {
   [AssignmentStatus.COMPLETED]: 'bg-blue-100 text-blue-800',
   [AssignmentStatus.GRADED]: 'bg-green-100 text-green-800',
   [AssignmentStatus.FAILED]: 'bg-red-100 text-red-800',
-  PAST_DUE: 'bg-red-100 text-red-800',
 };
 
-export default function StudentLessonCard({ assignment }: StudentLessonCardProps) {
+const getGradeBackground = (score: number | null) => {
+  if (score === null) return 'bg-gray-100';
+  if (score === 10) return 'bg-gradient-to-br from-green-100 to-green-200';
+  if (score === 2) return 'bg-gradient-to-br from-amber-100 to-amber-200';
+  if (score === -1) return 'bg-gradient-to-br from-red-100 to-red-200';
+  return 'bg-gradient-to-br from-yellow-100 to-yellow-200';
+};
+
+export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {
   const isPastDeadline = new Date() > new Date(assignment.deadline);
-  const status = isPastDeadline && assignment.status === "PENDING" ? "PAST_DUE" : assignment.status;
+  const status: AssignmentStatus = isPastDeadline && assignment.status === "PENDING" ? AssignmentStatus.FAILED : assignment.status;
 
   return (
-    <div className="p-4 sm:p-6 border rounded-lg shadow-sm bg-white">
+    <div className={cn(
+      "p-4 sm:p-6 border rounded-lg shadow-sm",
+      index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+    )}>
       <div className="flex flex-col sm:flex-row gap-6">
         {assignment.lesson.assignment_image_url && (
           <div className="flex-shrink-0 w-full sm:w-auto">
@@ -52,7 +63,7 @@ export default function StudentLessonCard({ assignment }: StudentLessonCardProps
                 Lesson {getWeekAndDay(assignment.lesson.createdAt)} - Assigned by: {assignment.lesson.teacher.name}
               </p>
             </div>
-            <span className={cn('px-3 py-1 text-xs font-medium rounded-full', statusStyles[status as keyof typeof statusStyles])}>
+            <span className={cn('px-3 py-1 text-xs font-medium rounded-full', statusStyles[status])}>
               {status}
             </span>
           </div>
@@ -62,14 +73,21 @@ export default function StudentLessonCard({ assignment }: StudentLessonCardProps
           )}
 
           {assignment.status === 'GRADED' && (
-            <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
-              <h3 className="font-semibold text-green-800">Grade and Feedback</h3>
-              <p className="text-2xl font-bold mt-1 text-green-900">Score: {assignment.score}</p>
-              {assignment.teacherComments && (
-                <blockquote className="mt-2 pl-3 border-l-4 border-green-300 italic text-gray-700">
-                  &quot;{assignment.teacherComments}&quot;
-                </blockquote>
-              )}
+            <div className={cn("mt-4 p-3 rounded-md border", getGradeBackground(assignment.score))}>
+              <h3 className="font-semibold">Grade and Feedback</h3>
+              <div className="flex items-start gap-4 mt-2">
+                <div className="flex-shrink-0 p-2 border rounded-md bg-white/50">
+                  <p className="text-2xl font-bold">{assignment.score}</p>
+                  <p className="text-xs">Score</p>
+                </div>
+                {assignment.teacherComments && (
+                  <div className="flex-grow">
+                    <blockquote className="pl-3 border-l-4 border-gray-400/50 italic text-gray-700">
+                      &quot;{assignment.teacherComments}&quot;
+                    </blockquote>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           
@@ -77,17 +95,17 @@ export default function StudentLessonCard({ assignment }: StudentLessonCardProps
             <p className="text-sm text-gray-500">
               <strong>Deadline:</strong> {new Date(assignment.deadline).toLocaleString()}
             </p>
-            {assignment.status === 'PENDING' && !isPastDeadline && (
+            {status === 'PENDING' && (
               <Button asChild>
                 <Link href={`/assignments/${assignment.id}`}>Start Lesson</Link>
               </Button>
             )}
-             {assignment.status === 'GRADED' && (
+             {status === 'GRADED' && (
               <Button variant="outline" asChild>
                 <Link href={`/assignments/${assignment.id}`}>Review Results</Link>
               </Button>
             )}
-             {status === 'PAST_DUE' || status === 'FAILED' && (
+             {status === 'FAILED' && (
               <Button variant="secondary" asChild>
                 <Link href={`/assignments/${assignment.id}`}>View Lesson</Link>
               </Button>
