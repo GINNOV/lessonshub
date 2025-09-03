@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getAssignmentsForStudent } from "@/actions/lessonActions";
-import FilteredLessonList from "../components/FilteredLessonList";
+import StudentLessonList from "../components/StudentLessonList";
 import { AssignmentStatus } from "@prisma/client";
 
 export default async function StudentDashboardPage() {
@@ -50,7 +50,7 @@ export default async function StudentDashboardPage() {
       </div>
       
       {/* --- USE THE NEW FILTERABLE COMPONENT --- */}
-      <FilteredLessonList assignments={assignments} />
+      <StudentLessonList assignments={assignments} />
     </div>
   );
 }
