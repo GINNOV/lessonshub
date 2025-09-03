@@ -7,6 +7,7 @@ import LessonResponseForm from "@/app/components/LessonResponseForm";
 import { marked } from 'marked';
 import { AssignmentStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 // Corrected type for Next.js 14
 interface AssignmentPageProps {
@@ -15,7 +16,7 @@ interface AssignmentPageProps {
   };
 }
 
-// --- NEW SVG Icons for the banner ---
+// --- SVG Icons ---
 function AlertTriangleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -51,6 +52,15 @@ function PaperclipIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48" />
     </svg>
   );
+}
+
+function EyeIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
 }
 
 
@@ -135,20 +145,20 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
       )}
 
       <div className="prose max-w-none">
-        <h2 className="text-xl font-semibold">Instructions</h2>
-
         {lesson.assignment_image_url && (
           <div className="my-4">
+            <h2 className="text-sm font-semibold uppercase text-gray-500">Supporting Material</h2>
             <Image
               src={lesson.assignment_image_url}
               alt={`Image for ${lesson.title}`}
               width={600}
               height={400}
-              className="w-full h-auto rounded-lg object-contain"
+              className="mt-2 w-full h-auto rounded-lg object-contain border"
             />
           </div>
         )}
-
+        
+        <h2 className="text-xl font-semibold">Instructions</h2>
         <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
         
         {lesson.context_text && (
@@ -158,12 +168,21 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
           </>
         )}
 
+        {lesson.notes && (
+          <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400">
+            <h3 className="text-lg font-semibold text-yellow-800">Teacher&apos;s Note</h3>
+            <p className="text-yellow-900 mt-1">{lesson.notes}</p>
+          </div>
+        )}
+
         {lesson.attachment_url && (
           <div className="mt-6">
-            <h3 className="text-lg font-semibold flex items-center"><PaperclipIcon className="h-5 w-5 mr-2" /> Attachment</h3>
-            <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-              {lesson.attachment_url}
-            </Link>
+            <h3 className="text-lg font-semibold flex items-center mb-2"><PaperclipIcon className="h-5 w-5 mr-2" /> Attachment</h3>
+            <Button asChild variant="outline">
+              <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
+                <EyeIcon className="mr-2 h-4 w-4" /> View Attachment
+              </Link>
+            </Button>
           </div>
         )}
       </div>
