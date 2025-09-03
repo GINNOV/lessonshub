@@ -23,12 +23,7 @@ export async function getLessonsForTeacher(teacherId: string) {
         teacherId: teacherId,
       },
       include: {
-        assignments: {
-          select: {
-            status: true,
-            deadline: true,
-          },
-        },
+        assignments: true,
       },
       orderBy: {
         createdAt: 'desc',
