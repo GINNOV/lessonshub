@@ -35,41 +35,46 @@ model User {
 
 // Model for Lessons
 model Lesson {
-  id                  String    @id @default(cuid())
-  title               String    // We'll add a title for easier management
-  assignment_text     String    @db.Text
+  id                   String    @id @default(cuid())
+  title                String
+  lesson_preview       String?   @db.Text
+  assignment_text      String    @db.Text
   assignment_image_url String?
-  context_text        String?   @db.Text
-  context_image_url   String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  context_text         String?   @db.Text
+  attachment_url       String?
+  notes                String?
+  visible_after        DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  teacherId           String
-  teacher             User      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  assignments          Assignment[]
+  teacherId String
+  teacher   User   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  assignments Assignment[]
 }
 
 enum AssignmentStatus {
   PENDING
   COMPLETED
   GRADED
+  PAST_DUE
+  FAILED
 }
 
 model Assignment {
-  id         String           @id @default(cuid())
-  assignedAt DateTime         @default(now())
-  deadline   DateTime
-  status     AssignmentStatus @default(PENDING)
-  score      Int?
-  gradedAt   DateTime?
-  responseText String?
+  id              String           @id @default(cuid())
+  assignedAt      DateTime         @default(now())
+  deadline        DateTime
+  status          AssignmentStatus @default(PENDING)
+  score           Int?
+  gradedAt        DateTime?
+  responseText    String?
   teacherComments String?
-  
-  lessonId   String
-  lesson     Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
-  studentId  String
-  student    User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lessonId  String
+  lesson    Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([lessonId, studentId]) // A student can only be assigned the same lesson once
 }
@@ -81,12 +86,12 @@ model Account {
   type               String
   provider           String
   providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
   expires_at         Int?
   token_type         String?
   scope              String?
-  id_token           String?  @db.Text
+  id_token           String? @db.Text
   session_state      String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -109,4 +114,3 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
-

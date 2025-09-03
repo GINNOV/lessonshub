@@ -7,6 +7,7 @@ import { getSubmissionsForLesson, getLessonById } from "@/actions/lessonActions"
 import { Role, AssignmentStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import ReminderButton from "@/components/ReminderButton"; // <-- Import the new component
+import FailButton from "@/app/components/FailButton";
 
 export default async function SubmissionsPage({ params }: { params: { lessonId: string } }) {
   const session = await auth();
@@ -35,28 +36,38 @@ export default async function SubmissionsPage({ params }: { params: { lessonId: 
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
               <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {submissions.map((sub) => (
+            {submissions.map((sub) => {
+              const isPastDue = new Date() > new Date(sub.deadline);
+              const status = isPastDue && sub.status === "PENDING" ? "PAST_DUE" : sub.status;
+              return (
               <tr key={sub.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sub.student.name || sub.student.email}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    sub.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                    sub.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
-                    'bg-green-100 text-green-800'
+                    status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                    status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
+                    status === 'GRADED' ? 'bg-green-100 text-green-800' :
+                    status === 'PAST_DUE' ? 'bg-red-100 text-red-800' :
+                    status === 'FAILED' ? 'bg-red-200 text-red-900' : ''
                   }`}>
-                    {sub.status}
+                    {status}
                   </span>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(sub.deadline).toLocaleString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.score ?? 'N/A'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                   {/* --- NEW: Conditionally render the ReminderButton --- */}
                   {sub.status === AssignmentStatus.PENDING && (
                     <ReminderButton assignmentId={sub.id} />
+                  )}
+                  {status === 'PAST_DUE' && (
+                    <FailButton assignmentId={sub.id} />
                   )}
                   {sub.status === 'COMPLETED' && (
                     <Button variant="link" asChild>
@@ -70,7 +81,7 @@ export default async function SubmissionsPage({ params }: { params: { lessonId: 
                   )}
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
         {submissions.length === 0 && <p className="p-6 text-center text-gray-500">No students have been assigned this lesson yet.</p>}

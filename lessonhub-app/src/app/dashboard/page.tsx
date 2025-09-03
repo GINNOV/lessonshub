@@ -6,6 +6,7 @@ import { getLessonsForTeacher } from "@/actions/lessonActions";
 import { Role, AssignmentStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import DeleteLessonButton from "@/app/components/DeleteLessonButton"; // <-- Import the new component
+import { getWeekAndDay } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -53,7 +54,7 @@ export default async function DashboardPage() {
                       {lesson.title}
                     </Link>
                     <p className="text-xs text-gray-400 mt-1">
-                      Created on: {new Date(lesson.createdAt).toLocaleDateString()}
+                      Lesson {getWeekAndDay(lesson.createdAt)} - Created on: {new Date(lesson.createdAt).toLocaleDateString()}
                     </p>
                     <div className="flex items-center space-x-2 mt-2">
                       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">

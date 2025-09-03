@@ -5,6 +5,7 @@ import { Role, AssignmentStatus } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
 import { render } from '@react-email/render';
 import ManualReminderEmail from '@/emails/ManualReminderEmail';
+import FailedEmail from '@/emails/FailedEmail';
 
 /**
  * Fetches all lessons created by a specific teacher.
@@ -398,6 +399,64 @@ export async function sendManualReminder(assignmentId: string) {
 
   } catch (error) {
     console.error("Failed to send reminder:", error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+
+/**
+ * Fails an assignment for a student.
+ * @param assignmentId The ID of the assignment.
+ * @returns An object indicating success or failure.
+ */
+export async function failAssignment(assignmentId: string) {
+  try {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        student: true,
+        lesson: true,
+      },
+    });
+
+    if (!assignment) {
+      throw new Error("Assignment not found.");
+    }
+
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: { status: AssignmentStatus.FAILED },
+    });
+
+    if (assignment.student.email) {
+      const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
+      const emailHtml = await render(
+        <FailedEmail
+          studentName={assignment.student.name}
+          lessonTitle={assignment.lesson.title}
+          assignmentUrl={assignmentUrl}
+        />
+      );
+
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: process.env.EMAIL_FROM,
+          to: assignment.student.email,
+          subject: `Update on your assignment: "${assignment.lesson.title}"`,
+          html: emailHtml,
+        }),
+      });
+    }
+    
+    revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to fail assignment:", error);
     return { success: false, error: (error as Error).message };
   }
 }

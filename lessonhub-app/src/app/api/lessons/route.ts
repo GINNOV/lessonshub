@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   // Ensure 'assignment_image_url' is destructured here
-  const { title, assignmentText, contextText, assignment_image_url } = body; 
+  const { title, lesson_preview, assignmentText, contextText, assignment_image_url, attachment_url, notes, visible_after } = body; 
 
   if (!title || !assignmentText) {
     return new NextResponse(
@@ -28,9 +28,13 @@ export async function POST(request: Request) {
     const newLesson = await prisma.lesson.create({
       data: {
         title: title,
+        lesson_preview,
         assignment_text: assignmentText,
         context_text: contextText,
         assignment_image_url: assignment_image_url,
+        attachment_url,
+        notes,
+        visible_after,
         teacherId: session.user.id,
       },
     });
