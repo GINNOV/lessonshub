@@ -15,7 +15,7 @@ import WelcomeEmail from '@/emails/WelcomeEmail';
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const success = searchParams.get('success');
+  const success = searchParams?.get('success') ?? null;
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

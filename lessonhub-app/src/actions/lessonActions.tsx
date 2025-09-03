@@ -1,5 +1,3 @@
-// file: src/actions/lessonActions.ts
-
 'use server';
 
 import prisma from "@/lib/prisma";
@@ -259,6 +257,32 @@ export async function deleteLesson(lessonId: string) {
  * @returns An object indicating success or failure.
  */
 export async function sendManualReminder(assignmentId: string) {
+  // --- DEBUG: environment sanity + runtime info ---
+  const missingEnv = [
+    !process.env.AUTH_URL && 'AUTH_URL',
+    !process.env.RESEND_API_KEY && 'RESEND_API_KEY',
+    !process.env.EMAIL_FROM && 'EMAIL_FROM',
+  ].filter(Boolean) as string[];
+
+  if (missingEnv.length) {
+    console.error('[sendManualReminder] Missing env vars:', missingEnv.join(', '));
+    return { success: false, error: `Missing env vars: ${missingEnv.join(', ')}` };
+  }
+
+  console.log('[sendManualReminder] Runtime info', {
+    node: process.version,
+    platform: process.platform,
+    vercel: !!process.env.VERCEL,
+    envSanity: {
+      AUTH_URL_set: !!process.env.AUTH_URL,
+      RESEND_API_KEY_set: !!process.env.RESEND_API_KEY,
+      EMAIL_FROM_set: !!process.env.EMAIL_FROM,
+    },
+  });
+
+  const VERIFIED_DOMAIN = process.env.RESEND_VERIFIED_DOMAIN || 'quantifythis.com';
+  const DEFAULT_FROM = `LessonHUB <noreply@${VERIFIED_DOMAIN}>`;
+
   try {
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
@@ -280,36 +304,96 @@ export async function sendManualReminder(assignmentId: string) {
       return { success: false, error: 'This assignment is not pending.' };
     }
 
-    const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
-    const emailHtml = await render(
-      <ManualReminderEmail
-        studentName={assignment.student.name}
-        teacherName={assignment.lesson.teacher.name}
-        lessonTitle={assignment.lesson.title}
-        assignmentUrl={assignmentUrl}
-      />
-    );
+    const base = (process.env.AUTH_URL || '').replace(/\/+$/, '');
+    const assignmentUrl = `${base}/assignments/${assignment.id}`;
+    console.log('[sendManualReminder] assignmentUrl:', assignmentUrl);
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: process.env.EMAIL_FROM,
-        to: assignment.student.email,
-        subject: `🚨 Reminder: Your assignment "${assignment.lesson.title}"`,
-        html: emailHtml,
-      }),
-    });
+    // Normalize sender and enforce verified domain
+    const configuredFrom = process.env.EMAIL_FROM || DEFAULT_FROM;
+    const fromMatch = configuredFrom.match(/<([^>]+)>/);
+    const configuredFromEmail = (fromMatch ? fromMatch[1] : configuredFrom).trim();
+    const configuredFromDomain = configuredFromEmail.split('@')[1] || '';
 
-    if (!response.ok) {
-      const errorBody = await response.json();
-      throw new Error(errorBody.message || 'Failed to send email.');
+    let fromHeader = configuredFrom;
+    if (configuredFromDomain.toLowerCase() !== VERIFIED_DOMAIN.toLowerCase()) {
+      console.warn('[sendManualReminder] EMAIL_FROM domain mismatch; overriding to verified domain', {
+        configuredFrom,
+        configuredFromDomain,
+        VERIFIED_DOMAIN,
+      });
+      fromHeader = DEFAULT_FROM;
     }
 
-    console.log(`Successfully sent manual reminder to ${assignment.student.email}`);
+    // Render the email and surface render errors
+    let emailHtml: string;
+    try {
+      emailHtml = await render(
+        <ManualReminderEmail
+          studentName={assignment.student.name}
+          teacherName={assignment.lesson.teacher.name}
+          lessonTitle={assignment.lesson.title}
+          assignmentUrl={assignmentUrl}
+        />
+      );
+    } catch (e: any) {
+      console.error('[sendManualReminder] Email render failed:', e?.message || e);
+      return { success: false, error: `Email render failed: ${e?.message || 'unknown error'}` };
+    }
+
+    const payload = {
+      from: fromHeader,
+      to: assignment.student.email,
+      subject: `🚨 Reminder: Your assignment "${assignment.lesson.title}"`,
+      html: emailHtml,
+    } as const;
+
+    console.log('[sendManualReminder] Sending via Resend', {
+      to: payload.to,
+      fromDomain: (fromHeader.match(/<([^>]+)>/)?.[1] || fromHeader).split('@')[1] || 'unknown',
+      subject: payload.subject,
+      htmlBytes: emailHtml?.length || 0,
+    });
+
+    let response: Response;
+    try {
+      response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (e: any) {
+      console.error('[sendManualReminder] Network/Fetch error:', e?.message || e);
+      return { success: false, error: `Network error sending email: ${e?.message || 'unknown error'}` };
+    }
+
+    // Read response safely as JSON or text for detailed diagnostics
+    let respJson: any = null;
+    let respText = '';
+    try {
+      respJson = await response.clone().json();
+    } catch (_) {
+      try { respText = await response.text(); } catch (_) { /* ignore */ }
+    }
+
+    const headersObj: Record<string, string> = {};
+    try { response.headers.forEach((v, k) => (headersObj[k] = v)); } catch (_) { /* ignore */ }
+
+    if (!response.ok) {
+      const message = respJson?.message || respJson?.error || response.statusText || 'Unknown provider error';
+      console.error('[sendManualReminder] Resend error', {
+        status: response.status,
+        statusText: response.statusText,
+        body: respJson || respText,
+        headers: headersObj,
+      });
+      return { success: false, error: `Resend error ${response.status}: ${message}` };
+    }
+
+    const id = respJson?.id || undefined;
+    console.log('[sendManualReminder] Resend success', { status: response.status, id, body: respJson || respText });
     return { success: true };
 
   } catch (error) {

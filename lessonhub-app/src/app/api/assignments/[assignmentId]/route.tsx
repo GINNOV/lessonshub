@@ -61,7 +61,7 @@ export async function PATCH(
       },
     });
 
-    // --- NEW: Send email notification to the teacher ---
+
     const teacher = assignment.lesson.teacher;
     if (teacher && teacher.email) {
         try {

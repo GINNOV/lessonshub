@@ -16,7 +16,7 @@ export default async function GradeSubmissionPage({ params }: { params: { assign
     redirect("/");
   }
 
-  const { assignmentId } = await params;
+  const { assignmentId } = params;
   const submission = await getSubmissionForGrading(assignmentId, session.user.id);
 
   if (!submission) {
@@ -31,7 +31,7 @@ export default async function GradeSubmissionPage({ params }: { params: { assign
   }
 
   // Parse the markdown content to HTML
-  const assignmentHtml = marked.parse(submission.lesson.assignment_text);
+  const assignmentHtml = (await marked.parse(submission.lesson.assignment_text)) as string;
 
   return (
     <div>

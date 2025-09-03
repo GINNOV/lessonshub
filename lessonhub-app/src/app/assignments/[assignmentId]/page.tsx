@@ -1,5 +1,3 @@
-// file: src/app/assignments/[assignmentId]/page.tsx
-
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
@@ -45,8 +43,8 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
 
   const { lesson } = assignment;
   
-  const assignmentHtml = marked.parse(lesson.assignment_text);
-  const contextHtml = lesson.context_text ? marked.parse(lesson.context_text) : '';
+  const assignmentHtml = (await marked.parse(lesson.assignment_text)) as string;
+  const contextHtml = lesson.context_text ? (await marked.parse(lesson.context_text)) as string : '';
   const isPastDeadline = new Date() > new Date(assignment.deadline);
 
 

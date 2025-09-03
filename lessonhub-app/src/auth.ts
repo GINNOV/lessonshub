@@ -25,10 +25,10 @@ export const {
 
   // Providers
   providers: [
-    // Passwordless email via Resend (no Nodemailer)
+    // Passwordless email via Resend
     ResendProvider({
       apiKey: process.env.RESEND_API_KEY!,
-      from: process.env.EMAIL_FROM!, // must be on a verified Resend domain
+      from: process.env.EMAIL_FROM!,
     }),
 
     GoogleProvider({
@@ -77,7 +77,6 @@ export const {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
 
-        // --- NEW: Update lastSeen on session validation ---
         if (session.user.role === Role.STUDENT) {
           await prisma.user.update({
             where: { id: session.user.id },

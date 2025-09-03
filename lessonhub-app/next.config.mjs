@@ -4,13 +4,16 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        // Use a wildcard to allow images from any Vercel Blob Storage hostname.
         hostname: '*.public.blob.vercel-storage.com',
         port: '',
         pathname: '/**',
       },
     ],
   },
+  env: {
+    NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA,
+  },
+  reactStrictMode: true,
 };
 
 export default nextConfig;

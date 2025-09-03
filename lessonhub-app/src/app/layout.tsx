@@ -1,10 +1,9 @@
-// file: src/app/layout.tsx
-
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Providers from './components/Providers';
-import Navbar from './components/Navbar'; // Import the Navbar
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </div>
           </main>
-          {/* You could add a footer here */}
+          <Footer />
         </Providers>
       </body>
     </html>
