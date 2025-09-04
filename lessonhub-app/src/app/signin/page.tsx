@@ -113,7 +113,7 @@ export default function SignInPage() {
       </div>
       <div className="hidden bg-muted lg:block">
         <Image
-          src="/hero_image_1.png"
+          src="/hero_signin.png"
           alt="Image"
           width="1920"
           height="1080"

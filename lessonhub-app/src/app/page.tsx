@@ -1,122 +1,153 @@
 // file: src/app/page.tsx
-
-'use client';
-
-import { useState, useEffect } from 'react';
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { Role } from "@prisma/client";
+import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckCircle, BookOpen, Users, Brain, Lightbulb, GraduationCap, Globe } from 'lucide-react';
 
-const testimonials = [
-  {
-    quote: "LessonHUB has transformed how I create and manage assignments. My students are more engaged than ever!",
-    author: "Jane Doe, 5th Grade Teacher",
-  },
-  {
-    quote: "The platform is incredibly intuitive. I was able to build and assign my first lesson in under 10 minutes.",
-    author: "John Smith, High School History",
-  },
-  {
-    quote: "My students love the clear deadlines and easy submission process. It's made a huge difference in my classroom.",
-    author: "Emily White, Middle School Science",
-  },
-];
+export default function LandingPage() {
+  const accentColor = "bg-[#2A5E5B]"; // A deep teal/green inspired by the Branch aesthetic
 
-export default function Home() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  const [isFading, setIsFading] = useState(false);
+  return (
+    <div className="flex flex-col min-h-screen bg-white text-gray-800">
 
-  // This effect handles redirecting logged-in users
-  useEffect(() => {
-    if (status === 'authenticated' && session) {
-      const userRole = (session.user as any).role;
-      if (userRole === Role.TEACHER) {
-        router.push('/dashboard');
-      } else {
-        router.push('/my-lessons');
-      }
-    }
-  }, [session, status, router]);
+      {/* Hero Section with Full-Width Background Image */}
+      <section className="relative w-full text-white overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/hero_image_1.png" // Your existing image
+            alt="An engaging learning environment"
+            fill
+            className="object-cover"
+            priority
+          />
+          {/* Gradient Overlay for Text Readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/20" />
+        </div>
 
-  // This effect handles the rotating testimonials
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIsFading(true);
-      setTimeout(() => {
-        setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-        setIsFading(false);
-      }, 500); // Wait for fade-out to complete
-    }, 5000); // Change testimonial every 5 seconds
-
-    return () => clearInterval(timer);
-  }, []);
-
-  // Show a loading state while session is being determined
-  if (status === 'loading') {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50">
-        <p>Loading...</p>
-      </main>
-    );
-  }
-
-  // Only render the homepage for unauthenticated users
-  if (status === 'unauthenticated') {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-start p-8 pt-24 sm:pt-32 bg-gray-50 text-center">
-        <div className="max-w-2xl w-full">
-
-          {/* Hero Image Section */}
-          <div className="mb-12">
-            <Image
-              src="/hero_image_1.png"
-              alt="An illustration showing a vibrant and modern learning environment."
-              width={600}
-              height={400}
-              className="w-full h-auto rounded-lg shadow-md" // <-- CORRECTED: Removed max-w-md and mx-auto
-              priority 
-            />
-          </div>
-
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-            Welcome to LessonHUB
-          </h1>
-          <p className="mt-6 text-lg leading-8 text-gray-600">
-            The modern platform for creating, assigning, and grading lessons with ease.
-          </p>
-          
-          {/* Rotating Testimonials Section */}
-          <div className="mt-12 h-32 flex items-center justify-center">
-            <div 
-              className={`transition-opacity duration-500 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}
-            >
-              <blockquote className="text-xl italic text-gray-800">
-                &quot;{testimonials[currentTestimonial].quote}&quot;
-              </blockquote>
-              <p className="mt-4 text-md text-gray-500 font-medium">
-                - {testimonials[currentTestimonial].author}
+        {/* Content */}
+        <div className="container mx-auto px-6 lg:px-8 py-24 md:py-32 relative z-10">
+          <div className="max-w-xl text-center lg:text-left">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+              Education Made Engaging
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-200 mb-8">
+              LessonHUB simplifies teaching and enhances learning with intuitive tools and captivating content.
+            </p>
+            <div className="space-y-3 mb-10 text-left mx-auto lg:mx-0 max-w-sm">
+              <p className="flex items-center text-lg">
+                <CheckCircle className="h-5 w-5 text-white mr-3 flex-shrink-0" /> Interactive Lesson Creation
+              </p>
+              <p className="flex items-center text-lg">
+                <CheckCircle className="h-5 w-5 text-white mr-3 flex-shrink-0" /> Personalized Learning Paths
+              </p>
+              <p className="flex items-center text-lg">
+                <CheckCircle className="h-5 w-5 text-white mr-3 flex-shrink-0" /> Collaborative & Accessible
               </p>
             </div>
-          </div>
-
-          <div className="mt-10">
-            <Button asChild size="lg">
-              <Link href="/register">
-                SIGN UP NOW!
-              </Link>
-            </Button>
+            <Link href="/signin">
+              <Button
+                size="lg"
+                className={`bg-white text-[#2A5E5B] hover:bg-gray-200 rounded-md px-10 py-3 text-lg font-semibold shadow-md transition-all`}
+              >
+                Start Learning Today
+              </Button>
+            </Link>
           </div>
         </div>
-      </main>
-    );
-  }
+      </section>
 
-  // Return null or a placeholder while redirecting
-  return null;
+      {/* The LessonHUB Difference Section */}
+      <section className="w-full py-16 md:py-24 bg-gray-50 text-gray-800">
+        <div className="container mx-auto px-4 md:px-6">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-16">The LessonHUB Difference</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
+            <DifferenceCard
+              icon={<Lightbulb className="h-8 w-8 text-[#2A5E5B]" />}
+              title="Intuitive Content Creation"
+              description="Design engaging educational material with an easy-to-use interface, no coding required."
+            />
+            <DifferenceCard
+              icon={<GraduationCap className="h-8 w-8 text-[#2A5E5B]" />}
+              title="Enhanced Learning Outcomes"
+              description="Boost comprehension and retention with interactive elements and tailored feedback."
+            />
+            <DifferenceCard
+              icon={<Users className="h-8 w-8 text-[#2A5E5B]" />}
+              title="Seamless Collaboration"
+              description="Foster teamwork and peer learning with integrated tools and group project features."
+            />
+            <DifferenceCard
+              icon={<Globe className="h-8 w-8 text-[#2A5E5B]" />}
+              title="Accessible Anywhere, Anytime"
+              description="Learn and teach on any device, from any location, with robust cloud-based access."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="w-full py-16 md:py-24 bg-white text-gray-800">
+        <div className="container mx-auto px-4 md:px-6">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-12">What Our Users Say</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <TestimonialCard
+              quote="LessonHUB has transformed my classroom. The ability to create interactive lessons has boosted student engagement to a level I've never seen before."
+              author="Maria Rossi"
+              role="High School Teacher"
+            />
+            <TestimonialCard
+              quote="As a student, I love how organized my assignments are. The personalized feedback from my teacher helps me improve and understand the material better."
+              author="Luca Bianchi"
+              role="University Student"
+            />
+            <TestimonialCard
+              quote="The admin features are a lifesaver. Managing users and lessons across our entire district has never been easier or more intuitive. Highly recommended!"
+              author="Sofia Ricci"
+              role="School Administrator"
+            />
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 }
 
+// Reusable DifferenceCard Component
+interface DifferenceCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}
+
+function DifferenceCard({ icon, title, description }: DifferenceCardProps) {
+  return (
+    <div className="flex flex-col items-center text-center p-4">
+      <div className="mb-4">{icon}</div>
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-gray-600">{description}</p>
+    </div>
+  );
+}
+
+// Reusable TestimonialCard Component
+interface TestimonialCardProps {
+  quote: string;
+  author: string;
+  role: string;
+}
+
+function TestimonialCard({ quote, author, role }: TestimonialCardProps) {
+    return (
+        <Card className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <CardContent className="p-0">
+                <p className="text-gray-700 italic leading-relaxed">&quot;{quote}&quot;</p>
+                <div className="mt-6 text-right">
+                    <p className="font-semibold text-gray-800">{author}</p>
+                    <p className="text-sm text-gray-500">{role}</p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
