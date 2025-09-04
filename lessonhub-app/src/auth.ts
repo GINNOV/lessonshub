@@ -56,6 +56,7 @@ export const {
 
   pages: {
     signIn: "/signin",
+    verifyRequest: "/auth/verify-request", // This is a required page for email sign-in
   },
 
   session: { strategy: "jwt" },
@@ -88,4 +89,3 @@ export const {
     },
   },
 });
-

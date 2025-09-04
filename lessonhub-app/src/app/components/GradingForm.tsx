@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Assignment } from '@prisma/client';
 import { Button } from '@/components/ui/button';
@@ -23,9 +23,28 @@ const scoreOptions = [
 export default function GradingForm({ assignment }: GradingFormProps) {
   const router = useRouter();
   const [score, setScore] = useState<number | null>(assignment.score ?? null);
+  const [customScore, setCustomScore] = useState('');
   const [teacherComments, setTeacherComments] = useState(assignment.teacherComments || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Initialize custom score dropdown if the score is not one of the radio options
+    if (score !== null && !scoreOptions.some(opt => opt.value === score)) {
+      setCustomScore(score.toString());
+    }
+  }, [score]);
+  
+  const handleRadioChange = (value: string) => {
+    setScore(Number(value));
+    setCustomScore(''); // Reset custom score when radio is selected
+  };
+  
+  const handleCustomScoreChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setCustomScore(value);
+    setScore(value ? Number(value) : null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,8 +78,8 @@ export default function GradingForm({ assignment }: GradingFormProps) {
       <div>
         <Label className="text-base font-medium text-gray-900">Score</Label>
         <RadioGroup 
-          value={score?.toString()} 
-          onValueChange={(value) => setScore(Number(value))} 
+          value={scoreOptions.some(opt => opt.value === score) ? score?.toString() : ''} 
+          onValueChange={handleRadioChange} 
           className="mt-2"
         >
           {scoreOptions.map((option) => (
@@ -73,13 +92,29 @@ export default function GradingForm({ assignment }: GradingFormProps) {
           ))}
         </RadioGroup>
       </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="custom-score">Custom Score</Label>
+        <select
+          id="custom-score"
+          value={customScore}
+          onChange={handleCustomScoreChange}
+          className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
+        >
+          <option value="">Select a score</option>
+          {Array.from({ length: 11 }, (_, i) => i).map((value) => (
+            <option key={value} value={value}>{value}</option>
+          ))}
+        </select>
+      </div>
+
       <div>
-        <Label htmlFor="comments">Comments</Label>
+        <Label htmlFor="comments">Comments (Markdown supported)</Label>
         <Textarea
           id="comments"
           value={teacherComments}
           onChange={(e) => setTeacherComments(e.target.value)}
-          placeholder="Provide feedback for the student..."
+          placeholder="Provide feedback for the student... You can use markdown for **bold**, *italics*, etc."
         />
       </div>
       <Button

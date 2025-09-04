@@ -27,13 +27,14 @@ export default function SignInPage() {
     setIsLoading(true);
     setError('');
     setMagicLinkMessage('');
-    const result = await signIn('resend', { email, redirect: false });
+    const result = await signIn('resend', { email, redirect: false, callbackUrl: '/dashboard' });
     if (result?.error) {
       setError('Could not send sign-in link. Please try again.');
+      setIsLoading(false);
     } else {
       setMagicLinkMessage('Check your email for a sign-in link!');
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {

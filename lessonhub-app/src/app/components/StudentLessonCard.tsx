@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { Assignment, Lesson, User, AssignmentStatus } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { cn, getWeekAndDay } from '@/lib/utils';
+import { marked } from 'marked';
 
 type AssignmentWithDetails = Assignment & {
   lesson: Lesson & {
@@ -19,12 +20,12 @@ interface StudentLessonCardProps {
   index: number;
 }
 
-const statusStyles: { [key in AssignmentStatus | 'PAST_DUE']: string } = {
+const statusStyles = {
   [AssignmentStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
   [AssignmentStatus.COMPLETED]: 'bg-blue-100 text-blue-800',
   [AssignmentStatus.GRADED]: 'bg-green-100 text-green-800',
   [AssignmentStatus.FAILED]: 'bg-red-100 text-red-800',
-  'PAST_DUE': 'bg-red-100 text-red-800',
+  PAST_DUE: 'bg-red-100 text-red-800',
 };
 
 const getGradeBackground = (score: number | null) => {
@@ -37,8 +38,9 @@ const getGradeBackground = (score: number | null) => {
 
 export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {
   const isPastDeadline = new Date() > new Date(assignment.deadline);
-  const isPendingAndPastDue = isPastDeadline && assignment.status === "PENDING";
-  const displayStatus = isPendingAndPastDue ? 'FAILED' : assignment.status;
+  const status = isPastDeadline && assignment.status === "PENDING" ? "PAST_DUE" : assignment.status;
+
+  const commentsHtml = assignment.teacherComments ? marked.parse(assignment.teacherComments) : '';
 
   return (
     <div className={cn(
@@ -65,8 +67,8 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                 Lesson {getWeekAndDay(assignment.lesson.createdAt)} - Assigned by: {assignment.lesson.teacher.name}
               </p>
             </div>
-            <span className={cn('px-3 py-1 text-xs font-medium rounded-full', statusStyles[displayStatus as keyof typeof statusStyles])}>
-              {displayStatus}
+            <span className={cn('px-3 py-1 text-xs font-medium rounded-full', statusStyles[status as keyof typeof statusStyles])}>
+              {status}
             </span>
           </div>
 
@@ -83,11 +85,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                   <p className="text-xs">Score</p>
                 </div>
                 {assignment.teacherComments && (
-                  <div className="flex-grow">
-                    <blockquote className="pl-3 border-l-4 border-gray-400/50 italic text-gray-700">
-                      &quot;{assignment.teacherComments}&quot;
-                    </blockquote>
-                  </div>
+                  <div className="flex-grow prose prose-sm" dangerouslySetInnerHTML={{ __html: commentsHtml as string }} />
                 )}
               </div>
             </div>
@@ -107,7 +105,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                 <Link href={`/assignments/${assignment.id}`}>Review Results</Link>
               </Button>
             )}
-             {(isPendingAndPastDue || assignment.status === 'FAILED') && (
+             {(status === 'PAST_DUE' || status === 'FAILED') && (
               <Button variant="secondary" asChild>
                 <Link href={`/assignments/${assignment.id}`}>View Lesson</Link>
               </Button>
