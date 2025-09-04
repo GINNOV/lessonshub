@@ -17,20 +17,29 @@ enum Role {
   ADMIN
 }
 
+enum AssignmentNotification {
+  NOT_ASSIGNED
+  ASSIGN_AND_NOTIFY
+  ASSIGN_WITHOUT_NOTIFICATION
+}
+
 // Main User model
 model User {
-  id             String    @id @default(cuid())
-  name           String?
-  email          String    @unique
-  hashedPassword String?
-  emailVerified  DateTime?
-  image          String?
-  role           Role      @default(STUDENT)
-  lastSeen       DateTime?
-  accounts       Account[]
-  sessions       Session[]
-  lessons        Lesson[]
-  assignments    Assignment[]
+  id                    String    @id @default(cuid())
+  name                  String?
+  email                 String    @unique
+  hashedPassword        String?
+  emailVerified         DateTime?
+  image                 String?
+  role                  Role      @default(STUDENT)
+  lastSeen              DateTime?
+  impersonatedBy        User?     @relation("Impersonation", fields: [impersonatedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  impersonatedById      String?   @unique
+  impersonating         User?     @relation("Impersonation")
+  accounts              Account[]
+  sessions              Session[]
+  lessons               Lesson[]
+  assignments           Assignment[]
 }
 
 // Model for Lessons
@@ -39,11 +48,12 @@ model Lesson {
   title                String
   lesson_preview       String?   @db.Text
   assignment_text      String    @db.Text
+  questions            Json?
   assignment_image_url String?
   context_text         String?   @db.Text
   attachment_url       String?
   notes                String?
-  visible_after        DateTime?
+  assignment_notification AssignmentNotification @default(NOT_ASSIGNED)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -66,7 +76,8 @@ model Assignment {
   status          AssignmentStatus @default(PENDING)
   score           Int?
   gradedAt        DateTime?
-  responseText    String?
+  studentNotes    String?          @db.Text
+  answers         Json?
   teacherComments String?
 
   lessonId  String

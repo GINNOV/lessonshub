@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Lesson } from '@prisma/client';
+import { Lesson, AssignmentNotification } from '@prisma/client';
 
 interface LessonFormProps {
   lesson?: Lesson | null; // Make lesson optional for creating new lessons
@@ -23,10 +23,11 @@ export default function LessonForm({ lesson }: LessonFormProps) {
   const [lessonPreview, setLessonPreview] = useState('');
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
   const [assignmentText, setAssignmentText] = useState('👉🏼 INSTRUCTIONS:\n');
+  const [questions, setQuestions] = useState<string[]>(['']);
   const [contextText, setContextText] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [notes, setNotes] = useState('');
-  const [visibleAfter, setVisibleAfter] = useState('');
+  const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
 
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,14 +41,12 @@ export default function LessonForm({ lesson }: LessonFormProps) {
       setTitle(lesson.title);
       setLessonPreview(lesson.lesson_preview || '');
       setAssignmentText(lesson.assignment_text || '👉🏼 INSTRUCTIONS:\n');
+      setQuestions((lesson.questions as string[]) || ['']);
       setContextText(lesson.context_text || '');
       setAssignmentImageUrl(lesson.assignment_image_url || null);
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
-      setVisibleAfter(lesson.visible_after ? new Date(lesson.visible_after).toISOString().slice(0, 16) : '');
-    } else {
-      const defaultVisibleAfter = new Date(Date.now() + 30 * 60 * 60 * 1000);
-      setVisibleAfter(defaultVisibleAfter.toISOString().slice(0, 16));
+      setAssignmentNotification(lesson.assignment_notification);
     }
   }, [lesson]);
   
@@ -90,6 +89,16 @@ export default function LessonForm({ lesson }: LessonFormProps) {
     }
   };
 
+  const handleAddQuestion = () => {
+    setQuestions([...questions, '']);
+  };
+
+  const handleQuestionChange = (index: number, value: string) => {
+    const newQuestions = [...questions];
+    newQuestions[index] = value;
+    setQuestions(newQuestions);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -105,11 +114,12 @@ export default function LessonForm({ lesson }: LessonFormProps) {
           title, 
           lesson_preview: lessonPreview,
           assignmentText, 
+          questions,
           contextText,
           assignment_image_url: assignmentImageUrl,
           attachment_url: attachmentUrl,
           notes,
-          visible_after: visibleAfter ? new Date(visibleAfter) : null,
+          assignment_notification: assignmentNotification,
         }),
       });
       if (!response.ok) {
@@ -151,6 +161,18 @@ export default function LessonForm({ lesson }: LessonFormProps) {
         <Label htmlFor="assignmentText">Instructions</Label>
         <Textarea id="assignmentText" placeholder="Describe the main task for the student." value={assignmentText} onChange={(e) => setAssignmentText(e.target.value)} required disabled={isLoading} className="min-h-[200px]" />
       </div>
+      
+      <div className="space-y-2">
+        {questions.map((question, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <Label htmlFor={`question-${index}`} className="whitespace-nowrap">Question {index + 1}</Label>
+            <Input type="text" id={`question-${index}`} value={question} onChange={(e) => handleQuestionChange(index, e.target.value)} disabled={isLoading} />
+            {index === questions.length - 1 && (
+              <Button type="button" onClick={handleAddQuestion} disabled={isLoading}>+</Button>
+            )}
+          </div>
+        ))}
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="contextText">Additional Information</Label>
@@ -176,8 +198,18 @@ export default function LessonForm({ lesson }: LessonFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="visibleAfter">Visible to Students After</Label>
-        <Input type="datetime-local" id="visibleAfter" value={visibleAfter} onChange={(e) => setVisibleAfter(e.target.value)} disabled={isLoading} />
+        <Label htmlFor="assignmentNotification">Assignment Status</Label>
+        <select
+          id="assignmentNotification"
+          value={assignmentNotification}
+          onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
+          disabled={isLoading}
+          className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
+        >
+          <option value={AssignmentNotification.NOT_ASSIGNED}>Not Assigned</option>
+          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign and Notify Now</option>
+          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign with No Notification</option>
+        </select>
       </div>
       
       <Button type="submit" disabled={isLoading || isUploading} className="w-full">

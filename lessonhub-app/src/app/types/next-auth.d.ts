@@ -13,6 +13,8 @@ declare module "next-auth" {
     user: {
       id: string;
       role: Role;
+      impersonating?: boolean;
+      originalUserId?: string; // This line is added
     } & DefaultSession["user"];
   }
 

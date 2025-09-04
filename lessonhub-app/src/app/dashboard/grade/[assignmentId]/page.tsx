@@ -32,6 +32,8 @@ export default async function GradeSubmissionPage({ params }: { params: { assign
 
   // Parse the markdown content to HTML
   const assignmentHtml = (await marked.parse(submission.lesson.assignment_text)) as string;
+  const questions = submission.lesson.questions as string[] | null;
+  const answers = submission.answers as string[] | null;
 
   return (
     <div>
@@ -56,12 +58,26 @@ export default async function GradeSubmissionPage({ params }: { params: { assign
                 />
               </div>
             )}
-            {/* --- UPDATED TO RENDER MARKDOWN --- */}
             <div className="prose prose-sm mt-4 max-w-none" dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
           </div>
           <div>
             <h2 className="text-xl font-semibold border-b pb-2">Student&apos;s Response</h2>
-            <p className="mt-4 whitespace-pre-wrap">{submission.responseText || "No response submitted."}</p>
+            {questions && answers && (
+              <div className="space-y-4 mt-4">
+                {questions.map((question, index) => (
+                  <div key={index}>
+                    <p className="font-semibold">❓ {question}</p>
+                    <p className="mt-1 pl-6">{answers[index] || "No answer provided."}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {submission.studentNotes && (
+              <div className="mt-4">
+                <h3 className="font-semibold">Student Notes</h3>
+                <p className="mt-1 whitespace-pre-wrap">{submission.studentNotes}</p>
+              </div>
+            )}
           </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md border">

@@ -3,7 +3,9 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { Role } from "@prisma/client";
+import { Role, AssignmentNotification } from "@prisma/client";
+import NewAssignmentEmail from "@/emails/NewAssignmentEmail";
+import { render } from "@react-email/render";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -14,8 +16,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  // Ensure 'assignment_image_url' is destructured here
-  const { title, lesson_preview, assignmentText, contextText, assignment_image_url, attachment_url, notes, visible_after } = body; 
+  const { title, lesson_preview, assignmentText, questions, contextText, assignment_image_url, attachment_url, notes, assignment_notification } = body; 
 
   if (!title || !assignmentText) {
     return new NextResponse(
@@ -30,14 +31,61 @@ export async function POST(request: Request) {
         title: title,
         lesson_preview,
         assignment_text: assignmentText,
+        questions,
         context_text: contextText,
         assignment_image_url: assignment_image_url,
         attachment_url,
         notes,
-        visible_after,
+        assignment_notification,
         teacherId: session.user.id,
       },
     });
+
+    if (assignment_notification === AssignmentNotification.ASSIGN_AND_NOTIFY || assignment_notification === AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION) {
+      const students = await prisma.user.findMany({ where: { role: Role.STUDENT } });
+      const assignmentsData = students.map(student => ({
+        lessonId: newLesson.id,
+        studentId: student.id,
+        deadline: new Date(Date.now() + 36 * 60 * 60 * 1000), // Default deadline 36 hours from now
+      }));
+      
+      await prisma.assignment.createMany({
+        data: assignmentsData,
+        skipDuplicates: true,
+      });
+
+      if (assignment_notification === AssignmentNotification.ASSIGN_AND_NOTIFY) {
+        // Send email notifications
+        for (const student of students) {
+            if (student.email) {
+                const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
+                const emailHtml = await render(
+                    NewAssignmentEmail({
+                        studentName: student.name,
+                        lessonTitle: newLesson.title,
+                        teacherName: session.user.name,
+                        deadline: new Date(Date.now() + 36 * 60 * 60 * 1000),
+                        assignmentUrl,
+                    })
+                );
+                
+                await fetch("https://api.resend.com/emails", {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        from: process.env.EMAIL_FROM,
+                        to: student.email,
+                        subject: `New Assignment: ${newLesson.title}`,
+                        html: emailHtml,
+                    }),
+                });
+            }
+        }
+      }
+    }
 
     return NextResponse.json(newLesson, { status: 201 });
   } catch (error) {

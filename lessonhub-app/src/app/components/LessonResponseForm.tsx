@@ -4,25 +4,39 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Assignment, AssignmentStatus } from '@prisma/client';
+import { Assignment, AssignmentStatus, Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 interface LessonResponseFormProps {
-  assignment: Assignment;
+  assignment: Assignment & { lesson: Lesson };
 }
 
 export default function LessonResponseForm({ assignment }: LessonResponseFormProps) {
   const router = useRouter();
-  const [responseText, setResponseText] = useState(assignment.responseText || '');
+  const [answers, setAnswers] = useState<string[]>(
+    Array((assignment.lesson.questions as string[])?.length || 0).fill('')
+  );
+  const [studentNotes, setStudentNotes] = useState(assignment.studentNotes || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const isPastDeadline = new Date() > new Date(assignment.deadline);
   const isReadOnly = assignment.status === AssignmentStatus.GRADED || assignment.status === AssignmentStatus.FAILED;
 
+  const handleAnswerChange = (index: number, value: string) => {
+    const newAnswers = [...answers];
+    newAnswers[index] = value;
+    setAnswers(newAnswers);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (answers.every(answer => answer.trim() === '')) {
+      setError('You must answer at least one question to submit.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
@@ -30,7 +44,7 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
       const response = await fetch(`/api/assignments/${assignment.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ responseText }),
+        body: JSON.stringify({ answers, studentNotes }),
       });
 
       if (!response.ok) {
@@ -57,16 +71,35 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
 
   return (
     <form onSubmit={handleSubmit} className="mt-8 border-t pt-6">
-      <h2 className="text-xl font-semibold mb-4">Your Response</h2>
-      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mb-4">{error}</p>}
+      <div className="space-y-4">
+        {(assignment.lesson.questions as string[])?.map((question, index) => (
+          <div key={index} className="space-y-2">
+            <Label htmlFor={`question-${index}`} className="flex items-center">
+              <span className="mr-2">❓</span> {question}
+            </Label>
+            <Textarea
+              id={`question-${index}`}
+              value={answers[index]}
+              onChange={(e) => handleAnswerChange(index, e.target.value)}
+              disabled={isLoading || isPastDeadline || isReadOnly}
+              className="min-h-[100px]"
+            />
+          </div>
+        ))}
+      </div>
       
-      <Textarea
-        className="min-h-[150px]"
-        placeholder="Type your answer here..."
-        value={responseText}
-        onChange={(e) => setResponseText(e.target.value)}
-        disabled={isLoading || isPastDeadline || isReadOnly}
-      />
+      <div className="mt-6 space-y-2">
+        <Label htmlFor="student-notes">Student Notes</Label>
+        <Textarea
+          id="student-notes"
+          value={studentNotes}
+          onChange={(e) => setStudentNotes(e.target.value)}
+          disabled={isLoading || isPastDeadline || isReadOnly}
+          placeholder="Add any notes for your teacher here..."
+        />
+      </div>
+
+      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mt-4">{error}</p>}
 
       <Button
         type="submit"

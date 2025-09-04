@@ -56,7 +56,7 @@ export const {
 
   pages: {
     signIn: "/signin",
-    verifyRequest: "/auth/verify-request", // This is a required page for email sign-in
+    verifyRequest: "/auth/verify-request",
   },
 
   session: { strategy: "jwt" },
@@ -67,23 +67,29 @@ export const {
 
   callbacks: {
     async jwt({ token, user }) {
-      if (user?.id) {
+      if (user?.id) { // This check ensures user.id is not undefined
         token.id = user.id;
         token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: token.id as string },
+        include: { impersonatedBy: true },
+      });
+
+      if (user?.impersonatedBy) {
+        session.user = {
+          ...session.user,
+          ...user.impersonatedBy,
+          id: user.impersonatedBy.id, // Ensure the ID is correctly passed
+          impersonating: true,
+          originalUserId: user.id, // Store the original admin's ID
+        };
+      } else if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
-
-        if (session.user.role === Role.STUDENT) {
-          await prisma.user.update({
-            where: { id: session.user.id },
-            data: { lastSeen: new Date() },
-          });
-        }
       }
       return session;
     },

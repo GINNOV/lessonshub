@@ -31,7 +31,6 @@ export async function PATCH(
       id: assignmentId,
       studentId: session.user.id,
     },
-    // --- ADDED INCLUDE TO GET TEACHER INFO ---
     include: {
         lesson: {
             include: {
@@ -51,12 +50,13 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { responseText } = body;
+    const { answers, studentNotes } = body;
 
     const updatedAssignment = await prisma.assignment.update({
       where: { id: assignmentId },
       data: {
-        responseText: responseText,
+        answers,
+        studentNotes,
         status: 'COMPLETED',
       },
     });

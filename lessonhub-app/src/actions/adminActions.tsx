@@ -86,3 +86,41 @@ export async function reassignLesson(lessonId: string, newTeacherId: string) {
         return { success: false, error: (error as Error).message };
     }
 }
+
+export async function impersonateUser(userId: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { impersonatedById: userId },
+    });
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to impersonate user" };
+  }
+}
+
+export async function stopImpersonation() {
+  const session = await auth();
+  const originalUserId = session?.user.originalUserId;
+
+  if (!originalUserId) {
+    return { success: false, error: "Not in impersonation mode" };
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: originalUserId },
+      data: { impersonatedById: null },
+    });
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to stop impersonation" };
+  }
+}

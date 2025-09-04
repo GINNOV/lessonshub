@@ -51,8 +51,6 @@ export async function PATCH(
       }
     });
 
-    console.log("Fetched assignment for grading:", JSON.stringify(assignment, null, 2));
-
     if (!assignment) {
       return new NextResponse(JSON.stringify({ error: "Assignment not found or you don't have permission to grade it." }), { status: 404 });
     }
@@ -71,7 +69,6 @@ export async function PATCH(
       try {
         const assignmentUrl = `${getBaseUrl(request)}/assignments/${assignment.id}`;
         
-        // --- FIX: Added the 'await' keyword here ---
         const emailHtml = await render(
           <GradedEmail
             studentName={assignment.student.name}

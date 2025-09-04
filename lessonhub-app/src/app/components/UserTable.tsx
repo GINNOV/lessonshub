@@ -4,7 +4,7 @@
 
 import { useState, useMemo } from 'react';
 import { User, Role } from '@prisma/client';
-import { updateUserRole } from '@/actions/adminActions';
+import { updateUserRole, impersonateUser } from '@/actions/adminActions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -27,6 +27,14 @@ export default function UserTable({ users, searchTerm: initialSearchTerm }: User
   const handleRoleChange = async (userId: string, role: Role) => {
     setError(null);
     const result = await updateUserRole(userId, role);
+    if (!result.success) {
+      setError(result.error || 'An unknown error occurred.');
+    }
+  };
+  
+  const handleImpersonate = async (userId: string) => {
+    setError(null);
+    const result = await impersonateUser(userId);
     if (!result.success) {
       setError(result.error || 'An unknown error occurred.');
     }
@@ -67,6 +75,9 @@ export default function UserTable({ users, searchTerm: initialSearchTerm }: User
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => handleRoleChange(user.id, Role.STUDENT)} disabled={user.role === Role.STUDENT}>
                         Make Student
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleImpersonate(user.id)}>
+                        Impersonate
                       </Button>
                     </>
                   )}
