@@ -6,113 +6,118 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function SignInPage() {
   const router = useRouter();
-  // State for the credentials form
-  const [credentialsEmail, setCredentialsEmail] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
-  // State for the magic link form
-  const [magicLinkEmail, setMagicLinkEmail] = useState('');
-
-  // General state
   const [error, setError] = useState('');
   const [magicLinkMessage, setMagicLinkMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleMagicLinkSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleMagicLinkSubmit = async () => {
+    if (!email) {
+      setError('Please enter your email to receive a sign-in link.');
+      return;
+    }
+    setIsLoading(true);
     setError('');
     setMagicLinkMessage('');
-    const result = await signIn('email', { email: magicLinkEmail, redirect: false });
+    const result = await signIn('resend', { email, redirect: false });
     if (result?.error) {
-      setError('Could not send sign-in link.');
+      setError('Could not send sign-in link. Please try again.');
     } else {
       setMagicLinkMessage('Check your email for a sign-in link!');
     }
+    setIsLoading(false);
   };
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     setError('');
-    const result = await signIn('credentials', { redirect: false, email: credentialsEmail, password });
+    const result = await signIn('credentials', { redirect: false, email, password });
     if (result?.error) {
       setError('Invalid email or password');
+      setIsLoading(false);
     } else {
       router.push('/dashboard');
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm space-y-4 p-8 bg-white shadow-md rounded-lg">
-        <h1 className="text-2xl font-bold text-center">Sign In</h1>
-        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-        {magicLinkMessage && <p className="text-green-600 text-sm text-center">{magicLinkMessage}</p>}
-        
-        <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
-           <input
-            type="email"
-            placeholder="your@email.com"
-            value={magicLinkEmail}
-            onChange={(e) => setMagicLinkEmail(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md"
-            required
-          />
-          <button type="submit" className="w-full bg-slate-600 text-white py-2 rounded-md hover:bg-slate-700">
-            Sign In with Email Link
-          </button>
-        </form>
-
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300" /></div>
-          <div className="relative flex justify-center text-sm"><span className="bg-white px-2 text-gray-500">Or</span></div>
-        </div>
-
-        <form onSubmit={handleCredentialsSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            value={credentialsEmail}
-            onChange={(e) => setCredentialsEmail(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md"
-            required
-          />
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
-            Sign In with Password
-          </button>
-        </form>
-
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
+    <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
+      <div className="flex items-center justify-center py-12">
+        <div className="mx-auto grid w-[350px] gap-6">
+          <div className="grid gap-2 text-center">
+            <h1 className="text-3xl font-bold">Sign In</h1>
+            <p className="text-balance text-muted-foreground">
+              Enter your email below to sign in to your account
+            </p>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-gray-500">Or</span>
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+          {magicLinkMessage && <p className="text-green-600 text-sm text-center">{magicLinkMessage}</p>}
+          <form onSubmit={handleCredentialsSubmit} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="password">Password</Label>
+                <button
+                  type="button"
+                  onClick={handleMagicLinkSubmit}
+                  className="ml-auto inline-block text-sm underline disabled:opacity-50"
+                  disabled={isLoading}
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Signing In...' : 'Sign In'}
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => signIn('google', { callbackUrl: '/dashboard' })} disabled={isLoading}>
+              Sign in with Google
+            </Button>
+          </form>
+          <div className="mt-4 text-center text-sm">
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="underline">
+              Sign up
+            </Link>
           </div>
         </div>
-        
-        <button 
-          onClick={() => signIn('google', { callbackUrl: '/dashboard' })} 
-          className="w-full flex justify-center items-center bg-white border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
-        >
-          <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.75 8.36,4.73 12.19,4.73C14.03,4.73 15.69,5.36 16.95,6.45L19.34,4.06C17.27,2.14 14.84,1 12.19,1C6.92,1 3,5.5 3,12C3,18.5 6.92,23 12.19,23C17.38,23 21.5,19.21 21.5,13.19C21.5,12.22 21.45,11.66 21.35,11.1Z"/>
-          </svg>
-          Sign In with Google
-        </button>
-
-        <p className="text-center text-sm">
-          No account? <Link href="/register" className="text-blue-600 hover:underline">Register here</Link>
-        </p>
+      </div>
+      <div className="hidden bg-muted lg:block">
+        <Image
+          src="/hero_image_1.png"
+          alt="Image"
+          width="1920"
+          height="1080"
+          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+        />
       </div>
     </div>
   );
