@@ -1,12 +1,11 @@
 // file: src/app/api/profile/route.ts
 
 import { auth } from "@/auth";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: NextRequest) {
   const session = await auth();
-
   if (!session?.user?.id) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
@@ -17,17 +16,23 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { name, image } = body;
 
+    const dataToUpdate: { name?: string; image?: string } = {};
+    if (name) dataToUpdate.name = name;
+    if (image) dataToUpdate.image = image;
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      return new NextResponse(JSON.stringify({ error: "No fields to update" }), {
+        status: 400,
+      });
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
-      data: {
-        name: name,
-        image: image,
-      },
+      data: dataToUpdate,
     });
 
     return NextResponse.json(updatedUser, { status: 200 });
   } catch (error) {
-    console.error("PROFILE_UPDATE_ERROR", error);
     return new NextResponse(
       JSON.stringify({ error: "Failed to update profile" }),
       { status: 500 }

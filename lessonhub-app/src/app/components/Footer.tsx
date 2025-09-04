@@ -5,7 +5,7 @@ import Link from 'next/link';
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   
-  // Vercel provides this variable during the build, which is passed via next.config.mjs
+  // This will now be directly provided by Vercel.
   const rawSha = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || '';
   const buildVersion = rawSha ? rawSha.substring(0, 7) : 'dev';
   const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || '';
@@ -18,7 +18,10 @@ export default function Footer() {
           <span className="mx-2">|</span>
           <span>Build: {buildVersion}</span>
         </div>
-        <nav>
+        <nav className="flex items-center space-x-4">
+          <Link href="/about" className="hover:text-gray-900">About Us</Link>
+          <Link href="/contact" className="hover:text-gray-900">Contact Us</Link>
+          <Link href="/privacy" className="hover:text-gray-900">Privacy</Link>
           {docsUrl && (
             <Link href={docsUrl} className="hover:text-gray-900" target="_blank" rel="noopener noreferrer">
               Docs
