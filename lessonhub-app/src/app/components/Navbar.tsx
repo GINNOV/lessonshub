@@ -22,6 +22,14 @@ export default function Navbar() {
   const router = useRouter();
   const user = session?.user as any;
 
+  // Determine the correct home link based on user role
+  const homeHref =
+    status === 'authenticated'
+      ? user?.role === Role.TEACHER || user?.role === Role.ADMIN
+        ? '/dashboard'
+        : '/my-lessons'
+      : '/';
+
   const handleStopImpersonation = async () => {
     const result = await stopImpersonation();
     if (result.success) {
@@ -51,7 +59,7 @@ export default function Navbar() {
       )}
       <header className="bg-white/95 backdrop-blur-sm sticky top-0 z-50 border-b">
         <nav className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-          <Link href="/" className="text-lg font-bold text-gray-800">
+          <Link href={homeHref} className="text-lg font-bold text-gray-800">
             🏠 LessonHUB
           </Link>
           <div className="flex items-center space-x-4">
