@@ -19,15 +19,76 @@ interface TeacherLessonListProps {
   lessons: LessonWithAssignments[];
 }
 
+// Share Icon Component
+function ShareIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <polyline points="16 6 12 2 8 6" />
+      <line x1="12" x2="12" y1="2" y2="15" />
+    </svg>
+  );
+}
+
+// --- START: Robust Date Filtering Logic ---
+const WEEK_STARTS_ON: 0 | 1 = 1; // 0 = Sunday, 1 = Monday
+
+const getWeekBounds = (date: Date, weekStartsOn: 0 | 1 = 1) => {
+  const day = date.getDay();
+  const diff = (day < weekStartsOn ? 7 : 0) + day - weekStartsOn;
+
+  const start = new Date(date);
+  start.setDate(date.getDate() - diff);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+};
+
+const getStartOfDay = (date: Date) => {
+  const newDate = new Date(date);
+  newDate.setHours(0, 0, 0, 0);
+  return newDate;
+};
+
+const getEndOfDay = (date: Date) => {
+    const newDate = new Date(date);
+    newDate.setHours(23, 59, 59, 999);
+    return newDate;
+};
+// --- END: Robust Date Filtering Logic ---
+
 export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+  const [copiedLessonId, setCopiedLessonId] = useState<string | null>(null);
+
+  const handleShareClick = (lessonId: string) => {
+    const shareUrl = `${window.location.origin}/share/lesson/${lessonId}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopiedLessonId(lessonId);
+      setTimeout(() => setCopiedLessonId(null), 2000); // Reset after 2 seconds
+    });
+  };
 
   const filteredLessons = useMemo(() => {
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    const today = new Date();
+    const todayStart = getStartOfDay(today);
+    const todayEnd = getEndOfDay(today);
+
+    const thisWeek = getWeekBounds(today, WEEK_STARTS_ON);
+    
+    const lastWeekStart = new Date(thisWeek.start);
+    lastWeekStart.setDate(thisWeek.start.getDate() - 7);
+    const lastWeek = getWeekBounds(lastWeekStart, WEEK_STARTS_ON);
+
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    const thirtyDaysAgoStart = getStartOfDay(thirtyDaysAgo);
 
     return lessons
       .map(lesson => ({
@@ -41,15 +102,19 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
       })
       .filter(lesson => {
         if (dateFilter === 'all') return true;
-        const lessonDate = new Date(lesson.createdAt);
+        const lessonDate = getStartOfDay(new Date(lesson.createdAt));
+
         if (dateFilter === 'today') {
-          return lessonDate.toDateString() === now.toDateString();
+            return lessonDate.getTime() === todayStart.getTime();
+        }
+        if (dateFilter === 'this_week') {
+            return lessonDate >= thisWeek.start && lessonDate <= thisWeek.end;
         }
         if (dateFilter === 'last_week') {
-          return lessonDate >= oneWeekAgo;
+          return lessonDate >= lastWeek.start && lessonDate <= lastWeek.end;
         }
-        if (dateFilter === 'last_month') {
-          return lessonDate >= oneMonthAgo;
+        if (dateFilter === 'last_30_days') {
+          return lessonDate >= thirtyDaysAgoStart;
         }
         return true;
       });
@@ -75,8 +140,9 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
           >
             <option value="all">All Dates</option>
             <option value="today">Today</option>
+            <option value="this_week">This Week</option>
             <option value="last_week">Last Week</option>
-            <option value="last_month">Last Month</option>
+            <option value="last_30_days">Last 30 Days</option>
           </select>
           <select
             value={statusFilter}
@@ -124,7 +190,7 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                         {lesson.title}
                       </Link>
                       <p className="text-xs text-gray-400 mt-1">
-                        Lesson {getWeekAndDay(lesson.createdAt)} - Created on: {new Date(lesson.createdAt).toLocaleDateString()}
+                        Lesson {getWeekAndDay(lesson.createdAt)} - Created on: {new Date(lesson.createdAt).toLocaleString()}
                       </p>
                       <div className="flex items-center space-x-2 mt-2">
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
@@ -149,6 +215,9 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
+                      <Button variant="outline" size="icon" onClick={() => handleShareClick(lesson.id)}>
+                        <ShareIcon className="h-4 w-4" />
+                      </Button>
                       <Button variant="outline" asChild>
                         <Link href={`/dashboard/edit/${lesson.id}`}>Edit</Link>
                       </Button>

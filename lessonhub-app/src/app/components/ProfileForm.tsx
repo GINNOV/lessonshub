@@ -98,13 +98,12 @@ export default function ProfileForm() {
     const result = await changePassword(newPassword);
 
     if (result.success) {
-      setPasswordSuccess('Password changed successfully!');
-      setNewPassword('');
-      setConfirmPassword('');
+      // Sign out the user after a successful password change
+      await signOut({ callbackUrl: '/signin' });
     } else {
       setPasswordError(result.error || 'Failed to change password.');
+      setIsSubmittingPassword(false);
     }
-    setIsSubmittingPassword(false);
   };
 
   const handleDeleteSubmit = async (e: React.FormEvent) => {

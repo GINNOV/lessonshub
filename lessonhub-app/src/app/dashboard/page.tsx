@@ -10,7 +10,12 @@ import TeacherLessonList from "@/app/components/TeacherLessonList";
 export default async function DashboardPage() {
   const session = await auth();
 
-  if (!session || session.user.role !== Role.TEACHER) {
+  // Redirect users based on their role
+  if (!session) {
+    redirect("/signin");
+  } else if (session.user.role === Role.STUDENT) {
+    redirect("/my-lessons");
+  } else if (session.user.role !== Role.TEACHER) {
     redirect("/");
   }
 

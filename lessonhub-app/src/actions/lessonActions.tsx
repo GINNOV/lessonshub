@@ -475,3 +475,57 @@ export async function failAssignment(assignmentId: string) {
     return { success: false, error: (error as Error).message };
   }
 }
+
+/**
+ * Fetches a lesson for the share page.
+ * @param lessonId The ID of the lesson.
+ * @returns A promise that resolves to the lesson object or null if not found.
+ */
+export async function getLessonForSharePage(lessonId: string) {
+  try {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+    });
+    return lesson;
+  } catch (error) {
+    console.error("Failed to fetch lesson for share page:", error);
+    return null;
+  }
+}
+
+/**
+ * Assigns a lesson to a student if they are not already assigned.
+ * @param lessonId The ID of the lesson.
+ * @param studentId The ID of the student.
+ * @returns A promise that resolves to the assignment object.
+ */
+export async function assignLessonToStudent(lessonId: string, studentId: string) {
+  try {
+    const existingAssignment = await prisma.assignment.findUnique({
+      where: {
+        lessonId_studentId: {
+          lessonId,
+          studentId,
+        },
+      },
+    });
+
+    if (existingAssignment) {
+      return existingAssignment;
+    }
+
+    const newAssignment = await prisma.assignment.create({
+      data: {
+        lessonId,
+        studentId,
+        deadline: new Date(Date.now() + 36 * 60 * 60 * 1000), // Default deadline 36 hours from now
+      },
+    });
+    
+    revalidatePath('/my-lessons');
+    return newAssignment;
+  } catch (error) {
+    console.error("Failed to assign lesson to student:", error);
+    return null;
+  }
+}

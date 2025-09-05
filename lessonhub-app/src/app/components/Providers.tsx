@@ -10,5 +10,6 @@ interface Props {
 }
 
 export default function Providers({ children }: Props) {
-  return <SessionProvider>{children}</SessionProvider>;
+  // Refetch session every 5 minutes to reduce unnecessary database queries
+  return <SessionProvider refetchInterval={5 * 60}>{children}</SessionProvider>;
 }
