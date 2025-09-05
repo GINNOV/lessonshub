@@ -21,6 +21,7 @@ enum AssignmentNotification {
   NOT_ASSIGNED
   ASSIGN_AND_NOTIFY
   ASSIGN_WITHOUT_NOTIFICATION
+  ASSIGN_ON_DATE
 }
 
 // Main User model
@@ -44,18 +45,19 @@ model User {
 
 // Model for Lessons
 model Lesson {
-  id                   String    @id @default(cuid())
-  title                String
-  lesson_preview       String?   @db.Text
-  assignment_text      String    @db.Text
-  questions            Json?
-  assignment_image_url String?
-  context_text         String?   @db.Text
-  attachment_url       String?
-  notes                String?
-  assignment_notification AssignmentNotification @default(NOT_ASSIGNED)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                        String    @id @default(cuid())
+  title                     String
+  lesson_preview            String?   @db.Text
+  assignment_text           String    @db.Text
+  questions                 Json?
+  assignment_image_url      String?
+  context_text              String?   @db.Text
+  attachment_url            String?
+  notes                     String?
+  assignment_notification   AssignmentNotification @default(NOT_ASSIGNED)
+  scheduled_assignment_date DateTime? // New field for scheduled assignments
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 
   teacherId String
   teacher   User   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
@@ -79,7 +81,6 @@ model Assignment {
   studentNotes    String?          @db.Text
   answers         Json?
   teacherComments String?
-
   lessonId  String
   lesson    Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
@@ -103,7 +104,6 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])

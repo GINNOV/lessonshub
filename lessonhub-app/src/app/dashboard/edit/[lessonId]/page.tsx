@@ -6,14 +6,14 @@ import { getLessonById } from "@/actions/lessonActions";
 import LessonForm from "@/app/components/LessonForm";
 import { Role } from "@prisma/client";
 
-export default async function EditLessonPage({ params }: { params: { lessonId: string } }) {
+export default async function EditLessonPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
 
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
   }
 
-  const { lessonId } = params;
+  const { lessonId } = await params;
   const lesson = await getLessonById(lessonId);
 
   // Optional: Add a check to ensure the lesson belongs to the teacher if needed,

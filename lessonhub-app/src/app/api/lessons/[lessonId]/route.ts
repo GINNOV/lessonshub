@@ -20,7 +20,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { title, lesson_preview, assignmentText, questions, contextText, assignment_image_url, attachment_url, notes, assignment_notification } = body;
+    const { title, lesson_preview, assignmentText, questions, contextText, assignment_image_url, attachment_url, notes, assignment_notification, scheduled_assignment_date } = body;
 
     if (!title || !assignmentText) {
       return new NextResponse(
@@ -56,6 +56,7 @@ export async function PATCH(
         attachment_url,
         notes,
         assignment_notification,
+        scheduled_assignment_date,
       },
     });
 

@@ -12,8 +12,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { Lesson, AssignmentNotification } from '@prisma/client';
 
 interface LessonFormProps {
-  lesson?: Lesson | null; // Make lesson optional for creating new lessons
+  lesson?: Lesson | null;
 }
+
+// --- START: Robust JSON Parsing Helper ---
+async function safeJson(response: Response) {
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  }
+  
+  try {
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
+  } catch (error) {
+    return null;
+  }
+}
+// --- END: Robust JSON Parsing Helper ---
 
 export default function LessonForm({ lesson }: LessonFormProps) {
   const router = useRouter();
@@ -22,12 +38,13 @@ export default function LessonForm({ lesson }: LessonFormProps) {
   const [title, setTitle] = useState('');
   const [lessonPreview, setLessonPreview] = useState('');
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
-  const [assignmentText, setAssignmentText] = useState('👉🏼 INSTRUCTIONS:\n');
+  const [assignmentText, setAssignmentText] = useState('痩松 INSTRUCTIONS:\n');
   const [questions, setQuestions] = useState<string[]>(['']);
   const [contextText, setContextText] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
+  const [scheduledDate, setScheduledDate] = useState('');
 
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,33 +57,45 @@ export default function LessonForm({ lesson }: LessonFormProps) {
     if (lesson) {
       setTitle(lesson.title);
       setLessonPreview(lesson.lesson_preview || '');
-      setAssignmentText(lesson.assignment_text || '👉🏼 INSTRUCTIONS:\n');
+      setAssignmentText(lesson.assignment_text || '痩松 INSTRUCTIONS:\n');
       setQuestions((lesson.questions as string[]) || ['']);
       setContextText(lesson.context_text || '');
       setAssignmentImageUrl(lesson.assignment_image_url || null);
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
       setAssignmentNotification(lesson.assignment_notification);
+      if (lesson.scheduled_assignment_date) {
+        const d = new Date(lesson.scheduled_assignment_date);
+        const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        setScheduledDate(formattedDate);
+      }
     }
   }, [lesson]);
   
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
-    const file = event.target.files?.[0]; // <-- CORRECTED: Get file directly from the event
+    const file = event.target.files?.[0];
     
     if (!file) {
-      setError("No file selected or file is invalid."); // Set an error for user feedback
+      setError("No file selected or file is invalid.");
       return;
     }
     
     setIsUploading(true);
-    setError(null); // Clear previous errors
+    setError(null);
     
     try {
       const response = await fetch(`/api/upload?filename=${file.name}`, { method: 'POST', body: file });
-      if (!response.ok) throw new Error("Upload failed.");
-      const newBlob = await response.json();
-      setAssignmentImageUrl(newBlob.url);
+      if (!response.ok) {
+        const errorData = await safeJson(response);
+        throw new Error(errorData?.error || "Upload failed with status: " + response.status);
+      }
+      const newBlob = await safeJson(response);
+      if (newBlob?.url) {
+        setAssignmentImageUrl(newBlob.url);
+      } else {
+        throw new Error("Failed to get image URL from the server.");
+      }
     } catch (err: unknown) {
       setError((err as Error).message);
     } finally {
@@ -82,8 +111,8 @@ export default function LessonForm({ lesson }: LessonFormProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: attachmentUrl }),
       });
-      const data = await response.json();
-      setLinkStatus(data.success ? 'valid' : 'invalid');
+      const data = await safeJson(response);
+      setLinkStatus(data?.success ? 'valid' : 'invalid');
     } catch (error) {
       setLinkStatus('invalid');
     }
@@ -101,8 +130,23 @@ export default function LessonForm({ lesson }: LessonFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
+
+    if (!title.trim()) {
+      setError('Lesson title cannot be empty.');
+      return;
+    }
+    const validQuestions = questions.filter(q => q.trim() !== '');
+    if (validQuestions.length === 0) {
+      setError('You must include at least one question.');
+      return;
+    }
+    if (assignmentNotification === 'ASSIGN_ON_DATE' && !scheduledDate) {
+        setError('Please select a date and time to schedule the assignment.');
+        return;
+    }
+
+    setIsLoading(true);
     try {
       const url = isEditMode ? `/api/lessons/${lesson.id}` : '/api/lessons';
       const method = isEditMode ? 'PATCH' : 'POST';
@@ -114,17 +158,18 @@ export default function LessonForm({ lesson }: LessonFormProps) {
           title, 
           lesson_preview: lessonPreview,
           assignmentText, 
-          questions,
+          questions: validQuestions,
           contextText,
           assignment_image_url: assignmentImageUrl,
           attachment_url: attachmentUrl,
           notes,
           assignment_notification: assignmentNotification,
+          scheduled_assignment_date: assignmentNotification === 'ASSIGN_ON_DATE' ? new Date(scheduledDate) : null,
         }),
       });
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} lesson`);
+        const errorData = await safeJson(response);
+        throw new Error(errorData?.error || `Failed to ${isEditMode ? 'update' : 'create'} lesson`);
       }
       
       router.push('/dashboard');
@@ -138,7 +183,7 @@ export default function LessonForm({ lesson }: LessonFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-lg space-y-6">
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
       
       <div className="space-y-2">
         <Label htmlFor="title">Lesson Title</Label>
@@ -206,11 +251,27 @@ export default function LessonForm({ lesson }: LessonFormProps) {
           disabled={isLoading}
           className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
         >
-          <option value={AssignmentNotification.NOT_ASSIGNED}>Not Assigned</option>
-          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign and Notify Now</option>
-          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign with No Notification</option>
+          <option value={AssignmentNotification.NOT_ASSIGNED}>Save as Draft (Not Assigned)</option>
+          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
+          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign to All and Notify Now</option>
+          <option value={AssignmentNotification.ASSIGN_ON_DATE}>Assign on a Specific Date</option>
         </select>
       </div>
+
+      {assignmentNotification === "ASSIGN_ON_DATE" && (
+        <div className="space-y-2 animate-fade-in-up">
+          <Label htmlFor="scheduledDate">Scheduled Assignment Date & Time</Label>
+          <Input
+            type="datetime-local"
+            id="scheduledDate"
+            value={scheduledDate}
+            onChange={e => setScheduledDate(e.target.value)}
+            required
+            disabled={isLoading}
+            className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
+          />
+        </div>
+      )}
       
       <Button type="submit" disabled={isLoading || isUploading} className="w-full">
         {isLoading ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create Lesson')}
