@@ -17,10 +17,10 @@ function getBaseUrl(req: NextRequest): string {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ assignmentId: string }> }
+  { params }: { params: { assignmentId: string } }
 ) {
   const session = await auth();
-  const { assignmentId } = await params; 
+  const { assignmentId } = params; 
 
   if (!session?.user?.id) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 });

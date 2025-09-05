@@ -8,7 +8,7 @@ import { Role } from "@prisma/client";
 
 // Updated type for the page props
 type UserManagementPageProps = {
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+  searchParams?: { [key: string]: string | string[] | undefined };
 };
 
 export default async function UserManagementPage({ searchParams }: UserManagementPageProps) {

@@ -11,9 +11,9 @@ import { Button } from "@/components/ui/button";
 
 // Corrected type for Next.js 14
 interface AssignmentPageProps {
-  params: Promise<{
+  params: {
     assignmentId: string;
-  }>;
+  };
 }
 
 // --- SVG Icons ---
@@ -79,7 +79,7 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
     redirect("/signin");
   }
 
-  const { assignmentId } = await params;
+  const { assignmentId } = params;
   const assignment = await getAssignmentById(assignmentId, session.user.id);
 
   if (!assignment) {

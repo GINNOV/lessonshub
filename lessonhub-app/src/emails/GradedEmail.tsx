@@ -104,7 +104,7 @@ const GradedEmail: React.FC<Readonly<GradedEmailProps>> = ({
             {teacherComments && (
               <>
                 <Text style={paragraph}>
-                  <strong>Teacher's Feedback:</strong>
+                  <strong>Teacher&apos;s Feedback:</strong>
                 </Text>
                 <Text style={paragraph}>
                   <em>&quot;{teacherComments}&quot;</em>

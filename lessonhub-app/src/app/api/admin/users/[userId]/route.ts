@@ -7,10 +7,10 @@ import { Role } from "@prisma/client";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
+  { params }: { params: { userId: string } }
 ) {
   const session = await auth();
-  const { userId } = await params; // Await the params Promise
+  const { userId } = params;
 
   if (!session?.user?.id || session.user.role !== Role.ADMIN) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {

@@ -7,10 +7,10 @@ import { Role } from "@prisma/client";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ lessonId: string }> }
+  { params }: { params: { lessonId: string } }
 ) {
   const session = await auth();
-  const { lessonId } = await params;
+  const { lessonId } = params;
 
   if (!session?.user?.id || session.user.role !== Role.TEACHER) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
@@ -71,10 +71,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ lessonId: string }> }
+  { params }: { params: { lessonId: string } }
 ) {
   const session = await auth();
-  const { lessonId } = await params;
+  const { lessonId } = params;
 
   if (!session?.user?.id || session.user.role !== Role.TEACHER) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
