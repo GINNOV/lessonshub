@@ -70,26 +70,28 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 border-t pt-6">
-      <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-6">
         {(assignment.lesson.questions as string[])?.map((question, index) => (
-          <div key={index} className="space-y-2">
-            <Label htmlFor={`question-${index}`} className="flex items-center">
-              <span className="mr-2">❓</span> {question}
-            </Label>
+          <div key={index} className="space-y-3">
+            <div className="p-3 bg-gray-50 rounded-md border shadow-sm">
+                <Label htmlFor={`question-${index}`} className="font-bold text-base">
+                    Q{index + 1}❓ {question}
+                </Label>
+            </div>
             <Textarea
               id={`question-${index}`}
               value={answers[index]}
               onChange={(e) => handleAnswerChange(index, e.target.value)}
               disabled={isLoading || isPastDeadline || isReadOnly}
-              className="min-h-[100px]"
+              className="min-h-[100px] ml-2"
             />
           </div>
         ))}
       </div>
       
-      <div className="mt-6 space-y-2">
-        <Label htmlFor="student-notes">Student Notes</Label>
+      <div className="mt-6 space-y-2 border-t pt-6">
+        <Label htmlFor="student-notes">Student Notes (Optional)</Label>
         <Textarea
           id="student-notes"
           value={studentNotes}

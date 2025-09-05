@@ -9,7 +9,6 @@ import { AssignmentStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-// Corrected type for Next.js 14
 interface AssignmentPageProps {
   params: {
     assignmentId: string;
@@ -161,7 +160,7 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
         <h2 className="text-xl font-semibold">Instructions</h2>
         <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
         
-        {lesson.context_text && (
+        {contextHtml && (
           <>
             <h3 className="text-lg font-semibold mt-4">Additional Information</h3>
             <div dangerouslySetInnerHTML={{ __html: contextHtml }} />
@@ -187,7 +186,10 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
         )}
       </div>
 
-      <LessonResponseForm assignment={assignment} />
+      <div className="border-t border-gray-200 mt-8 pt-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Response</h2>
+        <LessonResponseForm assignment={assignment} />
+      </div>
     </div>
   );
 }
