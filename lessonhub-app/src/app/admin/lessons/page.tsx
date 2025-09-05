@@ -1,26 +1,28 @@
-// file: src/app/admin/lessons/page.tsx
-
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getAllLessons, getAllTeachers } from "@/actions/adminActions";
 import LessonTable from "@/app/components/LessonTable";
 import { Role } from "@prisma/client";
 
-export default async function LessonManagementPage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) {
+// Updated type for the page props to match Next.js App Router expectations
+type LessonManagementPageProps = {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function LessonManagementPage({ searchParams }: LessonManagementPageProps) {
   const session = await auth();
   if (!session || session.user.role !== Role.ADMIN) {
     redirect("/");
   }
 
-  const [lessons, teachers] = await Promise.all([
+  const [lessons, teachers, resolvedSearchParams] = await Promise.all([
     getAllLessons(),
     getAllTeachers(),
+    searchParams || Promise.resolve({}), // Handle the Promise
   ]);
-  const searchTerm = searchParams?.search || '';
+  
+  // Ensure searchTerm is a string
+  const searchTerm = typeof resolvedSearchParams?.search === 'string' ? resolvedSearchParams.search : '';
 
   return (
     <div>

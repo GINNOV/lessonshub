@@ -6,7 +6,7 @@ import { getLessonById } from "@/actions/lessonActions";
 import LessonForm from "@/app/components/LessonForm";
 import { Role } from "@prisma/client";
 
-export default async function EditLessonPage({ params }: { params: { lessonId: string } }) {
+export default async function EditLessonPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
 
   if (!session || session.user.role !== Role.TEACHER) {

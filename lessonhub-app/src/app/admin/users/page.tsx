@@ -6,18 +6,20 @@ import { getAllUsers } from "@/actions/adminActions";
 import UserTable from "@/app/components/UserTable";
 import { Role } from "@prisma/client";
 
-export default async function UserManagementPage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) {
+// Updated type for the page props
+type UserManagementPageProps = {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function UserManagementPage({ searchParams }: UserManagementPageProps) {
   const session = await auth();
   if (!session || session.user.role !== Role.ADMIN) {
     redirect("/");
   }
 
   const users = await getAllUsers();
-  const searchTerm = searchParams?.search || '';
+  
+  const searchTerm = typeof searchParams?.search === 'string' ? searchParams.search : '';
 
   return (
     <div>

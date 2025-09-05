@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import ReminderButton from "@/components/ReminderButton";
 import FailButton from "@/app/components/FailButton";
 
-export default async function SubmissionsPage({ params }: { params: { lessonId: string } }) {
+export default async function SubmissionsPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");

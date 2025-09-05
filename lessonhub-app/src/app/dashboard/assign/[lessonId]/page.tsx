@@ -7,7 +7,7 @@ import { getLessonById, getSubmissionsForLesson, getStudentsWithStats } from "@/
 import AssignLessonForm from '@/app/components/AssignLessonForm';
 import { Role } from '@prisma/client';
 
-export default async function AssignPage({ params }: { params: { lessonId: string } }) {
+export default async function AssignPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
 
   if (!session || session.user.role !== Role.TEACHER) {
@@ -19,7 +19,7 @@ export default async function AssignPage({ params }: { params: { lessonId: strin
   // Fetch all necessary data in parallel for better performance
   const [lesson, students, existingAssignments] = await Promise.all([
     getLessonById(lessonId),
-    getStudentsWithStats(), // <-- Use the new function
+    getStudentsWithStats(), 
     getSubmissionsForLesson(lessonId, session.user.id)
   ]);
 

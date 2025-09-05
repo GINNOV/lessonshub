@@ -10,7 +10,7 @@ import GradingForm from "@/app/components/GradingForm";
 import { Button } from "@/components/ui/button";
 import { marked } from 'marked';
 
-export default async function GradeSubmissionPage({ params }: { params: { assignmentId: string } }) {
+export default async function GradeSubmissionPage({ params }: { params: Promise<{ assignmentId: string }> }) {
   const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
