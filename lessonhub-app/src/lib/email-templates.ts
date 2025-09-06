@@ -113,23 +113,28 @@ export function createButton(text: string, url: string, color: string = '#007bff
     `;
 }
 
-// --- NEW: Centralized Email Sending Function ---
+// --- Centralized Email Sending Function ---
 interface SendEmailOptions {
     to: string;
     templateName: string;
     data: Record<string, string>;
     subjectPrefix?: string;
+    override?: { subject: string; body: string };
 }
-export async function sendEmail({ to, templateName, data, subjectPrefix = '' }: SendEmailOptions) {
+export async function sendEmail({ to, templateName, data, subjectPrefix = '', override }: SendEmailOptions) {
     try {
-        const template = await prisma.emailTemplate.findUnique({ where: { name: templateName } });
-        if (!template) {
+        const template = override ? null : await prisma.emailTemplate.findUnique({ where: { name: templateName } });
+
+        if (!template && !override) {
             console.error(`Email template "${templateName}" not found.`);
             return;
         }
 
-        const finalSubject = subjectPrefix + replacePlaceholders(template.subject, data);
-        const finalBody = replacePlaceholders(template.body, data);
+        const subject = override ? override.subject : template!.subject;
+        const body = override ? override.body : template!.body;
+
+        const finalSubject = subjectPrefix + replacePlaceholders(subject, data);
+        const finalBody = replacePlaceholders(body, data);
 
         const emailHtml = `
             <html lang="en">

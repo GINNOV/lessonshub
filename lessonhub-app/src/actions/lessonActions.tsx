@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { Role, AssignmentStatus } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
 import { getEmailTemplateByName } from '@/actions/adminActions';
-import { replacePlaceholders, createButton } from '@/lib/email-templates';
+import { replacePlaceholders, createButton, sendEmail } from '@/lib/email-templates';
 import { auth } from "@/auth";
 
 /**
@@ -308,24 +308,16 @@ export async function sendManualReminder(assignmentId: string) {
         button: createButton('View Assignment', assignmentUrl, 'warning'),
     });
 
-    const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            from: process.env.EMAIL_FROM,
-            to: assignment.student.email,
-            subject,
-            html: body,
-        }),
-      });
-
-    if (!response.ok) {
-        const errorBody = await response.json();
-        return { success: false, error: `Resend error: ${errorBody.message}` };
-    }
+    await sendEmail({
+        to: assignment.student.email,
+        templateName: 'manual_reminder',
+        data: {
+            studentName: assignment.student.name || 'student',
+            teacherName: assignment.lesson.teacher.name || 'your teacher',
+            lessonTitle: assignment.lesson.title,
+            button: createButton('View Assignment', assignmentUrl, template.buttonColor || undefined),
+        }
+    });
     
     return { success: true };
 
@@ -363,25 +355,15 @@ export async function failAssignment(assignmentId: string) {
     const template = await getEmailTemplateByName('failed');
     if (template && assignment.student.email) {
       const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
-      const subject = replacePlaceholders(template.subject, { lessonTitle: assignment.lesson.title });
-      const body = replacePlaceholders(template.body, {
-          studentName: assignment.student.name || 'student',
-          lessonTitle: assignment.lesson.title,
-          button: createButton('View Assignment', assignmentUrl, 'destructive'),
-      });
       
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: process.env.EMAIL_FROM,
+      await sendEmail({
           to: assignment.student.email,
-          subject,
-          html: body,
-        }),
+          templateName: 'failed',
+          data: {
+              studentName: assignment.student.name || 'student',
+              lessonTitle: assignment.lesson.title,
+              button: createButton('View Assignment', assignmentUrl, template.buttonColor || undefined),
+          }
       });
     }
     
@@ -444,5 +426,47 @@ export async function assignLessonToStudent(lessonId: string, studentId: string)
   } catch (error) {
     console.error("Failed to assign lesson to student:", error);
     return null;
+  }
+}
+
+/**
+ * Sends a custom email to all students assigned to a specific lesson.
+ * @param lessonId The ID of the lesson.
+ * @param subject The subject of the email.
+ * @param body The HTML body of the email.
+ * @returns An object indicating success or failure.
+ */
+export async function sendCustomEmailToAssignedStudents(lessonId: string, subject: string, body: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const assignments = await prisma.assignment.findMany({
+      where: { lessonId },
+      include: { student: true },
+    });
+
+    if (assignments.length === 0) {
+        return { success: false, error: "No students are assigned to this lesson." };
+    }
+
+    const recipients = assignments.map(a => a.student.email).filter(Boolean) as string[];
+
+    for (const email of recipients) {
+        // This uses the central email sender to ensure consistent styling
+        await sendEmail({
+            to: email,
+            templateName: 'custom', // Special name for custom emails
+            data: {}, // No placeholders needed for custom body
+            override: { subject, body }
+        });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send custom email:", error);
+    return { success: false, error: "An error occurred while sending the email." };
   }
 }

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { getWeekAndDay } from '@/lib/utils';
 import DeleteLessonButton from './DeleteLessonButton';
 import WeekDivider from './WeekDivider';
-import { Pencil, UserPlus, Eye, Share2 } from 'lucide-react'; // Changed ShareIcon to Share2 for consistency
+import { Pencil, UserPlus, Eye, Share2, Mail } from 'lucide-react';
 
 type LessonWithAssignments = Lesson & {
   assignments: Pick<Assignment, 'status' | 'deadline'>[];
@@ -214,6 +214,9 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                       </Button>
                       <Button variant="outline" size="icon" asChild title="View Submissions">
                         <Link href={`/dashboard/submissions/${lesson.id}`}><Eye className="h-4 w-4" /></Link>
+                      </Button>
+                      <Button variant="outline" size="icon" asChild title="Send Custom Email">
+                        <Link href={`/dashboard/email/${lesson.id}`}><Mail className="h-4 w-4" /></Link>
                       </Button>
                       <DeleteLessonButton lessonId={lesson.id} isIcon={true} />
                     </div>
