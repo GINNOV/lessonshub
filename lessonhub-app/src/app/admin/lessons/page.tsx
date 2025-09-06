@@ -1,4 +1,3 @@
-// file: src/app/admin/lessons/page.tsx
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getAllLessons, getAllTeachers } from "@/actions/adminActions";
@@ -20,7 +19,7 @@ export default async function LessonManagementPage({ searchParams }: LessonManag
     getAllLessons(),
     getAllTeachers(),
   ]);
-
+  
   // Ensure searchTerm is a string
   const searchTerm = typeof searchParams?.search === 'string' ? searchParams.search : '';
 

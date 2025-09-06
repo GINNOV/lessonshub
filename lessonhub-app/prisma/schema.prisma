@@ -55,7 +55,7 @@ model Lesson {
   attachment_url            String?
   notes                     String?
   assignment_notification   AssignmentNotification @default(NOT_ASSIGNED)
-  scheduled_assignment_date DateTime? // New field for scheduled assignments
+  scheduled_assignment_date DateTime?
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime  @updatedAt
 
@@ -88,6 +88,16 @@ model Assignment {
   student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([lessonId, studentId]) // A student can only be assigned the same lesson once
+}
+
+model EmailTemplate {
+  id          String  @id @default(cuid())
+  name        String  @unique // e.g., "welcome", "new_assignment"
+  subject     String
+  body        String  @db.Text
+  buttonColor String? // New field for the button color
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // NextAuth.js required models

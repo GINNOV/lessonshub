@@ -88,6 +88,9 @@ export default function Navbar() {
                       <DropdownMenuItem asChild>
                         <Link href="/admin/lessons">Lesson Management</Link>
                       </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin/emails">Email Editor</Link>
+                      </DropdownMenuItem>
                     </>
                   )}
                   <DropdownMenuItem asChild>
