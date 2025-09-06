@@ -1,4 +1,5 @@
 // file: src/lib/email-templates.ts
+import prisma from "@/lib/prisma";
 
 export const defaultEmailTemplates: Record<string, { subject: string; body: string }> = {
     welcome: {
@@ -110,4 +111,64 @@ export function createButton(text: string, url: string, color: string = '#007bff
             ${text}
         </a>
     `;
+}
+
+// --- NEW: Centralized Email Sending Function ---
+interface SendEmailOptions {
+    to: string;
+    templateName: string;
+    data: Record<string, string>;
+    subjectPrefix?: string;
+}
+export async function sendEmail({ to, templateName, data, subjectPrefix = '' }: SendEmailOptions) {
+    try {
+        const template = await prisma.emailTemplate.findUnique({ where: { name: templateName } });
+        if (!template) {
+            console.error(`Email template "${templateName}" not found.`);
+            return;
+        }
+
+        const finalSubject = subjectPrefix + replacePlaceholders(template.subject, data);
+        const finalBody = replacePlaceholders(template.body, data);
+
+        const emailHtml = `
+            <html lang="en">
+            <head>
+                <style>
+                body { margin: 0; background-color: #f6f9fc; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif; }
+                .container { background-color: #ffffff; margin: 0 auto; padding: 20px 0 48px; margin-bottom: 64px; border: 1px solid #f0f0f0; border-radius: 8px; max-width: 560px; }
+                .box { padding: 0 48px; }
+                .hr { border-color: #e6ebf1; margin: 20px 0; }
+                .footer { color: #8898aa; font-size: 12px; line-height: 16px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                <div class="box">
+                    ${finalBody}
+                    <hr class="hr" />
+                    <p class="footer">LessonHUB — The modern platform for modern learning.</p>
+                </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                from: process.env.EMAIL_FROM,
+                to,
+                subject: finalSubject,
+                html: emailHtml,
+            }),
+        });
+
+    } catch (error) {
+        console.error(`Failed to send email "${templateName}" to ${to}:`, error);
+    }
 }

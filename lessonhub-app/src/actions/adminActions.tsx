@@ -65,44 +65,14 @@ export async function sendTestEmail(templateName: string, subject: string, body:
             button: createButton("Click Here", "https://example.com", buttonColor)
         };
 
-        const finalSubject = replacePlaceholders(subject, dummyData);
-        const finalBody = replacePlaceholders(body, dummyData);
-
-        const emailHtml = `
-            <html lang="en">
-            <head>
-                <style>
-                body { margin: 0; background-color: #f6f9fc; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif; }
-                .container { background-color: #ffffff; margin: 0 auto; padding: 20px 0 48px; margin-bottom: 64px; border: 1px solid #f0f0f0; border-radius: 8px; max-width: 560px; }
-                .box { padding: 0 48px; }
-                .hr { border-color: #e6ebf1; margin: 20px 0; }
-                .footer { color: #8898aa; font-size: 12px; line-height: 16px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                <div class="box">
-                    ${finalBody}
-                    <hr class="hr" />
-                    <p class="footer">LessonHUB — The modern platform for modern learning.</p>
-                </div>
-                </div>
-            </body>
-            </html>
-        `;
-
-        await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                from: process.env.EMAIL_FROM,
-                to: recipient,
-                subject: `[TEST] ${finalSubject}`,
-                html: emailHtml,
-            }),
+        // We use the new central function but pass the live editor content to it
+        await sendEmail({
+            to: recipient,
+            templateName: 'test', // Use a temporary name
+            data: dummyData,
+            subjectPrefix: '[TEST] ',
+            // Override the template from the DB with live content from the editor
+            override: { subject, body } 
         });
 
         return { success: true };
