@@ -7,13 +7,14 @@ import EmailTemplateForm from "@/app/components/EmailTemplateForm";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default async function EditEmailTemplatePage({ params }: { params: { templateName: string } }) {
+export default async function EditEmailTemplatePage({ params }: { params: Promise<{ templateName: string }> }) {
     const session = await auth();
     if (!session || session.user.role !== Role.ADMIN) {
         redirect("/");
     }
 
-    const template = await getEmailTemplateByName(params.templateName);
+    const { templateName } = await params;
+    const template = await getEmailTemplateByName(templateName);
 
     if (!template) {
         return <div>Template not found.</div>;

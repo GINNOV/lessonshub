@@ -6,23 +6,25 @@ import { auth, signOut } from "@/auth";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
-import { render } from '@react-email/render';
-import UserDeletedAdminNotificationEmail from "@/emails/UserDeletedAdminNotificationEmail";
+import { getEmailTemplateByName } from "./adminActions";
+import { replacePlaceholders } from "@/lib/email-templates";
 
 async function sendDeletionAdminNotifications(deletedUser: { name: string | null; email: string }) {
     const admins = await prisma.user.findMany({ where: { role: Role.ADMIN } });
     if (admins.length === 0) return;
 
+    const template = await getEmailTemplateByName('user_deleted_admin');
+    if (!template) return;
+
     for (const admin of admins) {
         if (admin.email) {
             try {
-                const emailHtml = await render(
-                    <UserDeletedAdminNotificationEmail
-                        adminName={admin.name}
-                        deletedUserName={deletedUser.name}
-                        deletedUserEmail={deletedUser.email}
-                    />
-                );
+                const subject = replacePlaceholders(template.subject, { deletedUserName: deletedUser.name || deletedUser.email });
+                const body = replacePlaceholders(template.body, {
+                    adminName: admin.name || 'Admin',
+                    deletedUserName: deletedUser.name || 'Not provided',
+                    deletedUserEmail: deletedUser.email,
+                });
 
                 await fetch("https://api.resend.com/emails", {
                     method: "POST",
@@ -33,8 +35,8 @@ async function sendDeletionAdminNotifications(deletedUser: { name: string | null
                     body: JSON.stringify({
                         from: process.env.EMAIL_FROM,
                         to: admin.email,
-                        subject: `[LessonHUB] User Account Deleted: ${deletedUser.name || deletedUser.email}`,
-                        html: emailHtml,
+                        subject,
+                        html: body,
                     }),
                 });
             } catch (error) {

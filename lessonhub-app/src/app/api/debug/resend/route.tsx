@@ -6,33 +6,31 @@
 export const runtime = 'nodejs'; // Use Node.js runtime for robust rendering
 
 import { NextRequest, NextResponse } from "next/server";
-import { render } from '@react-email/render';
-import WelcomeEmail from '@/emails/WelcomeEmail';
+import { getEmailTemplateByName } from "@/actions/adminActions";
+import { replacePlaceholders, createButton } from "@/lib/email-templates";
 
 export async function POST(req: NextRequest) {
   try {
-    // Derive a "smart" sign-in URL based on the incoming request
     const headers = req.headers;
     const protocol = headers.get('x-forwarded-proto') || 'http';
     const host = headers.get('host') || 'localhost:3000';
     const signInUrl = `${protocol}://${host}/signin`;
     const { to, name = "Test User" } = await req.json();
 
-    if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json({ error: "Missing RESEND_API_KEY" }, { status: 500 });
+    if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM || !to) {
+      return NextResponse.json({ error: "Missing required environment variables or 'to' field" }, { status: 400 });
     }
-    if (!process.env.EMAIL_FROM) {
-      return NextResponse.json({ error: "Missing EMAIL_FROM" }, { status: 500 });
-    }
-    if (!to) {
-      return NextResponse.json({ error: "Missing 'to' field" }, { status: 400 });
+    
+    const template = await getEmailTemplateByName('welcome');
+    if (!template) {
+        return NextResponse.json({ error: "Welcome email template not found." }, { status: 500 });
     }
 
-    // Await the render function to get the final HTML string.
-    const emailHtml = await render(
-      <WelcomeEmail userName={name} userEmail={to} signInUrl={signInUrl} />,
-      { pretty: true }
-    );
+    const subject = replacePlaceholders(template.subject, { userName: name });
+    const body = replacePlaceholders(template.body, {
+        userName: name,
+        button: createButton('Sign In', signInUrl),
+    });
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -43,20 +41,19 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         from: process.env.EMAIL_FROM,
         to,
-        subject: `Welcome to LessonHUB, ${name}!`,
-        html: emailHtml, // Use the rendered HTML
+        subject,
+        html: body,
       }),
     });
 
-    const body = await res.json();
+    const responseBody = await res.json();
     if (!res.ok) {
-      console.error("[resend:debug] error", res.status, body);
-      return NextResponse.json({ error: body }, { status: res.status });
+      console.error("[resend:debug] error", res.status, responseBody);
+      return NextResponse.json({ error: responseBody }, { status: res.status });
     }
-    return NextResponse.json({ ok: true, body });
+    return NextResponse.json({ ok: true, body: responseBody });
   } catch (e: any) {
     console.error("[resend:debug] exception", e?.message || e);
     return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
   }
 }
-

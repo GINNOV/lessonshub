@@ -2,21 +2,18 @@
 
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { render } from '@react-email/render';
-import DeadlineReminderEmail from '@/emails/DeadlineReminderEmail';
-import NewAssignmentEmail from '@/emails/NewAssignmentEmail';
+import { getEmailTemplateByName } from "@/actions/adminActions";
+import { replacePlaceholders, createButton } from "@/lib/email-templates";
 import { AssignmentStatus, AssignmentNotification, Role } from '@prisma/client';
 
-async function handleScheduledAssignments() {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+async function handleScheduledAssignments(requestUrl: string) {
+  const now = new Date();
 
   const lessonsToAssign = await prisma.lesson.findMany({
     where: {
       assignment_notification: AssignmentNotification.ASSIGN_ON_DATE,
       scheduled_assignment_date: {
-        gte: today,
-        lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+        lte: now, // Find all lessons scheduled for now or in the past
       },
     },
     include: {
@@ -35,27 +32,33 @@ async function handleScheduledAssignments() {
     return 0;
   }
   
+  const template = await getEmailTemplateByName('new_assignment');
+  if (!template) {
+    console.error('[CRON] "new_assignment" email template not found.');
+    return 0;
+  }
+
   for (const lesson of lessonsToAssign) {
+    const deadline = new Date(Date.now() + 36 * 60 * 60 * 1000);
     const assignmentsData = students.map(student => ({
       lessonId: lesson.id,
       studentId: student.id,
-      deadline: new Date(Date.now() + 36 * 60 * 60 * 1000),
+      deadline,
     }));
 
     await prisma.assignment.createMany({ data: assignmentsData, skipDuplicates: true });
 
     for (const student of students) {
         if (student.email) {
-            const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
-            const emailHtml = await render(
-                NewAssignmentEmail({
-                    studentName: student.name,
-                    lessonTitle: lesson.title,
-                    teacherName: lesson.teacher.name,
-                    deadline: new Date(Date.now() + 36 * 60 * 60 * 1000),
-                    assignmentUrl,
-                })
-            );
+            const assignmentUrl = `${new URL(requestUrl).origin}/my-lessons`;
+            const subject = replacePlaceholders(template.subject, { lessonTitle: lesson.title });
+            const body = replacePlaceholders(template.body, {
+                studentName: student.name || 'student',
+                teacherName: lesson.teacher.name || 'your teacher',
+                lessonTitle: lesson.title,
+                deadline: deadline.toLocaleString(),
+                button: createButton('Start Lesson', assignmentUrl, template.buttonColor || undefined),
+            });
             
             await fetch("https://api.resend.com/emails", {
                 method: "POST",
@@ -66,16 +69,20 @@ async function handleScheduledAssignments() {
                 body: JSON.stringify({
                     from: process.env.EMAIL_FROM,
                     to: student.email,
-                    subject: `New Assignment: ${lesson.title}`,
-                    html: emailHtml,
+                    subject,
+                    html: body,
                 }),
             });
         }
     }
 
+    // Update the lesson to prevent it from being assigned again
     await prisma.lesson.update({
       where: { id: lesson.id },
-      data: { assignment_notification: AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION },
+      data: { 
+          assignment_notification: AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION,
+          scheduled_assignment_date: null // Clear the date after assigning
+        },
     });
   }
 
@@ -105,19 +112,24 @@ async function handleDeadlineReminders(requestUrl: string) {
     return 0;
   }
   
-  const emailPromises = upcomingAssignments.map(async (assignment) => {
+  const template = await getEmailTemplateByName('deadline_reminder');
+  if (!template) {
+    console.error('[CRON] "deadline_reminder" email template not found.');
+    return 0;
+  }
+
+  for (const assignment of upcomingAssignments) {
     if (assignment.student.email) {
       const assignmentUrl = `${new URL(requestUrl).origin}/assignments/${assignment.id}`;
-      const emailHtml = await render(
-        <DeadlineReminderEmail
-          studentName={assignment.student.name}
-          lessonTitle={assignment.lesson.title}
-          deadline={assignment.deadline}
-          assignmentUrl={assignmentUrl}
-        />
-      );
+      const subject = replacePlaceholders(template.subject, { lessonTitle: assignment.lesson.title });
+      const body = replacePlaceholders(template.body, {
+          studentName: assignment.student.name || 'student',
+          lessonTitle: assignment.lesson.title,
+          deadline: assignment.deadline.toLocaleString(),
+          button: createButton('View Assignment', assignmentUrl, template.buttonColor || undefined),
+      });
 
-      return fetch("https://api.resend.com/emails", {
+      await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
@@ -126,14 +138,13 @@ async function handleDeadlineReminders(requestUrl: string) {
         body: JSON.stringify({
           from: process.env.EMAIL_FROM,
           to: assignment.student.email,
-          subject: `🔔 Reminder: Assignment "${assignment.lesson.title}" is due soon`,
-          html: emailHtml,
+          subject,
+          html: body,
         }),
       });
     }
-  });
+  }
 
-  await Promise.all(emailPromises);
   return upcomingAssignments.length;
 }
 
@@ -146,7 +157,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const assignedCount = await handleScheduledAssignments();
+    const assignedCount = await handleScheduledAssignments(request.url);
     const remindedCount = await handleDeadlineReminders(request.url);
     
     return NextResponse.json({

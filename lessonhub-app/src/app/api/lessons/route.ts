@@ -4,8 +4,8 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role, AssignmentNotification } from "@prisma/client";
-import NewAssignmentEmail from "@/emails/NewAssignmentEmail";
-import { render } from "@react-email/render";
+import { getEmailTemplateByName } from "@/actions/adminActions";
+import { replacePlaceholders, createButton } from "@/lib/email-templates";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -42,7 +42,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // --- FIX: Assign to all students regardless of notification status ---
     if (assignment_notification !== AssignmentNotification.NOT_ASSIGNED) {
       const students = await prisma.user.findMany({ where: { role: Role.STUDENT } });
       const assignmentsData = students.map(student => ({
@@ -56,47 +55,38 @@ export async function POST(request: Request) {
         skipDuplicates: true,
       });
 
-      // Handle immediate notifications
       if (assignment_notification === AssignmentNotification.ASSIGN_AND_NOTIFY) {
-        console.log(`[NOTIFY] Preparing to send notifications for lesson ${newLesson.id} to ${students.length} students.`);
-        for (const student of students) {
-            if (student.email) {
-                try {
-                    const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
-                    const emailHtml = await render(
-                        NewAssignmentEmail({
-                            studentName: student.name,
+        const template = await getEmailTemplateByName('new_assignment');
+        if (template) {
+            for (const student of students) {
+                if (student.email) {
+                    try {
+                        const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
+                        const subject = replacePlaceholders(template.subject, { lessonTitle: newLesson.title });
+                        const body = replacePlaceholders(template.body, {
+                            studentName: student.name || 'student',
+                            teacherName: session.user.name || 'your teacher',
                             lessonTitle: newLesson.title,
-                            teacherName: session.user.name,
-                            deadline: new Date(Date.now() + 36 * 60 * 60 * 1000),
-                            assignmentUrl,
-                        })
-                    );
-                    
-                    const resendPayload = {
-                        from: process.env.EMAIL_FROM,
-                        to: student.email,
-                        subject: `New Assignment: ${newLesson.title}`,
-                        html: emailHtml,
-                    };
-
-                    console.log(`[NOTIFY] Sending email to ${student.email}`, resendPayload);
-
-                    const emailResponse = await fetch("https://api.resend.com/emails", {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(resendPayload),
-                    });
-
-                    if (!emailResponse.ok) {
-                        const errorBody = await emailResponse.json();
-                        console.error(`[NOTIFY] Failed to send email to ${student.email}:`, errorBody);
+                            deadline: new Date(Date.now() + 36 * 60 * 60 * 1000).toLocaleString(),
+                            button: createButton('Start Lesson', assignmentUrl),
+                        });
+                        
+                        await fetch("https://api.resend.com/emails", {
+                            method: "POST",
+                            headers: {
+                                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                from: process.env.EMAIL_FROM,
+                                to: student.email,
+                                subject,
+                                html: body,
+                            }),
+                        });
+                    } catch (emailError) {
+                        console.error(`[NOTIFY] An error occurred while preparing email for ${student.email}:`, emailError);
                     }
-                } catch (emailError) {
-                    console.error(`[NOTIFY] An error occurred while preparing email for ${student.email}:`, emailError);
                 }
             }
         }

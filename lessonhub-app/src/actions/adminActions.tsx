@@ -36,7 +36,7 @@ export async function updateEmailTemplate(id: string, subject: string, body: str
             where: { id },
             data: { subject, body, buttonColor },
         });
-        revalidatePath('/admin/emails');
+        revalidatePath('/admin/emails/edit/[templateName]', 'page');
         return { success: true };
     } catch (error) {
         return { success: false, error: 'Failed to update template.' };
