@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest) {
       operations.push(createOperation);
       
       const baseUrl = getBaseUrl(request);
-      // --- START: Restored Notification Logic ---
+    
       for (const student of students) {
         if (student.email) {
             try {
@@ -106,7 +106,6 @@ export async function PATCH(request: NextRequest) {
             }
         }
       }
-      // --- END: Restored Notification Logic ---
     }
     
     if (operations.length > 0) {

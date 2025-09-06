@@ -52,9 +52,11 @@ function SignInForm() {
     }
     setIsLoading(true);
     setError('');
-    setMagicLinkMessage('Check your email for a sign-in link!');
+    
+    // This will redirect the user to a page that says "Check your email"
     await signIn('resend', { email, redirect: true, callbackUrl });
-    setIsLoading(false);
+    
+    // The page will navigate away, so we don't need to set loading to false here
   };
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
