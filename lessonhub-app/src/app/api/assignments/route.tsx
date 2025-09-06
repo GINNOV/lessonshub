@@ -3,8 +3,8 @@ import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import { render } from '@react-email/render';
-import NewAssignmentEmail from '@/emails/NewAssignmentEmail';
+import { getEmailTemplateByName } from "@/actions/adminActions";
+import { replacePlaceholders, createButton } from "@/lib/email-templates";
 
 function getBaseUrl(req: NextRequest): string {
   const headers = req.headers;
@@ -64,47 +64,39 @@ export async function PATCH(request: NextRequest) {
       });
       operations.push(createOperation);
       
-      const baseUrl = getBaseUrl(request);
-    
-      for (const student of students) {
-        if (student.email) {
-            try {
-                const assignmentUrl = `${baseUrl}/my-lessons`;
-                
-                const emailHtml = await render(
-                    <NewAssignmentEmail
-                    studentName={student.name}
-                    lessonTitle={lesson.title}
-                    teacherName={session.user.name}
-                    deadline={new Date(deadline)}
-                    assignmentUrl={assignmentUrl}
-                    />
-                );
+      const template = await getEmailTemplateByName('new_assignment');
+      if (template) {
+          for (const student of students) {
+              if (student.email) {
+                try {
+                    const assignmentUrl = `${getBaseUrl(request)}/my-lessons`;
+                    const subject = replacePlaceholders(template.subject, { lessonTitle: lesson.title });
+                    const body = replacePlaceholders(template.body, {
+                        studentName: student.name || 'student',
+                        teacherName: session.user.name || 'your teacher',
+                        lessonTitle: lesson.title,
+                        deadline: new Date(deadline).toLocaleString(),
+                        button: createButton('Start Lesson', assignmentUrl),
+                    });
 
-                const emailResponse = await fetch("https://api.resend.com/emails", {
-                    method: "POST",
-                    headers: {
-                    Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                    "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                    from: process.env.EMAIL_FROM,
-                    to: student.email,
-                    subject: `New Assignment: ${lesson.title}`,
-                    html: emailHtml,
-                    }),
-                });
-
-                if (emailResponse.ok) {
-                    console.log(`Successfully sent new assignment email to ${student.email} for lesson ${lesson.title}`);
-                } else {
-                    const errorBody = await emailResponse.json();
-                    console.error(`Failed to send new assignment email to ${student.email}:`, errorBody);
+                    await fetch("https://api.resend.com/emails", {
+                        method: "POST",
+                        headers: {
+                        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+                        "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                        from: process.env.EMAIL_FROM,
+                        to: student.email,
+                        subject,
+                        html: body,
+                        }),
+                    });
+                } catch (emailError) {
+                    console.error(`An unexpected error occurred while sending assignment email to ${student.email}:`, emailError);
                 }
-            } catch (emailError) {
-                console.error(`An unexpected error occurred while sending assignment email to ${student.email}:`, emailError);
             }
-        }
+          }
       }
     }
     

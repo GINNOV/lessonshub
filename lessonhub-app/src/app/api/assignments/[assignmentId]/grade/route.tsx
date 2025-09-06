@@ -6,8 +6,8 @@ import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role, AssignmentStatus } from "@prisma/client";
-import { render } from '@react-email/render';
-import GradedEmail from '@/emails/GradedEmail';
+import { getEmailTemplateByName } from "@/actions/adminActions";
+import { replacePlaceholders, createButton } from "@/lib/email-templates";
 
 // Helper function to get base URL
 function getBaseUrl(req: NextRequest): string {
@@ -65,21 +65,21 @@ export async function PATCH(
       },
     });
 
-    if (assignment.student?.email) {
+    const template = await getEmailTemplateByName('graded');
+    if (template && assignment.student?.email) {
       try {
         const assignmentUrl = `${getBaseUrl(request)}/assignments/${assignment.id}`;
         
-        const emailHtml = await render(
-          <GradedEmail
-            studentName={assignment.student.name}
-            lessonTitle={assignment.lesson.title}
-            score={score}
-            teacherComments={teacherComments}
-            assignmentUrl={assignmentUrl}
-          />
-        );
+        const subject = replacePlaceholders(template.subject, { lessonTitle: assignment.lesson.title });
+        const body = replacePlaceholders(template.body, {
+            studentName: assignment.student.name || 'student',
+            lessonTitle: assignment.lesson.title,
+            score: score.toString(),
+            teacherComments: teacherComments ? `<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Teacher's Feedback:</strong><br/><em>&quot;${teacherComments}&quot;</em></p>` : '',
+            button: createButton('View Your Grade', assignmentUrl),
+        });
 
-        const emailResponse = await fetch("https://api.resend.com/emails", {
+        await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
@@ -88,17 +88,10 @@ export async function PATCH(
           body: JSON.stringify({
             from: process.env.EMAIL_FROM,
             to: assignment.student.email,
-            subject: `Your assignment "${assignment.lesson.title}" has been graded`,
-            html: emailHtml,
+            subject,
+            html: body,
           }),
         });
-
-        if (emailResponse.ok) {
-          console.log(`Successfully sent graded email to ${assignment.student.email} for assignment ${assignment.id}`);
-        } else {
-          const errorBody = await emailResponse.json();
-          console.error("Failed to send graded email:", errorBody);
-        }
       } catch (emailError) {
         console.error("An unexpected error occurred while sending the email:", emailError);
       }

@@ -19,7 +19,7 @@ const placeholders = [
   { key: '{{newUserEmail}}', description: '(For admin notifications) The new user\'s email.' },
   { key: '{{deletedUserName}}', description: '(For admin notifications) The deleted user\'s name.' },
   { key: '{{deletedUserEmail}}', description: '(For admin notifications) The deleted user\'s email.' },
-  { key: '{{button}}', description: 'A fully styled, clickable call-to-action button.' },
+  { key: '{{button}}', description: 'A fully styled, clickable call-to-action button. Its color is controlled by the "Button Color" picker in the editor.' },
 ];
 
 export default function PlaceholderGuide({ onClose }: PlaceholderGuideProps) {

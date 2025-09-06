@@ -1,11 +1,11 @@
-// file: src/app/api/assignments/[assignmentId]/route.ts
+// file: src/app/api/assignments/[assignmentId]/route.tsx
 export const runtime = 'nodejs';
 
 import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { render } from '@react-email/render';
-import SubmissionNotificationEmail from '@/emails/SubmissionNotificationEmail';
+import { getEmailTemplateByName } from "@/actions/adminActions";
+import { replacePlaceholders, createButton } from "@/lib/email-templates";
 
 function getBaseUrl(req: NextRequest): string {
   const headers = req.headers;
@@ -63,19 +63,19 @@ export async function PATCH(
 
 
     const teacher = assignment.lesson.teacher;
-    if (teacher && teacher.email) {
+    const template = await getEmailTemplateByName('submission_notification');
+    if (template && teacher && teacher.email) {
         try {
             const submissionUrl = `${getBaseUrl(request)}/dashboard/grade/${assignment.id}`;
-            const emailHtml = await render(
-                <SubmissionNotificationEmail
-                    teacherName={teacher.name}
-                    studentName={session.user.name}
-                    lessonTitle={assignment.lesson.title}
-                    submissionUrl={submissionUrl}
-                />
-            );
+            const subject = replacePlaceholders(template.subject, { studentName: session.user.name || 'A student', lessonTitle: assignment.lesson.title });
+            const body = replacePlaceholders(template.body, {
+                teacherName: teacher.name || 'teacher',
+                studentName: session.user.name || 'A student',
+                lessonTitle: assignment.lesson.title,
+                button: createButton('View & Grade Submission', submissionUrl),
+            });
 
-            const emailResponse = await fetch("https://api.resend.com/emails", {
+            await fetch("https://api.resend.com/emails", {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
@@ -84,17 +84,10 @@ export async function PATCH(
                 body: JSON.stringify({
                     from: process.env.EMAIL_FROM,
                     to: teacher.email,
-                    subject: `New Submission: ${session.user.name} completed "${assignment.lesson.title}"`,
-                    html: emailHtml,
+                    subject,
+                    html: body,
                 }),
             });
-
-            if (emailResponse.ok) {
-                console.log(`Successfully sent submission notification to ${teacher.email}`);
-            } else {
-                const errorBody = await emailResponse.json();
-                console.error("Failed to send submission notification email:", errorBody);
-            }
         } catch (emailError) {
             console.error("An unexpected error occurred while sending submission email:", emailError);
         }
