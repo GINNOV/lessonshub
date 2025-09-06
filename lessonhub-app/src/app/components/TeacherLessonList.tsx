@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { getWeekAndDay } from '@/lib/utils';
 import DeleteLessonButton from './DeleteLessonButton';
 import WeekDivider from './WeekDivider';
+import { Pencil, UserPlus, Eye, Share2 } from 'lucide-react'; // Changed ShareIcon to Share2 for consistency
 
 type LessonWithAssignments = Lesson & {
   assignments: Pick<Assignment, 'status' | 'deadline'>[];
@@ -17,17 +18,6 @@ type LessonWithAssignments = Lesson & {
 
 interface TeacherLessonListProps {
   lessons: LessonWithAssignments[];
-}
-
-// Share Icon Component
-function ShareIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-      <polyline points="16 6 12 2 8 6" />
-      <line x1="12" x2="12" y1="2" y2="15" />
-    </svg>
-  );
 }
 
 // --- START: Robust Date Filtering Logic ---
@@ -54,11 +44,6 @@ const getStartOfDay = (date: Date) => {
   return newDate;
 };
 
-const getEndOfDay = (date: Date) => {
-    const newDate = new Date(date);
-    newDate.setHours(23, 59, 59, 999);
-    return newDate;
-};
 // --- END: Robust Date Filtering Logic ---
 
 export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
@@ -78,7 +63,6 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
   const filteredLessons = useMemo(() => {
     const today = new Date();
     const todayStart = getStartOfDay(today);
-    const todayEnd = getEndOfDay(today);
 
     const thisWeek = getWeekBounds(today, WEEK_STARTS_ON);
     
@@ -185,8 +169,8 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
               return (
                 <div key={lesson.id}>
                   {showDivider && <WeekDivider weekNumber={lesson.week} />}
-                  <li className="p-4 border rounded-md flex justify-between items-center">
-                    <div>
+                  <li className="p-4 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <div className="flex-1 mb-4 sm:mb-0">
                       <Link href={`/dashboard/edit/${lesson.id}`} className="font-bold text-lg hover:underline">
                         {lesson.title}
                       </Link>
@@ -196,7 +180,7 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                             <span className="ml-2">| Deadline: {new Date(firstDeadline).toLocaleString()}</span>
                         )}
                       </p>
-                      <div className="flex items-center space-x-2 mt-2">
+                      <div className="flex items-center space-x-2 mt-2 flex-wrap">
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
                           {totalAssignments} Assigned
                         </span>
@@ -218,20 +202,20 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="icon" onClick={() => handleShareClick(lesson.id)}>
-                        <ShareIcon className="h-4 w-4" />
+                    <div className="flex items-center space-x-2 flex-wrap justify-end">
+                      <Button variant="outline" size="icon" onClick={() => handleShareClick(lesson.id)} title="Share Lesson">
+                        <Share2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" asChild>
-                        <Link href={`/dashboard/edit/${lesson.id}`}>Edit</Link>
+                      <Button variant="outline" size="icon" asChild title="Edit Lesson">
+                        <Link href={`/dashboard/edit/${lesson.id}`}><Pencil className="h-4 w-4" /></Link>
                       </Button>
-                      <Button variant="outline" asChild>
-                        <Link href={`/dashboard/assign/${lesson.id}`}>Assign</Link>
+                      <Button variant="outline" size="icon" asChild title="Assign Lesson">
+                        <Link href={`/dashboard/assign/${lesson.id}`}><UserPlus className="h-4 w-4" /></Link>
                       </Button>
-                      <Button asChild>
-                        <Link href={`/dashboard/submissions/${lesson.id}`}>View Submissions</Link>
+                      <Button variant="outline" size="icon" asChild title="View Submissions">
+                        <Link href={`/dashboard/submissions/${lesson.id}`}><Eye className="h-4 w-4" /></Link>
                       </Button>
-                      <DeleteLessonButton lessonId={lesson.id} />
+                      <DeleteLessonButton lessonId={lesson.id} isIcon={true} />
                     </div>
                   </li>
                 </div>

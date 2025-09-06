@@ -65,12 +65,12 @@ export async function PATCH(request: NextRequest) {
       operations.push(createOperation);
       
       const baseUrl = getBaseUrl(request);
+      // --- START: Restored Notification Logic ---
       for (const student of students) {
         if (student.email) {
             try {
                 const assignmentUrl = `${baseUrl}/my-lessons`;
                 
-                // --- FIX: Added 'await' to the render function ---
                 const emailHtml = await render(
                     <NewAssignmentEmail
                     studentName={student.name}
@@ -106,6 +106,7 @@ export async function PATCH(request: NextRequest) {
             }
         }
       }
+      // --- END: Restored Notification Logic ---
     }
     
     if (operations.length > 0) {

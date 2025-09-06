@@ -10,13 +10,13 @@ import GradingForm from "@/app/components/GradingForm";
 import { Button } from "@/components/ui/button";
 import { marked } from 'marked';
 
-export default async function GradeSubmissionPage({ params }: { params: { assignmentId: string } }) {
+export default async function GradeSubmissionPage({ params }: { params: Promise<{ assignmentId: string }> }) {
   const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
   }
 
-  const { assignmentId } = params;
+  const { assignmentId } = await params;
   const submission = await getSubmissionForGrading(assignmentId, session.user.id);
 
   if (!submission) {
@@ -63,11 +63,11 @@ export default async function GradeSubmissionPage({ params }: { params: { assign
           <div>
             <h2 className="text-xl font-semibold border-b pb-2">Student&apos;s Response</h2>
             {questions && answers && (
-              <div className="space-y-4 mt-4">
+              <div className="space-y-6 mt-4">
                 {questions.map((question, index) => (
                   <div key={index}>
-                    <p className="font-semibold">❓ {question}</p>
-                    <p className="mt-1 pl-6">{answers[index] || "No answer provided."}</p>
+                    <p className="p-3 bg-gray-50 rounded-md border shadow-sm font-semibold">Q{index + 1}❓ {question}</p>
+                    <p className="mt-2 pl-4 text-gray-700">{answers[index] || "No answer provided."}</p>
                   </div>
                 ))}
               </div>
