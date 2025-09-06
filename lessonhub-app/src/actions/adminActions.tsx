@@ -111,6 +111,7 @@ export async function sendTestEmail(templateName: string, subject: string, body:
     }
 }
 
+// ... rest of the file ...
 export async function getAllUsers() {
   try {
     const users = await prisma.user.findMany({
