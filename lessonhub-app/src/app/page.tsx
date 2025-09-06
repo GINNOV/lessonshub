@@ -46,7 +46,7 @@ export default function LandingPage() {
                 <CheckCircle className="h-5 w-5 text-white mr-3 flex-shrink-0" /> Collaborative & Accessible
               </p>
             </div>
-            <Link href="/signin">
+            <Link href="/register">
               <Button
                 size="lg"
                 className={`bg-white text-[#2A5E5B] hover:bg-gray-200 rounded-md px-10 py-3 text-lg font-semibold shadow-md transition-all`}
