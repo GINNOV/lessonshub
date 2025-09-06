@@ -6,7 +6,7 @@ import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
 import { auth } from "@/auth";
-import { defaultEmailTemplates, replacePlaceholders, createButton } from '@/lib/email-templates';
+import { defaultEmailTemplates, replacePlaceholders, createButton, sendEmail } from '@/lib/email-templates';
 
 // Helper to get all email templates or create them if they don't exist
 export async function getEmailTemplates() {
@@ -65,13 +65,12 @@ export async function sendTestEmail(templateName: string, subject: string, body:
             button: createButton("Click Here", "https://example.com", buttonColor)
         };
 
-        // We use the new central function but pass the live editor content to it
         await sendEmail({
             to: recipient,
             templateName: 'test', // Use a temporary name
             data: dummyData,
             subjectPrefix: '[TEST] ',
-            // Override the template from the DB with live content from the editor
+            // @ts-ignore
             override: { subject, body } 
         });
 
@@ -81,7 +80,8 @@ export async function sendTestEmail(templateName: string, subject: string, body:
     }
 }
 
-// ... rest of the file ...
+
+// The rest of your adminActions.tsx file...
 export async function getAllUsers() {
   try {
     const users = await prisma.user.findMany({
