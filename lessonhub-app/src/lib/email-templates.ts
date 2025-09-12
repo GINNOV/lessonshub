@@ -1,7 +1,8 @@
 // file: src/lib/email-templates.ts
 import prisma from "@/lib/prisma";
+import { getEmailTemplateByName } from "@/actions/adminActions"; // Import the self-healing function
 
-export const defaultEmailTemplates: Record<string, { subject: string; body: string }> = {
+export const defaultEmailTemplates: Record<string, { subject: string; body: string, buttonColor?: string }> = {
     welcome: {
         subject: 'Welcome to LessonHUB, {{userName}}!',
         body: `
@@ -10,6 +11,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
             <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">We’re thrilled to have you on board. Get ready to create, assign, and manage your lessons with ease.</p>
             {{button}}
         `,
+        buttonColor: '#5e6ad2',
     },
     new_assignment: {
         subject: 'New Assignment: {{lessonTitle}}',
@@ -20,6 +22,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
             <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Please complete it by: <strong>{{deadline}}</strong></p>
             {{button}}
         `,
+        buttonColor: '#5e6ad2',
     },
     graded: {
         subject: 'Your assignment "{{lessonTitle}}" has been graded',
@@ -31,6 +34,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
             {{teacherComments}}
             {{button}}
         `,
+        buttonColor: '#5e6ad2',
     },
     failed: {
         subject: 'Update on your assignment: "{{lessonTitle}}"',
@@ -40,6 +44,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
             <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Your submission for the lesson, <strong>{{lessonTitle}}</strong>, is past the due date and has been marked as failed.</p>
             {{button}}
         `,
+        buttonColor: '#f43f5e',
     },
     manual_reminder: {
         subject: '🚨 Reminder: Your assignment "{{lessonTitle}}"',
@@ -49,6 +54,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
             <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">This is a friendly reminder from your teacher, {{teacherName}}, to complete the assignment: <strong>{{lessonTitle}}</strong>.</p>
             {{button}}
         `,
+        buttonColor: '#f59e0b',
     },
     deadline_reminder: {
         subject: '🔔 Reminder: Assignment "{{lessonTitle}}" is due soon',
@@ -59,6 +65,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
             <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Please submit it by: <strong>{{deadline}}</strong></p>
             {{button}}
         `,
+        buttonColor: '#f59e0b',
     },
     submission_notification: {
         subject: 'New Submission: {{studentName}} completed "{{lessonTitle}}"',
@@ -68,6 +75,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
             <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">{{studentName}} has just submitted their response for the lesson: <strong>{{lessonTitle}}</strong>.</p>
             {{button}}
         `,
+        buttonColor: '#5e6ad2',
     },
     new_user_admin: {
         subject: '[LessonHUB] New User Sign-Up: {{newUserName}}',
@@ -123,10 +131,10 @@ interface SendEmailOptions {
 }
 export async function sendEmail({ to, templateName, data, subjectPrefix = '', override }: SendEmailOptions) {
     try {
-        const template = override ? null : await prisma.emailTemplate.findUnique({ where: { name: templateName } });
+        const template = override ? null : await getEmailTemplateByName(templateName);
 
         if (!template && !override) {
-            console.error(`Email template "${templateName}" not found.`);
+            console.error(`Email template "${templateName}" not found and could not be created.`);
             return;
         }
 

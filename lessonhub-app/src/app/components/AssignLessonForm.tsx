@@ -1,3 +1,4 @@
+// file: src/app/components/AssignLessonForm.tsx
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -6,6 +7,7 @@ import { Assignment, Lesson, User } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from "@/components/ui/checkbox";
 
 type StudentWithStats = User & {
   totalPoints: number;
@@ -42,6 +44,7 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notifyStudents, setNotifyStudents] = useState(true);
 
   useEffect(() => {
     const defaultDeadline = new Date(Date.now() + 36 * 60 * 60 * 1000);
@@ -90,6 +93,7 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
           studentIdsToAssign,
           studentIdsToUnassign,
           deadline,
+          notifyStudents,
         }),
       });
 
@@ -138,6 +142,15 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
               disabled={isLoading}
               className="bg-white"
             />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="notify"
+              checked={notifyStudents}
+              onCheckedChange={(checked) => setNotifyStudents(Boolean(checked))}
+              disabled={isLoading}
+            />
+            <Label htmlFor="notify">Notify newly assigned students</Label>
           </div>
           <div className="flex-grow"></div>
           <Button

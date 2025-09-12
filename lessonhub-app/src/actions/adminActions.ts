@@ -1,5 +1,4 @@
 // file: src/actions/adminActions.tsx
-
 'use server';
 
 import prisma from "@/lib/prisma";
@@ -18,6 +17,7 @@ export async function getEmailTemplates() {
                 name,
                 subject: defaultEmailTemplates[name].subject,
                 body: defaultEmailTemplates[name].body,
+                buttonColor: defaultEmailTemplates[name].buttonColor,
             }
         });
     }
@@ -27,7 +27,22 @@ export async function getEmailTemplates() {
 }
 
 export async function getEmailTemplateByName(name: string) {
-    return prisma.emailTemplate.findUnique({ where: { name } });
+    let template = await prisma.emailTemplate.findUnique({ where: { name } });
+
+    // If template doesn't exist in DB, create it from the default
+    if (!template && defaultEmailTemplates[name]) {
+        console.log(`Template "${name}" not found in DB, creating from default.`);
+        template = await prisma.emailTemplate.create({
+            data: {
+                name,
+                subject: defaultEmailTemplates[name].subject,
+                body: defaultEmailTemplates[name].body,
+                buttonColor: defaultEmailTemplates[name].buttonColor,
+            }
+        });
+    }
+
+    return template;
 }
 
 export async function updateEmailTemplate(id: string, subject: string, body: string, buttonColor?: string) {
@@ -65,6 +80,7 @@ export async function sendTestEmail(templateName: string, subject: string, body:
             button: createButton("Click Here", "https://example.com", buttonColor)
         };
 
+        // We use the new central function but pass the live editor content to it
         await sendEmail({
             to: recipient,
             templateName: 'test', // Use a temporary name

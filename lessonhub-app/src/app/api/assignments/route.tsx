@@ -4,7 +4,7 @@ import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { getEmailTemplateByName } from "@/actions/adminActions";
-import { replacePlaceholders, createButton } from "@/lib/email-templates";
+import { createButton, sendEmail } from "@/lib/email-templates";
 
 function getBaseUrl(req: NextRequest): string {
   const headers = req.headers;
@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { lessonId, studentIdsToAssign, studentIdsToUnassign, deadline } = body;
+    const { lessonId, studentIdsToAssign, studentIdsToUnassign, deadline, notifyStudents } = body;
 
     if (!lessonId || !deadline) {
       return new NextResponse(JSON.stringify({ error: "Lesson ID and deadline are required" }), { status: 400 });
@@ -64,39 +64,29 @@ export async function PATCH(request: NextRequest) {
       });
       operations.push(createOperation);
       
-      const template = await getEmailTemplateByName('new_assignment');
-      if (template) {
-          for (const student of students) {
-              if (student.email) {
-                try {
-                    const assignmentUrl = `${getBaseUrl(request)}/my-lessons`;
-                    const subject = replacePlaceholders(template.subject, { lessonTitle: lesson.title });
-                    const body = replacePlaceholders(template.body, {
-                        studentName: student.name || 'student',
-                        teacherName: session.user.name || 'your teacher',
-                        lessonTitle: lesson.title,
-                        deadline: new Date(deadline).toLocaleString(),
-                        button: createButton('Start Lesson', assignmentUrl),
-                    });
-
-                    await fetch("https://api.resend.com/emails", {
-                        method: "POST",
-                        headers: {
-                        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                        "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                        from: process.env.EMAIL_FROM,
+      if (notifyStudents) {
+        const template = await getEmailTemplateByName('new_assignment');
+        if (template) {
+            for (const student of students) {
+                if (student.email) {
+                  try {
+                      await sendEmail({
                         to: student.email,
-                        subject,
-                        html: body,
-                        }),
-                    });
-                } catch (emailError) {
-                    console.error(`An unexpected error occurred while sending assignment email to ${student.email}:`, emailError);
-                }
+                        templateName: 'new_assignment',
+                        data: {
+                          studentName: student.name || 'student',
+                          teacherName: session.user.name || 'your teacher',
+                          lessonTitle: lesson.title,
+                          deadline: new Date(deadline).toLocaleString(),
+                          button: createButton('Start Lesson', `${getBaseUrl(request)}/my-lessons`, template.buttonColor || undefined),
+                        }
+                      });
+                  } catch (emailError) {
+                      console.error(`An unexpected error occurred while sending assignment email to ${student.email}:`, emailError);
+                  }
             }
           }
+        }
       }
     }
     
