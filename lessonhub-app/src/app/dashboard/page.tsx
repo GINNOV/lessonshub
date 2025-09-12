@@ -6,6 +6,13 @@ import { getLessonsForTeacher } from "@/actions/lessonActions";
 import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import TeacherLessonList from "@/app/components/TeacherLessonList";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -30,9 +37,28 @@ export default async function DashboardPage() {
             Welcome, {session.user?.name}!
           </p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/create">Create New Lesson</Link>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button>
+              Create New Lesson
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/create">Create standard lesson</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/create/flashcard">Create flashcard</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/create/multi-choice">Create multi choice</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/create/learning-session">Create learning session</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <TeacherLessonList lessons={lessons} />
     </div>

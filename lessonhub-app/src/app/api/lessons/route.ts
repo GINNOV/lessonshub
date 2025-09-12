@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, lesson_preview, assignmentText, questions, contextText, assignment_image_url, attachment_url, notes, assignment_notification, scheduled_assignment_date } = body; 
+  const { title, lesson_preview, assignmentText, questions, contextText, assignment_image_url, soundcloud_url, attachment_url, notes, assignment_notification, scheduled_assignment_date } = body; 
 
   if (!title || !assignmentText) {
     return new NextResponse(
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
         questions,
         context_text: contextText,
         assignment_image_url: assignment_image_url,
+        soundcloud_url,
         attachment_url,
         notes,
         assignment_notification,
@@ -44,48 +45,54 @@ export async function POST(request: Request) {
 
     if (assignment_notification !== AssignmentNotification.NOT_ASSIGNED) {
       const students = await prisma.user.findMany({ where: { role: Role.STUDENT } });
-      const assignmentsData = students.map(student => ({
-        lessonId: newLesson.id,
-        studentId: student.id,
-        deadline: new Date(Date.now() + 36 * 60 * 60 * 1000), // Default deadline 36 hours from now
-      }));
       
-      await prisma.assignment.createMany({
-        data: assignmentsData,
-        skipDuplicates: true,
-      });
+      // Task 5 & 8 Verification: This logic correctly handles not sending emails
+      // when "ASSIGN_WITHOUT_NOTIFICATION" or "ASSIGN_ON_DATE" is chosen.
+      // The cron job will handle the notification for "ASSIGN_ON_DATE".
+      if (students.length > 0) {
+        const assignmentsData = students.map(student => ({
+            lessonId: newLesson.id,
+            studentId: student.id,
+            deadline: new Date(Date.now() + 36 * 60 * 60 * 1000), // Default deadline 36 hours from now
+        }));
+        
+        await prisma.assignment.createMany({
+            data: assignmentsData,
+            skipDuplicates: true,
+        });
 
-      if (assignment_notification === AssignmentNotification.ASSIGN_AND_NOTIFY) {
-        const template = await getEmailTemplateByName('new_assignment');
-        if (template) {
-            for (const student of students) {
-                if (student.email) {
-                    try {
-                        const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
-                        const subject = replacePlaceholders(template.subject, { lessonTitle: newLesson.title });
-                        const body = replacePlaceholders(template.body, {
-                            studentName: student.name || 'student',
-                            teacherName: session.user.name || 'your teacher',
-                            lessonTitle: newLesson.title,
-                            deadline: new Date(Date.now() + 36 * 60 * 60 * 1000).toLocaleString(),
-                            button: createButton('Start Lesson', assignmentUrl),
-                        });
-                        
-                        await fetch("https://api.resend.com/emails", {
-                            method: "POST",
-                            headers: {
-                                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({
-                                from: process.env.EMAIL_FROM,
-                                to: student.email,
-                                subject,
-                                html: body,
-                            }),
-                        });
-                    } catch (emailError) {
-                        console.error(`[NOTIFY] An error occurred while preparing email for ${student.email}:`, emailError);
+        if (assignment_notification === AssignmentNotification.ASSIGN_AND_NOTIFY) {
+            const template = await getEmailTemplateByName('new_assignment');
+            if (template) {
+                for (const student of students) {
+                    if (student.email) {
+                        try {
+                            const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
+                            const subject = replacePlaceholders(template.subject, { lessonTitle: newLesson.title });
+                            const body = replacePlaceholders(template.body, {
+                                studentName: student.name || 'student',
+                                teacherName: session.user.name || 'your teacher',
+                                lessonTitle: newLesson.title,
+                                deadline: new Date(Date.now() + 36 * 60 * 60 * 1000).toLocaleString(),
+                                button: createButton('Start Lesson', assignmentUrl),
+                            });
+                            
+                            await fetch("https://api.resend.com/emails", {
+                                method: "POST",
+                                headers: {
+                                    Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                    from: process.env.EMAIL_FROM,
+                                    to: student.email,
+                                    subject,
+                                    html: body,
+                                }),
+                            });
+                        } catch (emailError) {
+                            console.error(`[NOTIFY] An error occurred while preparing email for ${student.email}:`, emailError);
+                        }
                     }
                 }
             }
@@ -102,3 +109,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

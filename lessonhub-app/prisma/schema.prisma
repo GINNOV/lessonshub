@@ -51,6 +51,7 @@ model Lesson {
   assignment_text           String    @db.Text
   questions                 Json?
   assignment_image_url      String?
+  soundcloud_url            String?   // Task 6: Add SoundCloud URL field
   context_text              String?   @db.Text
   attachment_url            String?
   notes                     String?
