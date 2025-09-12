@@ -1,9 +1,12 @@
+// file: lessonhub-app/src/app/assignments/[assignmentId]/page.tsx
+
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getAssignmentById } from "@/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
+import FlashcardPlayer from "@/app/components/FlashcardPlayer";
 import { marked } from 'marked';
 import { AssignmentStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
@@ -92,7 +95,7 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
 
   const { lesson } = assignment;
   
-  const assignmentHtml = (await marked.parse(lesson.assignment_text)) as string;
+  const assignmentHtml = lesson.assignment_text ? (await marked.parse(lesson.assignment_text)) as string : '';
   const contextHtml = lesson.context_text ? (await marked.parse(lesson.context_text)) as string : '';
   const isPastDeadline = new Date() > new Date(assignment.deadline);
 
@@ -100,7 +103,6 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
   return (
     <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
       
-      {/* --- Graded Banner --- */}
       {assignment.status === AssignmentStatus.GRADED && (
         <div className={cn("border-l-4 p-4 rounded-md mb-6", getGradeBackground(assignment.score))}>
           <div className="flex items-start">
@@ -120,7 +122,6 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
         </div>
       )}
 
-      {/* --- Past Deadline Banner --- */}
       {isPastDeadline && assignment.status === AssignmentStatus.PENDING && (
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6 flex items-center">
           <AlertTriangleIcon className="h-6 w-6 mr-3" />
@@ -143,53 +144,74 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
         </div>
       )}
 
-      <div className="prose max-w-none">
-        {lesson.assignment_image_url && (
-          <div className="my-4">
-            <h2 className="text-sm font-semibold uppercase text-gray-500">Supporting Material</h2>
-            <Image
-              src={lesson.assignment_image_url}
-              alt={`Image for ${lesson.title}`}
-              width={600}
-              height={400}
-              className="mt-2 w-full h-auto rounded-lg object-contain border"
-            />
-          </div>
-        )}
-        
-        <h2 className="text-xl font-semibold">Instructions</h2>
-        <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
-        
-        {contextHtml && (
-          <>
-            <h3 className="text-lg font-semibold mt-4">Additional Information</h3>
-            <div dangerouslySetInnerHTML={{ __html: contextHtml }} />
-          </>
-        )}
+      {/* Render based on lesson type */}
+      {lesson.type === 'STANDARD' && (
+        <>
+            <div className="prose max-w-none">
+                {lesson.assignment_image_url && (
+                <div className="my-4">
+                    <h2 className="text-sm font-semibold uppercase text-gray-500">Supporting Material</h2>
+                    <Image
+                    src={lesson.assignment_image_url}
+                    alt={`Image for ${lesson.title}`}
+                    width={600}
+                    height={400}
+                    className="mt-2 w-full h-auto rounded-lg object-contain border"
+                    />
+                </div>
+                )}
+                
+                <h2 className="text-xl font-semibold">Instructions</h2>
+                <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
+                
+                {contextHtml && (
+                <>
+                    <h3 className="text-lg font-semibold mt-4">Additional Information</h3>
+                    <div dangerouslySetInnerHTML={{ __html: contextHtml }} />
+                </>
+                )}
 
-        {lesson.notes && (
-          <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400">
-            <h3 className="text-lg font-semibold text-yellow-800">Teacher&apos;s Note</h3>
-            <p className="text-yellow-900 mt-1">{lesson.notes}</p>
-          </div>
-        )}
+                {lesson.notes && (
+                <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400">
+                    <h3 className="text-lg font-semibold text-yellow-800">Teacher&apos;s Note</h3>
+                    <p className="text-yellow-900 mt-1">{lesson.notes}</p>
+                </div>
+                )}
 
-        {lesson.attachment_url && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold flex items-center mb-2"><PaperclipIcon className="h-5 w-5 mr-2" /> Attachment</h3>
-            <Button asChild variant="outline">
-              <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
-                <EyeIcon className="mr-2 h-4 w-4" /> View Attachment
-              </Link>
-            </Button>
-          </div>
-        )}
-      </div>
+                {lesson.attachment_url && (
+                <div className="mt-6">
+                    <h3 className="text-lg font-semibold flex items-center mb-2"><PaperclipIcon className="h-5 w-5 mr-2" /> Attachment</h3>
+                    <Button asChild variant="outline">
+                    <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
+                        <EyeIcon className="mr-2 h-4 w-4" /> View Attachment
+                    </Link>
+                    </Button>
+                </div>
+                )}
+            </div>
+            <div className="border-t border-gray-200 mt-8 pt-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Response</h2>
+                <LessonResponseForm assignment={assignment} />
+            </div>
+        </>
+      )}
 
-      <div className="border-t border-gray-200 mt-8 pt-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Response</h2>
-        <LessonResponseForm assignment={assignment} />
-      </div>
+      {lesson.type === 'FLASHCARD' && (
+        <div className="border-t border-gray-200 mt-8 pt-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Flashcards</h2>
+          <FlashcardPlayer assignment={assignment} />
+        </div>
+      )}
+
+       {lesson.type === 'MULTI_CHOICE' && (
+          // Placeholder for Multi-choice viewer component
+          <div className="border-t border-gray-200 mt-8 pt-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Quiz</h2>
+              <div className="bg-gray-100 p-8 rounded-md text-center">
+                  <p>Multi-choice quiz player coming soon!</p>
+              </div>
+          </div>
+      )}
     </div>
   );
 }

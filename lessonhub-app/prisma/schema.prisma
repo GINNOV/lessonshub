@@ -17,6 +17,14 @@ enum Role {
   ADMIN
 }
 
+// Task 1: Add LessonType enum
+enum LessonType {
+  STANDARD
+  FLASHCARD
+  MULTI_CHOICE
+  LEARNING_SESSION
+}
+
 enum AssignmentNotification {
   NOT_ASSIGNED
   ASSIGN_AND_NOTIFY
@@ -48,12 +56,19 @@ model Lesson {
   id                        String    @id @default(cuid())
   title                     String
   lesson_preview            String?   @db.Text
-  assignment_text           String    @db.Text
+  type                      LessonType @default(STANDARD)
+  
+  // Fields for STANDARD lesson type
+  assignment_text           String?    @db.Text // This is the corrected line
   questions                 Json?
   assignment_image_url      String?
-  soundcloud_url            String?   // Task 6: Add SoundCloud URL field
+  soundcloud_url            String?
   context_text              String?   @db.Text
   attachment_url            String?
+  
+  // Fields for FLASHCARD lesson type
+  flashcards                Json?
+
   notes                     String?
   assignment_notification   AssignmentNotification @default(NOT_ASSIGNED)
   scheduled_assignment_date DateTime?
@@ -135,3 +150,4 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+

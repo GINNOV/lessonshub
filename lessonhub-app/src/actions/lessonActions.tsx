@@ -1,7 +1,8 @@
+// file: src/actions/lessonActions.tsx
 'use server';
 
 import prisma from "@/lib/prisma";
-import { Role, AssignmentStatus } from "@prisma/client";
+import { Role, AssignmentStatus, LessonType } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
 import { getEmailTemplateByName } from '@/actions/adminActions';
 import { replacePlaceholders, createButton, sendEmail } from '@/lib/email-templates';
@@ -300,14 +301,6 @@ export async function sendManualReminder(assignmentId: string) {
     
     const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
     
-    const subject = replacePlaceholders(template.subject, { lessonTitle: assignment.lesson.title });
-    const body = replacePlaceholders(template.body, {
-        studentName: assignment.student.name || 'student',
-        teacherName: assignment.lesson.teacher.name || 'your teacher',
-        lessonTitle: assignment.lesson.title,
-        button: createButton('View Assignment', assignmentUrl, 'warning'),
-    });
-
     await sendEmail({
         to: assignment.student.email,
         templateName: 'manual_reminder',
@@ -470,3 +463,58 @@ export async function sendCustomEmailToAssignedStudents(lessonId: string, subjec
     return { success: false, error: "An error occurred while sending the email." };
   }
 }
+
+
+/**
+ * Marks a flashcard or multi-choice assignment as complete for a student.
+ * @param assignmentId The ID of the assignment.
+ * @param studentId The ID of the student making the request.
+ * @returns An object indicating success or failure.
+ */
+export async function completeFlashcardAssignment(assignmentId: string, studentId: string) {
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: { id: assignmentId, studentId },
+      include: {
+        lesson: { include: { teacher: true } },
+        student: true,
+      },
+    });
+
+    if (!assignment) {
+      return { success: false, error: "Assignment not found or unauthorized." };
+    }
+    if (assignment.status !== AssignmentStatus.PENDING) {
+      return { success: false, error: "Assignment has already been completed." };
+    }
+
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: { status: AssignmentStatus.COMPLETED },
+    });
+
+    // Notify the teacher
+    const { student, lesson } = assignment;
+    const teacher = lesson.teacher;
+    if (teacher.email) {
+      const submissionUrl = `${process.env.AUTH_URL}/dashboard/submissions/${lesson.id}`;
+      await sendEmail({
+        to: teacher.email,
+        templateName: 'submission_notification',
+        data: {
+          teacherName: teacher.name || 'teacher',
+          studentName: student.name || 'A student',
+          lessonTitle: lesson.title,
+          button: createButton('View Submissions', submissionUrl),
+        }
+      });
+    }
+
+    revalidatePath('/my-lessons');
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to complete assignment:", error);
+    return { success: false, error: "An internal error occurred." };
+  }
+}
+

@@ -4,7 +4,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Lesson, Assignment, AssignmentStatus } from '@prisma/client';
+import { Lesson, Assignment, AssignmentStatus, LessonType } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getWeekAndDay } from '@/lib/utils';
@@ -45,6 +45,15 @@ const getStartOfDay = (date: Date) => {
 };
 
 // --- END: Robust Date Filtering Logic ---
+
+// Task 1: Add emoji map for lesson types
+const lessonTypeEmojis: Record<LessonType, string> = {
+  [LessonType.STANDARD]: '📝',
+  [LessonType.FLASHCARD]: '🃏',
+  [LessonType.MULTI_CHOICE]: '✅',
+  [LessonType.LEARNING_SESSION]: '🧠',
+};
+
 
 export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -172,6 +181,7 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                   <li className="p-4 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center">
                     <div className="flex-1 mb-4 sm:mb-0">
                       <Link href={`/dashboard/edit/${lesson.id}`} className="font-bold text-lg hover:underline">
+                        <span className="mr-2">{lessonTypeEmojis[lesson.type]}</span>
                         {lesson.title}
                       </Link>
                       <p className="text-xs text-gray-400 mt-1">
