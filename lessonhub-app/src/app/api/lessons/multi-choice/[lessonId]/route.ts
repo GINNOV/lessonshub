@@ -8,10 +8,10 @@ import { Role, LessonType } from "@prisma/client";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { lessonId: string } }
+  { params }: { params: Promise<{ lessonId: string }> } // Correctly typed as a Promise
 ) {
   const session = await auth();
-  const { lessonId } = params;
+  const { lessonId } = await params; // Awaited the params object
 
   if (!session?.user?.id || session.user.role !== Role.TEACHER) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
@@ -38,7 +38,7 @@ export async function PATCH(
       where: { id: lessonId },
       data: {
         title,
-        type: LessonType.MULTI_CHOICE,
+        type: 'MULTI_CHOICE',
         questions: questions,
       },
     });
@@ -49,3 +49,4 @@ export async function PATCH(
     return new NextResponse(JSON.stringify({ error: "Failed to update multi-choice lesson" }), { status: 500 });
   }
 }
+

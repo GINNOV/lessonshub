@@ -1,200 +1,137 @@
+// file: src/app/components/MultiChoicePlayer.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Assignment, AssignmentStatus, Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2, PlusCircle } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Lesson } from '@prisma/client';
+import { Textarea } from '@/components/ui/textarea';
 
-interface Answer {
-  id: number;
+// Define a type for an individual answer object
+type Answer = {
+  id: string;
   text: string;
-}
+};
 
-interface Question {
-  id: number;
+// Define a type for the complex question format
+type MultiChoiceQuestion = {
+  id: string;
   text: string;
-  answers: Answer[];
-  correctAnswerId: number | null;
+  answers: Answer[]; // Changed from string[] to Answer[]
+  correctAnswerId: number;
+};
+
+interface MultiChoicePlayerProps {
+  assignment: Assignment & { lesson: Lesson };
 }
 
-interface MultiChoiceCreatorProps {
-  lesson?: Lesson | null;
-}
-
-export default function MultiChoiceCreator({ lesson }: MultiChoiceCreatorProps) {
+export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps) {
   const router = useRouter();
-  const isEditMode = !!lesson;
-
-  const [title, setTitle] = useState('');
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const questions = assignment.lesson.questions as MultiChoiceQuestion[];
   
-  const [nextQuestionId, setNextQuestionId] = useState(1);
-  const [nextAnswerId, setNextAnswerId] = useState(1);
-
+  // State to hold the index of the selected answer for each question
+  const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>(
+    Array(questions.length).fill(null)
+  );
+  const [studentNotes, setStudentNotes] = useState(assignment.studentNotes || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (lesson) {
-      setTitle(lesson.title);
-      if (lesson.questions && Array.isArray(lesson.questions)) {
-        // Proper type conversion from JsonArray to Question[]
-        const existingQuestions = lesson.questions as unknown as Question[];
-        setQuestions(existingQuestions);
+  const isPastDeadline = new Date() > new Date(assignment.deadline);
+  const isReadOnly = assignment.status === AssignmentStatus.GRADED || assignment.status === AssignmentStatus.FAILED;
 
-        // Ensure new IDs don't conflict with existing ones
-        const maxQuestionId = existingQuestions.reduce((max, q) => Math.max(max, q.id), 0);
-        const maxAnswerId = existingQuestions.flatMap(q => q.answers).reduce((max, a) => Math.max(max, a.id), 0);
-        
-        setNextQuestionId(maxQuestionId + 1);
-        setNextAnswerId(maxAnswerId + 1);
-      }
-    } else {
-        // Default state for a new lesson
-        setQuestions([{ id: 1, text: '', answers: [{ id: 1, text: '' }, { id: 2, text: '' }], correctAnswerId: null }]);
-        setNextQuestionId(2);
-        setNextAnswerId(3);
-    }
-  }, [lesson]);
-
-
-  const addQuestion = () => {
-    setQuestions([...questions, { id: nextQuestionId, text: '', answers: [{ id: nextAnswerId, text: '' }, { id: nextAnswerId + 1, text: '' }], correctAnswerId: null }]);
-    setNextQuestionId(nextQuestionId + 1);
-    setNextAnswerId(nextAnswerId + 2);
-  };
-
-  const handleQuestionChange = (id: number, value: string) => {
-    setQuestions(questions.map(q => q.id === id ? { ...q, text: value } : q));
-  };
-
-  const addAnswer = (questionId: number) => {
-    setQuestions(questions.map(q => q.id === questionId ? { ...q, answers: [...q.answers, { id: nextAnswerId, text: '' }] } : q));
-    setNextAnswerId(nextAnswerId + 1);
-  };
-  
-  const handleAnswerChange = (questionId: number, answerId: number, value: string) => {
-      setQuestions(questions.map(q => q.id === questionId ? {
-          ...q,
-          answers: q.answers.map(a => a.id === answerId ? { ...a, text: value } : a)
-      } : q));
-  };
-
-  const setCorrectAnswer = (questionId: number, answerId: number) => {
-      setQuestions(questions.map(q => q.id === questionId ? { ...q, correctAnswerId: answerId } : q));
-  };
-
-  const deleteQuestion = (id: number) => {
-      setQuestions(questions.filter(q => q.id !== id));
-  };
-
-  const deleteAnswer = (questionId: number, answerId: number) => {
-      setQuestions(questions.map(q => q.id === questionId ? {
-          ...q,
-          answers: q.answers.filter(a => a.id !== answerId),
-          correctAnswerId: q.correctAnswerId === answerId ? null : q.correctAnswerId // Reset correct answer if it's deleted
-      } : q));
+  const handleAnswerSelect = (questionIndex: number, answerIndex: number) => {
+    const newAnswers = [...selectedAnswers];
+    newAnswers[questionIndex] = answerIndex;
+    setSelectedAnswers(newAnswers);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedAnswers.some(answer => answer === null)) {
+      setError('Please answer all questions before submitting.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
-    const validQuestions = questions.filter(q => 
-        q.text.trim() && 
-        q.correctAnswerId !== null && 
-        q.answers.length >= 2 && 
-        q.answers.every(a => a.text.trim())
-    );
-    
-    if (!title.trim()) {
-        setError("Lesson title is required.");
-        setIsLoading(false);
-        return;
-    }
-    if (validQuestions.length === 0) {
-        setError("You must create at least one valid question with at least two answers and a selected correct answer.");
-        setIsLoading(false);
-        return;
-    }
-
     try {
-        const url = isEditMode && lesson ? `/api/lessons/multi-choice/${lesson.id}` : '/api/lessons/multi-choice';
-        const method = isEditMode ? 'PATCH' : 'POST';
+      const response = await fetch(`/api/assignments/${assignment.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: selectedAnswers, studentNotes }),
+      });
 
-        const response = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, questions: validQuestions }),
-        });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit response');
+      }
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} multi-choice lesson.`);
-        }
+      router.push('/my-lessons');
+      router.refresh();
 
-        router.push('/dashboard');
-        router.refresh();
-
-    } catch (err) {
-        setError((err as Error).message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
-      
-      <div className="space-y-2">
-        <Label htmlFor="title" className="text-xl font-bold">Lesson Title</Label>
-        <Input id="title" placeholder="e.g., Biology Quiz - Cell Division" value={title} onChange={(e) => setTitle(e.target.value)} required />
-      </div>
+  const getButtonText = () => {
+    if (isLoading) return 'Submitting...';
+    if (isReadOnly) return 'Submission Closed';
+    if (isPastDeadline) return 'Deadline Passed';
+    return 'Submit Response';
+  };
 
-      <div className="space-y-6">
-        {questions.map((q, index) => (
-          <div key={q.id} className="p-4 border rounded-lg bg-gray-50">
-            <div className="flex justify-between items-center mb-4">
-              <Label htmlFor={`question-${q.id}`} className="text-lg font-semibold">Question {index + 1}</Label>
-              <Button variant="ghost" size="icon" onClick={() => deleteQuestion(q.id)}>
-                <Trash2 className="h-4 w-4 text-gray-500" />
-              </Button>
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-8">
+        {questions.map((question, qIndex) => (
+          <div key={question.id} className="space-y-4">
+            <div className="p-3 bg-gray-50 rounded-md border shadow-sm">
+              <Label className="font-bold text-base">
+                Q{qIndex + 1}❓ {question.text}
+              </Label>
             </div>
-            <Input id={`question-${q.id}`} value={q.text} onChange={(e) => handleQuestionChange(q.id, e.target.value)} placeholder="Enter your question here" />
-            
-            <RadioGroup value={q.correctAnswerId?.toString()} onValueChange={(val) => setCorrectAnswer(q.id, parseInt(val))} className="mt-4 space-y-2">
-              <Label className="text-md font-semibold">Answers</Label>
-              {q.answers.map(a => (
-                <div key={a.id} className="flex items-center gap-2">
-                  <RadioGroupItem value={a.id.toString()} id={`q${q.id}-a${a.id}`} />
-                  <Input value={a.text} onChange={(e) => handleAnswerChange(q.id, a.id, e.target.value)} placeholder="Enter an answer option" />
-                  <Button variant="ghost" size="icon" onClick={() => deleteAnswer(q.id, a.id)}>
-                    <Trash2 className="h-4 w-4 text-gray-400" />
-                  </Button>
+            <RadioGroup
+              onValueChange={(value) => handleAnswerSelect(qIndex, parseInt(value))}
+              disabled={isLoading || isPastDeadline || isReadOnly}
+              className="ml-2 space-y-2"
+            >
+              {question.answers.map((answer, aIndex) => (
+                <div key={aIndex} className="flex items-center space-x-2">
+                  <RadioGroupItem value={aIndex.toString()} id={`${question.id}-${aIndex}`} />
+                  <Label htmlFor={`${question.id}-${aIndex}`}>{answer.text}</Label>
                 </div>
               ))}
             </RadioGroup>
-            <Button type="button" variant="link" onClick={() => addAnswer(q.id)} className="mt-2">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Answer
-            </Button>
           </div>
         ))}
       </div>
-
-      <div className="flex justify-between items-center">
-        <Button type="button" variant="outline" onClick={addQuestion}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Question
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Saving...' : 'Save Lesson'}
-        </Button>
+      
+      <div className="mt-6 space-y-2 border-t pt-6">
+        <Label htmlFor="student-notes">Student Notes (Optional)</Label>
+        <Textarea
+          id="student-notes"
+          value={studentNotes}
+          onChange={(e) => setStudentNotes(e.target.value)}
+          disabled={isLoading || isPastDeadline || isReadOnly}
+          placeholder="Add any notes for your teacher here..."
+        />
       </div>
+
+      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mt-4">{error}</p>}
+
+      <Button
+        type="submit"
+        disabled={isLoading || isPastDeadline || isReadOnly}
+        className="mt-4"
+      >
+        {getButtonText()}
+      </Button>
     </form>
   );
 }

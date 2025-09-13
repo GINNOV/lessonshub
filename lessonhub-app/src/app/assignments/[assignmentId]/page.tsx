@@ -1,12 +1,12 @@
+// file: src/app/assignments/[assignmentId]/page.tsx
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getAssignmentById } from "@/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
-import FlashcardPlayer from "@/app/components/FlashcardPlayer";
-import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
-import { marked } from "marked";
+import MultiChoicePlayer from "@/app/components/MultiChoicePlayer"; // Import the multi-choice component
+import { marked } from 'marked';
 import { AssignmentStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,18 +20,7 @@ interface AssignmentPageProps {
 // --- SVG Icons ---
 function AlertTriangleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
       <path d="M12 9v4" />
       <path d="M12 17h.01" />
@@ -41,18 +30,7 @@ function AlertTriangleIcon(props: React.SVGProps<SVGSVGElement>) {
 
 function CheckCircleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
       <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
@@ -61,18 +39,7 @@ function CheckCircleIcon(props: React.SVGProps<SVGSVGElement>) {
 
 function InfoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" />
       <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -82,49 +49,27 @@ function InfoIcon(props: React.SVGProps<SVGSVGElement>) {
 
 function PaperclipIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48" />
     </svg>
   );
 }
 
 function EyeIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
+    return (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
 }
 
 const getGradeBackground = (score: number | null) => {
-  if (score === null) return "bg-gray-100";
-  if (score === 10) return "bg-gradient-to-br from-green-100 to-green-200";
-  if (score === 2) return "bg-gradient-to-br from-amber-100 to-amber-200";
-  if (score === -1) return "bg-gradient-to-br from-red-100 to-red-200";
-  return "bg-gradient-to-br from-yellow-100 to-yellow-200";
+  if (score === null) return 'bg-gray-100';
+  if (score === 10) return 'bg-gradient-to-br from-green-100 to-green-200';
+  if (score === 2) return 'bg-gradient-to-br from-amber-100 to-amber-200';
+  if (score === -1) return 'bg-gradient-to-br from-red-100 to-red-200';
+  return 'bg-gradient-to-br from-yellow-100 to-yellow-200';
 };
 
 export default async function AssignmentPage({ params }: AssignmentPageProps) {
@@ -133,54 +78,47 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
     redirect("/signin");
   }
 
-  const { assignmentId } = params; // ← no await here
-
+  const { assignmentId } = await params;
   const assignment = await getAssignmentById(assignmentId, session.user.id);
 
   if (!assignment) {
     return (
       <div className="text-center p-8">
         <h1 className="text-2xl font-bold">Assignment not found</h1>
-        <p>
-          This assignment may not exist or you may not have permission to view
-          it.
-        </p>
+        <p>This assignment may not exist or you may not have permission to view it.</p>
       </div>
     );
   }
 
   const { lesson } = assignment;
-
-  const assignmentHtml = lesson.assignment_text
-    ? (marked.parse(lesson.assignment_text) as string)
-    : "";
-  const contextHtml = lesson.context_text
-    ? (marked.parse(lesson.context_text) as string)
-    : "";
+  
+  const assignmentHtml = (await marked.parse(lesson.assignment_text ?? '')) as string;
+  const contextHtml = lesson.context_text ? (await marked.parse(lesson.context_text)) as string : '';
   const isPastDeadline = new Date() > new Date(assignment.deadline);
+
+  // Determine if this is a multiple-choice lesson by checking the structure of the questions
+  const isMultiChoice = Array.isArray(lesson.questions) &&
+                        lesson.questions.length > 0 &&
+                        typeof lesson.questions[0] === 'object' &&
+                        lesson.questions[0] !== null &&
+                        'text' in lesson.questions[0];
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
+      
       {assignment.status === AssignmentStatus.GRADED && (
-        <div
-          className={cn(
-            "border-l-4 p-4 rounded-md mb-6",
-            getGradeBackground(assignment.score)
-          )}
-        >
+        <div className={cn("border-l-4 p-4 rounded-md mb-6", getGradeBackground(assignment.score))}>
           <div className="flex items-start">
             <CheckCircleIcon className="h-6 w-6 mr-3 mt-1 flex-shrink-0" />
             <div>
               <p className="font-bold text-lg">Lesson Graded</p>
               <div className="mt-2 flex items-baseline gap-4">
-                <p className="text-3xl font-bold">
-                  Score: {assignment.score}
-                </p>
+                <p className="text-3xl font-bold">Score: {assignment.score}</p>
               </div>
               {assignment.teacherComments && (
-                <blockquote className="mt-2 pl-4 border-l-4 border-gray-400/50 italic">
-                  &quot;{assignment.teacherComments}&quot;
-                </blockquote>
+                 <blockquote className="mt-2 pl-4 border-l-4 border-gray-400/50 italic">
+                   &quot;{assignment.teacherComments}&quot;
+                 </blockquote>
               )}
             </div>
           </div>
@@ -192,10 +130,7 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
           <AlertTriangleIcon className="h-6 w-6 mr-3" />
           <div>
             <p className="font-bold">Deadline Passed</p>
-            <p className="text-sm">
-              This assignment is past its deadline. You can still view the
-              content, but you are not able to submit a response.
-            </p>
+            <p className="text-sm">This assignment is past its deadline. You can still view the content, but you are not able to submit a response.</p>
           </div>
         </div>
       )}
@@ -207,92 +142,62 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
 
       {lesson.lesson_preview && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
-          <h3 className="text-lg font-semibold flex items-center">
-            <InfoIcon className="h-5 w-5 mr-2" /> Lesson Preview
-          </h3>
+          <h3 className="text-lg font-semibold flex items-center"><InfoIcon className="h-5 w-5 mr-2" /> Lesson Preview</h3>
           <p className="text-gray-700 mt-2">{lesson.lesson_preview}</p>
         </div>
       )}
 
-      {/* Render based on lesson type */}
-      {lesson.type === "STANDARD" && (
-        <>
-          <div className="prose max-w-none">
-            {lesson.assignment_image_url && (
-              <div className="my-4">
-                <h2 className="text-sm font-semibold uppercase text-gray-500">
-                  Supporting Material
-                </h2>
-                <Image
-                  src={lesson.assignment_image_url}
-                  alt={`Image for ${lesson.title}`}
-                  width={600}
-                  height={400}
-                  className="mt-2 w-full h-auto rounded-lg object-contain border"
-                />
-              </div>
-            )}
-
-            <h2 className="text-xl font-semibold">Instructions</h2>
-            <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
-
-            {contextHtml && (
-              <>
-                <h3 className="text-lg font-semibold mt-4">
-                  Additional Information
-                </h3>
-                <div dangerouslySetInnerHTML={{ __html: contextHtml }} />
-              </>
-            )}
-
-            {lesson.notes && (
-              <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400">
-                <h3 className="text-lg font-semibold text-yellow-800">
-                  Teacher&apos;s Note
-                </h3>
-                <p className="text-yellow-900 mt-1">{lesson.notes}</p>
-              </div>
-            )}
-
-            {lesson.attachment_url && (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold flex items-center mb-2">
-                  <PaperclipIcon className="h-5 w-5 mr-2" /> Attachment
-                </h3>
-                <Button asChild variant="outline">
-                  <Link
-                    href={lesson.attachment_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <EyeIcon className="mr-2 h-4 w-4" /> View Attachment
-                  </Link>
-                </Button>
-              </div>
-            )}
+      <div className="prose max-w-none">
+        {lesson.assignment_image_url && (
+          <div className="my-4">
+            <h2 className="text-sm font-semibold uppercase text-gray-500">Supporting Material</h2>
+            <Image
+              src={lesson.assignment_image_url}
+              alt={`Image for ${lesson.title}`}
+              width={600}
+              height={400}
+              className="mt-2 w-full h-auto rounded-lg object-contain border"
+            />
           </div>
-          <div className="border-t border-gray-200 mt-8 pt-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              Your Response
-            </h2>
-            <LessonResponseForm assignment={assignment} />
+        )}
+        
+        <h2 className="text-xl font-semibold">Instructions</h2>
+        <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
+        
+        {contextHtml && (
+          <>
+            <h3 className="text-lg font-semibold mt-4">Additional Information</h3>
+            <div dangerouslySetInnerHTML={{ __html: contextHtml }} />
+          </>
+        )}
+
+        {lesson.notes && (
+          <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400">
+            <h3 className="text-lg font-semibold text-yellow-800">Teacher&apos;s Note</h3>
+            <p className="text-yellow-900 mt-1">{lesson.notes}</p>
           </div>
-        </>
-      )}
+        )}
 
-      {lesson.type === "FLASHCARD" && (
-        <div className="border-t border-gray-200 mt-8 pt-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Flashcards</h2>
-          <FlashcardPlayer assignment={assignment} />
-        </div>
-      )}
+        {lesson.attachment_url && (
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold flex items-center mb-2"><PaperclipIcon className="h-5 w-5 mr-2" /> Attachment</h3>
+            <Button asChild variant="outline">
+              <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
+                <EyeIcon className="mr-2 h-4 w-4" /> View Attachment
+              </Link>
+            </Button>
+          </div>
+        )}
+      </div>
 
-      {lesson.type === "MULTI_CHOICE" && (
-        <div className="border-t border-gray-200 mt-8 pt-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Quiz</h2>
-          <MultiChoicePlayer lesson={lesson} />
-        </div>
-      )}
+      <div className="border-t border-gray-200 mt-8 pt-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Response</h2>
+        {isMultiChoice ? (
+          <MultiChoicePlayer assignment={assignment} />
+        ) : (
+          <LessonResponseForm assignment={assignment} />
+        )}
+      </div>
     </div>
   );
 }
