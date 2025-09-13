@@ -25,7 +25,9 @@ export async function POST(request: Request) {
       data: {
         title,
         type: LessonType.FLASHCARD,
-        flashcards: flashcards,
+        flashcards: {
+      create: flashcards, 
+    },
         teacherId: session.user.id,
       },
     });

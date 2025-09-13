@@ -1,4 +1,4 @@
-// file: src/app/api/assignments/[assignmentId]/submit/route.ts
+// file: src/app/assignments/[assignmentId]/submit/route.ts
 export const runtime = 'nodejs';
 
 import { auth } from "@/auth";

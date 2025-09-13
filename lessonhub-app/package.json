@@ -10,7 +10,10 @@
     "lint": "next lint",
     "prisma:generate": "dotenv -e .env.local -- prisma generate",
     "prisma:push": "dotenv -e .env.local -- prisma db push",
-    "prisma:studio": "dotenv -e .env.local -- prisma studio"
+    "prisma:studio": "dotenv -e .env.local -- prisma studio",
+    "prisma:migrate": "dotenv -e .env.local -- prisma migrate dev",
+    "prisma:db:pull": "dotenv -e .env.local -- prisma db pull",
+    "prisma:db:push": "dotenv -e .env.local -- prisma db push"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.4.1",

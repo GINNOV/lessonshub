@@ -1,5 +1,3 @@
-// file: prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,81 +8,65 @@ datasource db {
   relationMode = "prisma"
 }
 
-// Enum for user roles as per the PRD
-enum Role {
-  STUDENT
-  TEACHER
-  ADMIN
+model User {
+  id               String       @id @default(cuid())
+  name             String?
+  email            String       @unique
+  hashedPassword   String?
+  emailVerified    DateTime?
+  image            String?
+  role             Role         @default(STUDENT)
+  lastSeen         DateTime?
+  impersonatedById String?      @unique
+  impersonatedBy   User?        @relation("Impersonation", fields: [impersonatedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  impersonating    User?        @relation("Impersonation")
+  accounts         Account[]
+  sessions         Session[]
+  lessons          Lesson[]
+  assignments      Assignment[]
 }
 
-// Task 1: Add LessonType enum
 enum LessonType {
   STANDARD
+  VIDEO
+  QUIZ
+  ASSIGNMENT
   FLASHCARD
   MULTI_CHOICE
-  LEARNING_SESSION
 }
 
-enum AssignmentNotification {
-  NOT_ASSIGNED
-  ASSIGN_AND_NOTIFY
-  ASSIGN_WITHOUT_NOTIFICATION
-  ASSIGN_ON_DATE
+model Flashcard {
+  id          String  @id @default(cuid())
+  term        String  // Renamed from 'front'
+  definition  String  // Renamed from 'back'
+  imageUrl    String? // Added this new optional field
+
+  lessonId    String
+  lesson      Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 }
 
-// Main User model
-model User {
-  id                    String    @id @default(cuid())
-  name                  String?
-  email                 String    @unique
-  hashedPassword        String?
-  emailVerified         DateTime?
-  image                 String?
-  role                  Role      @default(STUDENT)
-  lastSeen              DateTime?
-  impersonatedBy        User?     @relation("Impersonation", fields: [impersonatedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  impersonatedById      String?   @unique
-  impersonating         User?     @relation("Impersonation")
-  accounts              Account[]
-  sessions              Session[]
-  lessons               Lesson[]
-  assignments           Assignment[]
-}
-
-// Model for Lessons
 model Lesson {
-  id                        String    @id @default(cuid())
+  id                        String                 @id @default(cuid())
   title                     String
-  lesson_preview            String?   @db.Text
-  type                      LessonType @default(STANDARD)
-  
-  // Fields for STANDARD lesson type
-  assignment_text           String?    @db.Text // This is the corrected line
+  lesson_preview            String?
+  assignment_text           String?
   questions                 Json?
   assignment_image_url      String?
-  soundcloud_url            String?
-  context_text              String?   @db.Text
+  context_text              String?
   attachment_url            String?
-  
-  // Fields for FLASHCARD lesson type
-  flashcards                Json?
-
   notes                     String?
+  savedValue                Int?
+  type                      LessonType  @default(STANDARD)
+  soundcloud_url            String?
   assignment_notification   AssignmentNotification @default(NOT_ASSIGNED)
   scheduled_assignment_date DateTime?
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
-
-  teacherId String
-  teacher   User   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  assignments Assignment[]
-}
-
-enum AssignmentStatus {
-  PENDING
-  COMPLETED
-  GRADED
-  FAILED
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
+  teacherId                 String
+  teacher                   User                   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  assignments               Assignment[]
+  flashcards                Flashcard[]
+  multiChoiceQuestions      MultiChoiceQuestion[]
 }
 
 model Assignment {
@@ -94,43 +76,41 @@ model Assignment {
   status          AssignmentStatus @default(PENDING)
   score           Int?
   gradedAt        DateTime?
-  studentNotes    String?          @db.Text
+  studentNotes    String?
   answers         Json?
   teacherComments String?
-  lessonId  String
-  lesson    Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId        String
+  studentId       String
+  lesson          Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student         User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  studentId String
-  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@unique([lessonId, studentId]) // A student can only be assigned the same lesson once
+  @@unique([lessonId, studentId])
 }
 
 model EmailTemplate {
-  id          String  @id @default(cuid())
-  name        String  @unique // e.g., "welcome", "new_assignment"
+  id          String   @id @default(cuid())
+  name        String   @unique
   subject     String
-  body        String  @db.Text
-  buttonColor String? // New field for the button color
+  body        String
+  buttonColor String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
-// NextAuth.js required models
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -151,3 +131,40 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model MultiChoiceQuestion {
+  id        String             @id @default(cuid())
+  question  String
+  options   MultiChoiceOption[]
+
+  lessonId  String
+  lesson    Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model MultiChoiceOption {
+  id          String              @id @default(cuid())
+  text        String
+  isCorrect   Boolean             @default(false)
+
+  questionId  String
+  question    MultiChoiceQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+enum AssignmentNotification {
+  NOT_ASSIGNED
+  ASSIGN_AND_NOTIFY
+  ASSIGN_WITHOUT_NOTIFICATION
+  ASSIGN_ON_DATE
+}
+
+enum AssignmentStatus {
+  PENDING
+  COMPLETED
+  GRADED
+  FAILED
+}

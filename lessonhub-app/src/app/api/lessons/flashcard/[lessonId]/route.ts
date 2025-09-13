@@ -39,7 +39,10 @@ export async function PATCH(
       data: {
         title,
         type: LessonType.FLASHCARD,
-        flashcards: flashcards,
+        flashcards: {
+      deleteMany: {}, // Deletes all old flashcards linked to this lesson
+      create: flashcards, // Creates all the new flashcards from your array
+    },
       },
     });
 
