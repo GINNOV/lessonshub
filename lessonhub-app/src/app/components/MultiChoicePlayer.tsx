@@ -1,4 +1,3 @@
-// file: lessonhub-app/src/app/components/MultiChoiceCreator.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -43,7 +42,7 @@ export default function MultiChoiceCreator({ lesson }: MultiChoiceCreatorProps) 
     if (lesson) {
       setTitle(lesson.title);
       if (lesson.questions && Array.isArray(lesson.questions)) {
-        // Corrected type assertion to satisfy TypeScript
+        // Proper type conversion from JsonArray to Question[]
         const existingQuestions = lesson.questions as unknown as Question[];
         setQuestions(existingQuestions);
 
@@ -199,4 +198,3 @@ export default function MultiChoiceCreator({ lesson }: MultiChoiceCreatorProps) 
     </form>
   );
 }
-

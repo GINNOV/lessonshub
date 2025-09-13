@@ -1,4 +1,4 @@
-// file: src/app/components/LessonResponseForm.tsx
+// file: lessonhub-app/src/app/components/LessonResponseForm.tsx
 
 'use client';
 
@@ -16,14 +16,15 @@ interface LessonResponseFormProps {
 export default function LessonResponseForm({ assignment }: LessonResponseFormProps) {
   const router = useRouter();
   const [answers, setAnswers] = useState<string[]>(
-    Array((assignment.lesson.questions as string[])?.length || 0).fill('')
+    (assignment.answers as string[] | null) || Array((assignment.lesson.questions as string[])?.length || 0).fill('')
   );
   const [studentNotes, setStudentNotes] = useState(assignment.studentNotes || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isPastDeadline = new Date() > new Date(assignment.deadline);
-  const isReadOnly = assignment.status === AssignmentStatus.GRADED || assignment.status === AssignmentStatus.FAILED;
+  const isReadOnly = assignment.status !== AssignmentStatus.PENDING;
+
 
   const handleAnswerChange = (index: number, value: string) => {
     const newAnswers = [...answers];
@@ -48,14 +49,20 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit response');
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to submit response');
+        } else {
+            // Handle non-JSON responses (like HTML redirect pages)
+            throw new Error(`An unexpected error occurred. Please try signing in again. (Status: ${response.status})`);
+        }
       }
 
       router.push('/my-lessons');
       router.refresh();
 
-    } catch (err: unknown) { // Corrected type
+    } catch (err: unknown) {
       setError((err as Error).message);
     } finally {
       setIsLoading(false);

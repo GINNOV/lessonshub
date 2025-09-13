@@ -1,4 +1,4 @@
-// file: src/app/api/lessons/multi-choice/route.ts
+// file: lessonhub-app/src/app/api/lessons/multi-choice/route.ts
 export const runtime = 'nodejs';
 
 import { auth } from "@/auth";
@@ -23,8 +23,8 @@ export async function POST(request: Request) {
     const newLesson = await prisma.lesson.create({
       data: {
         title,
-        type: 'MULTI_CHOICE', // Use the string literal directly to avoid runtime import issues
-        questions: questions, // Reusing the 'questions' field for multi-choice data
+        type: 'MULTI_CHOICE', // Use the string literal directly
+        questions: questions, 
         teacherId: session.user.id,
       },
     });

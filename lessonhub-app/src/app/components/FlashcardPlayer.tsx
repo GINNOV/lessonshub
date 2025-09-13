@@ -1,4 +1,4 @@
-// file: src/app/components/FlashcardPlayer.tsx
+// file: lessonhub-app/src/app/components/FlashcardPlayer.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -29,8 +29,13 @@ async function completeAssignment(assignmentId: string): Promise<{ success: bool
       method: 'POST',
     });
     if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to complete assignment.');
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to complete assignment.');
+      } else {
+          throw new Error(`An unexpected error occurred. Please try signing in again. (Status: ${response.status})`);
+      }
     }
     return { success: true };
   } catch (error) {

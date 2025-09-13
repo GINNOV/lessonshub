@@ -466,7 +466,7 @@ export async function sendCustomEmailToAssignedStudents(lessonId: string, subjec
 
 
 /**
- * Marks a flashcard or multi-choice assignment as complete for a student.
+ * Marks a flashcard assignment as complete for a student.
  * @param assignmentId The ID of the assignment.
  * @param studentId The ID of the student making the request.
  * @returns An object indicating success or failure.
@@ -518,3 +518,76 @@ export async function completeFlashcardAssignment(assignmentId: string, studentI
   }
 }
 
+/**
+ * Submits and auto-grades a multi-choice assignment.
+ * @param assignmentId The ID of the assignment.
+ * @param studentId The ID of the student making the request.
+ * @param answers A record of questionId to selectedAnswerId.
+ * @returns An object indicating success and containing the results, or failure.
+ */
+export async function submitMultiChoiceAssignment(assignmentId: string, studentId: string, answers: Record<number, number>) {
+    try {
+        const assignment = await prisma.assignment.findFirst({
+            where: { id: assignmentId, studentId },
+            include: {
+                lesson: { include: { teacher: true } },
+                student: true,
+            },
+        });
+
+        if (!assignment) {
+            return { success: false, error: "Assignment not found or unauthorized." };
+        }
+        if (assignment.status !== AssignmentStatus.PENDING) {
+            return { success: false, error: "Assignment has already been submitted." };
+        }
+
+        const questions = assignment.lesson.questions as any[];
+        let score = 0;
+        const results = questions.map(q => {
+            const selectedAnswerId = answers[q.id];
+            const isCorrect = selectedAnswerId === q.correctAnswerId;
+            if (isCorrect) {
+                score++;
+            }
+            return {
+                questionId: q.id,
+                selectedAnswerId,
+                isCorrect,
+            };
+        });
+
+        await prisma.assignment.update({
+            where: { id: assignmentId },
+            data: {
+                status: AssignmentStatus.GRADED, // Auto-graded
+                score,
+                answers: results, // Save the detailed results
+                gradedAt: new Date(),
+            },
+        });
+
+        // Notify the teacher
+        const { student, lesson } = assignment;
+        const teacher = lesson.teacher;
+        if (teacher.email) {
+            const submissionUrl = `${process.env.AUTH_URL}/dashboard/grade/${assignment.id}`;
+            await sendEmail({
+                to: teacher.email,
+                templateName: 'submission_notification',
+                data: {
+                    teacherName: teacher.name || 'teacher',
+                    studentName: student.name || 'A student',
+                    lessonTitle: lesson.title,
+                    button: createButton('View & Grade Submission', submissionUrl),
+                }
+            });
+        }
+
+        revalidatePath('/my-lessons');
+        return { success: true, data: { score, results } };
+    } catch (error) {
+        console.error("Failed to submit multi-choice assignment:", error);
+        return { success: false, error: "An internal error occurred." };
+    }
+}
