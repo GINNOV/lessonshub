@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { cn, getWeekAndDay } from '@/lib/utils';
 import { marked } from 'marked';
 
-// ✅ CORRECTED TYPE: The 'teacher' property is now correctly marked as optional
 type AssignmentWithDetails = Assignment & {
   lesson: Lesson & {
     teacher: User | null;
@@ -50,7 +49,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
         <div className="flex-shrink-0 w-full sm:w-auto">
           <Image
             src={assignment.lesson.assignment_image_url || 
-                 (assignment.lesson.type === 'flashcard' 
+                 (assignment.lesson.type === 'FLASHCARD' 
                   ? '/my-lessons/flashcard.png' 
                   : '/my-lessons/multiquestions.png')}
             alt={`Image for ${assignment.lesson.title}`}
