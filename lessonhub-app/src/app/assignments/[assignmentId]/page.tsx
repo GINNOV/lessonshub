@@ -12,7 +12,7 @@ import { AssignmentStatus, LessonType } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-// --- (SVG Icons can be kept as they are) ---
+// --- SVG Icons ---
 function AlertTriangleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -47,14 +47,13 @@ function PaperclipIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 function EyeIcon(props: React.SVGProps<SVGSVGElement>) {
-    return (
-      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
-    );
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
 }
-
 
 const getGradeBackground = (score: number | null) => {
   if (score === null) return "bg-gray-100";
@@ -67,7 +66,6 @@ const getGradeBackground = (score: number | null) => {
 export default async function AssignmentPage({
   params,
 }: {
-  // ✅ FIX: Update the type signature to reflect params is a Promise
   params: Promise<{ assignmentId: string }>;
 }) {
   const session = await auth();
@@ -75,7 +73,6 @@ export default async function AssignmentPage({
     redirect("/signin");
   }
 
-  // ✅ FIX: Await the params promise before using its properties
   const { assignmentId } = await params;
   const assignment = await getAssignmentById(assignmentId, session.user.id);
 
@@ -83,21 +80,15 @@ export default async function AssignmentPage({
     return (
       <div className="p-8 text-center">
         <h1 className="text-2xl font-bold">Assignment not found</h1>
-        <p>
-          This assignment may not exist or you may not have permission to view it.
-        </p>
+        <p>This assignment may not exist or you may not have permission to view it.</p>
       </div>
     );
   }
 
   const { lesson } = assignment;
 
-  const assignmentHtml = (await marked.parse(
-    lesson.assignment_text ?? ""
-  )) as string;
-  const contextHtml = lesson.context_text
-    ? ((await marked.parse(lesson.context_text)) as string)
-    : "";
+  const assignmentHtml = (await marked.parse(lesson.assignment_text ?? "")) as string;
+  const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : "";
   const isPastDeadline = new Date() > new Date(assignment.deadline);
 
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
@@ -106,12 +97,7 @@ export default async function AssignmentPage({
   return (
     <div className="mx-auto max-w-4xl rounded-lg bg-white p-8 shadow-md">
       {assignment.status === AssignmentStatus.GRADED && (
-        <div
-          className={cn(
-            "mb-6 rounded-md border-l-4 p-4",
-            getGradeBackground(assignment.score)
-          )}
-        >
+        <div className={cn("mb-6 rounded-md border-l-4 p-4", getGradeBackground(assignment.score))}>
           <div className="flex items-start">
             <CheckCircleIcon className="mt-1 h-6 w-6 flex-shrink-0 mr-3" />
             <div>
@@ -134,10 +120,7 @@ export default async function AssignmentPage({
           <AlertTriangleIcon className="h-6 w-6 mr-3" />
           <div>
             <p className="font-bold">Deadline Passed</p>
-            <p className="text-sm">
-              This assignment is past its deadline. You can still view the
-              content, but you are not able to submit a response.
-            </p>
+            <p className="text-sm">This assignment is past its deadline. You can still view the content, but you are not able to submit a response.</p>
           </div>
         </div>
       )}
@@ -156,6 +139,8 @@ export default async function AssignmentPage({
         </div>
       )}
 
+      {/* ✅ FIX: This entire block containing the lesson content was missing/misplaced. */}
+      {/* It is now correctly positioned before the "Your Response" section. */}
       <div className="prose max-w-none">
         {lesson.assignment_image_url && (
           <div className="my-4">
@@ -177,9 +162,7 @@ export default async function AssignmentPage({
 
         {contextHtml && (
           <>
-            <h3 className="mt-4 text-lg font-semibold">
-              Additional Information
-            </h3>
+            <h3 className="mt-4 text-lg font-semibold">Additional Information</h3>
             <div dangerouslySetInnerHTML={{ __html: contextHtml }} />
           </>
         )}
@@ -199,11 +182,7 @@ export default async function AssignmentPage({
               <PaperclipIcon className="h-5 w-5 mr-2" /> Attachment
             </h3>
             <Button asChild variant="outline">
-              <Link
-                href={lesson.attachment_url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
                 <EyeIcon className="mr-2 h-4 w-4" /> View Attachment
               </Link>
             </Button>
@@ -212,9 +191,7 @@ export default async function AssignmentPage({
       </div>
 
       <div className="mt-8 border-t border-gray-200 pt-6">
-        <h2 className="mb-4 text-2xl font-bold text-gray-800">
-          Your Response
-        </h2>
+        <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>
         {isFlashcard ? (
           <FlashcardPlayer assignment={assignment} />
         ) : isMultiChoice ? (

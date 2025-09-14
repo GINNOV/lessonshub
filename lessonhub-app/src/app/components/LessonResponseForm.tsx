@@ -17,12 +17,18 @@ export default function LessonResponseForm({
 }: LessonResponseFormProps) {
   const router = useRouter();
 
-  // ✨ REFINEMENT: Safely access questions, assuming it's a string array for standard lessons.
   const lessonQuestions = (assignment.lesson.questions as string[]) || [];
 
-  const [answers, setAnswers] = useState<string[]>(
-    Array(lessonQuestions.length || 0).fill('')
-  );
+  // ✅ FIX: The state now initializes from the student's saved answers if they exist.
+  // This makes the component work for both starting a new assignment and reviewing a completed one.
+  const [answers, setAnswers] = useState<string[]>(() => {
+    if (assignment.answers && Array.isArray(assignment.answers)) {
+      return assignment.answers;
+    }
+    // Fallback for new, un-started assignments
+    return Array(lessonQuestions.length).fill('');
+  });
+
   const [studentNotes, setStudentNotes] = useState(
     assignment.studentNotes || ''
   );
@@ -31,8 +37,7 @@ export default function LessonResponseForm({
 
   const isPastDeadline = new Date() > new Date(assignment.deadline);
   const isReadOnly =
-    assignment.status === AssignmentStatus.GRADED ||
-    assignment.status === AssignmentStatus.FAILED;
+    assignment.status !== AssignmentStatus.PENDING || isPastDeadline;
 
   const handleAnswerChange = (index: number, value: string) => {
     const newAnswers = [...answers];
@@ -50,7 +55,6 @@ export default function LessonResponseForm({
     setError(null);
 
     try {
-      // ✅ FIX: The submission logic now correctly points to the unified /submit endpoint.
       const response = await fetch(
         `/api/assignments/${assignment.id}/submit`,
         {
@@ -76,7 +80,7 @@ export default function LessonResponseForm({
 
   const getButtonText = () => {
     if (isLoading) return 'Submitting...';
-    if (isReadOnly) return 'Submission Closed';
+    if (assignment.status !== 'PENDING') return 'Submission Closed';
     if (isPastDeadline) return 'Deadline Passed';
     return 'Submit Response';
   };
@@ -98,7 +102,7 @@ export default function LessonResponseForm({
               id={`question-${index}`}
               value={answers[index]}
               onChange={(e) => handleAnswerChange(index, e.target.value)}
-              disabled={isLoading || isPastDeadline || isReadOnly}
+              disabled={isLoading || isReadOnly}
               className="ml-2 min-h-[100px]"
             />
           </div>
@@ -111,7 +115,7 @@ export default function LessonResponseForm({
           id="student-notes"
           value={studentNotes}
           onChange={(e) => setStudentNotes(e.target.value)}
-          disabled={isLoading || isPastDeadline || isReadOnly}
+          disabled={isLoading || isReadOnly}
           placeholder="Add any notes for your teacher here..."
         />
       </div>
@@ -120,13 +124,12 @@ export default function LessonResponseForm({
         <p className="mt-4 rounded-md bg-red-100 p-3 text-red-500">{error}</p>
       )}
 
-      <Button
-        type="submit"
-        disabled={isLoading || isPastDeadline || isReadOnly}
-        className="mt-4"
-      >
-        {getButtonText()}
-      </Button>
+      {/* Only show the submit button if the assignment is pending */}
+      {assignment.status === 'PENDING' && (
+        <Button type="submit" disabled={isLoading || isReadOnly} className="mt-4">
+          {getButtonText()}
+        </Button>
+      )}
     </form>
   );
 }

@@ -124,15 +124,24 @@ export async function getAssignmentsForStudent(studentId: string) {
       where: {
         studentId: studentId,
         lesson: {
-          teacher: {
-            email: { contains: '@' }
-          }
-        }
+          // This check ensures we don't show assignments from deleted teachers.
+          teacherId: {
+            not: null,
+          },
+        },
       },
       include: {
         lesson: {
+          // ✅ FIX: The query now includes all necessary relations for every lesson type.
+          // This ensures the student dashboard and all child components have the data they need.
           include: {
             teacher: true,
+            flashcards: true,
+            multiChoiceQuestions: {
+              include: {
+                options: true,
+              },
+            },
           },
         },
       },
@@ -153,7 +162,10 @@ export async function getAssignmentsForStudent(studentId: string) {
  * @param teacherId The ID of the teacher.
  * @returns A promise that resolves to the assignment object or null if not found.
  */
-export async function getSubmissionForGrading(assignmentId: string, teacherId: string) {
+export async function getSubmissionForGrading(
+  assignmentId: string,
+  teacherId: string
+) {
   if (!assignmentId || !teacherId) {
     return null;
   }
@@ -192,7 +204,10 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
  * @param studentId The ID of the student.
  * @returns A promise that resolves to the assignment object or null if not found.
  */
-export async function getAssignmentById(assignmentId: string, studentId: string) {
+export async function getAssignmentById(
+  assignmentId: string,
+  studentId: string
+) {
   if (!assignmentId || !studentId) {
     return null;
   }
@@ -222,6 +237,8 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
     return null;
   }
 }
+
+// ... (The rest of the file remains the same) ...
 
 /**
  * Fetches all students and enriches them with stats like total points and last seen date.
@@ -312,7 +329,6 @@ export async function sendManualReminder(assignmentId: string) {
       },
     });
 
-    // ✅ ADDED A NULL CHECK for the teacher
     if (!assignment || !assignment.student.email || !assignment.lesson.teacher) {
       throw new Error("Assignment, student email, or teacher not found.");
     }
@@ -521,7 +537,6 @@ export async function completeFlashcardAssignment(assignmentId: string, studentI
 
     const { student, lesson } = assignment;
     const teacher = lesson.teacher;
-    // ✅ ADDED A NULL CHECK for the teacher
     if (teacher && teacher.email) {
       const submissionUrl = `${process.env.AUTH_URL}/dashboard/submissions/${lesson.id}`;
       await sendEmail({
@@ -605,7 +620,6 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
 
         const { student, lesson } = assignment;
         const teacher = lesson.teacher;
-        // ✅ ADDED A NULL CHECK for the teacher
         if (teacher && teacher.email) {
             const submissionUrl = `${process.env.AUTH_URL}/dashboard/grade/${assignment.id}`;
             await sendEmail({

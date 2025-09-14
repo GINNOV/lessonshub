@@ -10,6 +10,13 @@ import { marked } from "marked";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Define a type for the multi-choice answer structure for clarity
+type MultiChoiceAnswer = {
+  questionId: string;
+  selectedAnswerId: string;
+  isCorrect: boolean;
+};
+
 export default async function GradeSubmissionPage({
   params,
 }: {
@@ -79,9 +86,14 @@ export default async function GradeSubmissionPage({
               <div className="mt-4 space-y-6">
                 {submission.lesson.multiChoiceQuestions.map(
                   (question, index) => {
+                    // ✅ FIX: The component now correctly reads the array of answer objects
+                    // instead of assuming a simple key-value map.
                     const studentAnswers =
-                      submission.answers as Record<string, string> | null;
-                    const studentAnswerId = studentAnswers?.[question.id];
+                      submission.answers as MultiChoiceAnswer[] | null;
+                    const studentAnswerId = studentAnswers?.find(
+                      (a) => a.questionId === question.id
+                    )?.selectedAnswerId;
+
                     return (
                       <div key={question.id}>
                         <p className="rounded-md border bg-gray-50 p-3 font-semibold shadow-sm">
@@ -173,7 +185,6 @@ export default async function GradeSubmissionPage({
           <GradingForm assignment={submission} />
         </div>
       </div>
-      {/* ✅ FIX: This closing div was missing, causing the "Unexpected eof" error. */}
     </div>
   );
 }

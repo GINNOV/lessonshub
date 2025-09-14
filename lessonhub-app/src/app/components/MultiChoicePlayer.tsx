@@ -1,7 +1,7 @@
 // file: src/app/components/MultiChoicePlayer.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Assignment,
@@ -15,7 +15,14 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 
-// ✅ FIX: Define the correct, specific type for an assignment with multi-choice questions.
+// Define the shape of the detailed answer object stored in the database
+type MultiChoiceAnswer = {
+  questionId: string;
+  selectedAnswerId: string;
+  isCorrect: boolean;
+};
+
+// Define the correct, specific type for an assignment with multi-choice questions.
 type AssignmentWithMultiChoice = Assignment & {
   lesson: Lesson & {
     multiChoiceQuestions: (PrismaQuestion & {
@@ -34,17 +41,27 @@ export default function MultiChoicePlayer({
   const router = useRouter();
   const questions = assignment.lesson.multiChoiceQuestions;
 
-  // ✅ FIX: Initialize state with the student's saved answers if the assignment is already submitted.
+  // ✅ FIX: The state initializer now correctly transforms the detailed answer array
+  // from the database back into the simple { questionId: answerId } format
+  // that the component's state needs to function.
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<string, string>
   >(() => {
     if (
       assignment.status !== 'PENDING' &&
       assignment.answers &&
-      typeof assignment.answers === 'object'
+      Array.isArray(assignment.answers)
     ) {
-      return assignment.answers as Record<string, string>;
+      // Use .reduce() to transform the array into a key-value object
+      return (assignment.answers as MultiChoiceAnswer[]).reduce(
+        (acc, answer) => {
+          acc[answer.questionId] = answer.selectedAnswerId;
+          return acc;
+        },
+        {} as Record<string, string>
+      );
     }
+    // Fallback for new, un-started assignments
     return {};
   });
 
@@ -56,9 +73,7 @@ export default function MultiChoicePlayer({
 
   const isPastDeadline = new Date() > new Date(assignment.deadline);
   const isReadOnly =
-    assignment.status === AssignmentStatus.GRADED ||
-    assignment.status === AssignmentStatus.FAILED ||
-    assignment.status === AssignmentStatus.COMPLETED;
+    assignment.status !== AssignmentStatus.PENDING || isPastDeadline;
 
   const handleAnswerSelect = (questionId: string, optionId: string) => {
     setSelectedAnswers((prev) => ({
@@ -102,7 +117,7 @@ export default function MultiChoicePlayer({
 
   const getButtonText = () => {
     if (isLoading) return 'Submitting...';
-    if (isReadOnly) return 'Submission Closed';
+    if (assignment.status !== 'PENDING') return 'Submission Closed';
     if (isPastDeadline) return 'Deadline Passed';
     return 'Submit Response';
   };
@@ -118,10 +133,9 @@ export default function MultiChoicePlayer({
               </Label>
             </div>
             <RadioGroup
-              // ✨ REFINEMENT: Set the value to show the student's selection.
               value={selectedAnswers[question.id]}
               onValueChange={(value) => handleAnswerSelect(question.id, value)}
-              disabled={isLoading || isPastDeadline || isReadOnly}
+              disabled={isLoading || isReadOnly}
               className="ml-2 space-y-2"
             >
               {question.options.map((option) => (
@@ -146,7 +160,7 @@ export default function MultiChoicePlayer({
           id="student-notes"
           value={studentNotes}
           onChange={(e) => setStudentNotes(e.target.value)}
-          disabled={isLoading || isPastDeadline || isReadOnly}
+          disabled={isLoading || isReadOnly}
           placeholder="Add any notes for your teacher here..."
         />
       </div>
@@ -158,7 +172,7 @@ export default function MultiChoicePlayer({
       {assignment.status === 'PENDING' && (
         <Button
           type="submit"
-          disabled={isLoading || isPastDeadline || isReadOnly}
+          disabled={isLoading || isReadOnly}
           className="mt-4"
         >
           {getButtonText()}
