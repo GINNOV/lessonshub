@@ -8,10 +8,10 @@ import { Role, LessonType } from "@prisma/client";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { lessonId: string } }
+  { params }: { params: Promise<{ lessonId: string }> }
 ) {
   const session = await auth();
-  const { lessonId } = params;
+  const { lessonId } = await params;
 
   if (!session?.user?.id || session.user.role !== Role.TEACHER) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
@@ -21,7 +21,14 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { title, questions } = body;
+    const {
+      title,
+      questions,
+      lesson_preview,
+      assignment_text,
+      attachment_url,
+      notes,
+    } = body;
 
     if (
       !title ||
@@ -37,7 +44,6 @@ export async function PATCH(
       );
     }
 
-    // Ensure the lesson exists and belongs to the teacher before updating
     const lesson = await prisma.lesson.findFirst({
       where: { id: lessonId, teacherId: session.user.id },
     });
@@ -51,19 +57,19 @@ export async function PATCH(
       );
     }
 
-    // ✅ FIX: Use a transaction to safely delete old questions and create new ones.
-    const [deleteResult, updatedLesson] = await prisma.$transaction([
-      // Step 1: Delete all existing questions related to this lesson
+    const [, updatedLesson] = await prisma.$transaction([
       prisma.multiChoiceQuestion.deleteMany({
         where: { lessonId: lessonId },
       }),
-      // Step 2: Update the lesson title and create the new set of questions
       prisma.lesson.update({
         where: { id: lessonId },
         data: {
           title,
           type: LessonType.MULTI_CHOICE,
-          // This nested write is identical to the POST route's logic
+          lesson_preview,
+          assignment_text,
+          attachment_url,
+          notes,
           multiChoiceQuestions: {
             create: questions.map((q: any) => ({
               question: q.question,

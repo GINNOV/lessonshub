@@ -19,13 +19,10 @@ export default function LessonResponseForm({
 
   const lessonQuestions = (assignment.lesson.questions as string[]) || [];
 
-  // ✅ FIX: The state now initializes from the student's saved answers if they exist.
-  // This makes the component work for both starting a new assignment and reviewing a completed one.
   const [answers, setAnswers] = useState<string[]>(() => {
     if (assignment.answers && Array.isArray(assignment.answers)) {
       return assignment.answers;
     }
-    // Fallback for new, un-started assignments
     return Array(lessonQuestions.length).fill('');
   });
 
@@ -110,7 +107,8 @@ export default function LessonResponseForm({
       </div>
 
       <div className="mt-6 space-y-2 border-t pt-6">
-        <Label htmlFor="student-notes">Student Notes (Optional)</Label>
+        {/* ✅ TWEAK: Simplified the label text as requested. */}
+        <Label htmlFor="student-notes">Student Notes</Label>
         <Textarea
           id="student-notes"
           value={studentNotes}
@@ -124,9 +122,12 @@ export default function LessonResponseForm({
         <p className="mt-4 rounded-md bg-red-100 p-3 text-red-500">{error}</p>
       )}
 
-      {/* Only show the submit button if the assignment is pending */}
       {assignment.status === 'PENDING' && (
-        <Button type="submit" disabled={isLoading || isReadOnly} className="mt-4">
+        <Button
+          type="submit"
+          disabled={isLoading || isReadOnly}
+          className="mt-4"
+        >
           {getButtonText()}
         </Button>
       )}

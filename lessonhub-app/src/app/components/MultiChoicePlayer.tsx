@@ -15,14 +15,12 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 
-// Define the shape of the detailed answer object stored in the database
 type MultiChoiceAnswer = {
   questionId: string;
   selectedAnswerId: string;
   isCorrect: boolean;
 };
 
-// Define the correct, specific type for an assignment with multi-choice questions.
 type AssignmentWithMultiChoice = Assignment & {
   lesson: Lesson & {
     multiChoiceQuestions: (PrismaQuestion & {
@@ -41,9 +39,6 @@ export default function MultiChoicePlayer({
   const router = useRouter();
   const questions = assignment.lesson.multiChoiceQuestions;
 
-  // ✅ FIX: The state initializer now correctly transforms the detailed answer array
-  // from the database back into the simple { questionId: answerId } format
-  // that the component's state needs to function.
   const [selectedAnswers, setSelectedAnswers] = useState<
     Record<string, string>
   >(() => {
@@ -52,7 +47,6 @@ export default function MultiChoicePlayer({
       assignment.answers &&
       Array.isArray(assignment.answers)
     ) {
-      // Use .reduce() to transform the array into a key-value object
       return (assignment.answers as MultiChoiceAnswer[]).reduce(
         (acc, answer) => {
           acc[answer.questionId] = answer.selectedAnswerId;
@@ -61,7 +55,6 @@ export default function MultiChoicePlayer({
         {} as Record<string, string>
       );
     }
-    // Fallback for new, un-started assignments
     return {};
   });
 
@@ -115,7 +108,9 @@ export default function MultiChoicePlayer({
     }
   };
 
-  const getButtonText = () => {
+  // ✅ FIX: This function's logic is now guaranteed to always return a string,
+  // which satisfies React's requirement for a valid renderable child (ReactNode).
+  const getButtonText = (): string => {
     if (isLoading) return 'Submitting...';
     if (assignment.status !== 'PENDING') return 'Submission Closed';
     if (isPastDeadline) return 'Deadline Passed';
@@ -155,7 +150,7 @@ export default function MultiChoicePlayer({
       </div>
 
       <div className="mt-6 space-y-2 border-t pt-6">
-        <Label htmlFor="student-notes">Student Notes (Optional)</Label>
+        <Label htmlFor="student-notes">Student Notes</Label>
         <Textarea
           id="student-notes"
           value={studentNotes}

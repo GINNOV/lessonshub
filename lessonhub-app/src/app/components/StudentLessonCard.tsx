@@ -43,8 +43,8 @@ const getGradeBackground = (score: number | null) => {
 
 // ✨ REFINEMENT: Create a mapping for lesson type images for better scalability and readability.
 const lessonTypeImages: Record<LessonType, string> = {
-  [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
-  [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
+  [LessonType.FLASHCARD]: '/my-lessons/multiquestions.png',
+  [LessonType.MULTI_CHOICE]: '/my-lessons/flashcard.png',
   [LessonType.STANDARD]: '/my-lessons/multiquestions.png', // Default image
   [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png', // Default image
 };
