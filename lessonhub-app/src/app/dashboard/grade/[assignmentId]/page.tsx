@@ -1,124 +1,179 @@
 // file: src/app/dashboard/grade/[assignmentId]/page.tsx
-
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { auth } from "@/auth";
 import { getSubmissionForGrading } from "@/actions/lessonActions";
-import { Role } from "@prisma/client";
+import { LessonType, Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
 import { Button } from "@/components/ui/button";
-import { marked } from 'marked';
+import { marked } from "marked";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// ✅ CORRECTED TYPE DEFINITION
-type Flashcard = {
-  id: string; // Changed from number to string to match Prisma CUID
-  term: string;
-  definition: string;
-  imageUrl?: string;
-};
-
-export default async function GradeSubmissionPage({ params }: { params: { assignmentId: string } }) {
+export default async function GradeSubmissionPage({
+  params,
+}: {
+  params: { assignmentId: string };
+}) {
   const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
   }
 
   const { assignmentId } = params;
-  const submission = await getSubmissionForGrading(assignmentId, session.user.id);
+  const submission = await getSubmissionForGrading(
+    assignmentId,
+    session.user.id
+  );
 
   if (!submission) {
     return (
-        <div className="text-center">
-            <p>Submission not found or you don&apos;t have permission to view it.</p>
-            <Button asChild className="mt-4">
-                <Link href="/dashboard">Return to Dashboard</Link>
-            </Button>
-        </div>
+      <div className="text-center">
+        <p>
+          Submission not found or you don&apos;t have permission to view it.
+        </p>
+        <Button asChild className="mt-4">
+          <Link href="/dashboard">Return to Dashboard</Link>
+        </Button>
+      </div>
     );
   }
 
-  // Safely parse markdown content, handling null values
-  const assignmentHtml = submission.lesson.assignment_text ? (await marked.parse(submission.lesson.assignment_text)) as string : '';
-  
-  // ✅ CORRECTED TYPE ASSERTION
-  const flashcards = submission.lesson.flashcards as Flashcard[] | null;
-  const answers = submission.answers as string[] | null;
-
+  const assignmentHtml = submission.lesson.assignment_text
+    ? ((await marked.parse(submission.lesson.assignment_text)) as string)
+    : "";
 
   return (
     <div>
       <Button variant="link" asChild className="mb-4 pl-0">
-          <Link href={`/dashboard/submissions/${submission.lessonId}`}>&larr; Back to Submissions</Link>
+        <Link href={`/dashboard/submissions/${submission.lessonId}`}>
+          &larr; Back to Submissions
+        </Link>
       </Button>
       <h1 className="text-3xl font-bold">Grade Submission</h1>
-      <p className="text-gray-600 mt-1">Student: {submission.student.name || submission.student.email}</p>
+      <p className="mt-1 text-gray-600">
+        Student: {submission.student.name || submission.student.email}
+      </p>
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white p-6 rounded-lg shadow-md space-y-6 border">
+      <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
+        {/* --- LEFT COLUMN --- */}
+        <div className="space-y-6 rounded-lg border bg-white p-6 shadow-md">
+          {/* --- LESSON CONTENT SECTION --- */}
           <div>
-            <h2 className="text-xl font-semibold border-b pb-2">Lesson Content: {submission.lesson.title}</h2>
+            <h2 className="border-b pb-2 text-xl font-semibold">
+              Lesson Content: {submission.lesson.title}
+            </h2>
+            <div className="prose prose-sm mt-4 max-w-none">
+              <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
+            </div>
+          </div>
 
-            {/* Conditional rendering for STANDARD lesson type */}
-            {submission.lesson.type === 'STANDARD' && (
-              <>
-                {submission.lesson.assignment_image_url && (
-                  <div className="my-4">
-                    <Image
-                      src={submission.lesson.assignment_image_url}
-                      alt={`Image for ${submission.lesson.title}`}
-                      width={500}
-                      height={300}
-                      className="w-full h-auto rounded-md border"
-                    />
-                  </div>
+          {/* --- STUDENT RESPONSE SECTION --- */}
+          <div>
+            <h2 className="border-b pb-2 text-xl font-semibold">
+              Student&apos;s Response
+            </h2>
+
+            {/* --- MULTI_CHOICE LESSON RESPONSE --- */}
+            {submission.lesson.type === LessonType.MULTI_CHOICE && (
+              <div className="mt-4 space-y-6">
+                {submission.lesson.multiChoiceQuestions.map(
+                  (question, index) => {
+                    const studentAnswers =
+                      submission.answers as Record<string, string> | null;
+                    const studentAnswerId = studentAnswers?.[question.id];
+                    return (
+                      <div key={question.id}>
+                        <p className="rounded-md border bg-gray-50 p-3 font-semibold shadow-sm">
+                          Q{index + 1}❓ {question.question}
+                        </p>
+                        <div className="mt-2 space-y-2 pl-4">
+                          {question.options.map((option) => {
+                            const isCorrectAnswer = option.isCorrect;
+                            const isStudentAnswer = option.id === studentAnswerId;
+                            return (
+                              <div
+                                key={option.id}
+                                className={cn(
+                                  "flex items-center rounded-md border p-2",
+                                  isCorrectAnswer && "bg-green-100",
+                                  isStudentAnswer &&
+                                    !isCorrectAnswer &&
+                                    "bg-red-100"
+                                )}
+                              >
+                                {isCorrectAnswer ? (
+                                  <CheckCircle2 className="mr-2 h-5 w-5 flex-shrink-0 text-green-600" />
+                                ) : isStudentAnswer ? (
+                                  <XCircle className="mr-2 h-5 w-5 flex-shrink-0 text-red-600" />
+                                ) : (
+                                  <div className="mr-2 h-5 w-5 flex-shrink-0"></div>
+                                )}
+                                <span
+                                  className={cn(isStudentAnswer && "font-bold")}
+                                >
+                                  {option.text}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
                 )}
-                <div className="prose prose-sm mt-4 max-w-none" dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
-              </>
+              </div>
             )}
-            
-            {/* Conditional rendering for FLASHCARD lesson type */}
-            {submission.lesson.type === 'FLASHCARD' && flashcards && (
-              <div className="mt-4 space-y-4">
-                {flashcards.map((card) => (
-                  <div key={card.id} className="p-3 bg-gray-50 rounded-md border">
-                    <p className="font-semibold">{card.term}</p>
-                    <p className="text-sm text-gray-600">{card.definition}</p>
-                    {card.imageUrl && <p className="text-xs text-blue-500 mt-1">Image included</p>}
-                  </div>
-                ))}
+
+            {/* --- STANDARD LESSON RESPONSE --- */}
+            {submission.lesson.type === LessonType.STANDARD && (
+              <div className="mt-4 space-y-6">
+                {(submission.lesson.questions as string[])?.map(
+                  (question, index) => {
+                    const studentAnswers = submission.answers as
+                      | string[]
+                      | null;
+                    return (
+                      <div key={index}>
+                        <p className="rounded-md border bg-gray-50 p-3 font-semibold shadow-sm">
+                          Q{index + 1}❓ {question}
+                        </p>
+                        <p className="mt-2 pl-4 text-gray-700">
+                          {studentAnswers?.[index] || "No answer provided."}
+                        </p>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            )}
+
+            {/* --- FLASHCARD LESSON RESPONSE --- */}
+            {submission.lesson.type === LessonType.FLASHCARD && (
+              <div className="mt-4 text-center">
+                <p className="rounded-md bg-blue-50 p-4 text-blue-800">
+                  This student completed the flashcard review session.
+                </p>
+              </div>
+            )}
+
+            {submission.studentNotes && (
+              <div className="mt-4">
+                <h3 className="font-semibold">Student Notes</h3>
+                <p className="mt-1 whitespace-pre-wrap">
+                  {submission.studentNotes}
+                </p>
               </div>
             )}
           </div>
-
-          {/* Conditional rendering for student response in STANDARD lessons */}
-          {submission.lesson.type === 'STANDARD' && (
-            <div>
-              <h2 className="text-xl font-semibold border-b pb-2">Student&apos;s Response</h2>
-              {/* Note: Standard lessons use a 'questions' Json field not present in flashcard/multi-choice */}
-              {(submission.lesson.questions as string[] | null) && answers && (
-                <div className="space-y-6 mt-4">
-                  {(submission.lesson.questions as string[]).map((question, index) => (
-                    <div key={index}>
-                      <p className="p-3 bg-gray-50 rounded-md border shadow-sm font-semibold">Q{index + 1}❓ {question}</p>
-                      <p className="mt-2 pl-4 text-gray-700">{answers[index] || "No answer provided."}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {submission.studentNotes && (
-                <div className="mt-4">
-                  <h3 className="font-semibold">Student Notes</h3>
-                  <p className="mt-1 whitespace-pre-wrap">{submission.studentNotes}</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border">
+
+        {/* --- RIGHT COLUMN --- */}
+        <div className="rounded-lg border bg-white p-6 shadow-md">
           <GradingForm assignment={submission} />
         </div>
       </div>
+      {/* ✅ FIX: This closing div was missing, causing the "Unexpected eof" error. */}
     </div>
   );
 }

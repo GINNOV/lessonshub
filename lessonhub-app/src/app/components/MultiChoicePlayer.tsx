@@ -1,15 +1,21 @@
 // file: src/app/components/MultiChoicePlayer.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Assignment, AssignmentStatus, Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption as PrismaOption } from '@prisma/client';
+import {
+  Assignment,
+  AssignmentStatus,
+  Lesson,
+  MultiChoiceQuestion as PrismaQuestion,
+  MultiChoiceOption as PrismaOption,
+} from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 
-// ✅ DEFINE A CORRECT TYPE for the nested relations
+// ✅ FIX: Define the correct, specific type for an assignment with multi-choice questions.
 type AssignmentWithMultiChoice = Assignment & {
   lesson: Lesson & {
     multiChoiceQuestions: (PrismaQuestion & {
@@ -22,21 +28,40 @@ interface MultiChoicePlayerProps {
   assignment: AssignmentWithMultiChoice;
 }
 
-export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps) {
+export default function MultiChoicePlayer({
+  assignment,
+}: MultiChoicePlayerProps) {
   const router = useRouter();
-  // ✅ ACCESS THE CORRECT PROPERTY
   const questions = assignment.lesson.multiChoiceQuestions;
-  
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
-  const [studentNotes, setStudentNotes] = useState(assignment.studentNotes || '');
+
+  // ✅ FIX: Initialize state with the student's saved answers if the assignment is already submitted.
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<string, string>
+  >(() => {
+    if (
+      assignment.status !== 'PENDING' &&
+      assignment.answers &&
+      typeof assignment.answers === 'object'
+    ) {
+      return assignment.answers as Record<string, string>;
+    }
+    return {};
+  });
+
+  const [studentNotes, setStudentNotes] = useState(
+    assignment.studentNotes || ''
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isPastDeadline = new Date() > new Date(assignment.deadline);
-  const isReadOnly = assignment.status === AssignmentStatus.GRADED || assignment.status === AssignmentStatus.FAILED;
+  const isReadOnly =
+    assignment.status === AssignmentStatus.GRADED ||
+    assignment.status === AssignmentStatus.FAILED ||
+    assignment.status === AssignmentStatus.COMPLETED;
 
   const handleAnswerSelect = (questionId: string, optionId: string) => {
-    setSelectedAnswers(prev => ({
+    setSelectedAnswers((prev) => ({
       ...prev,
       [questionId]: optionId,
     }));
@@ -52,11 +77,14 @@ export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps
     setError(null);
 
     try {
-      const response = await fetch(`/api/assignments/${assignment.id}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: selectedAnswers, studentNotes }),
-      });
+      const response = await fetch(
+        `/api/assignments/${assignment.id}/submit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answers: selectedAnswers, studentNotes }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -65,14 +93,13 @@ export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps
 
       router.push('/my-lessons');
       router.refresh();
-
     } catch (err: unknown) {
       setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const getButtonText = () => {
     if (isLoading) return 'Submitting...';
     if (isReadOnly) return 'Submission Closed';
@@ -85,27 +112,34 @@ export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps
       <div className="space-y-8">
         {questions.map((question, qIndex) => (
           <div key={question.id} className="space-y-4">
-            <div className="p-3 bg-gray-50 rounded-md border shadow-sm">
-              <Label className="font-bold text-base">
+            <div className="rounded-md border bg-gray-50 p-3 shadow-sm">
+              <Label className="text-base font-bold">
                 Q{qIndex + 1}❓ {question.question}
               </Label>
             </div>
             <RadioGroup
+              // ✨ REFINEMENT: Set the value to show the student's selection.
+              value={selectedAnswers[question.id]}
               onValueChange={(value) => handleAnswerSelect(question.id, value)}
               disabled={isLoading || isPastDeadline || isReadOnly}
               className="ml-2 space-y-2"
             >
               {question.options.map((option) => (
                 <div key={option.id} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option.id} id={`${question.id}-${option.id}`} />
-                  <Label htmlFor={`${question.id}-${option.id}`}>{option.text}</Label>
+                  <RadioGroupItem
+                    value={option.id}
+                    id={`${question.id}-${option.id}`}
+                  />
+                  <Label htmlFor={`${question.id}-${option.id}`}>
+                    {option.text}
+                  </Label>
                 </div>
               ))}
             </RadioGroup>
           </div>
         ))}
       </div>
-      
+
       <div className="mt-6 space-y-2 border-t pt-6">
         <Label htmlFor="student-notes">Student Notes (Optional)</Label>
         <Textarea
@@ -117,15 +151,19 @@ export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps
         />
       </div>
 
-      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mt-4">{error}</p>}
+      {error && (
+        <p className="mt-4 rounded-md bg-red-100 p-3 text-red-500">{error}</p>
+      )}
 
-      <Button
-        type="submit"
-        disabled={isLoading || isPastDeadline || isReadOnly}
-        className="mt-4"
-      >
-        {getButtonText()}
-      </Button>
+      {assignment.status === 'PENDING' && (
+        <Button
+          type="submit"
+          disabled={isLoading || isPastDeadline || isReadOnly}
+          className="mt-4"
+        >
+          {getButtonText()}
+        </Button>
+      )}
     </form>
   );
 }

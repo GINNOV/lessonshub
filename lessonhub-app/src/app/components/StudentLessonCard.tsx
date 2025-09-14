@@ -1,8 +1,15 @@
+// file: src/app/components/StudentLessonCard.tsx
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Assignment, Lesson, User, AssignmentStatus } from '@prisma/client';
+import {
+  Assignment,
+  Lesson,
+  User,
+  AssignmentStatus,
+  LessonType,
+} from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { cn, getWeekAndDay } from '@/lib/utils';
 import { marked } from 'marked';
@@ -34,78 +41,120 @@ const getGradeBackground = (score: number | null) => {
   return 'bg-gradient-to-br from-yellow-100 to-yellow-200';
 };
 
-export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {
-  const isPastDeadline = new Date() > new Date(assignment.deadline);
-  const status = isPastDeadline && assignment.status === "PENDING" ? "PAST_DUE" : assignment.status;
+// ✨ REFINEMENT: Create a mapping for lesson type images for better scalability and readability.
+const lessonTypeImages: Record<LessonType, string> = {
+  [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
+  [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
+  [LessonType.STANDARD]: '/my-lessons/multiquestions.png', // Default image
+  [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png', // Default image
+};
 
-  const commentsHtml = assignment.teacherComments ? marked.parse(assignment.teacherComments) : '';
+export default function StudentLessonCard({
+  assignment,
+  index,
+}: StudentLessonCardProps) {
+  const isPastDeadline = new Date() > new Date(assignment.deadline);
+  const status =
+    isPastDeadline && assignment.status === 'PENDING'
+      ? 'PAST_DUE'
+      : assignment.status;
+
+  const commentsHtml = assignment.teacherComments
+    ? marked.parse(assignment.teacherComments)
+    : '';
 
   return (
-    <div className={cn(
-      "p-4 sm:p-6 border rounded-lg shadow-sm",
-      index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-    )}>
-      <div className="flex flex-col sm:flex-row gap-6">
-        <div className="flex-shrink-0 w-full sm:w-auto">
+    <div
+      className={cn(
+        'rounded-lg border p-4 shadow-sm sm:p-6',
+        index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+      )}
+    >
+      <div className="flex flex-col gap-6 sm:flex-row">
+        <div className="w-full flex-shrink-0 sm:w-auto">
           <Image
-            src={assignment.lesson.assignment_image_url || 
-                 (assignment.lesson.type === 'FLASHCARD' 
-                  ? '/my-lessons/flashcard.png' 
-                  : '/my-lessons/multiquestions.png')}
+            src={
+              assignment.lesson.assignment_image_url ||
+              lessonTypeImages[assignment.lesson.type]
+            }
             alt={`Image for ${assignment.lesson.title}`}
             width={150}
             height={100}
-            className="rounded-md object-cover w-full h-auto sm:w-[150px] sm:h-[100px]"
+            className="h-auto w-full rounded-md object-cover sm:h-[100px] sm:w-[150px]"
             priority={index < 3}
           />
         </div>
         <div className="flex-grow">
-          <div className="flex justify-between items-start mb-2">
+          <div className="mb-2 flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-semibold">{assignment.lesson.title}</h2>
-              <p className="text-xs text-gray-400 mt-1">
-                Lesson {getWeekAndDay(assignment.lesson.createdAt)} - Assigned by: {assignment.lesson.teacher?.name || <span className="italic">Unassigned</span>}
+              <h2 className="text-xl font-semibold">
+                {assignment.lesson.title}
+              </h2>
+              <p className="mt-1 text-xs text-gray-400">
+                Lesson {getWeekAndDay(assignment.lesson.createdAt)} - Assigned
+                by:{' '}
+                {assignment.lesson.teacher?.name || (
+                  <span className="italic">Unassigned</span>
+                )}
               </p>
             </div>
-            <span className={cn('px-3 py-1 text-xs font-medium rounded-full', statusStyles[status as keyof typeof statusStyles])}>
+            <span
+              className={cn(
+                'rounded-full px-3 py-1 text-xs font-medium',
+                statusStyles[status as keyof typeof statusStyles]
+              )}
+            >
               {status}
             </span>
           </div>
 
           {assignment.lesson.lesson_preview && (
-            <p className="text-sm text-gray-600 mt-2 p-3 bg-gray-50 rounded-md border">{assignment.lesson.lesson_preview}</p>
+            <p className="mt-2 rounded-md border bg-gray-50 p-3 text-sm text-gray-600">
+              {assignment.lesson.lesson_preview}
+            </p>
           )}
 
           {assignment.status === 'GRADED' && (
-            <div className={cn("mt-4 p-3 rounded-md border", getGradeBackground(assignment.score))}>
+            <div
+              className={cn(
+                'mt-4 rounded-md border p-3',
+                getGradeBackground(assignment.score)
+              )}
+            >
               <h3 className="font-semibold">Grade and Feedback</h3>
-              <div className="flex items-start gap-4 mt-2">
-                <div className="flex-shrink-0 p-2 border rounded-md bg-white/50">
+              <div className="mt-2 flex items-start gap-4">
+                <div className="flex-shrink-0 rounded-md border bg-white/50 p-2">
                   <p className="text-2xl font-bold">{assignment.score}</p>
                   <p className="text-xs">Score</p>
                 </div>
                 {assignment.teacherComments && (
-                  <div className="flex-grow prose prose-sm" dangerouslySetInnerHTML={{ __html: commentsHtml as string }} />
+                  <div
+                    className="prose prose-sm flex-grow"
+                    dangerouslySetInnerHTML={{ __html: commentsHtml as string }}
+                  />
                 )}
               </div>
             </div>
           )}
-          
-          <div className="mt-4 border-t pt-4 flex justify-between items-center">
+
+          <div className="mt-4 flex items-center justify-between border-t pt-4">
             <p className="text-sm text-gray-500">
-              <strong>Deadline:</strong> {new Date(assignment.deadline).toLocaleString()}
+              <strong>Deadline:</strong>{' '}
+              {new Date(assignment.deadline).toLocaleString()}
             </p>
             {assignment.status === 'PENDING' && !isPastDeadline && (
               <Button asChild>
                 <Link href={`/assignments/${assignment.id}`}>Start Lesson</Link>
               </Button>
             )}
-             {assignment.status === 'GRADED' && (
+            {assignment.status === 'GRADED' && (
               <Button variant="outline" asChild>
-                <Link href={`/assignments/${assignment.id}`}>Review Results</Link>
+                <Link href={`/assignments/${assignment.id}`}>
+                  Review Results
+                </Link>
               </Button>
             )}
-             {(status === 'PAST_DUE' || status === 'FAILED') && (
+            {(status === 'PAST_DUE' || status === 'FAILED') && (
               <Button variant="secondary" asChild>
                 <Link href={`/assignments/${assignment.id}`}>View Lesson</Link>
               </Button>

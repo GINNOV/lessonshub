@@ -12,17 +12,27 @@ interface LessonResponseFormProps {
   assignment: Assignment & { lesson: Lesson };
 }
 
-export default function LessonResponseForm({ assignment }: LessonResponseFormProps) {
+export default function LessonResponseForm({
+  assignment,
+}: LessonResponseFormProps) {
   const router = useRouter();
+
+  // ✨ REFINEMENT: Safely access questions, assuming it's a string array for standard lessons.
+  const lessonQuestions = (assignment.lesson.questions as string[]) || [];
+
   const [answers, setAnswers] = useState<string[]>(
-    Array((assignment.lesson.questions as string[])?.length || 0).fill('')
+    Array(lessonQuestions.length || 0).fill('')
   );
-  const [studentNotes, setStudentNotes] = useState(assignment.studentNotes || '');
+  const [studentNotes, setStudentNotes] = useState(
+    assignment.studentNotes || ''
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isPastDeadline = new Date() > new Date(assignment.deadline);
-  const isReadOnly = assignment.status === AssignmentStatus.GRADED || assignment.status === AssignmentStatus.FAILED;
+  const isReadOnly =
+    assignment.status === AssignmentStatus.GRADED ||
+    assignment.status === AssignmentStatus.FAILED;
 
   const handleAnswerChange = (index: number, value: string) => {
     const newAnswers = [...answers];
@@ -32,7 +42,7 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (answers.every(answer => answer.trim() === '')) {
+    if (answers.every((answer) => answer.trim() === '')) {
       setError('You must answer at least one question to submit.');
       return;
     }
@@ -40,11 +50,15 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
     setError(null);
 
     try {
-      const response = await fetch(`/api/assignments/${assignment.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers, studentNotes }),
-      });
+      // ✅ FIX: The submission logic now correctly points to the unified /submit endpoint.
+      const response = await fetch(
+        `/api/assignments/${assignment.id}/submit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answers, studentNotes }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -53,14 +67,13 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
 
       router.push('/my-lessons');
       router.refresh();
-
-    } catch (err: unknown) { 
+    } catch (err: unknown) {
       setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const getButtonText = () => {
     if (isLoading) return 'Submitting...';
     if (isReadOnly) return 'Submission Closed';
@@ -71,24 +84,27 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-6">
-        {(assignment.lesson.questions as string[])?.map((question, index) => (
+        {lessonQuestions.map((question, index) => (
           <div key={index} className="space-y-3">
-            <div className="p-3 bg-gray-50 rounded-md border shadow-sm">
-                <Label htmlFor={`question-${index}`} className="font-bold text-base">
-                    Q{index + 1}❓ {question}
-                </Label>
+            <div className="rounded-md border bg-gray-50 p-3 shadow-sm">
+              <Label
+                htmlFor={`question-${index}`}
+                className="text-base font-bold"
+              >
+                Q{index + 1}❓ {question}
+              </Label>
             </div>
             <Textarea
               id={`question-${index}`}
               value={answers[index]}
               onChange={(e) => handleAnswerChange(index, e.target.value)}
               disabled={isLoading || isPastDeadline || isReadOnly}
-              className="min-h-[100px] ml-2"
+              className="ml-2 min-h-[100px]"
             />
           </div>
         ))}
       </div>
-      
+
       <div className="mt-6 space-y-2 border-t pt-6">
         <Label htmlFor="student-notes">Student Notes (Optional)</Label>
         <Textarea
@@ -100,7 +116,9 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
         />
       </div>
 
-      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md mt-4">{error}</p>}
+      {error && (
+        <p className="mt-4 rounded-md bg-red-100 p-3 text-red-500">{error}</p>
+      )}
 
       <Button
         type="submit"

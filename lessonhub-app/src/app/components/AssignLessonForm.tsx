@@ -7,7 +7,7 @@ import { Assignment, Lesson, User } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from '@/components/ui/checkbox';
 
 type StudentWithStats = User & {
   totalPoints: number;
@@ -20,26 +20,33 @@ interface AssignLessonFormProps {
   existingAssignments: Assignment[];
 }
 
-export default function AssignLessonForm({ lesson, students, existingAssignments }: AssignLessonFormProps) {
+export default function AssignLessonForm({
+  lesson,
+  students,
+  existingAssignments,
+}: AssignLessonFormProps) {
   const router = useRouter();
 
   const assignmentDetailsMap = useMemo(() => {
     const map = new Map<string, { assignedAt: Date; deadline: Date }>();
-    existingAssignments.forEach(a => {
-      map.set(a.studentId, { assignedAt: a.assignedAt, deadline: a.deadline });
+    existingAssignments.forEach((a) => {
+      map.set(a.studentId, {
+        assignedAt: a.assignedAt,
+        deadline: a.deadline,
+      });
     });
     return map;
   }, [existingAssignments]);
 
-  const initialAssignedIds = useMemo(() => 
-    new Set(existingAssignments.map(a => a.studentId)), 
+  const initialAssignedIds = useMemo(
+    () => new Set(existingAssignments.map((a) => a.studentId)),
     [existingAssignments]
   );
 
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>(
     Array.from(initialAssignedIds)
   );
-  
+
   const [deadline, setDeadline] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -53,24 +60,25 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
   }, []);
 
   const filteredStudents = useMemo(() => {
-    return students.filter(student => 
-      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase())
+    return students.filter(
+      (student) =>
+        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [students, searchTerm]);
 
   const handleStudentSelect = (studentId: string) => {
-    setSelectedStudentIds(prev =>
+    setSelectedStudentIds((prev) =>
       prev.includes(studentId)
-        ? prev.filter(id => id !== studentId)
+        ? prev.filter((id) => id !== studentId)
         : [...prev, studentId]
     );
   };
-  
+
   const handleSelectAll = () => {
-    setSelectedStudentIds(filteredStudents.map(s => s.id));
+    setSelectedStudentIds(filteredStudents.map((s) => s.id));
   };
-  
+
   const handleDeselectAll = () => {
     setSelectedStudentIds([]);
   };
@@ -82,8 +90,12 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
 
     try {
       const currentSelectedIds = new Set(selectedStudentIds);
-      const studentIdsToAssign = selectedStudentIds.filter(id => !initialAssignedIds.has(id));
-      const studentIdsToUnassign = Array.from(initialAssignedIds).filter(id => !currentSelectedIds.has(id));
+      const studentIdsToAssign = selectedStudentIds.filter(
+        (id) => !initialAssignedIds.has(id)
+      );
+      const studentIdsToUnassign = Array.from(initialAssignedIds).filter(
+        (id) => !currentSelectedIds.has(id)
+      );
 
       const response = await fetch('/api/assignments', {
         method: 'PATCH',
@@ -104,7 +116,6 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
 
       router.push('/dashboard');
       router.refresh();
-
     } catch (err: unknown) {
       setError((err as Error).message);
     } finally {
@@ -125,19 +136,24 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
-      
-      <div className="space-y-4 p-4 border rounded-lg bg-slate-50 sticky top-20 z-10">
-        <div className="flex flex-col sm:flex-row gap-4 items-center">
+      {error && (
+        <p className="rounded-md bg-red-100 p-3 text-red-500">{error}</p>
+      )}
+
+      <div className="sticky top-20 z-10 space-y-4 rounded-lg border bg-slate-50 p-4">
+        <div className="flex flex-col items-center gap-4 sm:flex-row">
           <div className="w-full sm:w-auto">
-            <Label htmlFor="deadline" className="block text-sm font-medium text-gray-700 mb-1">
+            <Label
+              htmlFor="deadline"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
               Deadline for New Assignments
             </Label>
             <Input
               type="datetime-local"
               id="deadline"
               value={deadline}
-              onChange={e => setDeadline(e.target.value)}
+              onChange={(e) => setDeadline(e.target.value)}
               required
               disabled={isLoading}
               className="bg-white"
@@ -162,9 +178,9 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
           </Button>
         </div>
       </div>
-      
-      <div className="p-4 border rounded-lg flex flex-col h-full">
-        <div className="flex flex-col sm:flex-row gap-4 mb-4">
+
+      <div className="flex h-full flex-col rounded-lg border p-4">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row">
           <Input
             type="search"
             placeholder="Search students by name or email..."
@@ -173,54 +189,82 @@ export default function AssignLessonForm({ lesson, students, existingAssignments
             className="w-full sm:flex-grow"
           />
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={handleSelectAll}>Select All</Button>
-            <Button type="button" variant="outline" onClick={handleDeselectAll}>Deselect All</Button>
+            <Button type="button" variant="outline" onClick={handleSelectAll}>
+              Select All
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDeselectAll}
+            >
+              Deselect All
+            </Button>
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0">
+            <thead className="sticky top-0 bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left w-12"><span className="sr-only">Select</span></th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Points</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Seen</th>
+                <th className="w-12 px-6 py-3 text-left">
+                  <span className="sr-only">Select</span>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                  Student
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                  Total Points
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                  Last Seen
+                </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredStudents.map(student => {
+            <tbody className="divide-y divide-gray-200 bg-white">
+              {filteredStudents.map((student) => {
                 const assignmentDetails = assignmentDetailsMap.get(student.id);
                 return (
                   <tr key={student.id}>
                     <td className="px-6 py-4">
-                      <Input
+                      <Checkbox
                         id={`student-${student.id}`}
-                        type="checkbox"
-                        className="h-4 w-4 rounded"
                         checked={selectedStudentIds.includes(student.id)}
-                        onChange={() => handleStudentSelect(student.id)}
+                        onCheckedChange={() => handleStudentSelect(student.id)}
                         disabled={isLoading}
+                        aria-label={`Select ${student.name}`}
                       />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{student.name || 'N/A'}</div>
-                      <div className="text-sm text-gray-500">{student.email}</div>
-                      {/* --- Displays the assignment date/time --- */}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">
+                        {student.name || 'N/A'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {student.email}
+                      </div>
                       {assignmentDetails && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          Assigned: {new Date(assignmentDetails.assignedAt).toLocaleString()}
+                        <div className="mt-1 text-xs text-gray-400">
+                          Assigned:{' '}
+                          {new Date(
+                            assignmentDetails.assignedAt
+                          ).toLocaleString()}
                           <br />
-                          Deadline: {new Date(assignmentDetails.deadline).toLocaleString()}
+                          Deadline:{' '}
+                          {new Date(
+                            assignmentDetails.deadline
+                          ).toLocaleString()}
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.totalPoints}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {student.lastSeen ? new Date(student.lastSeen).toLocaleString() : 'Never'}
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                      {student.totalPoints}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                      {student.lastSeen
+                        ? new Date(student.lastSeen).toLocaleString()
+                        : 'Never'}
                     </td>
                   </tr>
-                )
+                );
               })}
             </tbody>
           </table>
