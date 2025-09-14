@@ -738,8 +738,10 @@ export async function getStudentStats(studentId: string) {
       const price = a.lesson.price.toNumber();
       if (a.status === AssignmentStatus.FAILED) {
         totalValue -= price;
-      } else if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score > 0) {
-        // We define "passed" as having a score greater than 0
+      } 
+      // ✅ FIX: Changed condition from `> 0` to `>= 0`.
+      // This correctly includes graded assignments where the score is 0.
+      else if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score >= 0) {
         totalValue += price;
       }
     });
