@@ -1,13 +1,10 @@
 // file: src/app/admin/lessons/page.tsx
-
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getAllLessons, getAllTeachers } from "@/actions/adminActions";
 import LessonTable from "@/app/components/LessonTable";
 import { Role } from "@prisma/client";
 
-// Next.js App Router now exposes `searchParams` as an async value in some cases.
-// We must await it before accessing its properties to avoid the sync dynamic APIs error.
 export default async function LessonManagementPage({
   searchParams,
 }: {
@@ -23,14 +20,24 @@ export default async function LessonManagementPage({
     getAllTeachers(),
   ]);
 
+
+  const serializableLessons = lessons.map((lesson) => ({
+    ...lesson,
+    price: lesson.price.toNumber(),
+  }));
+
   const params = await searchParams;
   const searchTerm = typeof params?.search === "string" ? params.search : "";
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Lesson Management</h1>
-      <div className="bg-white p-6 rounded-lg shadow-md border">
-        <LessonTable lessons={lessons} teachers={teachers} searchTerm={searchTerm} />
+      <h1 className="mb-6 text-3xl font-bold">Lesson Management</h1>
+      <div className="rounded-lg border bg-white p-6 shadow-md">
+        <LessonTable
+          lessons={serializableLessons}
+          teachers={teachers}
+          searchTerm={searchTerm}
+        />
       </div>
     </div>
   );

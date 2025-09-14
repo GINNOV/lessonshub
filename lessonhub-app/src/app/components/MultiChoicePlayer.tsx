@@ -22,7 +22,8 @@ type MultiChoiceAnswer = {
 };
 
 type AssignmentWithMultiChoice = Assignment & {
-  lesson: Lesson & {
+  lesson: Omit<Lesson, 'price'> & {
+    price: number;
     multiChoiceQuestions: (PrismaQuestion & {
       options: PrismaOption[];
     })[];

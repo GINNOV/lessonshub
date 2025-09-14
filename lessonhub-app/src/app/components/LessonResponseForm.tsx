@@ -9,7 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
 interface LessonResponseFormProps {
-  assignment: Assignment & { lesson: Lesson };
+  assignment: Assignment & {
+    lesson: Omit<Lesson, 'price'> & {
+      price: number;
+    };
+  };
 }
 
 export default function LessonResponseForm({

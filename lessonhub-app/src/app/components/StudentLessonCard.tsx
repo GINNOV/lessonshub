@@ -14,14 +14,17 @@ import { Button } from '@/components/ui/button';
 import { cn, getWeekAndDay } from '@/lib/utils';
 import { marked } from 'marked';
 
-type AssignmentWithDetails = Assignment & {
-  lesson: Lesson & {
+// ✅ FIX: Define and export a clean, simple type for the serialized data.
+// This is the single source of truth for what a student assignment looks like on the client.
+export type SerializableAssignment = Assignment & {
+  lesson: Omit<Lesson, 'price'> & { // Omit the original Decimal `price`
+    price: number; // And replace it with a `number`
     teacher: User | null;
   };
 };
 
 interface StudentLessonCardProps {
-  assignment: AssignmentWithDetails;
+  assignment: SerializableAssignment; // Use the new clean type
   index: number;
 }
 
@@ -41,10 +44,9 @@ const getGradeBackground = (score: number | null) => {
   return 'bg-gradient-to-br from-yellow-100 to-yellow-200';
 };
 
-// ✨ REFINEMENT: Create a mapping for lesson type images for better scalability and readability.
 const lessonTypeImages: Record<LessonType, string> = {
-  [LessonType.FLASHCARD]: '/my-lessons/multiquestions.png',
-  [LessonType.MULTI_CHOICE]: '/my-lessons/flashcard.png',
+  [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
+  [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
   [LessonType.STANDARD]: '/my-lessons/multiquestions.png', // Default image
   [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png', // Default image
 };
@@ -123,7 +125,7 @@ export default function StudentLessonCard({
             >
               <h3 className="font-semibold">Grade and Feedback</h3>
               <div className="mt-2 flex items-start gap-4">
-                <div className="flex-shrink-0 rounded-md border bg-white/50 p-2">
+                <div className="flex-shrink-0 rounded-md border bg-white/50 p-2 text-center">
                   <p className="text-2xl font-bold">{assignment.score}</p>
                   <p className="text-xs">Score</p>
                 </div>

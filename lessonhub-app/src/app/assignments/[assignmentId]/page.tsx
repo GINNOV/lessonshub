@@ -84,30 +84,41 @@ export default async function AssignmentPage({
       </div>
     );
   }
+  
+  // ✅ FIX: Create a serializable version of the assignment object by converting
+  // the Decimal `price` to a plain `number` before passing it to any Client Component.
+  const serializableAssignment = {
+    ...assignment,
+    lesson: {
+      ...assignment.lesson,
+      price: assignment.lesson.price.toNumber(),
+    },
+  };
 
-  const { lesson } = assignment;
+  // Use the serializable object from this point forward
+  const { lesson } = serializableAssignment;
 
   const assignmentHtml = (await marked.parse(lesson.assignment_text ?? "")) as string;
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : "";
-  const isPastDeadline = new Date() > new Date(assignment.deadline);
+  const isPastDeadline = new Date() > new Date(serializableAssignment.deadline);
 
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
 
   return (
     <div className="mx-auto max-w-4xl rounded-lg bg-white p-8 shadow-md">
-      {assignment.status === AssignmentStatus.GRADED && (
-        <div className={cn("mb-6 rounded-md border-l-4 p-4", getGradeBackground(assignment.score))}>
+      {serializableAssignment.status === AssignmentStatus.GRADED && (
+        <div className={cn("mb-6 rounded-md border-l-4 p-4", getGradeBackground(serializableAssignment.score))}>
           <div className="flex items-start">
             <CheckCircleIcon className="mt-1 h-6 w-6 flex-shrink-0 mr-3" />
             <div>
               <p className="text-lg font-bold">Lesson Graded</p>
               <div className="mt-2 flex items-baseline gap-4">
-                <p className="text-3xl font-bold">Score: {assignment.score}</p>
+                <p className="text-3xl font-bold">Score: {serializableAssignment.score}</p>
               </div>
-              {assignment.teacherComments && (
+              {serializableAssignment.teacherComments && (
                 <blockquote className="mt-2 border-l-4 border-gray-400/50 pl-4 italic">
-                  &quot;{assignment.teacherComments}&quot;
+                  &quot;{serializableAssignment.teacherComments}&quot;
                 </blockquote>
               )}
             </div>
@@ -115,7 +126,7 @@ export default async function AssignmentPage({
         </div>
       )}
 
-      {isPastDeadline && assignment.status === AssignmentStatus.PENDING && (
+      {isPastDeadline && serializableAssignment.status === AssignmentStatus.PENDING && (
         <div className="mb-6 flex items-center rounded-md border-l-4 border-red-500 bg-red-100 p-4 text-red-700">
           <AlertTriangleIcon className="h-6 w-6 mr-3" />
           <div>
@@ -127,7 +138,7 @@ export default async function AssignmentPage({
 
       <h1 className="mb-2 text-3xl font-bold">{lesson.title}</h1>
       <p className="mb-6 text-sm text-gray-500">
-        Deadline: {new Date(assignment.deadline).toLocaleString()}
+        Deadline: {new Date(serializableAssignment.deadline).toLocaleString()}
       </p>
 
       {lesson.lesson_preview && (
@@ -139,8 +150,6 @@ export default async function AssignmentPage({
         </div>
       )}
 
-      {/* ✅ FIX: This entire block containing the lesson content was missing/misplaced. */}
-      {/* It is now correctly positioned before the "Your Response" section. */}
       <div className="prose max-w-none">
         {lesson.assignment_image_url && (
           <div className="my-4">
@@ -193,11 +202,11 @@ export default async function AssignmentPage({
       <div className="mt-8 border-t border-gray-200 pt-6">
         <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>
         {isFlashcard ? (
-          <FlashcardPlayer assignment={assignment} />
+          <FlashcardPlayer assignment={serializableAssignment} />
         ) : isMultiChoice ? (
-          <MultiChoicePlayer assignment={assignment} />
+          <MultiChoicePlayer assignment={serializableAssignment} />
         ) : (
-          <LessonResponseForm assignment={assignment} />
+          <LessonResponseForm assignment={serializableAssignment} />
         )}
       </div>
     </div>

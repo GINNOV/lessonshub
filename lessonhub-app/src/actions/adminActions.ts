@@ -242,3 +242,52 @@ export async function sendTestEmail(templateName: string, testEmail: string) {
         return { success: false, error: (error as Error).message };
     }
 }
+
+/**
+ * Updates the price of a specific lesson.
+ * @param lessonId The ID of the lesson to update.
+ * @param newPrice The new price to set.
+ * @returns An object indicating success or failure.
+ */
+export async function updateLessonPrice(lessonId: string, newPrice: number) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await prisma.lesson.update({
+      where: { id: lessonId },
+      data: { price: newPrice },
+    });
+    revalidatePath('/admin/lessons');
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update lesson price:", error);
+    return { success: false, error: "An error occurred." };
+  }
+}
+
+/**
+ * Toggles the paying status of a user.
+ * @param userId The ID of the user to update.
+ * @param isPaying The new paying status.
+ * @returns An object indicating success or failure.
+ */
+export async function updateUserPayingStatus(userId: string, isPaying: boolean) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+    return { success: false, error: "Unauthorized" };
+  }
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isPaying },
+    });
+    revalidatePath('/admin/users');
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update user paying status:", error);
+    return { success: false, error: "An error occurred." };
+  }
+}

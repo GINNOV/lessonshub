@@ -1,5 +1,4 @@
 // file: src/app/components/ProfileForm.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -9,32 +8,31 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { changePassword, deleteUserAccount } from '@/actions/userActions';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User } from '@prisma/client';
+import { toast } from 'sonner';
 
-export default function ProfileForm() {
+interface ProfileFormProps {
+  userToEdit?: User | null;
+  isAdmin?: boolean;
+}
+
+export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileFormProps) {
   const { data: session, update } = useSession();
+  const user = userToEdit || session?.user;
 
-  // Profile state
-  const [name, setName] = useState(session?.user?.name ?? '');
-  const [image, setImage] = useState(session?.user?.image ?? null);
+  const [name, setName] = useState(user?.name ?? '');
+  const [image, setImage] = useState(user?.image ?? null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-
-  // Password change state
+  
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
-  
-  // Delete account state
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
   const confirmationText = "Yes, I am sure.";
 
-  const getInitials = (name: string | null | undefined) => {
+  const getInitials = (name: string | null | undefined): string => {
     if (!name) return '??';
     const names = name.split(' ');
     if (names.length > 1) {
@@ -49,38 +47,40 @@ export default function ProfileForm() {
     if (!file) return;
 
     setIsUploading(true);
-    setErrorMessage('');
     
     try {
       const response = await fetch(`/api/upload?filename=${file.name}`, { method: 'POST', body: file });
       if (!response.ok) throw new Error("Upload failed.");
       const newBlob = await response.json();
       setImage(newBlob.url);
+      toast.success("Image uploaded, save changes to apply.");
     } catch (err: unknown) {
-      setErrorMessage((err as Error).message);
+      toast.error((err as Error).message);
     } finally {
       setIsUploading(false);
     }
   };
-
+  
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingProfile(true);
-    setSuccessMessage('');
-    setErrorMessage('');
     
-    const response = await fetch('/api/profile', {
+    const apiRoute = isAdmin && userToEdit ? `/api/profile/${userToEdit.id}` : '/api/profile';
+    
+    const response = await fetch(apiRoute, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, image }),
     });
 
     if (response.ok) {
-      setSuccessMessage('Profile updated successfully!');
-      await update({ name, image }); // Update session
+      toast.success('Profile updated successfully!');
+      if (!isAdmin) {
+        await update({ name, image });
+      }
     } else {
       const data = await response.json();
-      setErrorMessage(data.error || 'Failed to update profile.');
+      toast.error(data.error || 'Failed to update profile.');
     }
     setIsSubmittingProfile(false);
   };
@@ -88,20 +88,18 @@ export default function ProfileForm() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setPasswordError('New passwords do not match.');
+      toast.error('New passwords do not match.');
       return;
     }
     setIsSubmittingPassword(true);
-    setPasswordSuccess('');
-    setPasswordError('');
 
     const result = await changePassword(newPassword);
 
     if (result.success) {
-      // Sign out the user after a successful password change
       await signOut({ callbackUrl: '/signin' });
+      toast.info('Password changed successfully. Please sign in again.');
     } else {
-      setPasswordError(result.error || 'Failed to change password.');
+      toast.error(result.error || 'Failed to change password.');
       setIsSubmittingPassword(false);
     }
   };
@@ -109,27 +107,25 @@ export default function ProfileForm() {
   const handleDeleteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (deleteConfirmation !== confirmationText) {
-      setDeleteError('Please type the confirmation text exactly as shown.');
+      toast.error('Please type the confirmation text exactly as shown.');
       return;
     }
     setIsDeleting(true);
-    setDeleteError('');
 
     const result = await deleteUserAccount();
     if (result.success) {
       await signOut({ callbackUrl: '/' });
+      toast.success('Account deleted successfully.');
     } else {
-      setDeleteError(result.error || 'Failed to delete account.');
+      toast.error(result.error || 'Failed to delete account.');
       setIsDeleting(false);
     }
   };
 
   return (
     <>
-      <div className="bg-white p-6 rounded-lg shadow-md border">
-        <h2 className="text-2xl font-semibold mb-4">Update Profile</h2>
-        {successMessage && <p className="text-green-600 mb-4">{successMessage}</p>}
-        {errorMessage && <p className="text-red-500 mb-4">{errorMessage}</p>}
+      <div className="rounded-lg border bg-white p-6 shadow-md">
+        <h2 className="mb-4 text-2xl font-semibold">Update Profile</h2>
         
         <form onSubmit={handleProfileSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -144,6 +140,7 @@ export default function ProfileForm() {
                 type="file" 
                 onChange={handleImageUpload} 
                 disabled={isSubmittingProfile || isUploading}
+                accept="image/*"
               />
             </div>
             {isUploading && <p className="text-sm text-gray-500">Uploading...</p>}
@@ -155,7 +152,7 @@ export default function ProfileForm() {
           </div>
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={session?.user?.email || ''} disabled className="bg-gray-100" />
+            <Input id="email" type="email" value={user?.email || ''} disabled className="bg-gray-100" />
             <p className="text-xs text-gray-500">Email addresses cannot be changed.</p>
           </div>
           <Button type="submit" disabled={isSubmittingProfile || isUploading}>
@@ -164,47 +161,48 @@ export default function ProfileForm() {
         </form>
       </div>
 
-      <div className="mt-8 bg-white p-6 rounded-lg shadow-md border">
-        <h2 className="text-2xl font-semibold mb-4">Change Password</h2>
-        {passwordSuccess && <p className="text-green-600 mb-4">{passwordSuccess}</p>}
-        {passwordError && <p className="text-red-500 mb-4">{passwordError}</p>}
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="newPassword">New Password</Label>
-            <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+      {!isAdmin && (
+        <>
+          <div className="mt-8 rounded-lg border bg-white p-6 shadow-md">
+            <h2 className="mb-4 text-2xl font-semibold">Change Password</h2>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+              </div>
+              <Button type="submit" disabled={isSubmittingPassword}>
+                {isSubmittingPassword ? 'Saving...' : 'Change Password'}
+              </Button>
+            </form>
           </div>
-          <div>
-            <Label htmlFor="confirmPassword">Confirm New Password</Label>
-            <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+          
+          <div className="mt-8 rounded-lg border border-red-200 bg-red-50 p-6 shadow-md">
+            <h2 className="text-2xl font-semibold text-red-800 mb-4">Delete Account</h2>
+            <p className="text-red-700 mb-4">
+              This action is irreversible. All your lessons, assignments, and personal data will be permanently deleted.
+            </p>
+            <form onSubmit={handleDeleteSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="deleteConfirmation">To confirm, please type: &quot;{confirmationText}&quot;</Label>
+                <Input 
+                  id="deleteConfirmation" 
+                  type="text" 
+                  value={deleteConfirmation} 
+                  onChange={(e) => setDeleteConfirmation(e.target.value)} 
+                  required 
+                />
+              </div>
+              <Button type="submit" variant="destructive" disabled={isDeleting || deleteConfirmation !== confirmationText}>
+                {isDeleting ? 'Deleting...' : 'Delete My Account'}
+              </Button>
+            </form>
           </div>
-          <Button type="submit" disabled={isSubmittingPassword}>
-            {isSubmittingPassword ? 'Saving...' : 'Change Password'}
-          </Button>
-        </form>
-      </div>
-      
-      <div className="mt-8 bg-red-50 p-6 rounded-lg shadow-md border border-red-200">
-        <h2 className="text-2xl font-semibold text-red-800 mb-4">Delete Account</h2>
-        <p className="text-red-700 mb-4">
-          This action is irreversible. All your lessons, assignments, and personal data will be permanently deleted.
-        </p>
-        {deleteError && <p className="text-red-500 mb-4">{deleteError}</p>}
-        <form onSubmit={handleDeleteSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="deleteConfirmation">To confirm, please type: &quot;{confirmationText}&quot;</Label>
-            <Input 
-              id="deleteConfirmation" 
-              type="text" 
-              value={deleteConfirmation} 
-              onChange={(e) => setDeleteConfirmation(e.target.value)} 
-              required 
-            />
-          </div>
-          <Button type="submit" variant="destructive" disabled={isDeleting || deleteConfirmation !== confirmationText}>
-            {isDeleting ? 'Deleting...' : 'Delete My Account'}
-          </Button>
-        </form>
-      </div>
+        </>
+      )}
     </>
   );
 }

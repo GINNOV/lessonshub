@@ -11,7 +11,8 @@ import { Assignment, Lesson, Flashcard as PrismaFlashcard } from '@prisma/client
 
 // ✅ DEFINE A CORRECT TYPE that includes the nested relation
 type AssignmentWithFlashcards = Assignment & {
-  lesson: Lesson & {
+  lesson: Omit<Lesson, 'price'> & {
+    price: number;
     flashcards: PrismaFlashcard[];
   };
 };

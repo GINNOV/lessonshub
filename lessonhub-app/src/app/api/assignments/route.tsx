@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { getEmailTemplateByName } from "@/actions/adminActions";
 import { createButton, sendEmail } from "@/lib/email-templates";
-import { revalidatePath } from "next/cache"; // ✅ IMPORT revalidatePath
+import { revalidatePath } from "next/cache";
 
 function getBaseUrl(req: NextRequest): string {
   const headers = req.headers;
@@ -78,6 +78,7 @@ export async function PATCH(request: NextRequest) {
                           studentName: student.name || 'student',
                           teacherName: session.user.name || 'your teacher',
                           lessonTitle: lesson.title,
+                          price: lesson.price.toFixed(2),
                           deadline: new Date(deadline).toLocaleString(),
                           button: createButton('Start Lesson', `${getBaseUrl(request)}/my-lessons`, template.buttonColor || undefined),
                         }

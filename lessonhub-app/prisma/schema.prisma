@@ -51,6 +51,7 @@ model User {
   image            String?
   role             Role      @default(STUDENT)
   lastSeen         DateTime?
+  isPaying         Boolean   @default(false)
 
   // Self-relation for impersonation, from adminActions.ts
   impersonatedBy   User?     @relation("Impersonation", fields: [impersonatedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
@@ -77,7 +78,7 @@ model Lesson {
   soundcloud_url            String?
   context_text              String?   @db.Text
   attachment_url            String?
-  
+  price                     Decimal   @default(0)
   notes                     String?
 
   assignment_notification   AssignmentNotification @default(NOT_ASSIGNED)
