@@ -1,11 +1,11 @@
-// file: src/app/components/StudentLessonCard.tsx
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Assignment, Lesson, User, AssignmentStatus } from '@prisma/client';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { cn, getWeekAndDay } from '@/lib/utils';
+import { marked } from 'marked';
 
 // ✅ CORRECTED TYPE: The 'teacher' property is now correctly marked as optional
 type AssignmentWithDetails = Assignment & {
@@ -19,50 +19,101 @@ interface StudentLessonCardProps {
   index: number;
 }
 
-const statusStyles: Record<AssignmentStatus, string> = {
-  [AssignmentStatus.PENDING]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  [AssignmentStatus.COMPLETED]: 'bg-blue-100 text-blue-800 border-blue-200',
-  [AssignmentStatus.GRADED]: 'bg-green-100 text-green-800 border-green-200',
-  [AssignmentStatus.FAILED]: 'bg-red-100 text-red-800 border-red-200',
+const statusStyles = {
+  [AssignmentStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
+  [AssignmentStatus.COMPLETED]: 'bg-blue-100 text-blue-800',
+  [AssignmentStatus.GRADED]: 'bg-green-100 text-green-800',
+  [AssignmentStatus.FAILED]: 'bg-red-100 text-red-800',
+  PAST_DUE: 'bg-red-100 text-red-800',
+};
+
+const getGradeBackground = (score: number | null) => {
+  if (score === null) return 'bg-gray-100';
+  if (score === 10) return 'bg-gradient-to-br from-green-100 to-green-200';
+  if (score === 2) return 'bg-gradient-to-br from-amber-100 to-amber-200';
+  if (score === -1) return 'bg-gradient-to-br from-red-100 to-red-200';
+  return 'bg-gradient-to-br from-yellow-100 to-yellow-200';
 };
 
 export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {
   const isPastDeadline = new Date() > new Date(assignment.deadline);
-  
+  const status = isPastDeadline && assignment.status === "PENDING" ? "PAST_DUE" : assignment.status;
+
+  const commentsHtml = assignment.teacherComments ? marked.parse(assignment.teacherComments) : '';
+
   return (
-    <Card className={`transition-all hover:shadow-md ${index > 0 ? 'mt-4' : ''}`}>
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-semibold">{assignment.lesson.title}</CardTitle>
-          <Badge className={statusStyles[assignment.status]}>{assignment.status}</Badge>
+    <div className={cn(
+      "p-4 sm:p-6 border rounded-lg shadow-sm",
+      index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+    )}>
+      <div className="flex flex-col sm:flex-row gap-6">
+        <div className="flex-shrink-0 w-full sm:w-auto">
+          <Image
+            src={assignment.lesson.assignment_image_url || 
+                 (assignment.lesson.type === 'flashcard' 
+                  ? '/my-lessons/flashcard.png' 
+                  : '/my-lessons/multiquestions.png')}
+            alt={`Image for ${assignment.lesson.title}`}
+            width={150}
+            height={100}
+            className="rounded-md object-cover w-full h-auto sm:w-[150px] sm:h-[100px]"
+            priority={index < 3}
+          />
         </div>
-        <div className="text-xs text-gray-500 flex items-center space-x-2">
-          {/* ✅ CORRECTED RENDERING: Safely access teacher's name or display 'Unassigned' */}
-          <span>by {assignment.lesson.teacher?.name || <span className="italic">Unassigned</span>}</span>
-          <span>&bull;</span>
-          <span>Due: {new Date(assignment.deadline).toLocaleDateString()}</span>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-gray-600 line-clamp-2">
-          {assignment.lesson.lesson_preview || 'No preview available.'}
-        </p>
-      </CardContent>
-      <CardFooter className="flex justify-between items-center">
-        <div>
-          {assignment.status === AssignmentStatus.GRADED && assignment.score !== null && (
-            <p className="text-sm font-semibold">Score: {assignment.score}</p>
+        <div className="flex-grow">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <h2 className="text-xl font-semibold">{assignment.lesson.title}</h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Lesson {getWeekAndDay(assignment.lesson.createdAt)} - Assigned by: {assignment.lesson.teacher?.name || <span className="italic">Unassigned</span>}
+              </p>
+            </div>
+            <span className={cn('px-3 py-1 text-xs font-medium rounded-full', statusStyles[status as keyof typeof statusStyles])}>
+              {status}
+            </span>
+          </div>
+
+          {assignment.lesson.lesson_preview && (
+            <p className="text-sm text-gray-600 mt-2 p-3 bg-gray-50 rounded-md border">{assignment.lesson.lesson_preview}</p>
           )}
-          {isPastDeadline && assignment.status === AssignmentStatus.PENDING && (
-             <p className="text-sm font-semibold text-red-600">Past Due</p>
+
+          {assignment.status === 'GRADED' && (
+            <div className={cn("mt-4 p-3 rounded-md border", getGradeBackground(assignment.score))}>
+              <h3 className="font-semibold">Grade and Feedback</h3>
+              <div className="flex items-start gap-4 mt-2">
+                <div className="flex-shrink-0 p-2 border rounded-md bg-white/50">
+                  <p className="text-2xl font-bold">{assignment.score}</p>
+                  <p className="text-xs">Score</p>
+                </div>
+                {assignment.teacherComments && (
+                  <div className="flex-grow prose prose-sm" dangerouslySetInnerHTML={{ __html: commentsHtml as string }} />
+                )}
+              </div>
+            </div>
           )}
+          
+          <div className="mt-4 border-t pt-4 flex justify-between items-center">
+            <p className="text-sm text-gray-500">
+              <strong>Deadline:</strong> {new Date(assignment.deadline).toLocaleString()}
+            </p>
+            {assignment.status === 'PENDING' && !isPastDeadline && (
+              <Button asChild>
+                <Link href={`/assignments/${assignment.id}`}>Start Lesson</Link>
+              </Button>
+            )}
+             {assignment.status === 'GRADED' && (
+              <Button variant="outline" asChild>
+                <Link href={`/assignments/${assignment.id}`}>Review Results</Link>
+              </Button>
+            )}
+             {(status === 'PAST_DUE' || status === 'FAILED') && (
+              <Button variant="secondary" asChild>
+                <Link href={`/assignments/${assignment.id}`}>View Lesson</Link>
+              </Button>
+            )}
+          </div>
         </div>
-        <Button asChild>
-          <Link href={`/assignments/${assignment.id}`}>
-            {assignment.status === AssignmentStatus.PENDING ? 'Start Lesson' : 'View Lesson'}
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
