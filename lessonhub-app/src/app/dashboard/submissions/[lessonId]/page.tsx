@@ -77,7 +77,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                         </Button>
                       )}
                       {sub.status === 'GRADED' && (
-                        <Button variant="link" asChild>
+                         <Button variant="outline" size="sm" asChild>
                           <Link href={`/dashboard/grade/${sub.id}`}>Edit Grade</Link>
                         </Button>
                       )}
