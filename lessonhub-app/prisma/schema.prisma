@@ -1,3 +1,5 @@
+// file: prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,67 +10,129 @@ datasource db {
   relationMode = "prisma"
 }
 
+// Enum for user roles based on src/auth.ts and admin pages
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+// Enum for lesson types based on various components and API routes
+enum LessonType {
+  STANDARD
+  FLASHCARD
+  MULTI_CHOICE
+  LEARNING_SESSION
+}
+
+// Enum for assignment notifications based on LessonForm.tsx
+enum AssignmentNotification {
+  NOT_ASSIGNED
+  ASSIGN_AND_NOTIFY
+  ASSIGN_WITHOUT_NOTIFICATION
+  ASSIGN_ON_DATE
+}
+
+// Enum for assignment status based on various components
+enum AssignmentStatus {
+  PENDING
+  COMPLETED
+  GRADED
+  FAILED
+}
+
+// Main User model, derived from auth.ts, adminActions.ts, and ProfileForm.tsx
 model User {
-  id               String       @id @default(cuid())
+  id               String    @id @default(cuid())
   name             String?
-  email            String       @unique
+  email            String    @unique
   hashedPassword   String?
   emailVerified    DateTime?
   image            String?
-  role             Role         @default(STUDENT)
+  role             Role      @default(STUDENT)
   lastSeen         DateTime?
-  impersonatedById String?      @unique
-  impersonatedBy   User?        @relation("Impersonation", fields: [impersonatedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  impersonating    User?        @relation("Impersonation")
+
+  // Self-relation for impersonation, from adminActions.ts
+  impersonatedBy   User?     @relation("Impersonation", fields: [impersonatedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  impersonatedById String?   @unique
+  impersonating    User?     @relation("Impersonation")
+
+  // Relations to other models
   accounts         Account[]
   sessions         Session[]
   lessons          Lesson[]
   assignments      Assignment[]
 }
 
-enum LessonType {
-  STANDARD
-  VIDEO
-  QUIZ
-  ASSIGNMENT
-  FLASHCARD
-  MULTI_CHOICE
-}
-
-model Flashcard {
-  id          String  @id @default(cuid())
-  term        String  // Renamed from 'front'
-  definition  String  // Renamed from 'back'
-  imageUrl    String? // Added this new optional field
-
-  lessonId    String
-  lesson      Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-}
-
+// Model for Lessons, combining fields from all lesson-related components and APIs
 model Lesson {
-  id                        String                 @id @default(cuid())
+  id                        String    @id @default(cuid())
   title                     String
-  lesson_preview            String?
-  assignment_text           String?
-  questions                 Json?
+  type                      LessonType @default(STANDARD)
+  
+  // Standard Lesson Fields from LessonForm.tsx
+  lesson_preview            String?   @db.Text
+  assignment_text           String?   @db.Text
+  questions                 Json? // ✅ THIS FIELD IS NOW CORRECTLY INCLUDED
   assignment_image_url      String?
-  context_text              String?
-  attachment_url            String?
-  notes                     String?
-  savedValue                Int?
-  type                      LessonType  @default(STANDARD)
   soundcloud_url            String?
+  context_text              String?   @db.Text
+  attachment_url            String?
+  
+  // Teacher-facing notes
+  notes                     String?
+
+  // Assignment scheduling fields from LessonForm.tsx
   assignment_notification   AssignmentNotification @default(NOT_ASSIGNED)
   scheduled_assignment_date DateTime?
-  createdAt                 DateTime               @default(now())
-  updatedAt                 DateTime               @updatedAt
+
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  // Relations
   teacherId                 String
-  teacher                   User                   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher                   User      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  
   assignments               Assignment[]
   flashcards                Flashcard[]
   multiChoiceQuestions      MultiChoiceQuestion[]
 }
 
+// Relational model for Flashcards, derived from FlashcardCreator.tsx
+model Flashcard {
+  id          String  @id @default(cuid())
+  term        String
+  definition  String
+  imageUrl    String?
+
+  // Relation to Lesson
+  lessonId    String
+  lesson      Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+// Relational model for Multi-Choice Questions, derived from MultiChoiceCreator.tsx
+model MultiChoiceQuestion {
+  id        String             @id @default(cuid())
+  question  String
+  
+  // Relations
+  options   MultiChoiceOption[]
+  lessonId  String
+  lesson    Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+// Relational model for Multi-Choice Options
+model MultiChoiceOption {
+  id          String              @id @default(cuid())
+  text        String
+  isCorrect   Boolean             @default(false)
+  
+  // Relation to Question
+  questionId  String
+  question    MultiChoiceQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+// Model for Assignments, derived from grading components and actions
 model Assignment {
   id              String           @id @default(cuid())
   assignedAt      DateTime         @default(now())
@@ -76,26 +140,31 @@ model Assignment {
   status          AssignmentStatus @default(PENDING)
   score           Int?
   gradedAt        DateTime?
-  studentNotes    String?
-  answers         Json?
+  studentNotes    String?          @db.Text
+  answers         Json? // For storing answers from various lesson types
   teacherComments String?
+
+  // Relations
   lessonId        String
-  studentId       String
   lesson          Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  studentId       String
   student         User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([lessonId, studentId])
 }
 
+// Model for Email Templates, from adminActions.ts
 model EmailTemplate {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
   subject     String
-  body        String
+  body        String  @db.Text
   buttonColor String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// --- NextAuth.js Required Models ---
 
 model Account {
   id                String  @id @default(cuid())
@@ -103,12 +172,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -129,42 +198,4 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-enum Role {
-  STUDENT
-  TEACHER
-  ADMIN
-}
-
-model MultiChoiceQuestion {
-  id        String             @id @default(cuid())
-  question  String
-  options   MultiChoiceOption[]
-
-  lessonId  String
-  lesson    Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-}
-
-model MultiChoiceOption {
-  id          String              @id @default(cuid())
-  text        String
-  isCorrect   Boolean             @default(false)
-
-  questionId  String
-  question    MultiChoiceQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-}
-
-enum AssignmentNotification {
-  NOT_ASSIGNED
-  ASSIGN_AND_NOTIFY
-  ASSIGN_WITHOUT_NOTIFICATION
-  ASSIGN_ON_DATE
-}
-
-enum AssignmentStatus {
-  PENDING
-  COMPLETED
-  GRADED
-  FAILED
 }
