@@ -1,5 +1,4 @@
 // file: src/app/components/TeacherLessonList.tsx
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -11,6 +10,8 @@ import { getWeekAndDay } from '@/lib/utils';
 import DeleteLessonButton from './DeleteLessonButton';
 import WeekDivider from './WeekDivider';
 import { Pencil, UserPlus, Eye, Share2, Mail } from 'lucide-react';
+import { generateShareLink } from '@/actions/lessonActions'; // ✅ Import the correct action
+import { toast } from 'sonner'; // ✅ For user feedback
 
 type LessonWithAssignments = Lesson & {
   assignments: Pick<Assignment, 'status' | 'deadline'>[];
@@ -20,21 +21,17 @@ interface TeacherLessonListProps {
   lessons: LessonWithAssignments[];
 }
 
-// --- START: Robust Date Filtering Logic ---
-const WEEK_STARTS_ON: 0 | 1 = 1; // 0 = Sunday, 1 = Monday
+const WEEK_STARTS_ON: 0 | 1 = 1;
 
 const getWeekBounds = (date: Date, weekStartsOn: 0 | 1 = 1) => {
   const day = date.getDay();
   const diff = (day < weekStartsOn ? 7 : 0) + day - weekStartsOn;
-
   const start = new Date(date);
   start.setDate(date.getDate() - diff);
   start.setHours(0, 0, 0, 0);
-
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
-
   return { start, end };
 };
 
@@ -44,9 +41,6 @@ const getStartOfDay = (date: Date) => {
   return newDate;
 };
 
-// --- END: Robust Date Filtering Logic ---
-
-// Task 1: Add emoji map for lesson types
 const lessonTypeEmojis: Record<LessonType, string> = {
   [LessonType.STANDARD]: '📝',
   [LessonType.FLASHCARD]: '🃏',
@@ -59,30 +53,29 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
-  const [copiedLessonId, setCopiedLessonId] = useState<string | null>(null);
 
-  const handleShareClick = (lessonId: string) => {
-    const shareUrl = `${window.location.origin}/share/lesson/${lessonId}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      setCopiedLessonId(lessonId);
-      setTimeout(() => setCopiedLessonId(null), 2000); // Reset after 2 seconds
-    });
+  // ✅ FIX: Replaced the old handleShareClick with the new async version.
+  const handleShareClick = async (lessonId: string) => {
+    const result = await generateShareLink(lessonId);
+    if (result.success && result.url) {
+      navigator.clipboard.writeText(result.url);
+      toast.success('Public "Join Lesson" link copied to clipboard!');
+    } else {
+      toast.error(result.error || 'Failed to create share link.');
+    }
   };
 
   const filteredLessons = useMemo(() => {
+    // ... (Your existing filtering logic is perfect and remains here)
     const today = new Date();
     const todayStart = getStartOfDay(today);
-
     const thisWeek = getWeekBounds(today, WEEK_STARTS_ON);
-    
     const lastWeekStart = new Date(thisWeek.start);
     lastWeekStart.setDate(thisWeek.start.getDate() - 7);
     const lastWeek = getWeekBounds(lastWeekStart, WEEK_STARTS_ON);
-
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 30);
     const thirtyDaysAgoStart = getStartOfDay(thirtyDaysAgo);
-
     return lessons
       .map(lesson => ({
         ...lesson,
@@ -96,19 +89,10 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
       .filter(lesson => {
         if (dateFilter === 'all') return true;
         const lessonDate = getStartOfDay(new Date(lesson.createdAt));
-
-        if (dateFilter === 'today') {
-            return lessonDate.getTime() === todayStart.getTime();
-        }
-        if (dateFilter === 'this_week') {
-            return lessonDate >= thisWeek.start && lessonDate <= thisWeek.end;
-        }
-        if (dateFilter === 'last_week') {
-          return lessonDate >= lastWeek.start && lessonDate <= lastWeek.end;
-        }
-        if (dateFilter === 'last_30_days') {
-          return lessonDate >= thirtyDaysAgoStart;
-        }
+        if (dateFilter === 'today') return lessonDate.getTime() === todayStart.getTime();
+        if (dateFilter === 'this_week') return lessonDate >= thisWeek.start && lessonDate <= thisWeek.end;
+        if (dateFilter === 'last_week') return lessonDate >= lastWeek.start && lessonDate <= lastWeek.end;
+        if (dateFilter === 'last_30_days') return lessonDate >= thirtyDaysAgoStart;
         return true;
       });
   }, [lessons, searchTerm, statusFilter, dateFilter]);
@@ -161,18 +145,10 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                
               const now = new Date();
               const totalAssignments = lesson.assignments.length;
-              const graded = lesson.assignments.filter(
-                (a) => a.status === AssignmentStatus.GRADED
-              ).length;
-              const pending = lesson.assignments.filter(
-                (a) => a.status === AssignmentStatus.PENDING && new Date(a.deadline) > now
-              ).length;
-              const pastDue = lesson.assignments.filter(
-                (a) => a.status === AssignmentStatus.PENDING && new Date(a.deadline) <= now
-              ).length;
-              const failed = lesson.assignments.filter(
-                (a) => a.status === AssignmentStatus.FAILED
-              ).length;
+              const graded = lesson.assignments.filter(a => a.status === AssignmentStatus.GRADED).length;
+              const pending = lesson.assignments.filter(a => a.status === AssignmentStatus.PENDING && new Date(a.deadline) > now).length;
+              const pastDue = lesson.assignments.filter(a => a.status === AssignmentStatus.PENDING && new Date(a.deadline) <= now).length;
+              const failed = lesson.assignments.filter(a => a.status === AssignmentStatus.FAILED).length;
               const firstDeadline = lesson.assignments[0]?.deadline;
 
               return (

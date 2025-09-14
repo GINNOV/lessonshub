@@ -80,7 +80,8 @@ model Lesson {
   attachment_url            String?
   price                     Decimal   @default(0)
   notes                     String?
-
+  public_share_id           String?
+  
   assignment_notification   AssignmentNotification @default(NOT_ASSIGNED)
   scheduled_assignment_date DateTime?
 
