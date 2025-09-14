@@ -1,20 +1,20 @@
 // file: src/app/dashboard/assign/[lessonId]/page.tsx
 
-// Corrected Imports
 import { redirect } from 'next/navigation';
 import { auth } from "@/auth";
 import { getLessonById, getSubmissionsForLesson, getStudentsWithStats } from "@/actions/lessonActions";
 import AssignLessonForm from '@/app/components/AssignLessonForm';
 import { Role } from '@prisma/client';
 
-export default async function AssignPage({ params }: { params: { lessonId: string } }) {
+// The 'params' prop for a Server Component is a Promise
+export default async function AssignPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
 
   if (!session || session.user.role !== Role.TEACHER) {
     redirect('/');
   }
 
-  const { lessonId } = params;
+  const { lessonId } = await params;
   
   // Fetch all necessary data in parallel for better performance
   const [lesson, students, existingAssignments] = await Promise.all([

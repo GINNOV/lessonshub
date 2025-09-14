@@ -1,4 +1,4 @@
-// file: lessonhub-app/src/app/dashboard/grade/[assignmentId]/page.tsx
+// file: src/app/dashboard/grade/[assignmentId]/page.tsx
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -10,8 +10,9 @@ import GradingForm from "@/app/components/GradingForm";
 import { Button } from "@/components/ui/button";
 import { marked } from 'marked';
 
+// ✅ CORRECTED TYPE DEFINITION
 type Flashcard = {
-  id: number;
+  id: string; // Changed from number to string to match Prisma CUID
   term: string;
   definition: string;
   imageUrl?: string;
@@ -39,9 +40,10 @@ export default async function GradeSubmissionPage({ params }: { params: { assign
 
   // Safely parse markdown content, handling null values
   const assignmentHtml = submission.lesson.assignment_text ? (await marked.parse(submission.lesson.assignment_text)) as string : '';
-  const questions = submission.lesson.questions as string[] | null;
-  const answers = submission.answers as string[] | null;
+  
+  // ✅ CORRECTED TYPE ASSERTION
   const flashcards = submission.lesson.flashcards as Flashcard[] | null;
+  const answers = submission.answers as string[] | null;
 
 
   return (
@@ -93,9 +95,10 @@ export default async function GradeSubmissionPage({ params }: { params: { assign
           {submission.lesson.type === 'STANDARD' && (
             <div>
               <h2 className="text-xl font-semibold border-b pb-2">Student&apos;s Response</h2>
-              {questions && answers && (
+              {/* Note: Standard lessons use a 'questions' Json field not present in flashcard/multi-choice */}
+              {(submission.lesson.questions as string[] | null) && answers && (
                 <div className="space-y-6 mt-4">
-                  {questions.map((question, index) => (
+                  {(submission.lesson.questions as string[]).map((question, index) => (
                     <div key={index}>
                       <p className="p-3 bg-gray-50 rounded-md border shadow-sm font-semibold">Q{index + 1}❓ {question}</p>
                       <p className="mt-2 pl-4 text-gray-700">{answers[index] || "No answer provided."}</p>

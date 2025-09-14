@@ -49,7 +49,6 @@ export default async function StudentDashboardPage() {
         </div>
       </div>
       
-      {/* --- USE THE NEW FILTERABLE COMPONENT --- */}
       <StudentLessonList assignments={assignments} />
     </div>
   );

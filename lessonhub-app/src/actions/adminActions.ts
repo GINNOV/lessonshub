@@ -1,109 +1,22 @@
-// file: src/actions/adminActions.tsx
+// file: src/actions/adminActions.ts
 'use server';
 
 import prisma from "@/lib/prisma";
-import { Role } from "@prisma/client";
-import { revalidatePath } from 'next/cache';
+import { Role, User } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { sendEmail } from "@/lib/email-templates";
 import { auth } from "@/auth";
-import { defaultEmailTemplates, replacePlaceholders, createButton, sendEmail } from '@/lib/email-templates';
 
-// Helper to get all email templates or create them if they don't exist
-export async function getEmailTemplates() {
-  for (const name in defaultEmailTemplates) {
-    const existing = await prisma.emailTemplate.findUnique({ where: { name } });
-    if (!existing) {
-        await prisma.emailTemplate.create({
-            data: {
-                name,
-                subject: defaultEmailTemplates[name].subject,
-                body: defaultEmailTemplates[name].body,
-                buttonColor: defaultEmailTemplates[name].buttonColor,
-            }
-        });
-    }
-  }
-  
-  return prisma.emailTemplate.findMany({ orderBy: { name: 'asc' } });
-}
-
-export async function getEmailTemplateByName(name: string) {
-    let template = await prisma.emailTemplate.findUnique({ where: { name } });
-
-    // If template doesn't exist in DB, create it from the default
-    if (!template && defaultEmailTemplates[name]) {
-        console.log(`Template "${name}" not found in DB, creating from default.`);
-        template = await prisma.emailTemplate.create({
-            data: {
-                name,
-                subject: defaultEmailTemplates[name].subject,
-                body: defaultEmailTemplates[name].body,
-                buttonColor: defaultEmailTemplates[name].buttonColor,
-            }
-        });
-    }
-
-    return template;
-}
-
-export async function updateEmailTemplate(id: string, subject: string, body: string, buttonColor?: string) {
-    try {
-        await prisma.emailTemplate.update({
-            where: { id },
-            data: { subject, body, buttonColor },
-        });
-        revalidatePath('/admin/emails/edit/[templateName]', 'page');
-        return { success: true };
-    } catch (error) {
-        return { success: false, error: 'Failed to update template.' };
-    }
-}
-
-export async function sendTestEmail(templateName: string, subject: string, body: string, recipient: string, buttonColor?: string) {
-    const session = await auth();
-    if (!session?.user || session.user.role !== Role.ADMIN) {
-        return { success: false, error: 'Unauthorized.' };
-    }
-
-    try {
-        const dummyData: Record<string, string> = {
-            studentName: "Alex Doe",
-            teacherName: "Dr. Smith",
-            adminName: session.user.name || "Admin",
-            lessonTitle: "Introduction to Astrophysics",
-            deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleString(),
-            score: "10",
-            teacherComments: "<p><em>Great work on the assignment!</em></p>",
-            newUserName: "Jane Doe",
-            newUserEmail: "jane.doe@example.com",
-            deletedUserName: "John Smith",
-            deletedUserEmail: "john.smith@example.com",
-            button: createButton("Click Here", "https://example.com", buttonColor)
-        };
-
-        // We use the new central function but pass the live editor content to it
-        await sendEmail({
-            to: recipient,
-            templateName: 'test', // Use a temporary name
-            data: dummyData,
-            subjectPrefix: '[TEST] ',
-            // @ts-ignore
-            override: { subject, body } 
-        });
-
-        return { success: true };
-    } catch (error) {
-        return { success: false, error: 'Failed to send test email.' };
-    }
-}
-
-
-// The rest of your adminActions.tsx file...
+/**
+ * Fetches all users from the database.
+ * @returns A promise that resolves to an array of all users.
+ */
 export async function getAllUsers() {
   try {
     const users = await prisma.user.findMany({
       orderBy: {
         email: 'asc',
-      },
+      }
     });
     return users;
   } catch (error) {
@@ -112,50 +25,19 @@ export async function getAllUsers() {
   }
 }
 
-export async function updateUserRole(userId: string, role: Role) {
-  try {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { role },
-    });
-    revalidatePath('/admin');
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to update user role:", error);
-    return { success: false, error: (error as Error).message };
-  }
-}
-
-export async function getAllLessons() {
-  const session = await auth();
-  if (session?.user?.role !== Role.ADMIN) {
-    console.log('[Admin Action] User is not an admin, returning empty array.');
-    return [];
-  }
-  
-  try {
-    console.log('[Admin Action] Fetching all lessons for admin.');
-    const lessons = await prisma.lesson.findMany({
-      include: {
-        teacher: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-    console.log(`[Admin Action] Found ${lessons.length} lessons.`);
-    return lessons;
-  } catch (error) {
-    console.error("Failed to fetch lessons:", error);
-    return [];
-  }
-}
-
+/**
+ * Fetches all users with the 'TEACHER' role.
+ * @returns A promise that resolves to an array of teacher users.
+ */
 export async function getAllTeachers() {
   try {
     const teachers = await prisma.user.findMany({
-      where: { role: Role.TEACHER },
-      orderBy: { name: 'asc' },
+      where: {
+        role: Role.TEACHER,
+      },
+      orderBy: {
+        email: 'asc',
+      }
     });
     return teachers;
   } catch (error) {
@@ -164,54 +46,199 @@ export async function getAllTeachers() {
   }
 }
 
-export async function reassignLesson(lessonId: string, newTeacherId: string) {
-    try {
-        await prisma.lesson.update({
-            where: { id: lessonId },
-            data: { teacherId: newTeacherId },
-        });
-        revalidatePath('/admin');
-        return { success: true };
-    } catch (error) {
-        console.error("Failed to reassign lesson:", error);
-        return { success: false, error: (error as Error).message };
-    }
+/**
+ * Updates a user's role.
+ * @param userId The ID of the user to update.
+ * @param newRole The new role to assign.
+ * @returns An object indicating success or failure.
+ */
+export async function updateUserRole(userId: string, newRole: Role) {
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role: newRole },
+    });
+    revalidatePath('/admin/users');
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update user role:", error);
+    return { success: false, error: "An error occurred while updating the user role." };
+  }
 }
 
+/**
+ * Allows an admin to start impersonating another user.
+ * @param userId The ID of the user to impersonate.
+ * @returns An object indicating success or failure.
+ */
 export async function impersonateUser(userId: string) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
-    return { success: false, error: "Unauthorized" };
+  if (!session?.user?.id || session.user.role !== Role.ADMIN || session.user.id === userId) {
+    return { success: false, error: "Unauthorized or invalid operation." };
   }
 
   try {
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { impersonatedById: userId },
+      data: { impersonatedById: userId }
     });
-    revalidatePath('/');
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (error) {
-    return { success: false, error: "Failed to impersonate user" };
+    console.error("Failed to impersonate user:", error);
+    return { success: false, error: "An error occurred during impersonation." };
   }
 }
 
-export async function stopImpersonation() {
+/**
+ * Allows an admin to stop impersonating a user.
+ * @returns An object indicating success or failure.
+ */
+export async function stopImpersonating() {
   const session = await auth();
-  const originalUserId = session?.user.originalUserId;
-
-  if (!originalUserId) {
-    return { success: false, error: "Not in impersonation mode" };
+  if (!session?.user.impersonating || !session.user.originalUserId) {
+    return { success: false, error: "Not impersonating" };
   }
 
   try {
     await prisma.user.update({
-      where: { id: originalUserId },
-      data: { impersonatedById: null },
+      where: { id: session.user.originalUserId },
+      data: { impersonatedById: null }
     });
-    revalidatePath('/');
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (error) {
-    return { success: false, error: "Failed to stop impersonation" };
+    console.error("Failed to stop impersonating:", error);
+    return { success: false, error: "An error occurred." };
   }
+}
+// ✅ ALIAS EXPORT TO MATCH COMPONENT IMPORT
+export { stopImpersonating as stopImpersonation };
+
+
+/**
+ * Fetches all email templates.
+ * @returns A promise that resolves to an array of all email templates.
+ */
+export async function getAllEmailTemplates() {
+  try {
+    const templates = await prisma.emailTemplate.findMany({
+      orderBy: { name: 'asc' },
+    });
+    return templates;
+  } catch (error) {
+    console.error("Failed to fetch email templates:", error);
+    return [];
+  }
+}
+// ✅ ALIAS EXPORT TO MATCH COMPONENT IMPORT
+export { getAllEmailTemplates as getEmailTemplates };
+
+
+/**
+ * Fetches a single email template by its unique name.
+ * @param name The unique name of the template.
+ * @returns A promise that resolves to the template object or null if not found.
+ */
+export async function getEmailTemplateByName(name: string) {
+  try {
+    const template = await prisma.emailTemplate.findUnique({
+      where: { name },
+    });
+    return template;
+  } catch (error) {
+    console.error(`Failed to fetch email template "${name}":`, error);
+    return null;
+  }
+}
+
+/**
+ * Updates an email template.
+ * @param name The unique name of the template to update.
+ * @param data The data to update.
+ * @returns An object indicating success or failure.
+ */
+export async function updateEmailTemplate(name: string, data: { subject?: string; body?: string; buttonColor?: string }) {
+    try {
+        await prisma.emailTemplate.update({
+            where: { name },
+            data,
+        });
+        revalidatePath(`/admin/emails/edit/${name}`);
+        revalidatePath('/admin/emails');
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update email template:", error);
+        return { success: false, error: "An error occurred." };
+    }
+}
+
+/**
+ * Fetches all lessons for the admin management page.
+ * @returns A promise that resolves to an array of all lessons.
+ */
+export async function getAllLessons() {
+  try {
+    const lessons = await prisma.lesson.findMany({
+      include: {
+        teacher: true,
+        assignments: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    return lessons;
+  } catch (error) {
+    console.error("Failed to fetch all lessons:", error);
+    return [];
+  }
+}
+
+/**
+ * ✅ ADDED MISSING FUNCTION
+ * Reassigns a lesson to a new teacher.
+ * @param lessonId The ID of the lesson to reassign.
+ * @param newTeacherId The ID of the new teacher.
+ * @returns An object indicating success or failure.
+ */
+export async function reassignLesson(lessonId: string, newTeacherId: string | null) {
+    try {
+        await prisma.lesson.update({
+            where: { id: lessonId },
+            data: { teacherId: newTeacherId }
+        });
+        revalidatePath('/admin/lessons');
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to reassign lesson:", error);
+        return { success: false, error: "An error occurred." };
+    }
+}
+
+/**
+ * ✅ ADDED MISSING FUNCTION
+ * Sends a test email for a specific template.
+ * @param templateName The name of the email template to test.
+ * @param testEmail The email address to send the test to.
+ * @returns An object indicating success or failure.
+ */
+export async function sendTestEmail(templateName: string, testEmail: string) {
+    try {
+        await sendEmail({
+            to: testEmail,
+            templateName: templateName,
+            data: {
+                studentName: '[Test Student]',
+                teacherName: '[Test Teacher]',
+                lessonTitle: '[Test Lesson]',
+                deadline: new Date().toLocaleString(),
+                button: '<a href="#" style="color: #ffffff; background-color: #007bff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Test Button</a>',
+            }
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to send test email:", error);
+        return { success: false, error: (error as Error).message };
+    }
 }

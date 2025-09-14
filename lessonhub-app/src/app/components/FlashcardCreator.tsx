@@ -1,4 +1,4 @@
-// file: lessonhub-app/src/app/components/FlashcardCreator.tsx
+// file: src/app/components/FlashcardCreator.tsx
 
 'use client';
 
@@ -10,17 +10,22 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash2, PlusCircle, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { Lesson } from '@prisma/client';
+import { Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
+
+// Define a more specific type for the lesson prop, including the flashcards relation
+type LessonWithFlashcards = Lesson & {
+  flashcards: PrismaFlashcard[];
+};
 
 type Flashcard = {
-  id: number;
+  id: string | number; // Allow for temporary numeric IDs on the client
   term: string;
   definition: string;
   imageUrl?: string | null;
 };
 
 interface FlashcardCreatorProps {
-  lesson?: Lesson | null;
+  lesson?: LessonWithFlashcards | null;
 }
 
 export default function FlashcardCreator({ lesson }: FlashcardCreatorProps) {
@@ -37,12 +42,15 @@ export default function FlashcardCreator({ lesson }: FlashcardCreatorProps) {
   useEffect(() => {
     if (lesson) {
       setTitle(lesson.title);
+      // The type is now correct, so we can directly access .flashcards
       if (lesson.flashcards && Array.isArray(lesson.flashcards)) {
-        const existingFlashcards = lesson.flashcards as Flashcard[];
+        // Map Prisma's string IDs to temporary numeric IDs for client-side state
+        const existingFlashcards = lesson.flashcards.map((card, index) => ({
+          ...card,
+          id: index + 1, // Use index for a stable temporary key
+        }));
         setFlashcards(existingFlashcards);
-        // Ensure nextId is greater than any existing ID to prevent key conflicts
-        const maxId = existingFlashcards.reduce((max, card) => Math.max(max, card.id), 0);
-        setNextId(maxId + 1);
+        setNextId(existingFlashcards.length + 1);
       }
     } else {
         // Default state for a new lesson
@@ -59,15 +67,15 @@ export default function FlashcardCreator({ lesson }: FlashcardCreatorProps) {
     setNextId(nextId + 1);
   };
 
-  const handleCardChange = (id: number, field: 'term' | 'definition', value: string) => {
+  const handleCardChange = (id: number | string, field: 'term' | 'definition', value: string) => {
     setFlashcards(flashcards.map(card => card.id === id ? { ...card, [field]: value } : card));
   };
 
-  const handleImageUpload = async (id: number, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (id: number | string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(id);
+    setIsUploading(id as number);
     setError(null);
     
     try {
@@ -83,7 +91,7 @@ export default function FlashcardCreator({ lesson }: FlashcardCreatorProps) {
     }
   };
   
-  const handleDeleteCard = (id: number) => {
+  const handleDeleteCard = (id: number | string) => {
     setFlashcards(flashcards.filter(card => card.id !== id));
   };
   
@@ -92,7 +100,10 @@ export default function FlashcardCreator({ lesson }: FlashcardCreatorProps) {
     setIsLoading(true);
     setError(null);
     
-    const validFlashcards = flashcards.filter(fc => fc.term.trim() && fc.definition.trim());
+    // Omit the temporary client-side 'id' before sending to the API
+    const validFlashcards = flashcards
+      .filter(fc => fc.term.trim() && fc.definition.trim())
+      .map(({ id, ...rest }) => rest);
 
     if (!title.trim()) {
         setError('Lesson title is required.');
@@ -106,7 +117,7 @@ export default function FlashcardCreator({ lesson }: FlashcardCreatorProps) {
     }
 
     try {
-        const url = isEditMode ? `/api/lessons/flashcard/${lesson.id}` : '/api/lessons/flashcard';
+        const url = isEditMode && lesson ? `/api/lessons/flashcard/${lesson.id}` : '/api/lessons/flashcard';
         const method = isEditMode ? 'PATCH' : 'POST';
 
         const response = await fetch(url, {

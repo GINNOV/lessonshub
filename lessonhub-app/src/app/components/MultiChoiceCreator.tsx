@@ -1,4 +1,4 @@
-// file: lessonhub-app/src/app/components/MultiChoiceCreator.tsx
+// file: src/app/components/MultiChoiceCreator.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,22 +8,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trash2, PlusCircle } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Lesson } from '@prisma/client';
+import { Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption as PrismaOption } from '@prisma/client';
 
-interface Answer {
-  id: number;
+// Define a more specific type for the lesson prop
+type LessonWithQuestions = Lesson & {
+  multiChoiceQuestions: (PrismaQuestion & {
+    options: PrismaOption[];
+  })[];
+};
+
+interface Option {
+  id: string | number;
   text: string;
+  isCorrect: boolean;
 }
 
 interface Question {
-  id: number;
-  text: string;
-  answers: Answer[];
-  correctAnswerId: number | null;
+  id: string | number;
+  question: string;
+  options: Option[];
 }
 
 interface MultiChoiceCreatorProps {
-  lesson?: Lesson | null;
+  lesson?: LessonWithQuestions | null;
 }
 
 export default function MultiChoiceCreator({ lesson }: MultiChoiceCreatorProps) {
@@ -34,7 +41,7 @@ export default function MultiChoiceCreator({ lesson }: MultiChoiceCreatorProps) 
   const [questions, setQuestions] = useState<Question[]>([]);
   
   const [nextQuestionId, setNextQuestionId] = useState(1);
-  const [nextAnswerId, setNextAnswerId] = useState(1);
+  const [nextOptionId, setNextOptionId] = useState(1);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,62 +49,63 @@ export default function MultiChoiceCreator({ lesson }: MultiChoiceCreatorProps) 
   useEffect(() => {
     if (lesson) {
       setTitle(lesson.title);
-      if (lesson.questions && Array.isArray(lesson.questions)) {
-        // Corrected type assertion to satisfy TypeScript
-        const existingQuestions = lesson.questions as unknown as Question[];
-        setQuestions(existingQuestions);
+      if (lesson.multiChoiceQuestions && Array.isArray(lesson.multiChoiceQuestions)) {
+        let tempOptionId = 1;
+        const existingQuestions = lesson.multiChoiceQuestions.map((q, qIndex) => ({
+          ...q,
+          id: qIndex + 1,
+          options: q.options.map(opt => ({...opt, id: tempOptionId++})),
+        }));
 
-        // Ensure new IDs don't conflict with existing ones
-        const maxQuestionId = existingQuestions.reduce((max, q) => Math.max(max, q.id), 0);
-        const maxAnswerId = existingQuestions.flatMap(q => q.answers).reduce((max, a) => Math.max(max, a.id), 0);
-        
+        setQuestions(existingQuestions);
+        const maxQuestionId = existingQuestions.length;
         setNextQuestionId(maxQuestionId + 1);
-        setNextAnswerId(maxAnswerId + 1);
+        setNextOptionId(tempOptionId);
       }
     } else {
-        // Default state for a new lesson
-        setQuestions([{ id: 1, text: '', answers: [{ id: 1, text: '' }, { id: 2, text: '' }], correctAnswerId: null }]);
+        setQuestions([{ id: 1, question: '', options: [{ id: 1, text: '', isCorrect: false }, { id: 2, text: '', isCorrect: false }] }]);
         setNextQuestionId(2);
-        setNextAnswerId(3);
+        setNextOptionId(3);
     }
   }, [lesson]);
 
-
   const addQuestion = () => {
-    setQuestions([...questions, { id: nextQuestionId, text: '', answers: [{ id: nextAnswerId, text: '' }, { id: nextAnswerId + 1, text: '' }], correctAnswerId: null }]);
+    setQuestions([...questions, { id: nextQuestionId, question: '', options: [{ id: nextOptionId, text: '', isCorrect: false }, { id: nextOptionId + 1, text: '', isCorrect: false }] }]);
     setNextQuestionId(nextQuestionId + 1);
-    setNextAnswerId(nextAnswerId + 2);
+    setNextOptionId(nextOptionId + 2);
   };
 
-  const handleQuestionChange = (id: number, value: string) => {
-    setQuestions(questions.map(q => q.id === id ? { ...q, text: value } : q));
+  const handleQuestionChange = (id: number | string, value: string) => {
+    setQuestions(questions.map(q => q.id === id ? { ...q, question: value } : q));
   };
 
-  const addAnswer = (questionId: number) => {
-    setQuestions(questions.map(q => q.id === questionId ? { ...q, answers: [...q.answers, { id: nextAnswerId, text: '' }] } : q));
-    setNextAnswerId(nextAnswerId + 1);
+  const addOption = (questionId: number | string) => {
+    setQuestions(questions.map(q => q.id === questionId ? { ...q, options: [...q.options, { id: nextOptionId, text: '', isCorrect: false }] } : q));
+    setNextOptionId(nextOptionId + 1);
   };
   
-  const handleAnswerChange = (questionId: number, answerId: number, value: string) => {
+  const handleOptionChange = (questionId: number | string, optionId: number | string, value: string) => {
       setQuestions(questions.map(q => q.id === questionId ? {
           ...q,
-          answers: q.answers.map(a => a.id === answerId ? { ...a, text: value } : a)
+          options: q.options.map(o => o.id === optionId ? { ...o, text: value } : o)
       } : q));
   };
 
-  const setCorrectAnswer = (questionId: number, answerId: number) => {
-      setQuestions(questions.map(q => q.id === questionId ? { ...q, correctAnswerId: answerId } : q));
+  const setCorrectOption = (questionId: number | string, correctOptionId: number | string) => {
+      setQuestions(questions.map(q => q.id === questionId ? {
+          ...q,
+          options: q.options.map(o => ({ ...o, isCorrect: o.id === correctOptionId }))
+      } : q));
   };
 
-  const deleteQuestion = (id: number) => {
+  const deleteQuestion = (id: number | string) => {
       setQuestions(questions.filter(q => q.id !== id));
   };
 
-  const deleteAnswer = (questionId: number, answerId: number) => {
+  const deleteOption = (questionId: number | string, optionId: number | string) => {
       setQuestions(questions.map(q => q.id === questionId ? {
           ...q,
-          answers: q.answers.filter(a => a.id !== answerId),
-          correctAnswerId: q.correctAnswerId === answerId ? null : q.correctAnswerId // Reset correct answer if it's deleted
+          options: q.options.filter(o => o.id !== optionId),
       } : q));
   };
 
@@ -106,12 +114,17 @@ export default function MultiChoiceCreator({ lesson }: MultiChoiceCreatorProps) 
     setIsLoading(true);
     setError(null);
 
-    const validQuestions = questions.filter(q => 
-        q.text.trim() && 
-        q.correctAnswerId !== null && 
-        q.answers.length >= 2 && 
-        q.answers.every(a => a.text.trim())
-    );
+    const validQuestions = questions
+      .filter(q => 
+          q.question.trim() && 
+          q.options.some(o => o.isCorrect) && 
+          q.options.length >= 2 && 
+          q.options.every(o => o.text.trim())
+      )
+      .map(q => ({
+        question: q.question,
+        options: q.options.map(({ id, ...rest }) => rest),
+      }));
     
     if (!title.trim()) {
         setError("Lesson title is required.");
@@ -119,7 +132,7 @@ export default function MultiChoiceCreator({ lesson }: MultiChoiceCreatorProps) 
         return;
     }
     if (validQuestions.length === 0) {
-        setError("You must create at least one valid question with at least two answers and a selected correct answer.");
+        setError("You must create at least one valid question with at least two options and a selected correct answer.");
         setIsLoading(false);
         return;
     }
@@ -159,33 +172,36 @@ export default function MultiChoiceCreator({ lesson }: MultiChoiceCreatorProps) 
       </div>
 
       <div className="space-y-6">
-        {questions.map((q, index) => (
-          <div key={q.id} className="p-4 border rounded-lg bg-gray-50">
-            <div className="flex justify-between items-center mb-4">
-              <Label htmlFor={`question-${q.id}`} className="text-lg font-semibold">Question {index + 1}</Label>
-              <Button variant="ghost" size="icon" onClick={() => deleteQuestion(q.id)}>
-                <Trash2 className="h-4 w-4 text-gray-500" />
+        {questions.map((q, index) => {
+          const correctOptionId = q.options.find(o => o.isCorrect)?.id;
+          return (
+            <div key={q.id} className="p-4 border rounded-lg bg-gray-50">
+              <div className="flex justify-between items-center mb-4">
+                <Label htmlFor={`question-${q.id}`} className="text-lg font-semibold">Question {index + 1}</Label>
+                <Button variant="ghost" size="icon" onClick={() => deleteQuestion(q.id)}>
+                  <Trash2 className="h-4 w-4 text-gray-500" />
+                </Button>
+              </div>
+              <Input id={`question-${q.id}`} value={q.question} onChange={(e) => handleQuestionChange(q.id, e.target.value)} placeholder="Enter your question here" />
+              
+              <RadioGroup value={correctOptionId?.toString()} onValueChange={(val) => setCorrectOption(q.id, parseInt(val))} className="mt-4 space-y-2">
+                <Label className="text-md font-semibold">Options</Label>
+                {q.options.map(o => (
+                  <div key={o.id} className="flex items-center gap-2">
+                    <RadioGroupItem value={o.id.toString()} id={`q${q.id}-o${o.id}`} />
+                    <Input value={o.text} onChange={(e) => handleOptionChange(q.id, o.id, e.target.value)} placeholder="Enter an option" />
+                    <Button variant="ghost" size="icon" onClick={() => deleteOption(q.id, o.id)}>
+                      <Trash2 className="h-4 w-4 text-gray-400" />
+                    </Button>
+                  </div>
+                ))}
+              </RadioGroup>
+              <Button type="button" variant="link" onClick={() => addOption(q.id)} className="mt-2">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Option
               </Button>
             </div>
-            <Input id={`question-${q.id}`} value={q.text} onChange={(e) => handleQuestionChange(q.id, e.target.value)} placeholder="Enter your question here" />
-            
-            <RadioGroup value={q.correctAnswerId?.toString()} onValueChange={(val) => setCorrectAnswer(q.id, parseInt(val))} className="mt-4 space-y-2">
-              <Label className="text-md font-semibold">Answers</Label>
-              {q.answers.map(a => (
-                <div key={a.id} className="flex items-center gap-2">
-                  <RadioGroupItem value={a.id.toString()} id={`q${q.id}-a${a.id}`} />
-                  <Input value={a.text} onChange={(e) => handleAnswerChange(q.id, a.id, e.target.value)} placeholder="Enter an answer option" />
-                  <Button variant="ghost" size="icon" onClick={() => deleteAnswer(q.id, a.id)}>
-                    <Trash2 className="h-4 w-4 text-gray-400" />
-                  </Button>
-                </div>
-              ))}
-            </RadioGroup>
-            <Button type="button" variant="link" onClick={() => addAnswer(q.id)} className="mt-2">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Answer
-            </Button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex justify-between items-center">
@@ -199,4 +215,3 @@ export default function MultiChoiceCreator({ lesson }: MultiChoiceCreatorProps) 
     </form>
   );
 }
-

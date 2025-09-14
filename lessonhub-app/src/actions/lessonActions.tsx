@@ -69,7 +69,7 @@ export async function getSubmissionsForLesson(lessonId: string, teacherId: strin
 }
 
 /**
- * Fetches a single lesson by its unique ID.
+ * Fetches a single lesson by its unique ID, including all related data for editing.
  * @param lessonId The ID of the lesson.
  * @returns A promise that resolves to the lesson object or null if not found.
  */
@@ -77,6 +77,14 @@ export async function getLessonById(lessonId: string) {
   try {
     const lesson = await prisma.lesson.findUnique({
       where: { id: lessonId },
+      include: {
+        flashcards: true,
+        multiChoiceQuestions: {
+          include: {
+            options: true,
+          },
+        },
+      },
     });
     return lesson;
   } catch (error) {
@@ -103,9 +111,9 @@ export async function getAllStudents() {
 }
 
 /**
- * Fetches all assignments for a specific student, including related lesson and teacher info.
+ * Fetches all assignments for a specific student, ignoring any linked to orphaned lessons.
  * @param studentId The ID of the student.
- * @returns A promise that resolves to an array of assignments.
+ * @returns A promise that resolves to an array of valid assignments.
  */
 export async function getAssignmentsForStudent(studentId: string) {
   if (!studentId) {
@@ -115,6 +123,11 @@ export async function getAssignmentsForStudent(studentId: string) {
     const assignments = await prisma.assignment.findMany({
       where: {
         studentId: studentId,
+        lesson: {
+          teacher: {
+            email: { contains: '@' }
+          }
+        }
       },
       include: {
         lesson: {
@@ -153,7 +166,16 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
         },
       },
       include: {
-        lesson: true,
+        lesson: {
+          include: {
+            flashcards: true,
+            multiChoiceQuestions: {
+              include: {
+                options: true,
+              },
+            },
+          },
+        },
         student: true,
       },
     });
@@ -165,7 +187,7 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
 }
 
 /**
- * Fetches a specific assignment for a student.
+ * Fetches a specific assignment for a student to view.
  * @param assignmentId The ID of the assignment.
  * @param studentId The ID of the student.
  * @returns A promise that resolves to the assignment object or null if not found.
@@ -184,6 +206,12 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
         lesson: {
           include: {
             teacher: true,
+            flashcards: true,
+            multiChoiceQuestions: {
+              include: {
+                options: true,
+              },
+            },
           },
         },
       },
@@ -240,7 +268,6 @@ export async function deleteLesson(lessonId: string) {
   }
 
   try {
-    // Ensure the lesson belongs to the logged-in teacher before deleting
     const lesson = await prisma.lesson.findFirst({
       where: {
         id: lessonId,
@@ -262,7 +289,6 @@ export async function deleteLesson(lessonId: string) {
     return { success: true };
   } catch (error) {
     console.error("Failed to delete lesson:", error);
-    // Be careful not to leak sensitive error details
     return { success: false, error: "An error occurred while deleting the lesson." };
   }
 }
@@ -286,8 +312,9 @@ export async function sendManualReminder(assignmentId: string) {
       },
     });
 
-    if (!assignment || !assignment.student.email) {
-      throw new Error("Assignment or student email not found.");
+    // ✅ ADDED A NULL CHECK for the teacher
+    if (!assignment || !assignment.student.email || !assignment.lesson.teacher) {
+      throw new Error("Assignment, student email, or teacher not found.");
     }
 
     if (assignment.status !== AssignmentStatus.PENDING) {
@@ -410,7 +437,7 @@ export async function assignLessonToStudent(lessonId: string, studentId: string)
       data: {
         lessonId,
         studentId,
-        deadline: new Date(Date.now() + 36 * 60 * 60 * 1000), // Default deadline 36 hours from now
+        deadline: new Date(Date.now() + 36 * 60 * 60 * 1000),
       },
     });
     
@@ -448,11 +475,10 @@ export async function sendCustomEmailToAssignedStudents(lessonId: string, subjec
     const recipients = assignments.map(a => a.student.email).filter(Boolean) as string[];
 
     for (const email of recipients) {
-        // This uses the central email sender to ensure consistent styling
         await sendEmail({
             to: email,
-            templateName: 'custom', // Special name for custom emails
-            data: {}, // No placeholders needed for custom body
+            templateName: 'custom',
+            data: {},
             override: { subject, body }
         });
     }
@@ -493,10 +519,10 @@ export async function completeFlashcardAssignment(assignmentId: string, studentI
       data: { status: AssignmentStatus.COMPLETED },
     });
 
-    // Notify the teacher
     const { student, lesson } = assignment;
     const teacher = lesson.teacher;
-    if (teacher.email) {
+    // ✅ ADDED A NULL CHECK for the teacher
+    if (teacher && teacher.email) {
       const submissionUrl = `${process.env.AUTH_URL}/dashboard/submissions/${lesson.id}`;
       await sendEmail({
         to: teacher.email,
@@ -522,15 +548,24 @@ export async function completeFlashcardAssignment(assignmentId: string, studentI
  * Submits and auto-grades a multi-choice assignment.
  * @param assignmentId The ID of the assignment.
  * @param studentId The ID of the student making the request.
- * @param answers A record of questionId to selectedAnswerId.
+ * @param answers A record of questionId (string) to selectedAnswerId (string).
  * @returns An object indicating success and containing the results, or failure.
  */
-export async function submitMultiChoiceAssignment(assignmentId: string, studentId: string, answers: Record<number, number>) {
+export async function submitMultiChoiceAssignment(assignmentId: string, studentId: string, answers: Record<string, string>) {
     try {
         const assignment = await prisma.assignment.findFirst({
             where: { id: assignmentId, studentId },
             include: {
-                lesson: { include: { teacher: true } },
+                lesson: { 
+                    include: { 
+                        teacher: true,
+                        multiChoiceQuestions: { 
+                            include: {
+                                options: true
+                            }
+                        } 
+                    } 
+                },
                 student: true,
             },
         });
@@ -542,11 +577,12 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
             return { success: false, error: "Assignment has already been submitted." };
         }
 
-        const questions = assignment.lesson.questions as any[];
+        const questions = assignment.lesson.multiChoiceQuestions;
         let score = 0;
         const results = questions.map(q => {
             const selectedAnswerId = answers[q.id];
-            const isCorrect = selectedAnswerId === q.correctAnswerId;
+            const correctAnswer = q.options.find(opt => opt.isCorrect);
+            const isCorrect = selectedAnswerId === correctAnswer?.id;
             if (isCorrect) {
                 score++;
             }
@@ -560,17 +596,17 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
         await prisma.assignment.update({
             where: { id: assignmentId },
             data: {
-                status: AssignmentStatus.GRADED, // Auto-graded
+                status: AssignmentStatus.GRADED,
                 score,
-                answers: results, // Save the detailed results
+                answers: results as any,
                 gradedAt: new Date(),
             },
         });
 
-        // Notify the teacher
         const { student, lesson } = assignment;
         const teacher = lesson.teacher;
-        if (teacher.email) {
+        // ✅ ADDED A NULL CHECK for the teacher
+        if (teacher && teacher.email) {
             const submissionUrl = `${process.env.AUTH_URL}/dashboard/grade/${assignment.id}`;
             await sendEmail({
                 to: teacher.email,

@@ -3,38 +3,31 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Assignment, AssignmentStatus, Lesson } from '@prisma/client';
+import { Assignment, AssignmentStatus, Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption as PrismaOption } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 
-// Define a type for an individual answer object
-type Answer = {
-  id: string;
-  text: string;
-};
-
-// Define a type for the complex question format
-type MultiChoiceQuestion = {
-  id: string;
-  text: string;
-  answers: Answer[]; // Changed from string[] to Answer[]
-  correctAnswerId: number;
+// ✅ DEFINE A CORRECT TYPE for the nested relations
+type AssignmentWithMultiChoice = Assignment & {
+  lesson: Lesson & {
+    multiChoiceQuestions: (PrismaQuestion & {
+      options: PrismaOption[];
+    })[];
+  };
 };
 
 interface MultiChoicePlayerProps {
-  assignment: Assignment & { lesson: Lesson };
+  assignment: AssignmentWithMultiChoice;
 }
 
 export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps) {
   const router = useRouter();
-  const questions = assignment.lesson.questions as MultiChoiceQuestion[];
+  // ✅ ACCESS THE CORRECT PROPERTY
+  const questions = assignment.lesson.multiChoiceQuestions;
   
-  // State to hold the index of the selected answer for each question
-  const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>(
-    Array(questions.length).fill(null)
-  );
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [studentNotes, setStudentNotes] = useState(assignment.studentNotes || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,15 +35,16 @@ export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps
   const isPastDeadline = new Date() > new Date(assignment.deadline);
   const isReadOnly = assignment.status === AssignmentStatus.GRADED || assignment.status === AssignmentStatus.FAILED;
 
-  const handleAnswerSelect = (questionIndex: number, answerIndex: number) => {
-    const newAnswers = [...selectedAnswers];
-    newAnswers[questionIndex] = answerIndex;
-    setSelectedAnswers(newAnswers);
+  const handleAnswerSelect = (questionId: string, optionId: string) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [questionId]: optionId,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedAnswers.some(answer => answer === null)) {
+    if (Object.keys(selectedAnswers).length < questions.length) {
       setError('Please answer all questions before submitting.');
       return;
     }
@@ -58,8 +52,8 @@ export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps
     setError(null);
 
     try {
-      const response = await fetch(`/api/assignments/${assignment.id}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/assignments/${assignment.id}/submit`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: selectedAnswers, studentNotes }),
       });
@@ -78,7 +72,7 @@ export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps
       setIsLoading(false);
     }
   };
-
+  
   const getButtonText = () => {
     if (isLoading) return 'Submitting...';
     if (isReadOnly) return 'Submission Closed';
@@ -93,18 +87,18 @@ export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps
           <div key={question.id} className="space-y-4">
             <div className="p-3 bg-gray-50 rounded-md border shadow-sm">
               <Label className="font-bold text-base">
-                Q{qIndex + 1}❓ {question.text}
+                Q{qIndex + 1}❓ {question.question}
               </Label>
             </div>
             <RadioGroup
-              onValueChange={(value) => handleAnswerSelect(qIndex, parseInt(value))}
+              onValueChange={(value) => handleAnswerSelect(question.id, value)}
               disabled={isLoading || isPastDeadline || isReadOnly}
               className="ml-2 space-y-2"
             >
-              {question.answers.map((answer, aIndex) => (
-                <div key={aIndex} className="flex items-center space-x-2">
-                  <RadioGroupItem value={aIndex.toString()} id={`${question.id}-${aIndex}`} />
-                  <Label htmlFor={`${question.id}-${aIndex}`}>{answer.text}</Label>
+              {question.options.map((option) => (
+                <div key={option.id} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.id} id={`${question.id}-${option.id}`} />
+                  <Label htmlFor={`${question.id}-${option.id}`}>{option.text}</Label>
                 </div>
               ))}
             </RadioGroup>

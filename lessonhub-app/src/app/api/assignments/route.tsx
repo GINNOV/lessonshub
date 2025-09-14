@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { getEmailTemplateByName } from "@/actions/adminActions";
 import { createButton, sendEmail } from "@/lib/email-templates";
+import { revalidatePath } from "next/cache"; // ✅ IMPORT revalidatePath
 
 function getBaseUrl(req: NextRequest): string {
   const headers = req.headers;
@@ -93,6 +94,10 @@ export async function PATCH(request: NextRequest) {
     if (operations.length > 0) {
       await prisma.$transaction(operations);
     }
+
+    // ✅ THIS IS THE FIX: Revalidate the necessary paths
+    revalidatePath('/my-lessons'); // Revalidates the student dashboard
+    revalidatePath(`/dashboard/assign/${lessonId}`); // Revalidates the teacher's assignment page
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

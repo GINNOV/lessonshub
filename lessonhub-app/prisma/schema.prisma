@@ -70,28 +70,24 @@ model Lesson {
   title                     String
   type                      LessonType @default(STANDARD)
   
-  // Standard Lesson Fields from LessonForm.tsx
   lesson_preview            String?   @db.Text
   assignment_text           String?   @db.Text
-  questions                 Json? // ✅ THIS FIELD IS NOW CORRECTLY INCLUDED
+  questions                 Json?
   assignment_image_url      String?
   soundcloud_url            String?
   context_text              String?   @db.Text
   attachment_url            String?
   
-  // Teacher-facing notes
   notes                     String?
 
-  // Assignment scheduling fields from LessonForm.tsx
   assignment_notification   AssignmentNotification @default(NOT_ASSIGNED)
   scheduled_assignment_date DateTime?
 
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime  @updatedAt
 
-  // Relations
-  teacherId                 String
-  teacher                   User      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId                 String?   
+  teacher                   User?     @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   
   assignments               Assignment[]
   flashcards                Flashcard[]

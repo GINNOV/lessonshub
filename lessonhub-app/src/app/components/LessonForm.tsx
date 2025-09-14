@@ -37,7 +37,7 @@ export default function LessonForm({ lesson }: LessonFormProps) {
   const [title, setTitle] = useState('');
   const [lessonPreview, setLessonPreview] = useState('');
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
-  const [assignmentText, setAssignmentText] = useState('痩松 INSTRUCTIONS:\n');
+  const [assignmentText, setAssignmentText] = useState('👉🏼 INSTRUCTIONS:\n');
   const [questions, setQuestions] = useState<string[]>(['']);
   const [contextText, setContextText] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
@@ -56,7 +56,7 @@ export default function LessonForm({ lesson }: LessonFormProps) {
     if (lesson) {
       setTitle(lesson.title);
       setLessonPreview(lesson.lesson_preview || '');
-      setAssignmentText(lesson.assignment_text || '痩松 INSTRUCTIONS:\n');
+      setAssignmentText(lesson.assignment_text || '👉🏼 INSTRUCTIONS:\n');
       setQuestions((lesson.questions as string[]) || ['']);
       setContextText(lesson.context_text || '');
       setAssignmentImageUrl(lesson.assignment_image_url || null);

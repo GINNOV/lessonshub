@@ -1,4 +1,4 @@
-// file: lessonhub-app/src/app/components/FlashcardPlayer.tsx
+// file: src/app/components/FlashcardPlayer.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,20 +7,26 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Assignment, Lesson } from '@prisma/client';
+import { Assignment, Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
 
+// ✅ DEFINE A CORRECT TYPE that includes the nested relation
+type AssignmentWithFlashcards = Assignment & {
+  lesson: Lesson & {
+    flashcards: PrismaFlashcard[];
+  };
+};
+
+interface FlashcardPlayerProps {
+  assignment: AssignmentWithFlashcards;
+}
+
+// Client-side type for managing state
 type Flashcard = {
-  id: number;
+  id: string | number;
   term: string;
   definition: string;
   imageUrl?: string | null;
 };
-
-type AssignmentWithLesson = Assignment & { lesson: Lesson };
-
-interface FlashcardPlayerProps {
-  assignment: AssignmentWithLesson;
-}
 
 // Server action to be called from the component
 async function completeAssignment(assignmentId: string): Promise<{ success: boolean; error?: string }> {
@@ -54,9 +60,9 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // ✅ NO MORE TYPE ERROR HERE
     if (assignment.lesson.flashcards && Array.isArray(assignment.lesson.flashcards)) {
-      // Shuffle the cards for a better learning experience
-      const cards = [...(assignment.lesson.flashcards as Flashcard[])];
+      const cards = [...assignment.lesson.flashcards];
       for (let i = cards.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [cards[i], cards[j]] = [cards[j], cards[i]];
@@ -85,7 +91,6 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
     const result = await completeAssignment(assignment.id);
     if (result.success) {
         setIsCompleted(true);
-        // Give a moment for the user to see the completion message before redirecting
         setTimeout(() => {
             router.push('/my-lessons');
             router.refresh();
@@ -117,7 +122,6 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
   return (
     <div className="flex flex-col items-center gap-6">
        {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
-      {/* Perspective container for the flip effect */}
       <div className="w-full max-w-lg h-80 [perspective:1000px]">
         <div
           className={cn(
@@ -126,19 +130,16 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
           )}
           onClick={() => setIsFlipped(!isFlipped)}
         >
-          {/* Front of the card */}
           <div className="absolute w-full h-full flex flex-col items-center justify-center p-6 bg-white border rounded-lg shadow-lg [backface-visibility:hidden]">
             {currentCard.imageUrl && <Image src={currentCard.imageUrl} alt={currentCard.term} width={300} height={150} className="rounded-md object-contain mb-4 max-h-40" />}
             <p className="text-2xl font-bold text-center">{currentCard.term}</p>
           </div>
-          {/* Back of the card */}
           <div className="absolute w-full h-full flex items-center justify-center p-6 bg-gray-100 border rounded-lg shadow-lg [backface-visibility:hidden] [transform:rotateY(180deg)]">
             <p className="text-xl text-center text-gray-800">{currentCard.definition}</p>
           </div>
         </div>
       </div>
 
-      {/* Progress and Navigation */}
       <div className="w-full max-w-lg flex justify-between items-center">
         <Button onClick={handlePrev} disabled={currentIndex === 0} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" /> Previous

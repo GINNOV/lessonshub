@@ -9,9 +9,10 @@ import StudentLessonCard from './StudentLessonCard';
 import WeekDivider from './WeekDivider';
 import { getWeekAndDay } from '@/lib/utils';
 
-type AssignmentWithDetails = Assignment & {
+// ✅ CORRECTED TYPE: The 'teacher' property is now correctly marked as optional
+export type AssignmentWithDetails = Assignment & {
   lesson: Lesson & {
-    teacher: User;
+    teacher: User | null;
   };
 };
 
@@ -19,41 +20,36 @@ interface StudentLessonListProps {
   assignments: AssignmentWithDetails[];
 }
 
-const statusOrder = {
-  [AssignmentStatus.PENDING]: 1,
-  [AssignmentStatus.COMPLETED]: 2,
-  [AssignmentStatus.GRADED]: 3,
-  [AssignmentStatus.FAILED]: 4,
-};
-
 export default function StudentLessonList({ assignments }: StudentLessonListProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const sortedAndFilteredAssignments = useMemo(() => {
-    const now = new Date();
-    return assignments
-      .map(a => ({
-        ...a,
-        week: parseInt(getWeekAndDay(a.assignedAt).split('-')[0], 10),
-      }))
-      .filter(a => a.lesson.title.toLowerCase().includes(searchTerm.toLowerCase()))
-      .sort((a, b) => {
-        const isPastDueA = now > new Date(a.deadline) && a.status === AssignmentStatus.PENDING;
-        const isPastDueB = now > new Date(b.deadline) && b.status === AssignmentStatus.PENDING;
-        
-        const statusA = isPastDueA ? 0 : statusOrder[a.status];
-        const statusB = isPastDueB ? 0 : statusOrder[b.status];
+  const groupedAndSortedAssignments = useMemo(() => {
+    const filtered = assignments.filter(a =>
+      a.lesson.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.lesson.teacher?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-        if (a.week !== b.week) {
-          return b.week - a.week; // Sort by week descending
-        }
-        if (statusA !== statusB) {
-          return statusA - statusB; // Sort by status
-        }
-        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime(); // Then by deadline
-      });
+    const grouped: { [key: string]: AssignmentWithDetails[] } = {
+      pending: filtered.filter(a => a.status === AssignmentStatus.PENDING),
+      completed: filtered.filter(a => a.status === AssignmentStatus.COMPLETED),
+      graded: filtered.filter(a => a.status === AssignmentStatus.GRADED),
+      failed: filtered.filter(a => a.status === AssignmentStatus.FAILED),
+    };
+    
+    // Sort pending by soonest deadline, others by most recent assignment
+    grouped.pending.sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+    grouped.completed.sort((a, b) => new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime());
+    grouped.graded.sort((a, b) => new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime());
+    grouped.failed.sort((a, b) => new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime());
+
+    return [
+        ...grouped.pending,
+        ...grouped.completed,
+        ...grouped.graded,
+        ...grouped.failed
+    ];
   }, [assignments, searchTerm]);
-  
+
   let lastWeek: number | null = null;
 
   return (
@@ -68,13 +64,14 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
       </div>
 
       <div className="space-y-4">
-        {sortedAndFilteredAssignments.length > 0 ? (
-          sortedAndFilteredAssignments.map((assignment, index) => {
-            const showDivider = assignment.week !== lastWeek;
-            lastWeek = assignment.week;
+        {groupedAndSortedAssignments.length > 0 ? (
+          groupedAndSortedAssignments.map((assignment, index) => {
+            const week = parseInt(getWeekAndDay(assignment.assignedAt).split('-')[0], 10);
+            const showDivider = week !== lastWeek;
+            lastWeek = week;
             return (
               <div key={assignment.id}>
-                {showDivider && <WeekDivider weekNumber={assignment.week} />}
+                {showDivider && <WeekDivider weekNumber={week} />}
                 <StudentLessonCard assignment={assignment} index={index} />
               </div>
             );
@@ -82,7 +79,7 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
         ) : (
           <div className="text-center py-12 px-6 bg-white border rounded-lg">
             <h3 className="text-lg font-semibold">No Lessons Found</h3>
-            <p className="text-gray-600 mt-1">No lessons match your search criteria.</p>
+            <p className="text-gray-600 mt-1">You have not been assigned any lessons yet, or none match your search criteria.</p>
           </div>
         )}
       </div>
