@@ -3,9 +3,11 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLessonsForTeacher } from "@/actions/lessonActions";
+import { getTeacherPreferences } from "@/actions/teacherActions";
 import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import TeacherLessonList from "@/app/components/TeacherLessonList";
+import TeacherPreferences from "@/app/components/TeacherPreferences";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +19,6 @@ import { ChevronDown } from "lucide-react";
 export default async function DashboardPage() {
   const session = await auth();
 
-  // Redirect users based on their role
   if (!session) {
     redirect("/signin");
   } else if (session.user.role === Role.STUDENT) {
@@ -26,12 +27,20 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  const lessons = await getLessonsForTeacher(session.user.id);
+  const [lessons, preferences] = await Promise.all([
+    getLessonsForTeacher(session.user.id),
+    getTeacherPreferences(),
+  ]);
 
   const serializableLessons = lessons.map(lesson => ({
     ...lesson,
     price: lesson.price.toNumber(),
   }));
+  
+  const serializablePreferences = preferences ? {
+      ...preferences,
+      defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+  } : null;
 
   return (
     <div>
@@ -66,6 +75,7 @@ export default async function DashboardPage() {
         </DropdownMenu>
       </div>
       <TeacherLessonList lessons={serializableLessons} />
+      <TeacherPreferences initialPreferences={serializablePreferences} />
     </div>
   );
 }

@@ -25,6 +25,10 @@ model User {
   sessions         Session[]
   lessons          Lesson[]
   assignments      Assignment[]
+  defaultLessonPrice        Decimal?
+  defaultLessonPreview      String?   @db.Text
+  defaultLessonNotes        String?   @db.Text
+  defaultLessonInstructions String?   @db.Text
 }
 
 model Lesson {
