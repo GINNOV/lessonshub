@@ -1,52 +1,49 @@
 // file: src/app/components/PlaceholderGuide.tsx
 'use client';
 
+import {
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { getAllPlaceholders } from '@/lib/placeholder-data';
+
 export default function PlaceholderGuide() {
+  const placeholderCategories = getAllPlaceholders();
+
   return (
-    <div className="rounded-lg border bg-gray-50 p-4">
-      <h3 className="mb-2 text-lg font-semibold">Available Placeholders</h3>
-      <p className="mb-4 text-sm text-gray-600">
-        Use these placeholders in your email subject and body. They will be
-        replaced with the correct values when the email is sent.
-      </p>
-      <ul className="space-y-2 text-sm">
-        <li className="flex items-center">
-          <code className="rounded bg-gray-200 px-2 py-1 font-mono text-xs text-gray-800">
-            {`{{studentName}}`}
-          </code>
-          <span className="ml-2 text-gray-700">- The student&apos;s name</span>
-        </li>
-        <li className="flex items-center">
-          <code className="rounded bg-gray-200 px-2 py-1 font-mono text-xs text-gray-800">
-            {`{{teacherName}}`}
-          </code>
-          <span className="ml-2 text-gray-700">- The teacher&apos;s name</span>
-        </li>
-        <li className="flex items-center">
-          <code className="rounded bg-gray-200 px-2 py-1 font-mono text-xs text-gray-800">
-            {`{{lessonTitle}}`}
-          </code>
-          <span className="ml-2 text-gray-700">- The title of the lesson</span>
-        </li>
-        <li className="flex items-center">
-          <code className="rounded bg-gray-200 px-2 py-1 font-mono text-xs text-gray-800">
-            {`{{deadline}}`}
-          </code>
-          <span className="ml-2 text-gray-700">- The assignment deadline</span>
-        </li>
-        <li className="flex items-center">
-          <code className="rounded bg-gray-200 px-2 py-1 font-mono text-xs text-gray-800">
-            {`{{price}}`}
-          </code>
-          <span className="ml-2 text-gray-700">- The lesson&apos;s value (€)</span>
-        </li>
-        <li className="flex items-center">
-          <code className="rounded bg-gray-200 px-2 py-1 font-mono text-xs text-gray-800">
-            {`{{button}}`}
-          </code>
-          <span className="ml-2 text-gray-700">- The action button</span>
-        </li>
-      </ul>
-    </div>
+    <DialogContent className="sm:max-w-[650px]">
+      <DialogHeader>
+        <DialogTitle>Available Placeholders</DialogTitle>
+        <DialogDescription>
+          Use these placeholders in your subject or body. They will be replaced
+          with real data when the email is sent.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="max-h-[60vh] overflow-y-auto p-1 pr-4">
+        <div className="space-y-6">
+          {placeholderCategories.map((category) => (
+            <div key={category.title}>
+              <h4 className="mb-3 text-md font-semibold text-gray-800">
+                {category.title}
+              </h4>
+              <ul className="space-y-3">
+                {category.items.map(({ variable, description }) => (
+                  <li key={variable} className="flex items-center gap-4">
+                    <code className="flex-shrink-0 rounded bg-gray-200 px-2 py-1 font-mono text-sm text-gray-800">
+                      {variable}
+                    </code>
+                    <span className="text-sm text-gray-600">
+                      - {description}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </DialogContent>
   );
 }
