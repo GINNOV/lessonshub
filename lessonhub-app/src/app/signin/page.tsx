@@ -137,16 +137,21 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
-      <div className="flex items-center justify-center py-12">
+    // ✅ FIX: The layout is now a flex column on mobile, and reverses order.
+    // This places the image at the top on small screens.
+    // It becomes a two-column grid on large screens.
+    <div className="flex w-full flex-col-reverse lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
+      <div className="flex items-center justify-center p-6 sm:p-12">
         <Suspense fallback={<div>Loading...</div>}>
           <SignInForm />
         </Suspense>
       </div>
-      <div className="hidden bg-muted lg:block">
+      {/* ✅ FIX: Removed the `hidden` class. The element is now always a block. */}
+      {/* The parent `flex` and `grid` classes now control its visibility and position. */}
+      <div className="block bg-muted">
         <Image
           src="/hero_signin.png"
-          alt="Image"
+          alt="Students collaborating on a lesson"
           width="1920"
           height="1080"
           className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"

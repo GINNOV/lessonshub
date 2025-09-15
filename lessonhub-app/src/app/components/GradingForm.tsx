@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { gradeAssignment } from '@/actions/lessonActions';
+import { toast } from 'sonner';
 
 interface GradingFormProps {
   assignment: Assignment;
@@ -21,9 +23,6 @@ const scoreOptions = [
 
 export default function GradingForm({ assignment }: GradingFormProps) {
   const router = useRouter();
-
-  // Simplified state to a single string value to handle both radio and select inputs cleanly.
-  // This removes the need for a useEffect to sync multiple state variables.
   const [scoreValue, setScoreValue] = useState(
     assignment.score?.toString() ?? ''
   );
@@ -31,44 +30,32 @@ export default function GradingForm({ assignment }: GradingFormProps) {
     assignment.teacherComments || ''
   );
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (scoreValue === '') {
-      setError('Please select a score.');
+      toast.error('Please select a score.');
       return;
     }
     setIsLoading(true);
-    setError(null);
 
-    try {
-      const response = await fetch(`/api/assignments/${assignment.id}/grade`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        // ✨ REFINEMENT: Parse the final score value to a number on submission.
-        body: JSON.stringify({
-          score: Number(scoreValue),
-          teacherComments,
-        }),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to submit grade.');
-      }
+    const result = await gradeAssignment(assignment.id, {
+      score: Number(scoreValue),
+      teacherComments,
+    });
 
+    if (result.success) {
+      toast.success('Grade submitted successfully!');
       router.push(`/dashboard/submissions/${assignment.lessonId}`);
       router.refresh();
-    } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
+    } else {
+      toast.error(result.error || 'Failed to submit grade.');
       setIsLoading(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && <p className="text-red-500">{error}</p>}
       <div>
         <Label className="text-base font-medium text-gray-900">Score</Label>
         <RadioGroup

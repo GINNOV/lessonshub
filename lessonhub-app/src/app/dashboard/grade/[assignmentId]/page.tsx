@@ -10,7 +10,6 @@ import { marked } from "marked";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ... (type definitions remain the same) ...
 type MultiChoiceAnswer = {
   questionId: string;
   selectedAnswerId: string;
@@ -34,7 +33,6 @@ export default async function GradeSubmissionPage({
   );
 
   if (!submission) {
-    // ... (no-submission block remains the same) ...
     return (
       <div className="text-center">
         <p>
@@ -47,13 +45,20 @@ export default async function GradeSubmissionPage({
     );
   }
 
+  const serializableSubmission = {
+    ...submission,
+    lesson: {
+        ...submission.lesson,
+        price: submission.lesson.price.toNumber(),
+    }
+  };
+
   const assignmentHtml = submission.lesson.assignment_text
     ? ((await marked.parse(submission.lesson.assignment_text)) as string)
     : "";
 
   return (
     <div>
-      {/* ... (header and student info remains the same) ... */}
       <Button variant="link" asChild className="mb-4 pl-0">
         <Link href={`/dashboard/submissions/${submission.lessonId}`}>
           &larr; Back to Submissions
@@ -66,7 +71,6 @@ export default async function GradeSubmissionPage({
 
       <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
         <div className="space-y-6 rounded-lg border bg-white p-6 shadow-md">
-          {/* ... (Lesson Content Section remains the same) ... */}
           <div>
             <h2 className="border-b pb-2 text-xl font-semibold">
               Lesson Content: {submission.lesson.title}
@@ -82,7 +86,6 @@ export default async function GradeSubmissionPage({
               Student&apos;s Response
             </h2>
 
-            {/* ... (Multi-Choice and Flashcard sections remain the same) ... */}
             {submission.lesson.type === LessonType.MULTI_CHOICE && (
                 <div className="mt-4 space-y-6">{/* ... */}</div>
             )}
@@ -100,7 +103,6 @@ export default async function GradeSubmissionPage({
                         <p className="rounded-md border bg-gray-50 p-3 font-semibold shadow-sm">
                           Q{index + 1}❓ {question}
                         </p>
-                        {/* ✅ TWEAK 2.0: Using a blockquote for a much more visible answer block. */}
                         <blockquote className="mt-2 rounded-md border-l-4 border-blue-300 bg-blue-50 p-3 text-gray-800">
                           {studentAnswers?.[index] || (
                             <span className="italic text-gray-500">
@@ -127,7 +129,7 @@ export default async function GradeSubmissionPage({
         </div>
 
         <div className="rounded-lg border bg-white p-6 shadow-md">
-          <GradingForm assignment={submission} />
+          <GradingForm assignment={serializableSubmission} />
         </div>
       </div>
     </div>

@@ -7,7 +7,10 @@ import { revalidatePath } from "next/cache";
 import { sendEmail } from "@/lib/email-templates";
 import { auth } from "@/auth";
 
-// ... (getAllUsers, getAllTeachers, updateUserRole remain the same) ...
+/**
+ * Fetches all users from the database.
+ * @returns A promise that resolves to an array of all users.
+ */
 export async function getAllUsers() {
   try {
     const users = await prisma.user.findMany({
@@ -21,6 +24,11 @@ export async function getAllUsers() {
     return [];
   }
 }
+
+/**
+ * Fetches all users with the 'TEACHER' role.
+ * @returns A promise that resolves to an array of teacher users.
+ */
 export async function getAllTeachers() {
   try {
     const teachers = await prisma.user.findMany({
@@ -37,6 +45,13 @@ export async function getAllTeachers() {
     return [];
   }
 }
+
+/**
+ * Updates a user's role.
+ * @param userId The ID of the user to update.
+ * @param newRole The new role to assign.
+ * @returns An object indicating success or failure.
+ */
 export async function updateUserRole(userId: string, newRole: Role) {
   try {
     await prisma.user.update({
@@ -65,7 +80,7 @@ export async function impersonateUser(userId: string) {
   try {
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { impersonatingId: userId }
+      data: { impersonating: { connect: { id: userId } } }
     });
     revalidatePath("/", "layout");
     return { success: true };
@@ -88,7 +103,7 @@ export async function stopImpersonating() {
   try {
     await prisma.user.update({
       where: { id: session.user.originalUserId },
-      data: { impersonatingId: null }
+      data: { impersonating: { disconnect: true } }
     });
     revalidatePath("/", "layout");
     return { success: true };
@@ -97,9 +112,14 @@ export async function stopImpersonating() {
     return { success: false, error: "An error occurred." };
   }
 }
+// ✅ ALIAS EXPORT TO MATCH COMPONENT IMPORT
 export { stopImpersonating as stopImpersonation };
 
-// ... (rest of the file remains the same) ...
+
+/**
+ * Fetches all email templates.
+ * @returns A promise that resolves to an array of all email templates.
+ */
 export async function getAllEmailTemplates() {
   try {
     const templates = await prisma.emailTemplate.findMany({
@@ -111,7 +131,15 @@ export async function getAllEmailTemplates() {
     return [];
   }
 }
+// ✅ ALIAS EXPORT TO MATCH COMPONENT IMPORT
 export { getAllEmailTemplates as getEmailTemplates };
+
+
+/**
+ * Fetches a single email template by its unique name.
+ * @param name The unique name of the template.
+ * @returns A promise that resolves to the template object or null if not found.
+ */
 export async function getEmailTemplateByName(name: string) {
   try {
     const template = await prisma.emailTemplate.findUnique({
@@ -123,6 +151,13 @@ export async function getEmailTemplateByName(name: string) {
     return null;
   }
 }
+
+/**
+ * Updates an email template.
+ * @param name The unique name of the template to update.
+ * @param data The data to update.
+ * @returns An object indicating success or failure.
+ */
 export async function updateEmailTemplate(name: string, data: { subject?: string; body?: string; buttonColor?: string }) {
     try {
         await prisma.emailTemplate.update({
@@ -137,6 +172,11 @@ export async function updateEmailTemplate(name: string, data: { subject?: string
         return { success: false, error: "An error occurred." };
     }
 }
+
+/**
+ * Fetches all lessons for the admin management page.
+ * @returns A promise that resolves to an array of all lessons.
+ */
 export async function getAllLessons() {
   try {
     const lessons = await prisma.lesson.findMany({
@@ -154,6 +194,14 @@ export async function getAllLessons() {
     return [];
   }
 }
+
+/**
+ * ✅ ADDED MISSING FUNCTION
+ * Reassigns a lesson to a new teacher.
+ * @param lessonId The ID of the lesson to reassign.
+ * @param newTeacherId The ID of the new teacher.
+ * @returns An object indicating success or failure.
+ */
 export async function reassignLesson(lessonId: string, newTeacherId: string | null) {
     try {
         await prisma.lesson.update({
@@ -167,6 +215,14 @@ export async function reassignLesson(lessonId: string, newTeacherId: string | nu
         return { success: false, error: "An error occurred." };
     }
 }
+
+/**
+ * ✅ ADDED MISSING FUNCTION
+ * Sends a test email for a specific template.
+ * @param templateName The name of the email template to test.
+ * @param testEmail The email address to send the test to.
+ * @returns An object indicating success or failure.
+ */
 export async function sendTestEmail(templateName: string, testEmail: string) {
     try {
         await sendEmail({
@@ -186,6 +242,13 @@ export async function sendTestEmail(templateName: string, testEmail: string) {
         return { success: false, error: (error as Error).message };
     }
 }
+
+/**
+ * Updates the price of a specific lesson.
+ * @param lessonId The ID of the lesson to update.
+ * @param newPrice The new price to set.
+ * @returns An object indicating success or failure.
+ */
 export async function updateLessonPrice(lessonId: string, newPrice: number) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== Role.ADMIN) {
@@ -204,6 +267,13 @@ export async function updateLessonPrice(lessonId: string, newPrice: number) {
     return { success: false, error: "An error occurred." };
   }
 }
+
+/**
+ * Toggles the paying status of a user.
+ * @param userId The ID of the user to update.
+ * @param isPaying The new paying status.
+ * @returns An object indicating success or failure.
+ */
 export async function updateUserPayingStatus(userId: string, isPaying: boolean) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== Role.ADMIN) {

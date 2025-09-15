@@ -9,12 +9,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Lesson, AssignmentNotification } from '@prisma/client';
-import ImageBrowser from './ImageBrowser';
+import ImageBrowser from './ImageBrowser'; 
 import { getWeekAndDay } from '@/lib/utils';
 import { Info } from 'lucide-react';
 
+// FIX: Correctly type the lesson prop to expect a number for the price
+type SerializableLesson = Omit<Lesson, 'price'> & {
+  price: number;
+};
+
 interface LessonFormProps {
-  lesson?: Lesson | null;
+  lesson?: SerializableLesson | null;
 }
 
 // --- START: Robust JSON Parsing Helper ---

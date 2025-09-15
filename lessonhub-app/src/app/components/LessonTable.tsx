@@ -3,7 +3,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-// No longer need to import the base `Lesson` type, which avoids the conflict.
 import { User, Assignment, LessonType } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { reassignLesson } from '@/actions/adminActions';
@@ -15,19 +14,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import LessonPriceEditor from './LessonPriceEditor';
 
-// Define a clean, simple type that exactly matches the serializable data
-// being passed from the Server Component. This resolves the type error.
 export type SerializableLesson = {
   id: string;
   title: string;
   type: LessonType;
-  price: number; // This is now a simple number
+  price: number;
   teacher: User | null;
   assignments: Assignment[];
 };
 
 interface LessonTableProps {
-  lessons: SerializableLesson[]; // Use the new clean type
+  lessons: SerializableLesson[];
   teachers: User[];
   searchTerm: string;
 }
@@ -106,7 +103,7 @@ export default function LessonTable({
               <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                 <LessonPriceEditor
                   lessonId={lesson.id}
-                  initialPrice={lesson.price} // No .toNumber() needed
+                  initialPrice={lesson.price}
                 />
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">

@@ -510,6 +510,74 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
 }
 
 /**
+ * Grades an assignment, notifies the student, and revalidates relevant pages.
+ */
+export async function gradeAssignment(assignmentId: string, data: { score: number; teacherComments: string }) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        lesson: {
+          teacherId: session.user.id,
+        },
+      },
+      include: {
+        student: true,
+        lesson: true,
+      }
+    });
+
+    if (!assignment) {
+      return { success: false, error: "Assignment not found or you don't have permission to grade it." };
+    }
+
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: {
+        score: data.score,
+        teacherComments: data.teacherComments,
+        status: AssignmentStatus.GRADED,
+        gradedAt: new Date(),
+      },
+    });
+
+    const template = await getEmailTemplateByName('graded');
+    if (template && assignment.student?.email) {
+      try {
+        const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
+        await sendEmail({
+          to: assignment.student.email,
+          templateName: 'graded',
+          data: {
+            studentName: assignment.student.name || 'student',
+            lessonTitle: assignment.lesson.title,
+            score: data.score.toString(),
+            teacherComments: data.teacherComments ? `<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Teacher's Feedback:</strong><br/><em>&quot;${data.teacherComments}&quot;</em></p>` : '',
+            button: createButton('View Your Grade', assignmentUrl),
+          }
+        });
+      } catch (emailError) {
+        console.error("An unexpected error occurred while sending the email:", emailError);
+      }
+    }
+
+    revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);
+    revalidatePath('/my-lessons'); // This line ensures the student's dashboard is updated.
+    return { success: true };
+
+  } catch (error) {
+    console.error("GRADE_SUBMISSION_ERROR", error);
+    return { success: false, error: "Failed to submit grade." };
+  }
+}
+
+
+/**
  * Submits a standard (text-based) assignment.
  */
 export async function submitStandardAssignment(
@@ -573,6 +641,15 @@ export async function getStudentStats(studentId: string) {
     return { totalValue: 0 };
   }
   try {
+    const student = await prisma.user.findUnique({
+      where: { id: studentId },
+      select: { isPaying: true },
+    });
+
+    if (!student?.isPaying) {
+      return { totalValue: 0 };
+    }
+
     const assignments = await prisma.assignment.findMany({
       where: {
         studentId: studentId,
