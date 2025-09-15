@@ -252,7 +252,7 @@ export default function MultiChoiceCreator({
       <div className="space-y-6">
         <h3 className="text-lg font-semibold">Questions</h3>
         {questions.map((q, index) => {
-          // ✅ FIX: The entire inner content of this div was restored from the placeholder.
+          // The entire inner content of this div was restored from the placeholder.
           const correctOptionId = q.options.find((o) => o.isCorrect)?.id;
           return (
             <div key={q.id} className="rounded-lg border bg-gray-50 p-4">

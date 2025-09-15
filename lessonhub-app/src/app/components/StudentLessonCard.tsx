@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { cn, getWeekAndDay } from '@/lib/utils';
 import { marked } from 'marked';
 
-// ✅ FIX: Define and export a clean, simple type for the serialized data.
+// Define and export a clean, simple type for the serialized data.
 // This is the single source of truth for what a student assignment looks like on the client.
 export type SerializableAssignment = Assignment & {
   lesson: Omit<Lesson, 'price'> & { // Omit the original Decimal `price`

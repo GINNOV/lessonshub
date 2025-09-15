@@ -13,7 +13,7 @@ import { LessonType, Role } from "@prisma/client";
 
 export async function POST(
   request: NextRequest,
-  // ✅ FIX: The type signature is now correctly defined as a Promise.
+  // The type signature is now correctly defined as a Promise.
   { params }: { params: Promise<{ assignmentId: string }> }
 ) {
   const session = await auth();
@@ -23,7 +23,7 @@ export async function POST(
     });
   }
 
-  // ✅ FIX: Restored the `await` keyword as required by the Next.js App Router.
+  // Restored the `await` keyword as required by the Next.js App Router.
   const { assignmentId } = await params;
   const assignment = await prisma.assignment.findUnique({
     where: { id: assignmentId, studentId: session.user.id },

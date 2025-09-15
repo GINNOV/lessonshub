@@ -22,7 +22,7 @@ const scoreOptions = [
 export default function GradingForm({ assignment }: GradingFormProps) {
   const router = useRouter();
 
-  // ✅ FIX: Simplified state to a single string value to handle both radio and select inputs cleanly.
+  // Simplified state to a single string value to handle both radio and select inputs cleanly.
   // This removes the need for a useEffect to sync multiple state variables.
   const [scoreValue, setScoreValue] = useState(
     assignment.score?.toString() ?? ''

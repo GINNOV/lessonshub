@@ -200,7 +200,7 @@ export default function FlashcardCreator({ lesson }: FlashcardCreatorProps) {
       <div className="space-y-6">
         <h3 className="text-lg font-semibold">Flashcards</h3>
         {flashcards.map((card, index) => (
-          // ✅ FIX: The entire inner content of this div was restored from the placeholder.
+          // The entire inner content of this div was restored from the placeholder.
           <div key={card.id} className="flex items-start gap-4 rounded-lg border bg-gray-50 p-4">
             <span className="mt-2 text-lg font-bold text-gray-400">{index + 1}</span>
             <div className="grid flex-grow grid-cols-1 gap-4 md:grid-cols-2">

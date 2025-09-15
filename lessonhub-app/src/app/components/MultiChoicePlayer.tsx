@@ -109,7 +109,7 @@ export default function MultiChoicePlayer({
     }
   };
 
-  // ✅ FIX: This function's logic is now guaranteed to always return a string,
+  // This function's logic is now guaranteed to always return a string,
   // which satisfies React's requirement for a valid renderable child (ReactNode).
   const getButtonText = (): string => {
     if (isLoading) return 'Submitting...';

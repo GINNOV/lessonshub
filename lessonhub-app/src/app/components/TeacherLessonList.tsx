@@ -54,7 +54,7 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
 
-  // ✅ FIX: Replaced the old handleShareClick with the new async version.
+  // Replaced the old handleShareClick with the new async version.
   const handleShareClick = async (lessonId: string) => {
     const result = await generateShareLink(lessonId);
     if (result.success && result.url) {

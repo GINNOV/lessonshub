@@ -636,10 +636,16 @@ export async function generateShareLink(lessonId: string) {
  */
 export async function assignLessonByShareId(shareId: string, studentId: string) {
   try {
-    const lesson = await prisma.lesson.findUnique({
+    // Switched from the overly-strict `findUnique` to the more flexible `findFirst`.
+    // Since `public_share_id` is unique in the database, this is functionally identical and type-safe.
+    const lesson = await prisma.lesson.findFirst({
       where: { public_share_id: shareId },
     });
-    if (!lesson) return null;
+
+    if (!lesson) {
+      return null;
+    }
+
     const existingAssignment = await prisma.assignment.findUnique({
       where: {
         lessonId_studentId: {
@@ -648,7 +654,11 @@ export async function assignLessonByShareId(shareId: string, studentId: string) 
         },
       },
     });
-    if (existingAssignment) return existingAssignment;
+
+    if (existingAssignment) {
+      return existingAssignment;
+    }
+    
     const newAssignment = await prisma.assignment.create({
       data: {
         lessonId: lesson.id,
@@ -656,8 +666,10 @@ export async function assignLessonByShareId(shareId: string, studentId: string) 
         deadline: new Date(Date.now() + 36 * 60 * 60 * 1000),
       },
     });
+
     revalidatePath('/my-lessons');
     return newAssignment;
+
   } catch (error) {
     console.error("Failed to assign lesson by share ID:", error);
     return null;

@@ -84,10 +84,6 @@ export default function PrivacyPage() {
       <p>
         If you have questions or comments about this policy, you may contact us through the information provided on our Contact Us page.
       </p>
-
-      <p className="text-sm text-gray-500 italic mt-8">
-        Disclaimer: This is a template privacy policy and is not a substitute for legal advice. You should consult with a legal professional to ensure compliance with all applicable laws and regulations.
-      </p>
     </div>
   );
 }

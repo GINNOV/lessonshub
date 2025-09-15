@@ -67,10 +67,6 @@ export default function TermsOfServicePage() {
       <p>
         We reserve the right, at our sole discretion, to modify or replace these Terms at any time. We will provide notice of any changes by posting the new Terms on this page.
       </p>
-      
-      <p className="text-sm text-gray-500 italic mt-8">
-        Disclaimer: This is a template Terms of Service and is not a substitute for legal advice. You should consult with a legal professional to ensure compliance with all applicable laws and regulations.
-      </p>
     </div>
   );
 }

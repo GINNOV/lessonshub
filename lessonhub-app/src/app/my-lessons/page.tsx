@@ -6,7 +6,7 @@ import {
   getStudentStats,
 } from "@/actions/lessonActions";
 import StudentLessonList from "@/app/components/StudentLessonList";
-import StudentStatsHeader from "@/app/components/StudentStatsHeader"; 
+import StudentStatsHeader from "@/app/components/StudentStatsHeader";
 import { AssignmentStatus } from "@prisma/client";
 
 export default async function StudentDashboard() {
@@ -19,6 +19,17 @@ export default async function StudentDashboard() {
     getAssignmentsForStudent(session.user.id),
     getStudentStats(session.user.id),
   ]);
+
+  // Convert the Decimal objects to numbers before passing to any Client Component.
+  // This is the crucial step that was missing.
+  const serializableAssignments = assignments.map((assignment) => ({
+    ...assignment,
+    lesson: {
+      ...assignment.lesson,
+      // Prisma's Decimal type has a .toNumber() method for safe conversion
+      price: assignment.lesson.price.toNumber(),
+    },
+  }));
 
   const totalAssignments = assignments.length;
   const pending = assignments.filter(
@@ -35,7 +46,6 @@ export default async function StudentDashboard() {
     <div>
       <h1 className="mb-6 text-3xl font-bold">My Lessons</h1>
 
-      {/* ✅ RENDER the new, unified, and much cooler stats header */}
       <StudentStatsHeader
         totalValue={stats.totalValue}
         total={totalAssignments}
@@ -44,7 +54,8 @@ export default async function StudentDashboard() {
         graded={graded}
       />
 
-      <StudentLessonList assignments={assignments} />
+      {/* Pass the newly serialized data to the client component */}
+      <StudentLessonList assignments={serializableAssignments} />
     </div>
   );
 }

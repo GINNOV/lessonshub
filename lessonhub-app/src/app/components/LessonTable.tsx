@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-// ✅ FIX: No longer need to import the base `Lesson` type, which avoids the conflict.
+// No longer need to import the base `Lesson` type, which avoids the conflict.
 import { User, Assignment, LessonType } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { reassignLesson } from '@/actions/adminActions';
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import LessonPriceEditor from './LessonPriceEditor';
 
-// ✅ FIX: Define a clean, simple type that exactly matches the serializable data
+// Define a clean, simple type that exactly matches the serializable data
 // being passed from the Server Component. This resolves the type error.
 export type SerializableLesson = {
   id: string;

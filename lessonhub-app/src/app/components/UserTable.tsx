@@ -136,7 +136,7 @@ export default function UserTable({
                         >
                           Make Student
                         </Button>
-                        {/* ✅ FIX: Restored the correct 'destructive' variant for the red color. */}
+                        {/* Restored the correct 'destructive' variant for the red color. */}
                         <Button
                           variant="destructive"
                           size="sm"
@@ -146,7 +146,7 @@ export default function UserTable({
                         </Button>
                       </>
                     )}
-                    {/* ✅ FIX: Changed to 'outline' variant and corrected the link. */}
+                    {/* Changed to 'outline' variant and corrected the link. */}
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/admin/users/edit/${user.id}`}>Edit</Link>
                     </Button>

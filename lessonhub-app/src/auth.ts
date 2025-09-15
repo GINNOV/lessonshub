@@ -1,5 +1,4 @@
 // file: src/auth.ts
-
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
@@ -9,11 +8,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
 
-// ---- Required env (v5) ----
 if (!process.env.AUTH_SECRET) throw new Error("Missing AUTH_SECRET");
 if (!process.env.EMAIL_FROM) throw new Error("Missing EMAIL_FROM");
 if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
-// AUTH_URL recommended in prod; not fatal in local dev.
 
 export const {
   handlers: { GET, POST },
@@ -22,20 +19,15 @@ export const {
   signOut,
 } = NextAuth({
   adapter: PrismaAdapter(prisma),
-
-  // Providers
   providers: [
-    // Passwordless email via Resend
     ResendProvider({
       apiKey: process.env.RESEND_API_KEY!,
       from: process.env.EMAIL_FROM!,
     }),
-
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -53,44 +45,81 @@ export const {
       },
     }),
   ],
-
   pages: {
     signIn: "/signin",
     verifyRequest: "/auth/verify-request",
   },
-
   session: { strategy: "jwt" },
-
   secret: process.env.AUTH_SECRET,
-
   debug: process.env.NODE_ENV === "development",
-
   callbacks: {
+    // The `jwt` callback is the first step. It gets the user's ID and basic role
+    // from the initial login and stores it in the lightweight token.
     async jwt({ token, user }) {
-      if (user?.id) { // This check ensures user.id is not undefined
+      if (user?.id) {
         token.id = user.id;
         token.role = user.role;
       }
       return token;
     },
+    // The `session` callback is the second step. It uses the ID from the token
+    // to safely fetch the user's latest data for the client-side session.
     async session({ session, token }) {
-      const user = await prisma.user.findUnique({
+      if (!token.id || !session.user) {
+        return session;
+      }
+
+      // Use a precise `select` statement to fetch ONLY the serializable data we need.
+      // This is the core of the fix. We are telling Prisma exactly which fields to get,
+      // which prevents it from automatically including the `lessons` relation.
+      const dbUser = await prisma.user.findUnique({
         where: { id: token.id as string },
-        include: { impersonatedBy: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+          isPaying: true,
+          impersonatedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              role: true,
+              isPaying: true,
+            },
+          },
+        },
       });
 
-      if (user?.impersonatedBy) {
-        session.user = {
-          ...session.user,
-          ...user.impersonatedBy,
-          id: user.impersonatedBy.id, // Ensure the ID is correctly passed
-          impersonating: true,
-          originalUserId: user.id, // Store the original admin's ID
-        };
-      } else if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as Role;
+      if (!dbUser) {
+        return session;
       }
+
+      // Handle the impersonation logic using the safely fetched data
+      if (dbUser.impersonatedBy) {
+        const impersonatedUser = dbUser.impersonatedBy;
+        session.user = {
+          ...session.user, // Keep any default session properties
+          id: impersonatedUser.id,
+          name: impersonatedUser.name,
+          email: impersonatedUser.email,
+          image: impersonatedUser.image,
+          role: impersonatedUser.role,
+          impersonating: true,
+          originalUserId: dbUser.id, // The admin's ID
+        };
+      } else {
+        // Handle the standard user session
+        session.user.id = dbUser.id;
+        session.user.name = dbUser.name;
+        session.user.email = dbUser.email;
+        session.user.image = dbUser.image;
+        session.user.role = dbUser.role;
+      }
+
       return session;
     },
   },

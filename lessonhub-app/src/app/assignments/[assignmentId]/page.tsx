@@ -85,7 +85,7 @@ export default async function AssignmentPage({
     );
   }
   
-  // ✅ FIX: Create a serializable version of the assignment object by converting
+  // Create a serializable version of the assignment object by converting
   // the Decimal `price` to a plain `number` before passing it to any Client Component.
   const serializableAssignment = {
     ...assignment,
