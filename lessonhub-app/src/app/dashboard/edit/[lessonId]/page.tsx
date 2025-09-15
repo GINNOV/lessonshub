@@ -21,24 +21,23 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
   }
 
   // --- Dispatcher Logic ---
-  // Redirect to the specific editor based on the lesson type
   if (lesson.type === LessonType.FLASHCARD) {
     redirect(`/dashboard/edit/flashcard/${lessonId}`);
   }
   if (lesson.type === LessonType.MULTI_CHOICE) {
     redirect(`/dashboard/edit/multi-choice/${lessonId}`);
   }
-  // Future lesson types can be added here, e.g.,
-  // if (lesson.type === LessonType.LEARNING_SESSION) {
-  //   redirect(`/dashboard/edit/learning-session/${lessonId}`);
-  // }
 
-  // If the type is STANDARD (or default), render the standard lesson form
+  const serializableLesson = {
+    ...lesson,
+    price: lesson.price.toNumber(),
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center p-8 sm:p-24">
       <div className="w-full max-w-lg">
         <h1 className="text-3xl font-bold mb-6">Edit Lesson</h1>
-        <LessonForm lesson={lesson} />
+        <LessonForm lesson={serializableLesson} />
       </div>
     </div>
   );

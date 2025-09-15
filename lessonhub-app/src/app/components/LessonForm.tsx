@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Lesson, AssignmentNotification } from '@prisma/client';
+import ImageBrowser from './ImageBrowser';
+import { getWeekAndDay } from '@/lib/utils';
+import { Info } from 'lucide-react';
 
 interface LessonFormProps {
   lesson?: Lesson | null;
@@ -30,6 +33,8 @@ async function safeJson(response: Response) {
 }
 // --- END: Robust JSON Parsing Helper ---
 
+const OptionalIndicator = () => <Info className="text-gray-400 ml-1 h-4 w-4" />;
+
 export default function LessonForm({ lesson }: LessonFormProps) {
   const router = useRouter();
   const inputFileRef = useRef<HTMLInputElement>(null);
@@ -37,10 +42,12 @@ export default function LessonForm({ lesson }: LessonFormProps) {
   const [title, setTitle] = useState('');
   const [lessonPreview, setLessonPreview] = useState('');
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
+  const [soundcloudUrl, setSoundcloudUrl] = useState('');
   const [assignmentText, setAssignmentText] = useState('👉🏼 INSTRUCTIONS:\n');
   const [questions, setQuestions] = useState<string[]>(['']);
   const [contextText, setContextText] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [recentUrls, setRecentUrls] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
   const [scheduledDate, setScheduledDate] = useState('');
@@ -53,13 +60,23 @@ export default function LessonForm({ lesson }: LessonFormProps) {
   const isEditMode = !!lesson;
 
   useEffect(() => {
+    try {
+      const savedUrls = localStorage.getItem('recentAttachmentUrls');
+      if (savedUrls) {
+        setRecentUrls(JSON.parse(savedUrls));
+      }
+    } catch (e) {
+      console.error("Failed to parse recent URLs from localStorage", e);
+    }
+
     if (lesson) {
       setTitle(lesson.title);
       setLessonPreview(lesson.lesson_preview || '');
       setAssignmentText(lesson.assignment_text || '👉🏼 INSTRUCTIONS:\n');
-      setQuestions((lesson.questions as string[]) || ['']);
+      setQuestions((lesson.questions as string[])?.length > 0 ? (lesson.questions as string[]) : ['']);
       setContextText(lesson.context_text || '');
       setAssignmentImageUrl(lesson.assignment_image_url || null);
+      setSoundcloudUrl(lesson.soundcloud_url || '');
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
       setAssignmentNotification(lesson.assignment_notification);
@@ -70,6 +87,17 @@ export default function LessonForm({ lesson }: LessonFormProps) {
       }
     }
   }, [lesson]);
+
+  const addUrlToRecents = (url: string) => {
+    if (!url) return;
+    try {
+      const updatedUrls = [url, ...recentUrls.filter(u => u !== url)].slice(0, 3);
+      setRecentUrls(updatedUrls);
+      localStorage.setItem('recentAttachmentUrls', JSON.stringify(updatedUrls));
+    } catch (e) {
+      console.error("Failed to save recent URLs to localStorage", e);
+    }
+  };
   
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
@@ -112,6 +140,9 @@ export default function LessonForm({ lesson }: LessonFormProps) {
       });
       const data = await safeJson(response);
       setLinkStatus(data?.success ? 'valid' : 'invalid');
+      if (data?.success) {
+        addUrlToRecents(attachmentUrl);
+      }
     } catch (error) {
       setLinkStatus('invalid');
     }
@@ -141,6 +172,10 @@ export default function LessonForm({ lesson }: LessonFormProps) {
       setError('Lesson title cannot be empty.');
       return;
     }
+    if (!lessonPreview.trim()) {
+      setError('Lesson preview cannot be empty.');
+      return;
+    }
     const validQuestions = questions.filter(q => q.trim() !== '');
     if (validQuestions.length === 0) {
       setError('You must include at least one question.');
@@ -153,7 +188,7 @@ export default function LessonForm({ lesson }: LessonFormProps) {
 
     setIsLoading(true);
     try {
-      const url = isEditMode ? `/api/lessons/${lesson.id}` : '/api/lessons';
+      const url = isEditMode && lesson ? `/api/lessons/${lesson.id}` : '/api/lessons';
       const method = isEditMode ? 'PATCH' : 'POST';
 
       const response = await fetch(url, {
@@ -166,6 +201,7 @@ export default function LessonForm({ lesson }: LessonFormProps) {
           questions: validQuestions,
           contextText,
           assignment_image_url: assignmentImageUrl,
+          soundcloud_url: soundcloudUrl,
           attachment_url: attachmentUrl,
           notes,
           assignment_notification: assignmentNotification,
@@ -191,25 +227,39 @@ export default function LessonForm({ lesson }: LessonFormProps) {
       {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
       
       <div className="space-y-2">
-        <Label htmlFor="title">Lesson Title</Label>
+        <Label htmlFor="title">Lesson Title {isEditMode && lesson && `(Lesson ${getWeekAndDay(new Date(lesson.createdAt))})`}</Label>
         <Input type="text" id="title" placeholder="e.g., Introduction to Algebra" value={title} onChange={(e) => setTitle(e.target.value)} required disabled={isLoading} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="lessonPreview">Lesson Preview</Label>
-        <Textarea id="lessonPreview" placeholder="A brief preview of the lesson for students." value={lessonPreview} onChange={(e) => setLessonPreview(e.target.value)} disabled={isLoading} />
+        <Textarea id="lessonPreview" placeholder="A brief preview of the lesson for students." value={lessonPreview} onChange={(e) => setLessonPreview(e.target.value)} required disabled={isLoading} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="assignmentImage">Assignment Image (Optional)</Label>
-        <Input id="assignmentImage" type="file" ref={inputFileRef} onChange={handleImageUpload} disabled={isLoading || isUploading} />
+        <div className="flex items-center">
+            <Label htmlFor="assignmentImage">Assignment Image</Label>
+            <OptionalIndicator />
+        </div>
+        <div className="flex items-center gap-2">
+            <Input id="assignmentImage" type="file" ref={inputFileRef} onChange={handleImageUpload} disabled={isLoading || isUploading} className="flex-grow"/>
+            <ImageBrowser onSelectImage={setAssignmentImageUrl} />
+        </div>
         {isUploading && <p className="text-sm text-gray-500">Uploading...</p>}
         {assignmentImageUrl && <Image src={assignmentImageUrl} alt="Uploaded preview" width={500} height={300} className="mt-4 w-full h-auto rounded-md border" />}
+      </div>
+      
+      <div className="space-y-2">
+        <div className="flex items-center">
+            <Label htmlFor="soundcloudUrl">Audio material</Label>
+            <OptionalIndicator />
+        </div>
+        <Input type="url" id="soundcloudUrl" placeholder="https://soundcloud.com/..." value={soundcloudUrl} onChange={(e) => setSoundcloudUrl(e.target.value)} disabled={isLoading} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="assignmentText">Instructions</Label>
-        <Textarea id="assignmentText" placeholder="Describe the main task for the student." value={assignmentText} onChange={(e) => setAssignmentText(e.target.value)} required disabled={isLoading} className="min-h-[200px]" />
+        <Textarea id="assignmentText" placeholder="Describe the main task for the student." value={assignmentText} onChange={(e) => setAssignmentText(e.target.value)} required disabled={isLoading} className="min-h-[100px]" />
       </div>
       
       <div className="space-y-2">
@@ -217,21 +267,25 @@ export default function LessonForm({ lesson }: LessonFormProps) {
           <div key={index} className="flex items-center gap-2">
             <Label htmlFor={`question-${index}`} className="whitespace-nowrap">Question {index + 1}</Label>
             <Input type="text" id={`question-${index}`} value={question} onChange={(e) => handleQuestionChange(index, e.target.value)} disabled={isLoading} />
-            {index === questions.length - 1 && (
-              <Button type="button" onClick={handleAddQuestion} disabled={isLoading}>+</Button>
-            )}
-            {isEditMode && (<Button type="button" onClick={() => handleRemoveQuestion(index)} disabled={isLoading} variant="destructive">-</Button>)}
+            <Button type="button" size="icon" onClick={handleAddQuestion} disabled={isLoading}>+</Button>
+            <Button type="button" size="icon" onClick={() => handleRemoveQuestion(index)} disabled={isLoading || questions.length <= 1} variant="destructive">-</Button>
           </div>
         ))}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="contextText">Additional Information</Label>
-        <Textarea id="contextText" placeholder="Add any extra context or instructions here." value={contextText} onChange={(e) => setContextText(e.target.value)} disabled={isLoading} className="min-h-[200px]" />
+        <div className="flex items-center">
+            <Label htmlFor="contextText">Additional Information</Label>
+            <OptionalIndicator />
+        </div>
+        <Textarea id="contextText" placeholder="Add any extra context or instructions here." value={contextText} onChange={(e) => setContextText(e.target.value)} disabled={isLoading} className="min-h-[100px]" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="attachmentUrl">Attachment (Optional)</Label>
+        <div className="flex items-center">
+            <Label htmlFor="attachmentUrl">Reading Material</Label>
+            <OptionalIndicator />
+        </div>
         <div className="flex items-center gap-2">
           <Input type="url" id="attachmentUrl" placeholder="https://example.com" value={attachmentUrl} onChange={(e) => setAttachmentUrl(e.target.value)} disabled={isLoading} />
           <Button type="button" variant="outline" onClick={handleTestLink} disabled={!attachmentUrl || isLoading}>
@@ -241,11 +295,22 @@ export default function LessonForm({ lesson }: LessonFormProps) {
             {linkStatus === 'invalid' && 'Invalid'}
           </Button>
         </div>
+        {recentUrls.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-500">
+            Recent:
+            {recentUrls.map(url => (
+              <button key={url} type="button" className="underline" onClick={() => setAttachmentUrl(url)}>{new URL(url).hostname}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Notes (Optional)</Label>
-        <Input type="text" id="notes" placeholder="Private notes for this lesson." value={notes} onChange={(e) => setNotes(e.target.value)} disabled={isLoading} />
+        <div className="flex items-center">
+            <Label htmlFor="notes">Notes for student</Label>
+            <OptionalIndicator />
+        </div>
+        <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} disabled={isLoading} rows={3} />
       </div>
 
       <div className="space-y-2">
@@ -257,7 +322,7 @@ export default function LessonForm({ lesson }: LessonFormProps) {
           disabled={isLoading}
           className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
         >
-          <option value={AssignmentNotification.NOT_ASSIGNED}>Save as Draft (Not Assigned)</option>
+          <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
           <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
           <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign to All and Notify Now</option>
           <option value={AssignmentNotification.ASSIGN_ON_DATE}>Assign on a Specific Date</option>

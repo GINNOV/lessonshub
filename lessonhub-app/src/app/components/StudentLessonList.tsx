@@ -11,13 +11,13 @@ import {
 } from '@prisma/client';
 import { Input } from '@/components/ui/input';
 import StudentLessonCard, {
-  SerializableAssignment, // ✅ Import the clean type
-} from './StudentLessonCard'; // Import the card component and its type
+  SerializableAssignment,
+} from './StudentLessonCard';
 import WeekDivider from './WeekDivider';
 import { getWeekAndDay } from '@/lib/utils';
 
 interface StudentLessonListProps {
-  assignments: SerializableAssignment[]; // ✅ Use the clean, serializable type
+  assignments: SerializableAssignment[];
 }
 
 export default function StudentLessonList({
@@ -41,7 +41,6 @@ export default function StudentLessonList({
       failed: filtered.filter((a) => a.status === AssignmentStatus.FAILED),
     };
 
-    // Sort pending by soonest deadline, others by most recent assignment
     grouped.pending.sort(
       (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
     );
@@ -91,7 +90,6 @@ export default function StudentLessonList({
             return (
               <div key={assignment.id}>
                 {showDivider && <WeekDivider weekNumber={week} />}
-                {/* No type error here now */}
                 <StudentLessonCard assignment={assignment} index={index} />
               </div>
             );

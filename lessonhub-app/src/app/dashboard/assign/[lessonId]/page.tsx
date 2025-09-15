@@ -6,7 +6,6 @@ import { getLessonById, getSubmissionsForLesson, getStudentsWithStats } from "@/
 import AssignLessonForm from '@/app/components/AssignLessonForm';
 import { Role } from '@prisma/client';
 
-// The 'params' prop for a Server Component is a Promise
 export default async function AssignPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
 
@@ -16,7 +15,6 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
 
   const { lessonId } = await params;
   
-  // Fetch all necessary data in parallel for better performance
   const [lesson, students, existingAssignments] = await Promise.all([
     getLessonById(lessonId),
     getStudentsWithStats(), 
@@ -27,13 +25,18 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
     return <div>Lesson not found.</div>;
   }
 
+  const serializableLesson = {
+    ...lesson,
+    price: lesson.price.toNumber(),
+  };
+
   return (
     <div className="flex justify-center">
-      <div className="w-full max-w-4xl"> {/* Increased max-width for the table */}
+      <div className="w-full max-w-4xl">
         <h1 className="text-3xl font-bold mb-2">Assign Lesson</h1>
         <h2 className="text-xl text-gray-600 mb-6">{lesson.title}</h2>
         <AssignLessonForm 
-          lesson={lesson} 
+          lesson={serializableLesson} 
           students={students} 
           existingAssignments={existingAssignments} 
         />

@@ -10,15 +10,16 @@ import { getWeekAndDay } from '@/lib/utils';
 import DeleteLessonButton from './DeleteLessonButton';
 import WeekDivider from './WeekDivider';
 import { Pencil, UserPlus, Eye, Share2, Mail } from 'lucide-react';
-import { generateShareLink } from '@/actions/lessonActions'; // ✅ Import the correct action
-import { toast } from 'sonner'; // ✅ For user feedback
+import { generateShareLink } from '@/actions/lessonActions';
+import { toast } from 'sonner';
 
-type LessonWithAssignments = Lesson & {
+type SerializableLessonWithAssignments = Omit<Lesson, 'price'> & {
+  price: number;
   assignments: Pick<Assignment, 'status' | 'deadline'>[];
 };
 
 interface TeacherLessonListProps {
-  lessons: LessonWithAssignments[];
+  lessons: SerializableLessonWithAssignments[];
 }
 
 const WEEK_STARTS_ON: 0 | 1 = 1;
@@ -54,7 +55,6 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
 
-  // Replaced the old handleShareClick with the new async version.
   const handleShareClick = async (lessonId: string) => {
     const result = await generateShareLink(lessonId);
     if (result.success && result.url) {
@@ -66,7 +66,6 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
   };
 
   const filteredLessons = useMemo(() => {
-    // ... (Your existing filtering logic is perfect and remains here)
     const today = new Date();
     const todayStart = getStartOfDay(today);
     const thisWeek = getWeekBounds(today, WEEK_STARTS_ON);

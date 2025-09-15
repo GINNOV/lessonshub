@@ -11,7 +11,7 @@ import { Trash2, PlusCircle, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
 
-type LessonWithFlashcards = Lesson & {
+type LessonWithFlashcards = Omit<Lesson, 'price'> & {
   flashcards: PrismaFlashcard[];
 };
 

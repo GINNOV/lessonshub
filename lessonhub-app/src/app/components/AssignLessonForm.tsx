@@ -15,7 +15,7 @@ type StudentWithStats = User & {
 };
 
 interface AssignLessonFormProps {
-  lesson: Lesson;
+  lesson: Omit<Lesson, 'price'> & { price: number };
   students: StudentWithStats[];
   existingAssignments: Assignment[];
 }

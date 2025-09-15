@@ -28,6 +28,11 @@ export default async function DashboardPage() {
 
   const lessons = await getLessonsForTeacher(session.user.id);
 
+  const serializableLessons = lessons.map(lesson => ({
+    ...lesson,
+    price: lesson.price.toNumber(),
+  }));
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -60,7 +65,7 @@ export default async function DashboardPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <TeacherLessonList lessons={lessons} />
+      <TeacherLessonList lessons={serializableLessons} />
     </div>
   );
 }

@@ -14,17 +14,15 @@ import { Button } from '@/components/ui/button';
 import { cn, getWeekAndDay } from '@/lib/utils';
 import { marked } from 'marked';
 
-// Define and export a clean, simple type for the serialized data.
-// This is the single source of truth for what a student assignment looks like on the client.
 export type SerializableAssignment = Assignment & {
-  lesson: Omit<Lesson, 'price'> & { // Omit the original Decimal `price`
-    price: number; // And replace it with a `number`
+  lesson: Omit<Lesson, 'price'> & {
+    price: number;
     teacher: User | null;
   };
 };
 
 interface StudentLessonCardProps {
-  assignment: SerializableAssignment; // Use the new clean type
+  assignment: SerializableAssignment;
   index: number;
 }
 
@@ -47,8 +45,8 @@ const getGradeBackground = (score: number | null) => {
 const lessonTypeImages: Record<LessonType, string> = {
   [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
   [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
-  [LessonType.STANDARD]: '/my-lessons/multiquestions.png', // Default image
-  [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png', // Default image
+  [LessonType.STANDARD]: '/my-lessons/multiquestions.png',
+  [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png',
 };
 
 export default function StudentLessonCard({

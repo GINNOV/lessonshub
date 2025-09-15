@@ -21,7 +21,6 @@ export default async function StudentDashboard() {
   ]);
 
   // Convert the Decimal objects to numbers before passing to any Client Component.
-  // This is the crucial step that was missing.
   const serializableAssignments = assignments.map((assignment) => ({
     ...assignment,
     lesson: {

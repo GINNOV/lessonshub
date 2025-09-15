@@ -15,7 +15,8 @@ import {
   MultiChoiceOption as PrismaOption,
 } from '@prisma/client';
 
-type LessonWithQuestions = Lesson & {
+type LessonWithQuestions = Omit<Lesson, 'price'> & {
+  price: number;
   multiChoiceQuestions: (PrismaQuestion & {
     options: PrismaOption[];
   })[];

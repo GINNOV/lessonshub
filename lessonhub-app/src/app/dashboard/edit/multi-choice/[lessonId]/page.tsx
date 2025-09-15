@@ -20,10 +20,15 @@ export default async function EditMultiChoicePage({ params }: { params: Promise<
         )
     }
 
+    const serializableLesson = {
+      ...lesson,
+      price: lesson.price.toNumber(),
+    };
+
     return (
         <div>
             <h1 className="text-3xl font-bold mb-6">Edit Multi-Choice Lesson</h1>
-            <MultiChoiceCreator lesson={lesson} />
+            <MultiChoiceCreator lesson={serializableLesson} />
         </div>
     );
 }

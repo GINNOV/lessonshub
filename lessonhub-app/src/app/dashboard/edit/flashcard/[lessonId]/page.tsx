@@ -20,11 +20,16 @@ export default async function EditFlashcardPage({ params }: { params: Promise<{ 
             </div>
         )
     }
+    
+    const serializableLesson = {
+      ...lesson,
+      price: lesson.price.toNumber(),
+    };
 
     return (
         <div>
             <h1 className="text-3xl font-bold mb-6">Edit Flashcard Lesson</h1>
-            <FlashcardCreator lesson={lesson} />
+            <FlashcardCreator lesson={serializableLesson} />
         </div>
     );
 }

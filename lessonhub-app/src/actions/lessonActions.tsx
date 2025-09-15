@@ -675,3 +675,27 @@ export async function assignLessonByShareId(shareId: string, studentId: string) 
     return null;
   }
 }
+
+/**
+ * Fetches all unique assignment image URLs.
+ */
+export async function getUploadedImages() {
+  try {
+    const lessonsWithImages = await prisma.lesson.findMany({
+      where: {
+        assignment_image_url: {
+          not: null,
+          equals: ''
+        },
+      },
+      select: {
+        assignment_image_url: true,
+      },
+      distinct: ['assignment_image_url'],
+    });
+    return lessonsWithImages.map(lesson => lesson.assignment_image_url).filter(Boolean) as string[];
+  } catch (error) {
+    console.error("Failed to fetch uploaded images:", error);
+    return [];
+  }
+}
