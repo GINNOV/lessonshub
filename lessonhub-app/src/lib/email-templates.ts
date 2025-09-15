@@ -103,6 +103,18 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
             </p>
         `,
     },
+    forgot_password: {
+        subject: 'Reset your LessonHUB Password',
+        body: `
+            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Reset Your Password</h1>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{userName}},</p>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Someone requested a password reset for your LessonHUB account. To proceed, first sign in securely by clicking the button below. This is a one-time link and will expire shortly.</p>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;"><strong>Once you are signed in, you will be able to set a new password from your Profile page.</strong></p>
+            {{button}}
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">If you did not request this, you can safely ignore this email.</p>
+        `,
+        buttonColor: '#f59e0b', // A warning/action color is more appropriate here
+    },
 };
 
 export function replacePlaceholders(template: string, data: Record<string, string>): string {

@@ -48,6 +48,7 @@ export default function UserTable({
     if (!result.success) {
       toast.error(result.error || 'An unknown error occurred.');
     }
+    // On success, the page will refresh via the server action's revalidation
   };
 
   const handlePayingStatusChange = async (
@@ -136,7 +137,7 @@ export default function UserTable({
                         >
                           Make Student
                         </Button>
-                        {/* Restored the correct 'destructive' variant for the red color. */}
+                        {/* ✅ FIX: Restored the correct 'destructive' variant for the red color. */}
                         <Button
                           variant="destructive"
                           size="sm"
@@ -146,7 +147,7 @@ export default function UserTable({
                         </Button>
                       </>
                     )}
-                    {/* Changed to 'outline' variant and corrected the link. */}
+                    {/* ✅ FIX: Changed to 'outline' variant and corrected the link to the new page. */}
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/admin/users/edit/${user.id}`}>Edit</Link>
                     </Button>

@@ -7,6 +7,8 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
+// ✅ Import your centralized email sending function
+import { sendEmail, createButton } from "@/lib/email-templates";
 
 if (!process.env.AUTH_SECRET) throw new Error("Missing AUTH_SECRET");
 if (!process.env.EMAIL_FROM) throw new Error("Missing EMAIL_FROM");
@@ -23,6 +25,24 @@ export const {
     ResendProvider({
       apiKey: process.env.RESEND_API_KEY!,
       from: process.env.EMAIL_FROM!,
+      // ✅ FIX: Override the default email sending logic to use your custom template system.
+      async sendVerificationRequest({ identifier: email, url, provider }) {
+        // Find the user to get their name for personalization
+        const user = await prisma.user.findUnique({ where: { email } });
+        const userName = user?.name || 'there';
+
+        await sendEmail({
+          to: email,
+          // This tells your system to use the "forgot_password" template from your database
+          templateName: 'forgot_password',
+          data: {
+            userName: userName,
+            // The `url` provided by next-auth is the secure sign-in link
+            // We pass it to your `createButton` helper to generate the button HTML
+            button: createButton('Sign In & Set New Password', url),
+          },
+        });
+      },
     }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -53,8 +73,6 @@ export const {
   secret: process.env.AUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
   callbacks: {
-    // The `jwt` callback is the first step. It gets the user's ID and basic role
-    // from the initial login and stores it in the lightweight token.
     async jwt({ token, user }) {
       if (user?.id) {
         token.id = user.id;
@@ -62,16 +80,7 @@ export const {
       }
       return token;
     },
-    // The `session` callback is the second step. It uses the ID from the token
-    // to safely fetch the user's latest data for the client-side session.
     async session({ session, token }) {
-      if (!token.id || !session.user) {
-        return session;
-      }
-
-      // Use a precise `select` statement to fetch ONLY the serializable data we need.
-      // This is the core of the fix. We are telling Prisma exactly which fields to get,
-      // which prevents it from automatically including the `lessons` relation.
       const dbUser = await prisma.user.findUnique({
         where: { id: token.id as string },
         select: {
@@ -98,28 +107,25 @@ export const {
         return session;
       }
 
-      // Handle the impersonation logic using the safely fetched data
       if (dbUser.impersonatedBy) {
         const impersonatedUser = dbUser.impersonatedBy;
         session.user = {
-          ...session.user, // Keep any default session properties
+          ...session.user,
           id: impersonatedUser.id,
           name: impersonatedUser.name,
           email: impersonatedUser.email,
           image: impersonatedUser.image,
           role: impersonatedUser.role,
           impersonating: true,
-          originalUserId: dbUser.id, // The admin's ID
+          originalUserId: dbUser.id,
         };
       } else {
-        // Handle the standard user session
         session.user.id = dbUser.id;
         session.user.name = dbUser.name;
         session.user.email = dbUser.email;
         session.user.image = dbUser.image;
         session.user.role = dbUser.role;
       }
-
       return session;
     },
   },

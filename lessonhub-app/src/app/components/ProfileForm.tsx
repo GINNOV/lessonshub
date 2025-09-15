@@ -35,10 +35,9 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
   const getInitials = (name: string | null | undefined): string => {
     if (!name) return '??';
     const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
+    return names.length > 1
+      ? `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase()
+      : name.substring(0, 2).toUpperCase();
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
