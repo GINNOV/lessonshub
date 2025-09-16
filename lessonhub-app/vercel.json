@@ -1,10 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "root": "lessonhub-app",
   "crons": [
     {
       "path": "/api/cron/daily?secret=${CRON_SECRET}",
-      "schedule": "0 9 * * *"
+      "schedule": "0 9 * **"
     }
   ]
 }

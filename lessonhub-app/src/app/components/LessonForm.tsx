@@ -13,16 +13,22 @@ import ImageBrowser from './ImageBrowser';
 import { getWeekAndDay } from '@/lib/utils';
 import { Info } from 'lucide-react';
 
-// FIX: Correctly type the lesson prop to expect a number for the price
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
 };
 
+type TeacherPreferences = {
+    defaultLessonPrice?: number | null;
+    defaultLessonPreview?: string | null;
+    defaultLessonNotes?: string | null;
+    defaultLessonInstructions?: string | null;
+};
+
 interface LessonFormProps {
   lesson?: SerializableLesson | null;
+  teacherPreferences?: TeacherPreferences | null;
 }
 
-// --- START: Robust JSON Parsing Helper ---
 async function safeJson(response: Response) {
   const contentType = response.headers.get('content-type');
   if (contentType && contentType.includes('application/json')) {
@@ -36,24 +42,24 @@ async function safeJson(response: Response) {
     return null;
   }
 }
-// --- END: Robust JSON Parsing Helper ---
 
 const OptionalIndicator = () => <Info className="text-gray-400 ml-1 h-4 w-4" />;
 
-export default function LessonForm({ lesson }: LessonFormProps) {
+export default function LessonForm({ lesson, teacherPreferences }: LessonFormProps) {
   const router = useRouter();
   const inputFileRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState('');
-  const [lessonPreview, setLessonPreview] = useState('');
+  const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
+  const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
   const [soundcloudUrl, setSoundcloudUrl] = useState('');
-  const [assignmentText, setAssignmentText] = useState('👉🏼 INSTRUCTIONS:\n');
+  const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
   const [questions, setQuestions] = useState<string[]>(['']);
   const [contextText, setContextText] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
   const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
   const [scheduledDate, setScheduledDate] = useState('');
 
@@ -77,6 +83,7 @@ export default function LessonForm({ lesson }: LessonFormProps) {
     if (lesson) {
       setTitle(lesson.title);
       setLessonPreview(lesson.lesson_preview || '');
+      setPrice(lesson.price.toString());
       setAssignmentText(lesson.assignment_text || '👉🏼 INSTRUCTIONS:\n');
       setQuestions((lesson.questions as string[])?.length > 0 ? (lesson.questions as string[]) : ['']);
       setContextText(lesson.context_text || '');
@@ -200,7 +207,8 @@ export default function LessonForm({ lesson }: LessonFormProps) {
         method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title, 
+          title,
+          price: parseFloat(price) || 0,
           lesson_preview: lessonPreview,
           assignmentText, 
           questions: validQuestions,
@@ -232,13 +240,21 @@ export default function LessonForm({ lesson }: LessonFormProps) {
       {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
       
       <div className="space-y-2">
-        <Label htmlFor="title">Lesson Title {isEditMode && lesson && `(Lesson ${getWeekAndDay(new Date(lesson.createdAt))})`}</Label>
+        <Label htmlFor="title">
+            Lesson Title 
+            {isEditMode && lesson && <span className="text-gray-400 font-normal ml-2">({getWeekAndDay(new Date(lesson.createdAt))})</span>}
+        </Label>
         <Input type="text" id="title" placeholder="e.g., Introduction to Algebra" value={title} onChange={(e) => setTitle(e.target.value)} required disabled={isLoading} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="lessonPreview">Lesson Preview</Label>
         <Textarea id="lessonPreview" placeholder="A brief preview of the lesson for students." value={lessonPreview} onChange={(e) => setLessonPreview(e.target.value)} required disabled={isLoading} />
+      </div>
+
+      <div className="space-y-2">
+          <Label htmlFor="price">Price (€)</Label>
+          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
       </div>
 
       <div className="space-y-2">

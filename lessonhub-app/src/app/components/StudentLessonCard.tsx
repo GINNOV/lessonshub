@@ -13,11 +13,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn, getWeekAndDay } from '@/lib/utils';
 import { marked } from 'marked';
+import InvestDialog from './InvestDialog';
 
+// Define a serializable version of the User type
+type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
+  defaultLessonPrice: number | null;
+};
+
+// Update the main assignment type to use the new serializable User type
 export type SerializableAssignment = Assignment & {
   lesson: Omit<Lesson, 'price'> & {
     price: number;
-    teacher: User | null;
+    teacher: SerializableUser | null;
   };
 };
 

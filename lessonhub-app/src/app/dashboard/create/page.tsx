@@ -2,8 +2,9 @@
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import LessonForm from "@/app/components/LessonForm"; // <-- UPDATED IMPORT
-import { Role } from "@prisma/client"; 
+import LessonForm from "@/app/components/LessonForm";
+import { Role } from "@prisma/client";
+import { getTeacherPreferences } from "@/actions/teacherActions"; // Import the new action
 
 export default async function CreateLessonPage() {
   const session = await auth();
@@ -12,11 +13,19 @@ export default async function CreateLessonPage() {
     redirect("/");
   }
 
+  // Fetch teacher preferences to pass to the form
+  const preferences = await getTeacherPreferences();
+  
+  const serializablePreferences = preferences ? {
+    ...preferences,
+    defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+  } : null;
+
   return (
     <div className="flex min-h-screen flex-col items-center p-8 sm:p-24">
       <div className="w-full max-w-lg">
         <h1 className="text-3xl font-bold mb-6">Create a New Lesson</h1>
-        <LessonForm /> {/* <-- UPDATED COMPONENT */}
+        <LessonForm teacherPreferences={serializablePreferences} />
       </div>
     </div>
   );

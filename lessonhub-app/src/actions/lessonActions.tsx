@@ -771,7 +771,6 @@ export async function getUploadedImages() {
       where: {
         assignment_image_url: {
           not: null,
-          equals: ''
         },
       },
       select: {

@@ -20,7 +20,8 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { title, lesson_preview, assignmentText, questions, contextText, assignment_image_url, soundcloud_url, attachment_url, notes, assignment_notification, scheduled_assignment_date } = body;
+    const { title, price, lesson_preview, assignmentText, questions, contextText, assignment_image_url, soundcloud_url, attachment_url, notes, assignment_notification, scheduled_assignment_date } = body;
+
 
     if (!title || !assignmentText) {
       return new NextResponse(
@@ -48,6 +49,7 @@ export async function PATCH(
       where: { id: lessonId },
       data: {
         title,
+        price,
         lesson_preview,
         assignment_text: assignmentText,
         questions,
