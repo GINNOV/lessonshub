@@ -1,5 +1,4 @@
 // file: src/actions/userActions.tsx
-
 'use server';
 
 import { auth, signOut } from "@/auth";
@@ -8,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
 import { getEmailTemplateByName } from "./adminActions";
 import { replacePlaceholders } from "@/lib/email-templates";
+import { nanoid } from 'nanoid'; // Import nanoid here
 
 async function sendDeletionAdminNotifications(deletedUser: { name: string | null; email: string }) {
     const admins = await prisma.user.findMany({ where: { role: Role.ADMIN } });
@@ -87,18 +87,46 @@ export async function deleteUserAccount() {
         return { success: false, error: "User not found." };
     }
     
-    // Notify admins *before* deleting the user
     await sendDeletionAdminNotifications(userToDelete);
 
     await prisma.user.delete({
       where: { id: session.user.id },
     });
     
-    // The user no longer exists, sign them out.
     await signOut({ redirectTo: '/', redirect: false });
 
     return { success: true };
   } catch (error) {
     return { success: false, error: "An error occurred while deleting the account." };
+  }
+}
+
+
+export async function getOrCreateReferralCode() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { referralCode: true },
+    });
+
+    if (user?.referralCode) {
+      return { success: true, code: user.referralCode };
+    }
+
+    const newCode = nanoid(8);
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { referralCode: newCode },
+    });
+
+    return { success: true, code: newCode };
+  } catch (error) {
+    console.error("Failed to get or create referral code:", error);
+    return { success: false, error: "An error occurred." };
   }
 }

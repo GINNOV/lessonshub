@@ -1,3 +1,4 @@
+// file: src/app/components/Navbar.tsx
 'use client';
 
 import Link from "next/link";
@@ -16,13 +17,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Role } from "@prisma/client";
 import { stopImpersonation } from "@/actions/adminActions";
 import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import ReferralDialog from "./ReferralDialog";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const user = session?.user as any;
+  const [isReferralDialogOpen, setIsReferralDialogOpen] = useState(false);
 
-  // Determine the correct home link based on user role
   const homeHref =
     status === 'authenticated'
       ? user?.role === Role.TEACHER || user?.role === Role.ADMIN
@@ -66,45 +69,51 @@ export default function Navbar() {
             {status === 'loading' ? (
               <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
             ) : session?.user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded-full">
-                    <Avatar>
-                      {session.user.image && <AvatarImage src={session.user.image} alt={session.user.name ?? 'User Avatar'} />}
-                      <AvatarFallback>{getInitials(session.user.name)}</AvatarFallback>
-                    </Avatar>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div className="font-normal text-sm text-gray-500">{session.user.email}</div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {user?.role === Role.ADMIN && (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin/users">User Management</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin/lessons">Lesson Management</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin/emails">Email Editor</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin/cron">Cron Test Page</Link>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    <SignOutButton />
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded-full">
+                      <Avatar>
+                        {session.user.image && <AvatarImage src={session.user.image} alt={session.user.name ?? 'User Avatar'} />}
+                        <AvatarFallback>{getInitials(session.user.name)}</AvatarFallback>
+                      </Avatar>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="font-normal text-sm text-gray-500">{session.user.email}</div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {user?.role === Role.ADMIN && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin/users">User Management</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin/lessons">Lesson Management</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin/emails">Email Editor</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin/cron">Cron Test Page</Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile">Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setIsReferralDialogOpen(true)}>
+                      Refer a student
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <SignOutButton />
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <ReferralDialog open={isReferralDialogOpen} onOpenChange={setIsReferralDialogOpen} />
+              </>
             ) : (
               <Button asChild>
                 <Link href="/signin">Sign In</Link>
