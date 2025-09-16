@@ -45,8 +45,8 @@ const getGradeBackground = (score: number | null) => {
 const lessonTypeImages: Record<LessonType, string> = {
   [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
   [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
-  [LessonType.STANDARD]: '/my-lessons/multiquestions.png',
-  [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png',
+  [LessonType.STANDARD]: '/my-lessons/multiquestions.png', // Default image
+  [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png', // Default image
 };
 
 export default function StudentLessonCard({

@@ -89,8 +89,10 @@ model Assignment {
   score           Int?
   gradedAt        DateTime?
   studentNotes    String?
+  rating          Int?
   answers         Json?
   teacherComments String?
+  reminderSentAt  DateTime?
   lessonId        String
   studentId       String
   lesson          Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)

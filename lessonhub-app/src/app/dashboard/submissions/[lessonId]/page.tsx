@@ -39,6 +39,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reminder Sent</th>
                 <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -63,6 +64,9 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(sub.deadline).toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.score ?? 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {sub.reminderSentAt ? new Date(sub.reminderSentAt).toLocaleString() : 'No'}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2 flex-wrap">
                       {sub.status === AssignmentStatus.PENDING && !isPastDue && (
@@ -72,7 +76,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                         <FailButton assignmentId={sub.id} />
                       )}
                       {sub.status === 'COMPLETED' && (
-                        <Button variant="link" asChild>
+                        <Button asChild>
                           <Link href={`/dashboard/grade/${sub.id}`}>Grade</Link>
                         </Button>
                       )}

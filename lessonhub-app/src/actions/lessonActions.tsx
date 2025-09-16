@@ -313,6 +313,14 @@ export async function sendManualReminder(assignmentId: string) {
             button: createButton('View Assignment', assignmentUrl, template.buttonColor || undefined),
         }
     });
+
+    // Update the database to record that a reminder was sent
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: { reminderSentAt: new Date() },
+    });
+    
+    revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);
     return { success: true };
   } catch (error) {
     console.error("Failed to send reminder:", error);
@@ -583,7 +591,7 @@ export async function gradeAssignment(assignmentId: string, data: { score: numbe
 export async function submitStandardAssignment(
   assignmentId: string,
   studentId: string,
-  data: { answers: string[]; studentNotes: string }
+  data: { answers: string[]; studentNotes: string; rating?: number } // Add rating to the data object
 ) {
   try {
     const assignment = await prisma.assignment.findFirst({
@@ -607,6 +615,7 @@ export async function submitStandardAssignment(
       data: {
         answers: data.answers,
         studentNotes: data.studentNotes,
+        rating: data.rating, // Save the rating
         status: AssignmentStatus.COMPLETED,
       },
     });

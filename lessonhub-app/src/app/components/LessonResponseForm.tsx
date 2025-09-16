@@ -7,6 +7,7 @@ import { Assignment, AssignmentStatus, Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import Rating from './Rating'; // Import the new rating component
 
 interface LessonResponseFormProps {
   assignment: Assignment & {
@@ -33,6 +34,7 @@ export default function LessonResponseForm({
   const [studentNotes, setStudentNotes] = useState(
     assignment.studentNotes || ''
   );
+  const [rating, setRating] = useState(assignment.rating || 0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,7 +63,7 @@ export default function LessonResponseForm({
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ answers, studentNotes }),
+          body: JSON.stringify({ answers, studentNotes, rating }),
         }
       );
 
@@ -111,8 +113,7 @@ export default function LessonResponseForm({
       </div>
 
       <div className="mt-6 space-y-2 border-t pt-6">
-        {/* ✅ TWEAK: Simplified the label text as requested. */}
-        <Label htmlFor="student-notes">Student Notes</Label>
+        <Label htmlFor="student-notes" className="font-bold uppercase">STUDENT NOTES</Label>
         <Textarea
           id="student-notes"
           value={studentNotes}
@@ -127,13 +128,18 @@ export default function LessonResponseForm({
       )}
 
       {assignment.status === 'PENDING' && (
-        <Button
-          type="submit"
-          disabled={isLoading || isReadOnly}
-          className="mt-4"
-        >
-          {getButtonText()}
-        </Button>
+        <div className="flex items-center gap-4 mt-4">
+            <Button
+                type="submit"
+                disabled={isLoading || isReadOnly}
+            >
+                {getButtonText()}
+            </Button>
+            <div className="flex items-center gap-2">
+                <Label>Rate this lesson:</Label>
+                <Rating value={rating} onChange={setRating} disabled={isLoading || isReadOnly} />
+            </div>
+        </div>
       )}
     </form>
   );

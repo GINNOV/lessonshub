@@ -8,6 +8,7 @@ import {
   FileBadge,
   TrendingUp,
 } from 'lucide-react';
+import InvestDialog from './InvestDialog';
 
 interface StudentStatsHeaderProps {
   totalValue: number;
@@ -57,9 +58,13 @@ export default function StudentStatsHeader({
               €{totalValue.toFixed(2)}
             </p>
           </div>
-          <p className="mt-4 text-xs text-gray-400">
+          <div className="mt-4 text-xs text-gray-400">
             Total value from all graded lessons.
-          </p>
+            <div className="mt-2">
+                <span>💫 </span>
+                <InvestDialog />
+            </div>
+          </div>
         </div>
       </div>
 

@@ -20,13 +20,17 @@ export default async function StudentDashboard() {
     getStudentStats(session.user.id),
   ]);
 
-  // Convert the Decimal objects to numbers before passing to any Client Component.
+  // Convert all Decimal objects to numbers before passing to any Client Component.
   const serializableAssignments = assignments.map((assignment) => ({
     ...assignment,
     lesson: {
       ...assignment.lesson,
-      // Prisma's Decimal type has a .toNumber() method for safe conversion
       price: assignment.lesson.price.toNumber(),
+      // Ensure the nested teacher object is also serialized
+      teacher: assignment.lesson.teacher ? {
+        ...assignment.lesson.teacher,
+        defaultLessonPrice: assignment.lesson.teacher.defaultLessonPrice?.toNumber() ?? null,
+      } : null,
     },
   }));
 
@@ -53,7 +57,6 @@ export default async function StudentDashboard() {
         graded={graded}
       />
 
-      {/* Pass the newly serialized data to the client component */}
       <StudentLessonList assignments={serializableAssignments} />
     </div>
   );
