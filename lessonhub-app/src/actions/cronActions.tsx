@@ -4,6 +4,8 @@
 import { auth } from "@/auth";
 import { Role } from "@prisma/client";
 import { sendEmail, createButton } from '@/lib/email-templates';
+import prisma from "@/lib/prisma";
+import { getEmailTemplateByName } from "./adminActions";
 
 /**
  * Sends a test email to the currently logged-in admin to verify cron functionality.
@@ -46,3 +48,86 @@ export async function sendCronTestEmail() {
   }
 }
 
+/**
+ * Processes lessons scheduled for assignment on the current day.
+ */
+export async function processScheduledAssignments() {
+  console.log('Starting scheduled assignment cron job.');
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const lessonsToAssign = await prisma.lesson.findMany({
+      where: {
+        assignment_notification: 'ASSIGN_ON_DATE',
+        scheduled_assignment_date: {
+          gte: today,
+          lt: tomorrow,
+        },
+      },
+      include: {
+        teacher: true,
+      },
+    });
+
+    if (lessonsToAssign.length === 0) {
+      console.log('No lessons scheduled for assignment today.');
+      return { success: true, message: 'No lessons scheduled for assignment today.' };
+    }
+
+    console.log(`Found ${lessonsToAssign.length} lesson(s) to assign.`);
+    const students = await prisma.user.findMany({ where: { role: 'STUDENT' } });
+    if (students.length === 0) {
+        console.log('No students found to assign lessons to.');
+        return { success: true, message: 'No students found.' };
+    }
+
+    const template = await getEmailTemplateByName('new_assignment');
+    if (!template) {
+        console.error('"new_assignment" email template not found.');
+        return { success: false, error: 'New assignment email template not found.' };
+    }
+
+    for (const lesson of lessonsToAssign) {
+      const assignmentsData = students.map(student => ({
+        lessonId: lesson.id,
+        studentId: student.id,
+        deadline: new Date(Date.now() + 36 * 60 * 60 * 1000), // Default 36h deadline
+      }));
+
+      await prisma.assignment.createMany({
+        data: assignmentsData,
+        skipDuplicates: true,
+      });
+
+      for (const student of students) {
+        if (student.email && lesson.teacher) {
+          await sendEmail({
+            to: student.email,
+            templateName: 'new_assignment',
+            data: {
+              studentName: student.name || 'student',
+              teacherName: lesson.teacher.name || 'your teacher',
+              lessonTitle: lesson.title,
+              deadline: new Date(Date.now() + 36 * 60 * 60 * 1000).toLocaleString(),
+              button: createButton('Start Lesson', `${process.env.AUTH_URL}/my-lessons`),
+            }
+          });
+        }
+      }
+
+      await prisma.lesson.update({
+        where: { id: lesson.id },
+        data: { assignment_notification: 'ASSIGN_WITHOUT_NOTIFICATION' },
+      });
+      console.log(`Successfully assigned and notified for lesson: "${lesson.title}"`);
+    }
+
+    return { success: true, message: `Processed ${lessonsToAssign.length} scheduled lessons.` };
+  } catch (error) {
+    console.error('An unexpected error occurred in the scheduled assignment cron job:', error);
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}

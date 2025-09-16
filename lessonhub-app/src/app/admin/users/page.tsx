@@ -18,6 +18,11 @@ export default async function UserManagementPage({
 
   const users = await getAllUsers();
 
+  const serializableUsers = users.map(user => ({
+    ...user,
+    defaultLessonPrice: user.defaultLessonPrice?.toNumber() ?? null,
+  }));
+
   const params = await searchParams;
   const searchTerm = typeof params?.search === "string" ? params.search : "";
 
@@ -25,7 +30,7 @@ export default async function UserManagementPage({
     <div>
       <h1 className="text-3xl font-bold mb-6">User Management</h1>
       <div className="bg-white p-6 rounded-lg shadow-md border">
-        <UserTable users={users} searchTerm={searchTerm} />
+        <UserTable users={serializableUsers} searchTerm={searchTerm} />
       </div>
     </div>
   );

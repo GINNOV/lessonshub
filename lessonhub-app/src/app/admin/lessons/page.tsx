@@ -20,10 +20,18 @@ export default async function LessonManagementPage({
     getAllTeachers(),
   ]);
 
-
   const serializableLessons = lessons.map((lesson) => ({
     ...lesson,
     price: lesson.price.toNumber(),
+    teacher: lesson.teacher ? {
+      ...lesson.teacher,
+      defaultLessonPrice: lesson.teacher.defaultLessonPrice?.toNumber() ?? null,
+    } : null,
+  }));
+
+  const serializableTeachers = teachers.map(teacher => ({
+      ...teacher,
+      defaultLessonPrice: teacher.defaultLessonPrice?.toNumber() ?? null,
   }));
 
   const params = await searchParams;
@@ -35,7 +43,7 @@ export default async function LessonManagementPage({
       <div className="rounded-lg border bg-white p-6 shadow-md">
         <LessonTable
           lessons={serializableLessons}
-          teachers={teachers}
+          teachers={serializableTeachers}
           searchTerm={searchTerm}
         />
       </div>
