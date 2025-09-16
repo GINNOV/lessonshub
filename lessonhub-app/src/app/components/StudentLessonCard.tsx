@@ -93,6 +93,13 @@ const getSavingsInfo = (status: AssignmentStatus, score: number | null, price: n
     };
 };
 
+const getScoreIcon = (score: number | null) => {
+    if (score === null) return null;
+    if (score === 10) return '🏆';
+    if (score === -1) return '💩';
+    return '🤗';
+}
+
 export default function StudentLessonCard({
   assignment,
   index,
@@ -108,17 +115,17 @@ export default function StudentLessonCard({
     : '';
     
   const savingsInfo = getSavingsInfo(assignment.status, assignment.score, assignment.lesson.price);
-  const showTrophy = assignment.score === 10;
+  const scoreIcon = getScoreIcon(assignment.score);
 
   return (
     <div
       className={cn(
-        'rounded-lg border p-4 shadow-sm sm:p-6',
+        'rounded-lg border p-4 shadow-sm sm:p-6 overflow-hidden',
         index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
       )}
     >
       <div className="flex flex-col gap-6 sm:flex-row">
-        <div className="w-full flex-shrink-0 sm:w-auto">
+        <div className="w-full flex-shrink-0 sm:w-auto relative">
           <Image
             src={
               assignment.lesson.assignment_image_url ||
@@ -130,8 +137,8 @@ export default function StudentLessonCard({
             className="h-auto w-full rounded-md object-cover sm:h-[100px] sm:w-[150px]"
             priority={index < 3}
           />
-          {showTrophy && (
-            <div className="absolute -bottom-2 -left-2 text-5xl">🏆</div>
+          {scoreIcon && (
+            <div className="absolute -bottom-2 -left-2 text-5xl">{scoreIcon}</div>
           )}
         </div>
         <div className="flex-grow">

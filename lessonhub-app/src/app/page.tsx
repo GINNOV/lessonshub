@@ -94,18 +94,18 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <TestimonialCard
               quote="LessonHUB has transformed my classroom. The ability to create interactive lessons has boosted student engagement to a level I've never seen before."
-              author="Maria Rossi"
+              author="Maria Giuilli"
               role="High School Teacher"
             />
             <TestimonialCard
               quote="As a student, I love how organized my assignments are. The personalized feedback from my teacher helps me improve and understand the material better."
-              author="Luca Bianchi"
+              author="G. Conte"
               role="University Student"
             />
             <TestimonialCard
-              quote="The admin features are a lifesaver. Managing users and lessons across our entire district has never been easier or more intuitive. Highly recommended!"
-              author="Sofia Ricci"
-              role="School Administrator"
+              quote="I’m learning faster with less grammar! The method is so practical that I understand more and more every day — and the grammar comes naturally without even noticing. I don't need a certificate to prove my level; I can just use the language!"
+              author="Sofia Cataldo"
+              role="Top Student"
             />
           </div>
         </div>
