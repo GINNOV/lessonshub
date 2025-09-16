@@ -14,18 +14,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 import LessonPriceEditor from './LessonPriceEditor';
 
+type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
+    defaultLessonPrice: number | null;
+};
+
 export type SerializableLesson = {
   id: string;
   title: string;
   type: LessonType;
   price: number;
-  teacher: User | null;
+  teacher: SerializableUser | null;
   assignments: Assignment[];
 };
 
 interface LessonTableProps {
   lessons: SerializableLesson[];
-  teachers: User[];
+  teachers: SerializableUser[];
   searchTerm: string;
 }
 

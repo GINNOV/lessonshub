@@ -687,6 +687,29 @@ export async function getStudentStats(studentId: string) {
 }
 
 /**
+ * Calculates the average rating for a specific lesson.
+ */
+export async function getLessonAverageRating(lessonId: string) {
+  try {
+    const result = await prisma.assignment.aggregate({
+      _avg: {
+        rating: true,
+      },
+      where: {
+        lessonId: lessonId,
+        rating: {
+          not: null,
+        },
+      },
+    });
+    return result._avg.rating;
+  } catch (error) {
+    console.error(`Failed to get average rating for lesson ${lessonId}:`, error);
+    return null;
+  }
+}
+
+/**
  * Gets the number of students who have completed a specific lesson.
  */
 export async function getLessonCompletionStats(lessonId: string) {

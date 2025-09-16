@@ -15,8 +15,12 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
+type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
+    defaultLessonPrice: number | null;
+};
+
 interface UserTableProps {
-  users: User[];
+  users: SerializableUser[];
   searchTerm: string;
 }
 
@@ -137,7 +141,6 @@ export default function UserTable({
                         >
                           Make Student
                         </Button>
-                        {/* ✅ FIX: Restored the correct 'destructive' variant for the red color. */}
                         <Button
                           variant="destructive"
                           size="sm"
@@ -147,7 +150,6 @@ export default function UserTable({
                         </Button>
                       </>
                     )}
-                    {/* ✅ FIX: Changed to 'outline' variant and corrected the link to the new page. */}
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/admin/users/edit/${user.id}`}>Edit</Link>
                     </Button>

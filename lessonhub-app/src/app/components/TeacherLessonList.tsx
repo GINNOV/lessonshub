@@ -9,13 +9,14 @@ import { Input } from '@/components/ui/input';
 import { getWeekAndDay } from '@/lib/utils';
 import DeleteLessonButton from './DeleteLessonButton';
 import WeekDivider from './WeekDivider';
-import { Pencil, UserPlus, Eye, Share2, Mail } from 'lucide-react';
+import { Pencil, UserPlus, Eye, Share2, Mail, Star } from 'lucide-react';
 import { generateShareLink } from '@/actions/lessonActions';
 import { toast } from 'sonner';
 
 type SerializableLessonWithAssignments = Omit<Lesson, 'price'> & {
   price: number;
   assignments: Pick<Assignment, 'status' | 'deadline'>[];
+  averageRating?: number | null;
 };
 
 interface TeacherLessonListProps {
@@ -155,10 +156,18 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                   {showDivider && <WeekDivider weekNumber={lesson.week} />}
                   <li className="p-4 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center">
                     <div className="flex-1 mb-4 sm:mb-0">
-                      <Link href={`/dashboard/edit/${lesson.id}`} className="font-bold text-lg hover:underline">
-                        <span className="mr-2">{lessonTypeEmojis[lesson.type]}</span>
-                        {lesson.title}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link href={`/dashboard/edit/${lesson.id}`} className="font-bold text-lg hover:underline">
+                          <span className="mr-2">{lessonTypeEmojis[lesson.type]}</span>
+                          {lesson.title}
+                        </Link>
+                        {lesson.averageRating && (
+                            <div className="flex items-center gap-1 text-yellow-500">
+                                <Star className="h-4 w-4 fill-current" />
+                                <span className="text-sm font-bold">{lesson.averageRating.toFixed(1)}</span>
+                            </div>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-400 mt-1">
                         Lesson {getWeekAndDay(lesson.createdAt)} - Created on: {new Date(lesson.createdAt).toLocaleDateString()}
                         {firstDeadline && (

@@ -2,7 +2,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getLessonsForTeacher } from "@/actions/lessonActions";
+import { getLessonsForTeacher, getLessonAverageRating } from "@/actions/lessonActions";
 import { getTeacherPreferences } from "@/actions/teacherActions";
 import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button";
@@ -32,10 +32,16 @@ export default async function DashboardPage() {
     getTeacherPreferences(),
   ]);
 
-  const serializableLessons = lessons.map(lesson => ({
-    ...lesson,
-    price: lesson.price.toNumber(),
-  }));
+  const lessonsWithRatings = await Promise.all(
+    lessons.map(async (lesson) => {
+      const avgRating = await getLessonAverageRating(lesson.id);
+      return {
+        ...lesson,
+        price: lesson.price.toNumber(),
+        averageRating: avgRating,
+      };
+    })
+  );
   
   const serializablePreferences = preferences ? {
       ...preferences,
@@ -74,7 +80,7 @@ export default async function DashboardPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <TeacherLessonList lessons={serializableLessons} />
+      <TeacherLessonList lessons={lessonsWithRatings} />
       <TeacherPreferences initialPreferences={serializablePreferences} />
     </div>
   );
