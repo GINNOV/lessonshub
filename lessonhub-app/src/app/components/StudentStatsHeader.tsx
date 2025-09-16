@@ -7,8 +7,10 @@ import {
   CircleCheckBig,
   FileBadge,
   TrendingUp,
+  Info
 } from 'lucide-react';
 import InvestDialog from './InvestDialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface StudentStatsHeaderProps {
   totalValue: number;
@@ -65,6 +67,18 @@ export default function StudentStatsHeader({
                 <InvestDialog />
             </div>
           </div>
+        </div>
+        <div className="absolute bottom-4 right-4">
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger>
+                        <Info className="h-5 w-5 text-gray-400 hover:text-white" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Quanto avresti speso con un metodo di insegnamento tradizionale. 💪🏼 Che affare! 💶</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
         </div>
       </div>
 
