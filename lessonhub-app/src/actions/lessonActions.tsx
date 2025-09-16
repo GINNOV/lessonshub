@@ -687,6 +687,26 @@ export async function getStudentStats(studentId: string) {
 }
 
 /**
+ * Gets the number of students who have completed a specific lesson.
+ */
+export async function getLessonCompletionStats(lessonId: string) {
+  try {
+    const count = await prisma.assignment.count({
+      where: {
+        lessonId: lessonId,
+        status: {
+          in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED],
+        },
+      },
+    });
+    return count;
+  } catch (error) {
+    console.error("Failed to fetch lesson completion stats:", error);
+    return 0;
+  }
+}
+
+/**
  * Generates or retrieves a unique shareable link for a lesson.
  */
 export async function generateShareLink(lessonId: string) {

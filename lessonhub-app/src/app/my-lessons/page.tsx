@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   getAssignmentsForStudent,
   getStudentStats,
+  getLessonCompletionStats, // Import the new action
 } from "@/actions/lessonActions";
 import StudentLessonList from "@/app/components/StudentLessonList";
 import StudentStatsHeader from "@/app/components/StudentStatsHeader";
@@ -20,19 +21,24 @@ export default async function StudentDashboard() {
     getStudentStats(session.user.id),
   ]);
 
-  // Convert all Decimal objects to numbers before passing to any Client Component.
-  const serializableAssignments = assignments.map((assignment) => ({
-    ...assignment,
-    lesson: {
-      ...assignment.lesson,
-      price: assignment.lesson.price.toNumber(),
-      // Ensure the nested teacher object is also serialized
-      teacher: assignment.lesson.teacher ? {
-        ...assignment.lesson.teacher,
-        defaultLessonPrice: assignment.lesson.teacher.defaultLessonPrice?.toNumber() ?? null,
-      } : null,
-    },
-  }));
+  // Fetch completion stats for each lesson
+  const assignmentsWithStats = await Promise.all(
+    assignments.map(async (assignment) => {
+      const completionCount = await getLessonCompletionStats(assignment.lessonId);
+      return {
+        ...assignment,
+        lesson: {
+          ...assignment.lesson,
+          price: assignment.lesson.price.toNumber(),
+          teacher: assignment.lesson.teacher ? {
+            ...assignment.lesson.teacher,
+            defaultLessonPrice: assignment.lesson.teacher.defaultLessonPrice?.toNumber() ?? null,
+          } : null,
+        },
+        completionCount,
+      };
+    })
+  );
 
   const totalAssignments = assignments.length;
   const pending = assignments.filter(
@@ -57,7 +63,7 @@ export default async function StudentDashboard() {
         graded={graded}
       />
 
-      <StudentLessonList assignments={serializableAssignments} />
+      <StudentLessonList assignments={assignmentsWithStats} />
     </div>
   );
 }

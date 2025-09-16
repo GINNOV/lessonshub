@@ -13,7 +13,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn, getWeekAndDay } from '@/lib/utils';
 import { marked } from 'marked';
-import InvestDialog from './InvestDialog';
 
 // Define a serializable version of the User type
 type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
@@ -26,6 +25,7 @@ export type SerializableAssignment = Assignment & {
     price: number;
     teacher: SerializableUser | null;
   };
+  completionCount?: number;
 };
 
 interface StudentLessonCardProps {
@@ -44,7 +44,7 @@ const statusStyles = {
 const getGradeBackground = (score: number | null) => {
   if (score === null) return 'bg-gray-100';
   if (score === 10) return 'bg-gradient-to-br from-green-100 to-green-200';
-  if (score === 2) return 'bg-gradient-to-br from-amber-100 to-amber-200';
+  if (score >= 2 && score <= 5) return 'bg-gradient-to-br from-amber-100 to-amber-200';
   if (score === -1) return 'bg-gradient-to-br from-red-100 to-red-200';
   return 'bg-gradient-to-br from-yellow-100 to-yellow-200';
 };
@@ -52,8 +52,45 @@ const getGradeBackground = (score: number | null) => {
 const lessonTypeImages: Record<LessonType, string> = {
   [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
   [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
-  [LessonType.STANDARD]: '/my-lessons/multiquestions.png', // Default image
-  [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png', // Default image
+  [LessonType.STANDARD]: '/my-lessons/multiquestions.png',
+  [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png',
+};
+
+const getSavingsInfo = (status: AssignmentStatus, score: number | null, price: number) => {
+    if (status === 'FAILED') {
+        return { text: 'You SAVED €0.00', emojis: '😞', color: 'text-gray-500' };
+    }
+    
+    if (status !== 'GRADED' || score === null) {
+        return null;
+    }
+
+    let savedAmount = 0;
+    let emojis = '';
+    let color = 'text-green-600';
+
+    if (score === 10) {
+        savedAmount = price;
+        emojis = '💶 💶 💶 💶 💶';
+    } else if (score >= 6 && score <= 9) {
+        savedAmount = price * 0.8;
+        emojis = '💶 💶 💶';
+        color = 'text-yellow-600';
+    } else if (score >= 2 && score <= 5) {
+        savedAmount = price * 0.5;
+        emojis = '💶 💶';
+        color = 'text-orange-600';
+    } else if (score === -1) {
+        savedAmount = price * 0.01;
+        emojis = '🙊';
+        color = 'text-red-600';
+    }
+
+    return {
+        text: `You SAVED €${savedAmount.toFixed(2)}`,
+        emojis,
+        color,
+    };
 };
 
 export default function StudentLessonCard({
@@ -69,6 +106,8 @@ export default function StudentLessonCard({
   const commentsHtml = assignment.teacherComments
     ? marked.parse(assignment.teacherComments)
     : '';
+    
+  const savingsInfo = getSavingsInfo(assignment.status, assignment.score, assignment.lesson.price);
 
   return (
     <div
@@ -124,10 +163,16 @@ export default function StudentLessonCard({
           {assignment.status === 'GRADED' && (
             <div
               className={cn(
-                'mt-4 rounded-md border p-3',
+                'mt-4 rounded-md border p-3 relative',
                 getGradeBackground(assignment.score)
               )}
             >
+              {savingsInfo && (
+                <div className={`absolute top-2 right-2 text-right ${savingsInfo.color}`}>
+                  <div className="text-3xl">{savingsInfo.emojis}</div>
+                  <div className="text-xs font-bold">{savingsInfo.text}</div>
+                </div>
+              )}
               <h3 className="font-semibold">Grade and Feedback</h3>
               <div className="mt-2 flex items-start gap-4">
                 <div className="flex-shrink-0 rounded-md border bg-white/50 p-2 text-center">
@@ -145,10 +190,17 @@ export default function StudentLessonCard({
           )}
 
           <div className="mt-4 flex items-center justify-between border-t pt-4">
-            <p className="text-sm text-gray-500">
-              <strong>Deadline:</strong>{' '}
-              {new Date(assignment.deadline).toLocaleString()}
-            </p>
+            <div className="text-sm text-gray-500">
+                <p>
+                    <strong>⏳ Deadline:</strong>{' '}
+                    {new Date(assignment.deadline).toLocaleString()}
+                </p>
+                {typeof assignment.completionCount === 'number' && (
+                    <p className="text-xs mt-1">
+                        {assignment.completionCount} student(s) have completed this lesson.
+                    </p>
+                )}
+            </div>
             {assignment.status === 'PENDING' && !isPastDeadline && (
               <Button asChild>
                 <Link href={`/assignments/${assignment.id}`}>Start Lesson</Link>
