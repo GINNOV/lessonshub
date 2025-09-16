@@ -5,7 +5,9 @@ import { auth } from "@/auth";
 import { getSubmissionForGrading } from "@/actions/lessonActions";
 import { LessonType, Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
+import LessonContentView from "@/app/components/LessonContentView";
 import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { marked } from "marked";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,14 +21,14 @@ type MultiChoiceAnswer = {
 export default async function GradeSubmissionPage({
   params,
 }: {
-  params: { assignmentId: string };
+  params: Promise<{ assignmentId: string }>;
 }) {
   const session = await auth();
   if (!session || session.user.role !== Role.TEACHER) {
     redirect("/");
   }
 
-  const { assignmentId } = params;
+  const { assignmentId } = await params; // Correctly await the params
   const submission = await getSubmissionForGrading(
     assignmentId,
     session.user.id
@@ -53,9 +55,7 @@ export default async function GradeSubmissionPage({
     }
   };
 
-  const assignmentHtml = submission.lesson.assignment_text
-    ? ((await marked.parse(submission.lesson.assignment_text)) as string)
-    : "";
+  const studentNotesHtml = submission.studentNotes ? ((await marked.parse(submission.studentNotes)) as string) : "";
 
   return (
     <div>
@@ -73,24 +73,14 @@ export default async function GradeSubmissionPage({
         <div className="space-y-6 rounded-lg border bg-white p-6 shadow-md">
           <div>
             <h2 className="border-b pb-2 text-xl font-semibold">
-              Lesson Content: {submission.lesson.title}
-            </h2>
-            <div className="prose prose-sm mt-4 max-w-none">
-              <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
-            </div>
-          </div>
-
-
-          <div>
-            <h2 className="border-b pb-2 text-xl font-semibold">
               Student&apos;s Response
             </h2>
 
             {submission.lesson.type === LessonType.MULTI_CHOICE && (
-                <div className="mt-4 space-y-6">{/* ... */}</div>
+                <div className="mt-4 space-y-6">{/* ... Multi-choice answer display ... */}</div>
             )}
             {submission.lesson.type === LessonType.FLASHCARD && (
-                <div className="mt-4 text-center">{/* ... */}</div>
+                <div className="mt-4 text-center">{/* ... Flashcard answer display ... */}</div>
             )}
 
             {submission.lesson.type === LessonType.STANDARD && (
@@ -116,15 +106,6 @@ export default async function GradeSubmissionPage({
                 )}
               </div>
             )}
-
-            {submission.studentNotes && (
-              <div className="mt-4">
-                <h3 className="font-semibold">Student Notes</h3>
-                <p className="mt-1 whitespace-pre-wrap">
-                  {submission.studentNotes}
-                </p>
-              </div>
-            )}
           </div>
         </div>
 
@@ -132,6 +113,20 @@ export default async function GradeSubmissionPage({
           <GradingForm assignment={serializableSubmission} />
         </div>
       </div>
+      
+      <div className="mt-8">
+        <Accordion type="single" collapsible>
+            <AccordionItem value="lesson-content">
+                <AccordionTrigger>View Original Lesson Content</AccordionTrigger>
+                <AccordionContent>
+                    <div className="p-4 border rounded-md bg-gray-50">
+                        <LessonContentView lesson={serializableSubmission.lesson} />
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
+      </div>
+
     </div>
   );
 }

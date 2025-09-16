@@ -12,6 +12,7 @@ import WeekDivider from './WeekDivider';
 import { Pencil, UserPlus, Eye, Share2, Mail, Star } from 'lucide-react';
 import { generateShareLink } from '@/actions/lessonActions';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 type SerializableLessonWithAssignments = Omit<Lesson, 'price'> & {
   price: number;
@@ -139,13 +140,14 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
         <h2 className="text-2xl font-semibold mb-4">Your Lessons</h2>
         {filteredLessons.length > 0 ? (
           <ul className="space-y-4">
-            {filteredLessons.map((lesson) => {
+            {filteredLessons.map((lesson, index) => {
                const showDivider = lesson.week !== lastWeek;
                lastWeek = lesson.week;
                
               const now = new Date();
               const totalAssignments = lesson.assignments.length;
               const graded = lesson.assignments.filter(a => a.status === AssignmentStatus.GRADED).length;
+              const completed = lesson.assignments.filter(a => a.status === AssignmentStatus.COMPLETED).length;
               const pending = lesson.assignments.filter(a => a.status === AssignmentStatus.PENDING && new Date(a.deadline) > now).length;
               const pastDue = lesson.assignments.filter(a => a.status === AssignmentStatus.PENDING && new Date(a.deadline) <= now).length;
               const failed = lesson.assignments.filter(a => a.status === AssignmentStatus.FAILED).length;
@@ -154,7 +156,10 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
               return (
                 <div key={lesson.id}>
                   {showDivider && <WeekDivider weekNumber={lesson.week} />}
-                  <li className="p-4 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                  <li className={cn(
+                      "p-4 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center",
+                      index % 2 !== 0 && "bg-slate-50"
+                  )}>
                     <div className="flex-1 mb-4 sm:mb-0">
                       <div className="flex items-center gap-2">
                         <Link href={`/dashboard/edit/${lesson.id}`} className="font-bold text-lg hover:underline">
@@ -180,6 +185,9 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                         </span>
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
                           {pending} Pending
+                        </span>
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {completed} Completed
                         </span>
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                           {graded} Graded

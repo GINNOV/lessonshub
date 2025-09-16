@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { Role, AssignmentStatus, LessonType } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
 import { getEmailTemplateByName } from '@/actions/adminActions';
+import { checkAndSendMilestoneEmail } from '@/actions/studentActions';
 import { replacePlaceholders, createButton, sendEmail } from '@/lib/email-templates';
 import { auth } from "@/auth";
 import { nanoid } from 'nanoid';
@@ -569,11 +570,16 @@ export async function gradeAssignment(assignmentId: string, data: { score: numbe
             button: createButton('View Your Grade', assignmentUrl),
           }
         });
+
+        
       } catch (emailError) {
         console.error("An unexpected error occurred while sending the email:", emailError);
       }
     }
 
+    // After successfully grading, check for a milestone
+    await checkAndSendMilestoneEmail(assignment.studentId);
+    
     revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);
     revalidatePath('/my-lessons'); // This line ensures the student's dashboard is updated.
     return { success: true };

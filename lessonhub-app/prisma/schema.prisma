@@ -102,6 +102,7 @@ model Assignment {
   answers         Json?
   teacherComments String?
   reminderSentAt  DateTime?
+  milestoneNotified Boolean @default(false)
   lessonId        String
   studentId       String
   lesson          Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)

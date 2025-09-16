@@ -108,6 +108,7 @@ export default function StudentLessonCard({
     : '';
     
   const savingsInfo = getSavingsInfo(assignment.status, assignment.score, assignment.lesson.price);
+  const showTrophy = assignment.score === 10;
 
   return (
     <div
@@ -129,6 +130,9 @@ export default function StudentLessonCard({
             className="h-auto w-full rounded-md object-cover sm:h-[100px] sm:w-[150px]"
             priority={index < 3}
           />
+          {showTrophy && (
+            <div className="absolute -bottom-2 -left-2 text-5xl">🏆</div>
+          )}
         </div>
         <div className="flex-grow">
           <div className="mb-2 flex items-start justify-between">

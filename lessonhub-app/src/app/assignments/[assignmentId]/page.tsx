@@ -9,6 +9,7 @@ import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
 import FlashcardPlayer from "@/app/components/FlashcardPlayer";
 import { marked } from "marked";
 import { AssignmentStatus, LessonType } from "@prisma/client";
+import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -101,10 +102,11 @@ export default async function AssignmentPage({
 
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
-
+  const showConfetti = serializableAssignment.score === 10;
+  
   return (
     <div className="mx-auto max-w-4xl rounded-lg bg-white p-8 shadow-md">
-      {/* ... (graded and past deadline sections remain the same) ... */}
+      {showConfetti && <Confetti />}
 
       <h1 className="mb-2 text-3xl font-bold">{lesson.title}</h1>
       <p className="mb-6 text-sm font-bold text-red-600">

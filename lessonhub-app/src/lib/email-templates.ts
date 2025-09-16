@@ -166,6 +166,16 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
             </div>
         `,
     },
+    milestone_celebration: {
+        subject: '🎉 Congratulations on completing 10 lessons!',
+        body: `
+            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">You're on a Roll!</h1>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{studentName}},</p>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Congratulations on completing another 10 lessons! Your dedication and hard work are paying off. Keep up the fantastic progress!</p>
+            {{button}}
+        `,
+        buttonColor: '#28a745',
+    },
 };
 
 export function replacePlaceholders(template: string, data: Record<string, string>): string {
