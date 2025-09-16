@@ -4,10 +4,12 @@ import { redirect } from "next/navigation";
 import {
   getAssignmentsForStudent,
   getStudentStats,
-  getLessonCompletionStats, // Import the new action
+  getLessonCompletionStats,
 } from "@/actions/lessonActions";
+import { getLeaderboardData } from "@/actions/studentActions"; // Import the new action
 import StudentLessonList from "@/app/components/StudentLessonList";
 import StudentStatsHeader from "@/app/components/StudentStatsHeader";
+import Leaderboard from "@/app/components/Leaderboard"; // Import the new component
 import { AssignmentStatus } from "@prisma/client";
 
 export default async function StudentDashboard() {
@@ -16,12 +18,12 @@ export default async function StudentDashboard() {
     redirect("/signin");
   }
 
-  const [assignments, stats] = await Promise.all([
+  const [assignments, stats, leaderboardData] = await Promise.all([
     getAssignmentsForStudent(session.user.id),
     getStudentStats(session.user.id),
+    getLeaderboardData(),
   ]);
 
-  // Fetch completion stats for each lesson
   const assignmentsWithStats = await Promise.all(
     assignments.map(async (assignment) => {
       const completionCount = await getLessonCompletionStats(assignment.lessonId);
@@ -64,6 +66,8 @@ export default async function StudentDashboard() {
       />
 
       <StudentLessonList assignments={assignmentsWithStats} />
+
+      <Leaderboard leaderboardData={leaderboardData} />
     </div>
   );
 }

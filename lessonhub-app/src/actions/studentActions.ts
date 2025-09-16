@@ -73,6 +73,52 @@ export async function getLessonAverageRating(lessonId: string) {
 }
 
 /**
+ * Fetches and calculates data for the student leaderboard.
+ */
+export async function getLeaderboardData() {
+  try {
+    const students = await prisma.user.findMany({
+      where: { role: Role.STUDENT },
+      include: {
+        assignments: {
+          where: {
+            status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED] },
+            gradedAt: { not: null },
+          },
+        },
+      },
+    });
+
+    const leaderboard = students.map(student => {
+      const completedCount = student.assignments.length;
+      let totalCompletionTime = 0;
+
+      student.assignments.forEach(a => {
+        if (a.gradedAt) {
+          totalCompletionTime += new Date(a.gradedAt).getTime() - new Date(a.assignedAt).getTime();
+        }
+      });
+      
+      const averageCompletionTime = completedCount > 0 ? totalCompletionTime / completedCount : 0;
+
+      return {
+        id: student.id,
+        name: student.name,
+        completedCount,
+        averageCompletionTime,
+      };
+    })
+    .filter(s => s.completedCount > 0)
+    .sort((a, b) => b.completedCount - a.completedCount || a.averageCompletionTime - b.averageCompletionTime);
+
+    return leaderboard;
+  } catch (error) {
+    console.error("Failed to fetch leaderboard data:", error);
+    return [];
+  }
+}
+
+/**
  * Checks if a student has reached a 10-lesson milestone and sends a notification.
  */
 export async function checkAndSendMilestoneEmail(studentId: string) {
