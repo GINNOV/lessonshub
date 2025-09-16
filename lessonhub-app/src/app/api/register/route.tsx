@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { getEmailTemplateByName } from "@/actions/adminActions";
-import { replacePlaceholders, createButton } from "@/lib/email-templates";
+import { replacePlaceholders, createButton, sendEmail } from "@/lib/email-templates";
 import { Role } from '@prisma/client';
 
 async function sendAdminNotifications(newUser: { name: string | null; email: string }) {
@@ -25,18 +25,15 @@ async function sendAdminNotifications(newUser: { name: string | null; email: str
                     newUserEmail: newUser.email,
                 });
 
-                await fetch("https://api.resend.com/emails", {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        from: process.env.EMAIL_FROM,
-                        to: admin.email,
-                        subject,
-                        html: body,
-                    }),
+                // Using the imported sendEmail function
+                await sendEmail({
+                    to: admin.email,
+                    templateName: 'new_user_admin',
+                    data: {
+                        adminName: admin.name || 'Admin',
+                        newUserName: newUser.name || 'Not provided',
+                        newUserEmail: newUser.email,
+                    }
                 });
             } catch (error) {
                 console.error(`Failed to send new user notification to admin ${admin.email}:`, error);
@@ -47,6 +44,8 @@ async function sendAdminNotifications(newUser: { name: string | null; email: str
 
 export async function POST(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const refCode = searchParams.get('ref');
     const body = await req.json();
     const { name, email, password } = body;
 
@@ -59,42 +58,60 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User with this email already exists" }, { status: 409 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await prisma.user.create({
-      data: { email, name, hashedPassword },
-    });
-
-    // --- Send Welcome Email to User using Template ---
-    const template = await getEmailTemplateByName('welcome');
-    if (template) {
-        const headers = req.headers;
-        const protocol = headers.get('x-forwarded-proto') || 'http';
-        const host = headers.get('host') || 'localhost:3000';
-        const signInUrl = `${protocol}://${host}/signin`;
-
-        const subject = replacePlaceholders(template.subject, { userName: user.name || '' });
-        const body = replacePlaceholders(template.body, {
-            userName: user.name || 'there',
-            button: createButton('Sign In to Your Account', signInUrl),
-        });
-
-        await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                from: process.env.EMAIL_FROM,
-                to: user.email,
-                subject,
-                html: body,
-            }),
-        });
+    let referrer = null;
+    if (refCode) {
+      referrer = await prisma.user.findUnique({ where: { referralCode: refCode } });
     }
 
-    // --- Send Notification Email to Admins ---
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const user = await prisma.user.create({
+      data: { 
+        email, 
+        name, 
+        hashedPassword,
+        referrerId: referrer?.id,
+      },
+    });
+
+    const signInUrl = `${new URL(req.url).origin}/signin`;
+    await sendEmail({
+        to: user.email,
+        templateName: 'welcome',
+        data: {
+            userName: user.name || 'there',
+            button: createButton('Sign In to Your Account', signInUrl),
+        }
+    });
+
     await sendAdminNotifications(user);
+    
+    if (referrer && referrer.email) {
+      const teachers = await prisma.user.findMany({ where: { role: Role.TEACHER } });
+
+      await sendEmail({
+        to: referrer.email,
+        templateName: 'new_referral_referrer',
+        data: {
+          referrerName: referrer.name || 'a user',
+          newStudentName: user.name || 'A new student',
+          button: createButton('View Your Dashboard', `${new URL(req.url).origin}/dashboard`),
+        }
+      });
+
+      for (const teacher of teachers) {
+        if (teacher.email) {
+          await sendEmail({
+            to: teacher.email,
+            templateName: 'new_referral_teacher',
+            data: {
+              teacherName: teacher.name || 'Teacher',
+              newStudentName: user.name || 'A new student',
+              referrerName: referrer.name || 'a user',
+            }
+          });
+        }
+      }
+    }
 
     return NextResponse.json(user, { status: 201 });
 

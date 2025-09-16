@@ -80,7 +80,7 @@ export async function impersonateUser(userId: string) {
   try {
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { impersonating: { connect: { id: userId } } }
+      data: { impersonatedById: userId }
     });
     revalidatePath("/", "layout");
     return { success: true };
@@ -103,7 +103,7 @@ export async function stopImpersonating() {
   try {
     await prisma.user.update({
       where: { id: session.user.originalUserId },
-      data: { impersonating: { disconnect: true } }
+      data: { impersonatedById: null }
     });
     revalidatePath("/", "layout");
     return { success: true };

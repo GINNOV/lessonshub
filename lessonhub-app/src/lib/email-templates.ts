@@ -115,6 +115,24 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
         `,
         buttonColor: '#f59e0b', // A warning/action color is more appropriate here
     },
+      new_referral_referrer: {
+        subject: '🎉 You have a new referral!',
+        body: `
+            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">New Referral!</h1>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{referrerName}},</p>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Great news! A new student, <strong>{{newStudentName}}</strong>, has just signed up using your referral link. You are one step closer to earning your reward!</p>
+            {{button}}
+        `,
+        buttonColor: '#28a745',
+    },
+    new_referral_teacher: {
+        subject: '[LessonHUB] New Student Referral: {{newStudentName}}',
+        body: `
+            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">New Student via Referral</h1>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{teacherName}},</p>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">A new student, <strong>{{newStudentName}}</strong>, has signed up via a referral from <strong>{{referrerName}}</strong>.</p>
+        `,
+    },
 };
 
 export function replacePlaceholders(template: string, data: Record<string, string>): string {

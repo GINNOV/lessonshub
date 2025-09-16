@@ -13,6 +13,7 @@ import { getOrCreateReferralCode } from '@/actions/userActions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface ReferralDialogProps {
   open: boolean;
@@ -21,6 +22,7 @@ interface ReferralDialogProps {
 
 export default function ReferralDialog({ open, onOpenChange }: ReferralDialogProps) {
   const [referralLink, setReferralLink] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -36,6 +38,8 @@ export default function ReferralDialog({ open, onOpenChange }: ReferralDialogPro
   const copyToClipboard = () => {
     navigator.clipboard.writeText(referralLink);
     toast.success('Referral link copied to clipboard!');
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   return (
@@ -49,7 +53,12 @@ export default function ReferralDialog({ open, onOpenChange }: ReferralDialogPro
         </DialogHeader>
         <div className="flex items-center space-x-2">
           <Input value={referralLink} readOnly />
-          <Button onClick={copyToClipboard}>Copy</Button>
+          <Button 
+            onClick={copyToClipboard}
+            className={cn(isCopied && "bg-green-600 hover:bg-green-700")}
+          >
+            {isCopied ? 'Copied!' : 'Copy'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

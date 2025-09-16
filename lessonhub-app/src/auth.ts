@@ -7,7 +7,6 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
-// ✅ Import your centralized email sending function
 import { sendEmail, createButton } from "@/lib/email-templates";
 
 if (!process.env.AUTH_SECRET) throw new Error("Missing AUTH_SECRET");
@@ -15,7 +14,7 @@ if (!process.env.EMAIL_FROM) throw new Error("Missing EMAIL_FROM");
 if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
 export const {
-  handlers: { GET, POST },
+  handlers, // This object contains GET and POST
   auth,
   signIn,
   signOut,
@@ -25,20 +24,15 @@ export const {
     ResendProvider({
       apiKey: process.env.RESEND_API_KEY!,
       from: process.env.EMAIL_FROM!,
-      // ✅ FIX: Override the default email sending logic to use your custom template system.
       async sendVerificationRequest({ identifier: email, url, provider }) {
-        // Find the user to get their name for personalization
         const user = await prisma.user.findUnique({ where: { email } });
         const userName = user?.name || 'there';
 
         await sendEmail({
           to: email,
-          // This tells your system to use the "forgot_password" template from your database
           templateName: 'forgot_password',
           data: {
             userName: userName,
-            // The `url` provided by next-auth is the secure sign-in link
-            // We pass it to your `createButton` helper to generate the button HTML
             button: createButton('Sign In & Set New Password', url),
           },
         });

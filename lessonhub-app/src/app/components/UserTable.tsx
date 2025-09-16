@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
     defaultLessonPrice: number | null;
@@ -29,6 +30,7 @@ export default function UserTable({
   searchTerm: initialSearchTerm,
 }: UserTableProps) {
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const router = useRouter();
 
   const filteredUsers = useMemo(() => {
     return users.filter(
@@ -49,10 +51,11 @@ export default function UserTable({
 
   const handleImpersonate = async (userId: string) => {
     const result = await impersonateUser(userId);
-    if (!result.success) {
+    if (result.success) {
+      router.refresh();
+    } else {
       toast.error(result.error || 'An unknown error occurred.');
     }
-    // On success, the page will refresh via the server action's revalidation
   };
 
   const handlePayingStatusChange = async (
