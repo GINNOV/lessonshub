@@ -1,84 +1,117 @@
 // file: src/lib/email-templates.ts
 import prisma from "@/lib/prisma";
-import { getEmailTemplateByName } from "@/actions/adminActions"; // Import the self-healing function
+import { getEmailTemplateByName } from "@/actions/adminActions";
 
 export const defaultEmailTemplates: Record<string, { subject: string; body: string, buttonColor?: string }> = {
     welcome: {
-        subject: 'Welcome to LessonHUB, {{userName}}!',
-        body: `
-            <h1 style="color: #1d1c1d; font-size: 36px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Welcome to LessonHUB!</h1>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{userName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">We’re thrilled to have you on board. Get ready to create, assign, and manage your lessons with ease.</p>
-            {{button}}
-        `,
+        subject: '🌸 Welcome to LessonHUB, {{userName}}!',
+        body: `<h1 style="color: #1d1c1d; font-size: 36px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Welcome to LessonHUB!</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{userName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Welcome to LessonHUB! We’re excited to have you as part of our learning community. As a student, you can now:</p>
+<ul style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left; padding-left: 20px; margin: 10px 0;">
+  <li>📘 Access your lessons anytime, anywhere</li>
+  <li>📝 Submit assignments directly online</li>
+  <li>⭐ Track your progress and see your grades</li>
+  <li>💬 Receive feedback from your teacher in real time</li>
+</ul>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Get started by checking your dashboard to view your first assignment and begin learning!</p>
+<p style="color: #1d1c1d; font-size: 16px; font-weight: 600; line-height: 24px; text-align: left; margin-top: 15px;">🌍 Learn English with less grammar and more practical life examples!</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇮🇹 Ciao {{userName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Benvenuto su LessonHUB! Siamo felici di averti nella nostra community di studenti. Da oggi potrai:</p>
+<ul style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left; padding-left: 20px; margin: 10px 0;">
+  <li>📘 Accedere alle tue lezioni in qualsiasi momento e da qualsiasi dispositivo</li>
+  <li>📝 Consegnare i compiti direttamente online</li>
+  <li>⭐ Monitorare i tuoi progressi e consultare i voti</li>
+  <li>💬 Ricevere feedback dal tuo insegnante in tempo reale</li>
+</ul>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Inizia subito accedendo alla tua dashboard per vedere il tuo primo compito e cominciare a imparare!</p>
+<p style="color: #1d1c1d; font-size: 16px; font-weight: 600; line-height: 24px; text-align: left; margin-top: 15px;">🌍 Impara l’inglese con meno grammatica e più esempi pratici di vita reale!</p>
+{{button}}`,
         buttonColor: '#5e6ad2',
     },
     new_assignment: {
-        subject: 'New Assignment: {{lessonTitle}}',
-        body: `
-            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">New Assignment!</h1>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{studentName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Your teacher, {{teacherName}}, has assigned you a new lesson: <strong>{{lessonTitle}}</strong>.</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Please complete it by: <strong>{{deadline}}</strong></p>
-            {{button}}
-        `,
+        subject: '🏄🏼‍♂️ New Assignment: {{lessonTitle}}',
+        body: `<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">New Assignment!</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Your teacher, {{teacherName}}, has assigned you a new lesson: <strong>{{lessonTitle}}</strong>.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Please complete it by: <strong>{{deadline}}</strong></p>
+{{button}}
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇮🇹 Ciao {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Il tuo insegnante, {{teacherName}}, ti ha assegnato una nuova lezione: <strong>{{lessonTitle}}</strong>.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Ti chiediamo di completarla entro: <strong>{{deadline}}</strong></p>`,
         buttonColor: '#5e6ad2',
     },
     graded: {
-        subject: 'Your assignment "{{lessonTitle}}" has been graded',
-        body: `
-            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Graded!</h1>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{studentName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Your submission for the lesson, <strong>{{lessonTitle}}</strong>, has been graded.</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Your Score:</strong> {{score}}</p>
-            {{teacherComments}}
-            {{button}}
-        `,
+        subject: '👩🏼‍🏫 Your assignment has been graded',
+        body: `🇺🇸
+<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Graded!</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Your submission for the lesson, <strong>{{lessonTitle}}</strong>, has been graded.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Your Score:</strong> {{score}}</p>
+{{teacherComments}}
+{{button}}
+
+🇮🇹
+<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Compito Valutato!</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Ciao {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">La tua consegna per la lezione <strong>{{lessonTitle}}</strong> è stata valutata.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Il tuo punteggio:</strong> {{score}}</p>
+{{teacherComments}}
+{{button}}`,
         buttonColor: '#5e6ad2',
     },
     failed: {
-        subject: 'Update on your assignment: "{{lessonTitle}}"',
-        body: `
-            <h1 style="color: #dc2626; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Failed</h1>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{studentName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Your submission for the lesson, <strong>{{lessonTitle}}</strong>, is past the due date and has been marked as failed.</p>
-            {{button}}
-        `,
+        subject: '❌ Update on your assignment: "{{lessonTitle}}"',
+        body: `<h1 style="color: #dc2626; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Failed</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Your submission for the lesson, <strong>{{lessonTitle}}</strong>, is past the due date and has been marked as failed.</p>
+<p style="color: #dc2626; font-size: 16px; line-height: 24px; text-align: left; font-weight: 600;">Reason: not done by the deadline. You are not charged for failed lessons, but… you still suck.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇮🇹 Ciao {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">La tua consegna per la lezione <strong>{{lessonTitle}}</strong> è oltre la data di scadenza ed è stata contrassegnata come non superata.</p>
+<p style="color: #dc2626; font-size: 16px; line-height: 24px; text-align: left; font-weight: 600;">Motivo: non completato entro la scadenza. Non ti verrà addebitato nulla per i compiti non superati, ma… fai comunque schifo.</p>
+{{button}}`,
         buttonColor: '#f43f5e',
     },
     manual_reminder: {
         subject: '🚨 Reminder: Your assignment "{{lessonTitle}}"',
-        body: `
-            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Reminder</h1>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{studentName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">This is a friendly reminder from your teacher, {{teacherName}}, to complete the assignment: <strong>{{lessonTitle}}</strong>.</p>
-            {{button}}
-        `,
+        body: `<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Reminder</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">This is a friendly reminder from your teacher, {{teacherName}}, to complete the assignment: <strong>{{lessonTitle}}</strong>.</p>
+{{button}}
+<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Promemoria Compito</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇮🇹 Ciao {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Questo è un gentile promemoria dal tuo insegnante, {{teacherName}}, per completare il compito: <strong>{{lessonTitle}}</strong>.</p>`,
         buttonColor: '#f59e0b',
     },
     deadline_reminder: {
         subject: '🔔 Reminder: Assignment "{{lessonTitle}}" is due soon',
-        body: `
-            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Reminder</h1>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{studentName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">This is a friendly reminder that your assignment, <strong>{{lessonTitle}}</strong>, is due soon.</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Please submit it by: <strong>{{deadline}}</strong></p>
-            {{button}}
-        `,
+        body: `🇺🇸
+<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Reminder</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">This is a friendly reminder that your assignment, <strong>{{lessonTitle}}</strong>, is due soon.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Please submit it by: <strong>{{deadline}}</strong></p>
+{{button}}
+
+🇮🇹
+<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Promemoria: Fai i compiti</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Ciao {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Questo è un gentile promemoria che il tuo compito, <strong>{{lessonTitle}}</strong>, è in scadenza.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Ti chiediamo di consegnarlo entro: <strong>{{deadline}}</strong></p>
+{{button}}`,
         buttonColor: '#f59e0b',
     },
     submission_notification: {
-        subject: 'New Submission: {{studentName}} completed "{{lessonTitle}}"',
-        body: `
-            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">New Submission</h1>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{teacherName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">{{studentName}} has just submitted their response for the lesson: <strong>{{lessonTitle}}</strong>.</p>
-            {{button}}
-        `,
+        subject: '👀 New Submission: {{studentName}} completed their work',
+        body: `<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">New Submission</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{teacherName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">{{studentName}} has just submitted their response for the lesson: <strong>{{lessonTitle}}</strong>.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇮🇹 Ciao {{teacherName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">{{studentName}} ha appena inviato la sua risposta per la lezione: <strong>{{lessonTitle}}</strong>.</p>
+{{button}}`,
         buttonColor: '#5e6ad2',
     },
     new_user_admin: {
-        subject: '[LessonHUB] New User Sign-Up: {{newUserName}}',
+        subject: '🪪 [LessonHUB] New User Sign-Up: {{newUserName}}',
         body: `
             <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">New User Sign-Up</h1>
             <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{adminName}},</p>
@@ -89,9 +122,10 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
               <strong>Email:</strong> {{newUserEmail}}
             </p>
         `,
+        buttonColor: '#5e6ad2',
     },
     user_deleted_admin: {
-        subject: '[LessonHUB] User Account Deleted: {{deletedUserName}}',
+        subject: '🪪 [LessonHUB] User Account Deleted: {{deletedUserName}}',
         body: `
             <h1 style="color: #d9534f; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">User Account Deleted</h1>
             <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{adminName}},</p>
@@ -102,35 +136,34 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
               <strong>Email:</strong> {{deletedUserEmail}}
             </p>
         `,
+        buttonColor: '#5e6ad2',
     },
     forgot_password: {
-        subject: 'Reset your LessonHUB Password',
-        body: `
-            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Reset Your Password</h1>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{userName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Someone requested a password reset for your LessonHUB account. To proceed, first sign in securely by clicking the button below. This is a one-time link and will expire shortly.</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px;"><strong>Once you are signed in, you will be able to set a new password from your Profile page.</strong></p>
-            {{button}}
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">If you did not request this, you can safely ignore this email.</p>
-        `,
-        buttonColor: '#f59e0b', // A warning/action color is more appropriate here
+        subject: '🎫 Reset password for LessonHUB',
+        body: `🇺🇸
+<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Get back in to LessonHUB</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{userName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px;">Click the button below to securely sign in to your account. This link will expire shortly. Once you signed in, use the profile link (click on the avatar top right) to change your password. You won't be asked about the previous one to change it.</p>
+{{button}}
+<p style="color: #525f7f; font-size: 16px; line-height: 24px;">If you did not request this email, you can safely ignore it.</p>
+
+🇮🇹
+<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Ri-Accedi a LessonHUB</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px;">Ciao {{userName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px;">Clicca sul pulsante qui sotto per accedere in modo sicuro al tuo account. Questo link scadrà a breve. Una volta effettuato l’accesso, usa il link al profilo (clicca sull’avatar in alto a destra) per cambiare la tua password. Non ti verrà chiesta la precedente per modificarla.</p>
+{{button}}
+<p style="color: #525f7f; font-size: 16px; line-height: 24px;">Se non hai richiesto questa email, puoi semplicemente ignorarla.</p>`,
+        buttonColor: '#5e6ad2',
     },
-      new_referral_referrer: {
-        subject: '🎉 You have a new referral!',
+    student_feedback: {
+        subject: '[LessonHUB] You have new feedback from {{studentName}}',
         body: `
-            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">New Referral!</h1>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{referrerName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Great news! A new student, <strong>{{newStudentName}}</strong>, has just signed up using your referral link. You are one step closer to earning your reward!</p>
-            {{button}}
-        `,
-        buttonColor: '#28a745',
-    },
-    new_referral_teacher: {
-        subject: '[LessonHUB] New Student Referral: {{newStudentName}}',
-        body: `
-            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">New Student via Referral</h1>
+            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">New Student Feedback</h1>
             <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{teacherName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">A new student, <strong>{{newStudentName}}</strong>, has signed up via a referral from <strong>{{referrerName}}</strong>.</p>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">A student, <strong>{{studentName}}</strong>, has sent you the following feedback:</p>
+            <div style="background-color: #f6f9fc; border: 1px solid #e6ebf1; border-radius: 8px; padding: 20px; margin-top: 20px;">
+                <p style="color: #525f7f; font-size: 16px; line-height: 24px; margin: 0;"><em>{{feedbackMessage}}</em></p>
+            </div>
         `,
     },
 };

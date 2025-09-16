@@ -44,10 +44,8 @@ async function sendAdminNotifications(newUser: { name: string | null; email: str
 
 export async function POST(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const refCode = searchParams.get('ref');
     const body = await req.json();
-    const { name, email, password } = body;
+    const { name, email, password, referralCode } = body;
 
     if (!email || !password || !name) {
       return NextResponse.json({ error: "Missing name, email, or password" }, { status: 400 });
@@ -59,8 +57,8 @@ export async function POST(req: NextRequest) {
     }
 
     let referrer = null;
-    if (refCode) {
-      referrer = await prisma.user.findUnique({ where: { referralCode: refCode } });
+    if (referralCode) {
+      referrer = await prisma.user.findUnique({ where: { referralCode: referralCode } });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);

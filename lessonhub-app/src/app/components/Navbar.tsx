@@ -19,12 +19,14 @@ import { stopImpersonation } from "@/actions/adminActions";
 import { useRouter } from 'next/navigation';
 import { useState } from "react";
 import ReferralDialog from "./ReferralDialog";
+import FeedbackDialog from "./FeedbackDialog";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const user = session?.user as any;
   const [isReferralDialogOpen, setIsReferralDialogOpen] = useState(false);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
 
   const homeHref =
     status === 'authenticated'
@@ -106,6 +108,9 @@ export default function Navbar() {
                     <DropdownMenuItem onSelect={() => setIsReferralDialogOpen(true)}>
                       Refer a student
                     </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setIsFeedbackDialogOpen(true)}>
+                      Send Feedback
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                       <SignOutButton />
@@ -113,6 +118,7 @@ export default function Navbar() {
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <ReferralDialog open={isReferralDialogOpen} onOpenChange={setIsReferralDialogOpen} />
+                <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
               </>
             ) : (
               <Button asChild>

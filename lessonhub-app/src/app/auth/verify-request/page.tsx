@@ -1,3 +1,4 @@
+// file: src/app/auth/verify-request/page.tsx
 import Link from 'next/link';
 
 export default function VerifyRequestPage() {

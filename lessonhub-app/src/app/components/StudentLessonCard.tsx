@@ -163,17 +163,19 @@ export default function StudentLessonCard({
           {assignment.status === 'GRADED' && (
             <div
               className={cn(
-                'mt-4 rounded-md border p-3 relative',
+                'mt-4 rounded-md border p-3',
                 getGradeBackground(assignment.score)
               )}
             >
-              {savingsInfo && (
-                <div className={`absolute top-2 right-2 text-right ${savingsInfo.color}`}>
-                  <div className="text-3xl">{savingsInfo.emojis}</div>
-                  <div className="text-xs font-bold">{savingsInfo.text}</div>
-                </div>
-              )}
-              <h3 className="font-semibold">Grade and Feedback</h3>
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                  <h3 className="font-semibold">Grade and Feedback</h3>
+                  {savingsInfo && (
+                    <div className={`text-right ${savingsInfo.color}`}>
+                      <div className="text-3xl">{savingsInfo.emojis}</div>
+                      <div className="text-xs font-bold">{savingsInfo.text}</div>
+                    </div>
+                  )}
+              </div>
               <div className="mt-2 flex items-start gap-4">
                 <div className="flex-shrink-0 rounded-md border bg-white/50 p-2 text-center">
                   <p className="text-2xl font-bold">{assignment.score}</p>

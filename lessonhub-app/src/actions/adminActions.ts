@@ -91,6 +91,54 @@ export async function impersonateUser(userId: string) {
 }
 
 /**
+ * Toggles the suspension status of a user's account.
+ */
+export async function toggleUserSuspension(userId: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+    return { success: false, error: "Unauthorized" };
+  }
+  try {
+    const userToUpdate = await prisma.user.findUnique({ where: { id: userId } });
+    if (!userToUpdate) {
+      return { success: false, error: "User not found." };
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isSuspended: !userToUpdate.isSuspended },
+    });
+    revalidatePath('/admin/users');
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to toggle user suspension:", error);
+    return { success: false, error: "An error occurred." };
+  }
+}
+
+/**
+ * Permanently deletes a user account as an admin.
+ */
+export async function deleteUserByAdmin(userId: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+    return { success: false, error: "Unauthorized" };
+  }
+  try {
+    // Prevent admin from deleting their own account via this action
+    if (session.user.id === userId) {
+        return { success: false, error: "Admins cannot delete their own account from this panel." };
+    }
+    await prisma.user.delete({ where: { id: userId } });
+    revalidatePath('/admin/users');
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete user:", error);
+    return { success: false, error: "An error occurred." };
+  }
+}
+
+/**
  * Allows an admin to stop impersonating a user.
  * @returns An object indicating success or failure.
  */

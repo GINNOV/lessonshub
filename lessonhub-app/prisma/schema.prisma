@@ -19,6 +19,7 @@ model User {
   lastSeen                DateTime?
   impersonatedById        String?   @unique
   isPaying                Boolean   @default(false)
+  isSuspended             Boolean   @default(false)
   
   // Referral Program Fields
   referralCode            String?   @unique
