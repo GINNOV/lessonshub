@@ -13,6 +13,7 @@ import { Pencil, UserPlus, Eye, Share2, Mail, Star } from 'lucide-react';
 import { generateShareLink } from '@/actions/lessonActions';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import LocaleDate from './LocaleDate';
 
 type SerializableLessonWithAssignments = Omit<Lesson, 'price'> & {
   price: number;
@@ -174,10 +175,10 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                         )}
                       </div>
                       <p className="text-xs text-gray-400 mt-1">
-                        Lesson {getWeekAndDay(lesson.createdAt)} - Created on: {new Date(lesson.createdAt).toLocaleDateString()}
-                        {firstDeadline && (
-                            <span className="ml-2">| Deadline: {new Date(firstDeadline).toLocaleString()}</span>
-                        )}
+                          Lesson {getWeekAndDay(lesson.createdAt)} - Created on: <LocaleDate date={lesson.createdAt} options={{ year: 'numeric', month: 'numeric', day: 'numeric' }} />
+                          {firstDeadline && (
+                              <span className="ml-2">| Deadline: <LocaleDate date={firstDeadline} /></span>
+                          )}
                       </p>
                       <div className="flex items-center space-x-2 mt-2 flex-wrap">
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">

@@ -29,6 +29,7 @@ export default function StudentLessonList({
     const filtered = assignments.filter(
       (a) =>
         a.lesson.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        // Correctly look for the teacher's name within the nested lesson object
         a.lesson.teacher?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -41,6 +42,7 @@ export default function StudentLessonList({
       failed: filtered.filter((a) => a.status === AssignmentStatus.FAILED),
     };
 
+    // Sort each group individually
     grouped.pending.sort(
       (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
     );
@@ -57,6 +59,7 @@ export default function StudentLessonList({
         new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
     );
 
+    // Combine the sorted groups
     return [
       ...grouped.pending,
       ...grouped.completed,

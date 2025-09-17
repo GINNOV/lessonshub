@@ -8,6 +8,7 @@ import { Role, AssignmentStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import ReminderButton from "@/components/ReminderButton";
 import FailButton from "@/app/components/FailButton";
+import LocaleDate from "@/app/components/LocaleDate";
 
 export default async function SubmissionsPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
@@ -62,10 +63,10 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                       {displayStatus}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(sub.deadline).toLocaleString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><LocaleDate date={sub.deadline} /></td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.score ?? 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {sub.reminderSentAt ? new Date(sub.reminderSentAt).toLocaleString() : 'No'}
+                      {sub.reminderSentAt ? <LocaleDate date={sub.reminderSentAt} /> : 'No'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2 flex-wrap">

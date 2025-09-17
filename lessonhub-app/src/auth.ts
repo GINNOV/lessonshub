@@ -14,7 +14,7 @@ if (!process.env.EMAIL_FROM) throw new Error("Missing EMAIL_FROM");
 if (!process.env.RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
 
 export const {
-  handlers, // This object contains GET and POST
+  handlers,
   auth,
   signIn,
   signOut,
@@ -53,7 +53,12 @@ export const {
           return null;
         }
         const user = await prisma.user.findUnique({ where: { email: credentials.email } });
-        if (!user || !user.hashedPassword) return null;
+        
+        // --- FIX: Prevent suspended users from logging in ---
+        if (!user || !user.hashedPassword || user.isSuspended) {
+            return null;
+        }
+
         const ok = await bcrypt.compare(credentials.password as string, user.hashedPassword);
         return ok ? user : null;
       },
@@ -84,6 +89,7 @@ export const {
           image: true,
           role: true,
           isPaying: true,
+          isSuspended: true, // Include isSuspended in the session data
           impersonatedBy: {
             select: {
               id: true,
@@ -110,6 +116,7 @@ export const {
           email: impersonatedUser.email,
           image: impersonatedUser.image,
           role: impersonatedUser.role,
+          isSuspended: (impersonatedUser as any).isSuspended,
           impersonating: true,
           originalUserId: dbUser.id,
         };
@@ -119,6 +126,7 @@ export const {
         session.user.email = dbUser.email;
         session.user.image = dbUser.image;
         session.user.role = dbUser.role;
+        session.user.isSuspended = dbUser.isSuspended;
       }
       return session;
     },

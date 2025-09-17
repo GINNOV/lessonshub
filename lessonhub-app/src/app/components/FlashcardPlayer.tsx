@@ -89,12 +89,12 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
         {instructionsHtml && (
             <div className="prose max-w-none p-4 border rounded-md bg-gray-50" dangerouslySetInnerHTML={{ __html: instructionsHtml as string }} />
         )}
-        <div className="relative h-64 w-full cursor-pointer" onClick={handleFlip}>
-            <div className={`absolute h-full w-full rounded-lg border p-6 flex justify-center items-center text-center transition-transform duration-500 ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                <div className="absolute h-full w-full bg-white rounded-lg [backface-visibility:hidden]">
+        <div className="relative h-64 w-full cursor-pointer [perspective:1000px]" onClick={handleFlip}>
+            <div className={`relative h-full w-full rounded-lg transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+                <div className="absolute h-full w-full rounded-lg border p-6 flex justify-center items-center text-center bg-white [backface-visibility:hidden]">
                     <p className="text-xl font-semibold">{flashcards[currentIndex].term}</p>
                 </div>
-                <div className="absolute h-full w-full bg-gray-100 rounded-lg [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                <div className="absolute h-full w-full rounded-lg border p-6 flex justify-center items-center text-center bg-gray-100 [backface-visibility:hidden] [transform:rotateY(180deg)]">
                     <p>{flashcards[currentIndex].definition}</p>
                 </div>
             </div>

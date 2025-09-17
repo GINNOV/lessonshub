@@ -35,12 +35,26 @@ export async function getLessonsForTeacher(teacherId: string) {
 }
 
 /**
- * Fetches all assignments for a specific student.
+ * Fetches all assignments for a specific, non-suspended student.
  */
 export async function getAssignmentsForStudent(studentId: string) {
     try {
+        // First, check if the student is active and not suspended.
+        const student = await prisma.user.findUnique({
+            where: { id: studentId },
+            select: { isSuspended: true }
+        });
+
+        // If the student is suspended or doesn't exist, return no assignments.
+        if (!student || student.isSuspended) {
+            return [];
+        }
+
+        // If the student is active, fetch all their assignments.
         const assignments = await prisma.assignment.findMany({
-            where: { studentId: studentId },
+            where: { 
+                studentId: studentId,
+            },
             include: {
                 lesson: {
                     include: {
@@ -56,6 +70,7 @@ export async function getAssignmentsForStudent(studentId: string) {
         return [];
     }
 }
+
 
 /**
  * Fetches a single assignment by its ID for a specific student.

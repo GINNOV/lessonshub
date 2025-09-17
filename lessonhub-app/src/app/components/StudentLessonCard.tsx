@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn, getWeekAndDay } from '@/lib/utils';
 import { marked } from 'marked';
+import LocaleDate from './LocaleDate';
 
 // Define a serializable version of the User type
 type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
@@ -206,7 +207,7 @@ export default function StudentLessonCard({
             <div className="text-sm text-gray-500">
                 <p>
                     <strong>⏳ Deadline:</strong>{' '}
-                    {new Date(assignment.deadline).toLocaleString()}
+                    <LocaleDate date={assignment.deadline} />
                 </p>
                 {typeof assignment.completionCount === 'number' && (
                     <p className="text-xs mt-1">
