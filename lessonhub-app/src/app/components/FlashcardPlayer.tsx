@@ -1,12 +1,13 @@
 // file: src/app/components/FlashcardPlayer.tsx
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Assignment, Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { marked } from 'marked';
+import { submitFlashcardAssignment } from '@/actions/lessonActions';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -35,6 +36,19 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
   const instructionsHtml = useMemo(() => {
     return assignment.lesson.assignment_text ? marked.parse(assignment.lesson.assignment_text) : '';
   }, [assignment.lesson.assignment_text]);
+
+  // When results are shown, submit them to the server.
+  useEffect(() => {
+    if (showResults) {
+      submitFlashcardAssignment(assignment.id, answers).then(result => {
+        if (result.success) {
+          toast.success("Your results have been submitted!");
+        } else {
+          toast.error(result.error || "Failed to submit your results.");
+        }
+      });
+    }
+  }, [showResults, assignment.id, answers]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);

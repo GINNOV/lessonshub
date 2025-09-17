@@ -10,9 +10,297 @@ import { auth } from "@/auth";
 import { nanoid } from 'nanoid';
 import { checkAndSendMilestoneEmail } from "./studentActions";
 
-/**
- * Fetches all lessons created by a specific teacher.
- */
+
+
+export async function getUploadedImages() {
+  try {
+    const lessonsWithImages = await prisma.lesson.findMany({
+      where: {
+        assignment_image_url: {
+          not: null,
+        },
+      },
+      select: {
+        assignment_image_url: true,
+      },
+      distinct: ['assignment_image_url'],
+    });
+    return lessonsWithImages.map(lesson => lesson.assignment_image_url).filter(Boolean) as string[];
+  } catch (error) {
+    console.error("Failed to fetch uploaded images:", error);
+    return [];
+  }
+}
+
+export async function getStudentsWithStats() {
+  const students = await prisma.user.findMany({
+    where: { role: Role.STUDENT },
+    include: {
+      assignments: {
+        where: {
+          status: AssignmentStatus.GRADED,
+          score: { not: null },
+        },
+      },
+    },
+    orderBy: { name: 'asc' }
+  });
+
+  return students.map(student => {
+    const totalPoints = student.assignments.reduce((sum, a) => sum + (a.score || 0), 0);
+    // eslint-disable-next-line no-unused-vars
+    const { assignments, ...studentData } = student;
+    return {
+      ...studentData,
+      totalPoints,
+    };
+  });
+}
+
+export async function deleteLesson(lessonId: string) {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+        return { success: false, error: "Unauthorized" };
+    }
+    try {
+        await prisma.lesson.delete({ where: { id: lessonId, teacherId: session.user.id }});
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: 'Failed to delete lesson.' };
+    }
+}
+
+export async function sendCustomEmailToAssignedStudents(lessonId: string, subject: string, body: string) {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+        return { success: false, error: "Unauthorized" };
+    }
+    try {
+        const assignments = await prisma.assignment.findMany({
+            where: { lessonId, lesson: { teacherId: session.user.id } },
+            include: { student: true, lesson: { include: { teacher: true }}}
+        });
+        if (assignments.length === 0) {
+            return { success: false, error: 'No students assigned to this lesson.' };
+        }
+        for (const assignment of assignments) {
+            if (assignment.student.email) {
+                await sendEmail({
+                    to: assignment.student.email,
+                    templateName: 'custom',
+                    data: {
+                        studentName: assignment.student.name || 'student',
+                        teacherName: assignment.lesson.teacher?.name || 'your teacher',
+                        lessonTitle: assignment.lesson.title,
+                    },
+                    override: { subject, body }
+                });
+            }
+        }
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: 'Failed to send emails.' };
+    }
+}
+
+export async function assignLessonByShareId(shareId: string, studentId: string) {
+    try {
+        const lesson = await prisma.lesson.findFirst({ where: { public_share_id: shareId } });
+        if (!lesson) {
+            return { success: false, error: 'Shared lesson not found.' };
+        }
+        
+        const existingAssignment = await prisma.assignment.findFirst({
+            where: { lessonId: lesson.id, studentId: studentId }
+        });
+
+        if (existingAssignment) {
+            return { success: true, assignment: existingAssignment };
+        }
+
+        const newAssignment = await prisma.assignment.create({
+            data: {
+                studentId: studentId,
+                lessonId: lesson.id,
+                deadline: new Date(Date.now() + 36 * 60 * 60 * 1000),
+            }
+        });
+
+        revalidatePath('/my-lessons');
+        return { success: true, assignment: newAssignment };
+    } catch (error) {
+        return { success: false, error: 'Failed to assign lesson.' };
+    }
+}
+
+export async function completeFlashcardAssignment(assignmentId: string, studentId: string) {
+    try {
+        const assignment = await prisma.assignment.update({
+            where: { id: assignmentId, studentId: studentId },
+            data: { status: AssignmentStatus.COMPLETED }
+        });
+        revalidatePath('/my-lessons');
+        return { success: true, data: assignment };
+    } catch (error) {
+        return { success: false, error: 'Failed to complete assignment.' };
+    }
+}
+
+export async function submitFlashcardAssignment(
+  assignmentId: string,
+  answers: Record<string, 'correct' | 'incorrect'>
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: { id: assignmentId, studentId: session.user.id },
+      include: {
+        lesson: { include: { teacher: true } },
+        student: true,
+      },
+    });
+    if (!assignment) {
+      return { success: false, error: "Assignment not found or unauthorized." };
+    }
+    if (assignment.status !== AssignmentStatus.PENDING) {
+      return { success: false, error: "Assignment has already been submitted." };
+    }
+
+    const correctCount = Object.values(answers).filter(a => a === 'correct').length;
+    const totalCount = Object.keys(answers).length;
+    const score = totalCount > 0 ? Math.round((correctCount / totalCount) * 10) : 0;
+
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: {
+        answers: answers,
+        status: AssignmentStatus.COMPLETED,
+        score: score,
+      },
+    });
+
+    const { student, lesson } = assignment;
+    const teacher = lesson.teacher;
+    if (teacher && teacher.email) {
+      const submissionUrl = `${process.env.AUTH_URL}/dashboard/grade/${assignment.id}`;
+      await sendEmail({
+        to: teacher.email,
+        templateName: 'submission_notification',
+        data: {
+          teacherName: teacher.name || 'teacher',
+          studentName: student.name || 'A student',
+          lessonTitle: lesson.title,
+          button: createButton('View Submission', submissionUrl),
+        },
+      });
+    }
+
+    revalidatePath('/my-lessons');
+    await checkAndSendMilestoneEmail(session.user.id);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to submit flashcard assignment:", error);
+    return { success: false, error: "An internal error occurred." };
+  }
+}
+
+export async function submitMultiChoiceAssignment(assignmentId: string, studentId: string, answers: { [key: string]: string }) {
+    try {
+        const assignment = await prisma.assignment.findUnique({
+            where: { id: assignmentId, studentId: studentId },
+            include: { lesson: { include: { multiChoiceQuestions: { include: { options: true }}}}}
+        });
+        if (!assignment) return { success: false, error: 'Assignment not found' };
+
+        let correctCount = 0;
+        const processedAnswers = assignment.lesson.multiChoiceQuestions.map(q => {
+            const selectedOptionId = answers[q.id];
+            const correctOption = q.options.find(o => o.isCorrect);
+            const isCorrect = selectedOptionId === correctOption?.id;
+            if (isCorrect) correctCount++;
+            return { questionId: q.id, selectedAnswerId: selectedOptionId, isCorrect };
+        });
+
+        const score = Math.round((correctCount / assignment.lesson.multiChoiceQuestions.length) * 10);
+
+        const updatedAssignment = await prisma.assignment.update({
+            where: { id: assignmentId },
+            data: {
+                answers: processedAnswers,
+                status: AssignmentStatus.GRADED,
+                score: score,
+                gradedAt: new Date()
+            }
+        });
+        revalidatePath('/my-lessons');
+        return { success: true, data: updatedAssignment };
+    } catch (error) {
+        return { success: false, error: 'Failed to submit assignment.' };
+    }
+}
+
+export async function submitStandardAssignment(
+  assignmentId: string,
+  studentId: string,
+  data: { answers: string[]; studentNotes: string; rating?: number }
+) {
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: { id: assignmentId, studentId },
+      include: {
+        lesson: { include: { teacher: true } },
+        student: true,
+      },
+    });
+    if (!assignment) {
+      return { success: false, error: "Assignment not found or unauthorized." };
+    }
+    if (assignment.status !== AssignmentStatus.PENDING) {
+      return { success: false, error: "Assignment has already been submitted." };
+    }
+    if (new Date() > new Date(assignment.deadline)) {
+      return { success: false, error: "The deadline for this assignment has passed." };
+    }
+    const updatedAssignment = await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: {
+        answers: data.answers,
+        studentNotes: data.studentNotes,
+        rating: data.rating,
+        status: AssignmentStatus.COMPLETED,
+      },
+    });
+    const { student, lesson } = assignment;
+    const teacher = lesson.teacher;
+    if (teacher && teacher.email) {
+      const submissionUrl = `${process.env.AUTH_URL}/dashboard/grade/${assignment.id}`;
+      await sendEmail({
+        to: teacher.email,
+        templateName: 'submission_notification',
+        data: {
+          teacherName: teacher.name || 'teacher',
+          studentName: student.name || 'A student',
+          lessonTitle: lesson.title,
+          button: createButton('View & Grade Submission', submissionUrl),
+        },
+      });
+    }
+    revalidatePath('/my-lessons');
+    return { success: true, data: updatedAssignment };
+  } catch (error) {
+    console.error("Failed to submit standard assignment:", error);
+    return { success: false, error: "An internal error occurred." };
+  }
+}
+
+
+// --- Previously existing functions ---
+
 export async function getLessonsForTeacher(teacherId: string) {
   try {
     const lessons = await prisma.lesson.findMany({
@@ -34,23 +322,17 @@ export async function getLessonsForTeacher(teacherId: string) {
   }
 }
 
-/**
- * Fetches all assignments for a specific, non-suspended student.
- */
 export async function getAssignmentsForStudent(studentId: string) {
     try {
-        // First, check if the student is active and not suspended.
         const student = await prisma.user.findUnique({
             where: { id: studentId },
             select: { isSuspended: true }
         });
 
-        // If the student is suspended or doesn't exist, return no assignments.
         if (!student || student.isSuspended) {
             return [];
         }
 
-        // If the student is active, fetch all their assignments.
         const assignments = await prisma.assignment.findMany({
             where: { 
                 studentId: studentId,
@@ -71,10 +353,6 @@ export async function getAssignmentsForStudent(studentId: string) {
     }
 }
 
-
-/**
- * Fetches a single assignment by its ID for a specific student.
- */
 export async function getAssignmentById(assignmentId: string, studentId: string) {
   try {
     const assignment = await prisma.assignment.findFirst({
@@ -99,9 +377,6 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
   }
 }
 
-/**
- * Fetches a single lesson by its ID, including its flashcards or questions.
- */
 export async function getLessonById(lessonId: string) {
   try {
     const lesson = await prisma.lesson.findUnique({
@@ -131,10 +406,6 @@ export async function getLessonById(lessonId: string) {
   }
 }
 
-
-/**
- * Fetches all student submissions for a specific lesson taught by a teacher.
- */
 export async function getSubmissionsForLesson(lessonId: string, teacherId: string) {
   try {
     const submissions = await prisma.assignment.findMany({
@@ -158,9 +429,6 @@ export async function getSubmissionsForLesson(lessonId: string, teacherId: strin
   }
 }
 
-/**
- * Fetches a single submission for grading.
- */
 export async function getSubmissionForGrading(assignmentId: string, teacherId: string) {
     try {
         const submission = await prisma.assignment.findFirst({
@@ -174,6 +442,7 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
                 student: true,
                 lesson: {
                     include: {
+                        flashcards: true,
                         multiChoiceQuestions: {
                             include: {
                                 options: true,
@@ -190,10 +459,6 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
     }
 }
 
-
-/**
- * Calculates the total value of a student's completed lessons.
- */
 export async function getStudentStats(studentId: string) {
   if (!studentId) {
     return { totalValue: 0 };
@@ -235,9 +500,6 @@ export async function getStudentStats(studentId: string) {
   }
 }
 
-/**
- * Generates or retrieves a unique shareable link for a lesson.
- */
 export async function generateShareLink(lessonId: string) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -267,9 +529,6 @@ export async function generateShareLink(lessonId: string) {
   }
 }
 
-/**
- * Sends a manual reminder email for a pending assignment.
- */
 export async function sendManualReminder(assignmentId: string) {
   try {
     const assignment = await prisma.assignment.findUnique({
@@ -318,10 +577,6 @@ export async function sendManualReminder(assignmentId: string) {
   }
 }
 
-
-/**
- * Marks a past-due assignment as failed.
- */
 export async function failAssignment(assignmentId: string) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== Role.TEACHER) {
@@ -370,9 +625,6 @@ export async function failAssignment(assignmentId: string) {
   }
 }
 
-/**
- * Grades an assignment, notifies the student, and revalidates relevant pages.
- */
 export async function gradeAssignment(assignmentId: string, data: { score: number; teacherComments: string }) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== Role.TEACHER) {
@@ -439,66 +691,6 @@ export async function gradeAssignment(assignmentId: string, data: { score: numbe
   }
 }
 
-/**
- * Submits a standard (text-based) assignment.
- */
-export async function submitStandardAssignment(
-  assignmentId: string,
-  studentId: string,
-  data: { answers: string[]; studentNotes: string; rating?: number }
-) {
-  try {
-    const assignment = await prisma.assignment.findFirst({
-      where: { id: assignmentId, studentId },
-      include: {
-        lesson: { include: { teacher: true } },
-        student: true,
-      },
-    });
-    if (!assignment) {
-      return { success: false, error: "Assignment not found or unauthorized." };
-    }
-    if (assignment.status !== AssignmentStatus.PENDING) {
-      return { success: false, error: "Assignment has already been submitted." };
-    }
-    if (new Date() > new Date(assignment.deadline)) {
-      return { success: false, error: "The deadline for this assignment has passed." };
-    }
-    const updatedAssignment = await prisma.assignment.update({
-      where: { id: assignmentId },
-      data: {
-        answers: data.answers,
-        studentNotes: data.studentNotes,
-        rating: data.rating,
-        status: AssignmentStatus.COMPLETED,
-      },
-    });
-    const { student, lesson } = assignment;
-    const teacher = lesson.teacher;
-    if (teacher && teacher.email) {
-      const submissionUrl = `${process.env.AUTH_URL}/dashboard/grade/${assignment.id}`;
-      await sendEmail({
-        to: teacher.email,
-        templateName: 'submission_notification',
-        data: {
-          teacherName: teacher.name || 'teacher',
-          studentName: student.name || 'A student',
-          lessonTitle: lesson.title,
-          button: createButton('View & Grade Submission', submissionUrl),
-        },
-      });
-    }
-    revalidatePath('/my-lessons');
-    return { success: true, data: updatedAssignment };
-  } catch (error) {
-    console.error("Failed to submit standard assignment:", error);
-    return { success: false, error: "An internal error occurred." };
-  }
-}
-
-/**
- * Gets the number of students who have completed a specific lesson.
- */
 export async function getLessonCompletionStats(lessonId: string) {
   try {
     const count = await prisma.assignment.count({
@@ -516,9 +708,6 @@ export async function getLessonCompletionStats(lessonId: string) {
   }
 }
 
-/**
- * Calculates the average rating for a specific lesson.
- */
 export async function getLessonAverageRating(lessonId: string) {
   try {
     const result = await prisma.assignment.aggregate({
@@ -537,171 +726,4 @@ export async function getLessonAverageRating(lessonId: string) {
     console.error(`Failed to get average rating for lesson ${lessonId}:`, error);
     return null;
   }
-}
-
-// Functions that were missing
-export async function getUploadedImages() {
-  try {
-    const lessonsWithImages = await prisma.lesson.findMany({
-      where: {
-        assignment_image_url: {
-          not: null,
-        },
-      },
-      select: {
-        assignment_image_url: true,
-      },
-      distinct: ['assignment_image_url'],
-    });
-    return lessonsWithImages.map(lesson => lesson.assignment_image_url).filter(Boolean) as string[];
-  } catch (error) {
-    console.error("Failed to fetch uploaded images:", error);
-    return [];
-  }
-}
-
-/**
- * Fetches all students and calculates their total points from graded assignments.
- */
-export async function getStudentsWithStats() {
-  const students = await prisma.user.findMany({
-    where: { role: Role.STUDENT },
-    include: {
-      assignments: {
-        where: {
-          status: AssignmentStatus.GRADED,
-          score: { not: null },
-        },
-      },
-    },
-    orderBy: { name: 'asc' }
-  });
-
-  return students.map(student => {
-    const totalPoints = student.assignments.reduce((sum, a) => sum + (a.score || 0), 0);
-    // eslint-disable-next-line no-unused-vars
-    const { assignments, ...studentData } = student;
-    return {
-      ...studentData,
-      totalPoints,
-    };
-  });
-}
-
-export async function assignLessonByShareId(shareId: string, studentId: string) {
-    try {
-        const lesson = await prisma.lesson.findFirst({ where: { public_share_id: shareId } });
-        if (!lesson) {
-            return { success: false, error: 'Shared lesson not found.' };
-        }
-        
-        const existingAssignment = await prisma.assignment.findFirst({
-            where: { lessonId: lesson.id, studentId: studentId }
-        });
-
-        if (existingAssignment) {
-            // If already assigned, return the existing assignment
-            return { success: true, assignment: existingAssignment };
-        }
-
-        const newAssignment = await prisma.assignment.create({
-            data: {
-                studentId: studentId,
-                lessonId: lesson.id,
-                deadline: new Date(Date.now() + 36 * 60 * 60 * 1000), // 36 hours from now
-            }
-        });
-
-        revalidatePath('/my-lessons');
-        return { success: true, assignment: newAssignment };
-    } catch (error) {
-        return { success: false, error: 'Failed to assign lesson.' };
-    }
-}
-
-export async function deleteLesson(lessonId: string) {
-    try {
-        await prisma.lesson.delete({ where: { id: lessonId }});
-        revalidatePath('/dashboard');
-        return { success: true };
-    } catch (error) {
-        return { success: false, error: 'Failed to delete lesson.' };
-    }
-}
-
-export async function sendCustomEmailToAssignedStudents(lessonId: string, subject: string, body: string) {
-    try {
-        const assignments = await prisma.assignment.findMany({
-            where: { lessonId },
-            include: { student: true, lesson: { include: { teacher: true }}}
-        });
-        if (assignments.length === 0) {
-            return { success: false, error: 'No students assigned to this lesson.' };
-        }
-        for (const assignment of assignments) {
-            if (assignment.student.email) {
-                await sendEmail({
-                    to: assignment.student.email,
-                    templateName: 'custom',
-                    data: {
-                        studentName: assignment.student.name || 'student',
-                        teacherName: assignment.lesson.teacher?.name || 'your teacher',
-                        lessonTitle: assignment.lesson.title,
-                    },
-                    override: { subject, body }
-                });
-            }
-        }
-        return { success: true };
-    } catch (error) {
-        return { success: false, error: 'Failed to send emails.' };
-    }
-}
-
-export async function completeFlashcardAssignment(assignmentId: string, studentId: string) {
-    try {
-        const assignment = await prisma.assignment.update({
-            where: { id: assignmentId, studentId: studentId },
-            data: { status: AssignmentStatus.COMPLETED }
-        });
-        revalidatePath('/my-lessons');
-        return { success: true, data: assignment };
-    } catch (error) {
-        return { success: false, error: 'Failed to complete assignment.' };
-    }
-}
-
-export async function submitMultiChoiceAssignment(assignmentId: string, studentId: string, answers: { [key: string]: string }) {
-    try {
-        const assignment = await prisma.assignment.findUnique({
-            where: { id: assignmentId, studentId: studentId },
-            include: { lesson: { include: { multiChoiceQuestions: { include: { options: true }}}}}
-        });
-        if (!assignment) return { success: false, error: 'Assignment not found' };
-
-        let correctCount = 0;
-        const processedAnswers = assignment.lesson.multiChoiceQuestions.map(q => {
-            const selectedOptionId = answers[q.id];
-            const correctOption = q.options.find(o => o.isCorrect);
-            const isCorrect = selectedOptionId === correctOption?.id;
-            if (isCorrect) correctCount++;
-            return { questionId: q.id, selectedAnswerId: selectedOptionId, isCorrect };
-        });
-
-        const score = Math.round((correctCount / assignment.lesson.multiChoiceQuestions.length) * 10);
-
-        const updatedAssignment = await prisma.assignment.update({
-            where: { id: assignmentId },
-            data: {
-                answers: processedAnswers,
-                status: AssignmentStatus.GRADED,
-                score: score,
-                gradedAt: new Date()
-            }
-        });
-        revalidatePath('/my-lessons');
-        return { success: true, data: updatedAssignment };
-    } catch (error) {
-        return { success: false, error: 'Failed to submit assignment.' };
-    }
 }

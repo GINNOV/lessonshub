@@ -117,6 +117,7 @@ export default function StudentLessonCard({
     
   const savingsInfo = getSavingsInfo(assignment.status, assignment.score, assignment.lesson.price);
   const scoreIcon = getScoreIcon(assignment.score);
+  const cardBgClass = index % 2 === 0 ? 'from-white' : 'from-slate-50';
 
   return (
     <div
@@ -127,17 +128,19 @@ export default function StudentLessonCard({
     >
       <div className="flex flex-col gap-6 sm:flex-row">
         <div className="w-full flex-shrink-0 sm:w-auto relative">
-          <Image
-            src={
-              assignment.lesson.assignment_image_url ||
-              lessonTypeImages[assignment.lesson.type]
-            }
-            alt={`Image for ${assignment.lesson.title}`}
-            width={150}
-            height={100}
-            className="h-auto w-full rounded-md object-cover sm:h-[100px] sm:w-[150px]"
-            priority={index < 3}
-          />
+          <div className="relative h-[100px] w-full sm:w-[150px] rounded-md overflow-hidden">
+            <Image
+              src={
+                assignment.lesson.assignment_image_url ||
+                lessonTypeImages[assignment.lesson.type]
+              }
+              alt={`Image for ${assignment.lesson.title}`}
+              layout="fill"
+              objectFit="cover"
+              priority={index < 3}
+            />
+            <div className={`absolute bottom-0 left-0 w-full h-3/4 bg-gradient-to-t ${cardBgClass} to-transparent`} />
+          </div>
           {scoreIcon && (
             <div className="absolute -bottom-2 -left-2 text-5xl">{scoreIcon}</div>
           )}

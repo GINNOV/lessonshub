@@ -28,7 +28,7 @@ export default async function GradeSubmissionPage({
     redirect("/");
   }
 
-  const { assignmentId } = await params; // Correctly await the params
+  const { assignmentId } = await params;
   const submission = await getSubmissionForGrading(
     assignmentId,
     session.user.id
@@ -55,7 +55,9 @@ export default async function GradeSubmissionPage({
     }
   };
 
-  const studentNotesHtml = submission.studentNotes ? ((await marked.parse(submission.studentNotes)) as string) : "";
+  const flashcardAnswers = submission.answers as Record<string, 'correct' | 'incorrect'> | null;
+  const correctCount = flashcardAnswers ? Object.values(flashcardAnswers).filter(a => a === 'correct').length : 0;
+  const incorrectCount = flashcardAnswers ? Object.values(flashcardAnswers).filter(a => a === 'incorrect').length : 0;
 
   return (
     <div>
@@ -76,13 +78,48 @@ export default async function GradeSubmissionPage({
               Student&apos;s Response
             </h2>
 
-            {submission.lesson.type === LessonType.MULTI_CHOICE && (
-                <div className="mt-4 space-y-6">{/* ... Multi-choice answer display ... */}</div>
+            {submission.lesson.type === LessonType.FLASHCARD && flashcardAnswers && (
+                <div className="mt-4 space-y-2">
+                    <div className="flex justify-around p-2 mb-4 bg-gray-50 rounded-md">
+                        <div className="text-center">
+                            <p className="font-bold text-green-600 text-2xl">{correctCount}</p>
+                            <p className="text-sm text-gray-500">Correct</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="font-bold text-red-600 text-2xl">{incorrectCount}</p>
+                            <p className="text-sm text-gray-500">Incorrect</p>
+                        </div>
+                    </div>
+                    {submission.lesson.flashcards.map(flashcard => {
+                        const result = flashcardAnswers[flashcard.id];
+                        return (
+                            <div key={flashcard.id} className={cn(
+                                "flex items-center justify-between p-2 border rounded-md",
+                                result === 'correct' && 'bg-green-100 border-green-200',
+                                result === 'incorrect' && 'bg-red-100 border-red-200'
+                            )}>
+                                <div>
+                                    <p className="font-semibold">{flashcard.term}</p>
+                                    <p className="text-sm text-gray-500">{flashcard.definition}</p>
+                                </div>
+                                {result === 'correct' && (
+                                    <div className="flex items-center gap-1 text-green-600 font-semibold">
+                                        <CheckCircle2 className="h-5 w-5" />
+                                        <span>Right</span>
+                                    </div>
+                                )}
+                                {result === 'incorrect' && (
+                                    <div className="flex items-center gap-1 text-red-600 font-semibold">
+                                        <XCircle className="h-5 w-5" />
+                                        <span>Wrong</span>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
             )}
-            {submission.lesson.type === LessonType.FLASHCARD && (
-                <div className="mt-4 text-center">{/* ... Flashcard answer display ... */}</div>
-            )}
-
+            
             {submission.lesson.type === LessonType.STANDARD && (
               <div className="mt-4 space-y-6">
                 {(submission.lesson.questions as string[])?.map(
@@ -126,7 +163,6 @@ export default async function GradeSubmissionPage({
             </AccordionItem>
         </Accordion>
       </div>
-
     </div>
   );
 }
