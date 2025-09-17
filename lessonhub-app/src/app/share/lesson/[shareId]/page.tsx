@@ -1,45 +1,57 @@
 // file: src/app/share/lesson/[shareId]/page.tsx
-import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter, redirect } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { assignLessonByShareId } from '@/actions/lessonActions';
-import { Role } from '@prisma/client';
+import { toast } from 'sonner';
 
-export default async function JoinLessonPage({
-  params,
-}: {
-  params: Promise<{ shareId: string }>;
-}) {
-  const session = await auth();
-  const { shareId } = await params;
+export default function JoinLessonPage() {
+  const router = useRouter();
+  const params = useParams();
+  const { data: session, status } = useSession();
+  const [message, setMessage] = useState('Joining lesson...');
 
-  // If user is not signed in, redirect them to the sign-in page.
-  // After signing in, they will be sent back to this exact "Join" link to complete the process.
-  if (!session) {
-    const callbackUrl = `/share/lesson/${shareId}`;
-    redirect(`/api/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-  }
-
-  // If the user is a Teacher or Admin, they can't "join" a lesson as a student.
-  // Redirect them to their dashboard to prevent confusion.
-  if (session.user.role === Role.TEACHER || session.user.role === Role.ADMIN) {
-    redirect('/dashboard');
-  }
-
-  // If the user is a Student, attempt to assign the lesson.
-  if (session.user.role === Role.STUDENT) {
-    const assignment = await assignLessonByShareId(shareId, session.user.id);
-
-    if (assignment) {
-      // Success! Redirect the student directly to their new assignment.
-      redirect(`/assignments/${assignment.id}`);
-    } else {
-      // Failure, likely because the share link was invalid.
-      // Redirect to their main dashboard.
-      // We could add a toast message here in the future to say "Invalid Link".
-      redirect('/my-lessons');
+  useEffect(() => {
+    if (status === 'loading') {
+      return;
     }
-  }
 
-  // Fallback for any other unforeseen cases.
-  redirect('/');
+    if (status === 'unauthenticated') {
+      toast.error("Please sign in to join the lesson.");
+      router.push('/signin');
+      return;
+    }
+
+    const handleJoin = async () => {
+      // Ensure params and shareId exist before proceeding
+      if (!params || !params.shareId) {
+          setMessage("Invalid share link.");
+          return;
+      }
+      
+      const shareId = params.shareId as string;
+      if (!session?.user?.id) return;
+
+      const result = await assignLessonByShareId(shareId, session.user.id);
+
+      if (result.success && result.assignment) {
+        toast.success("Lesson joined successfully!");
+        // Use redirect for navigation after server actions
+        redirect(`/assignments/${result.assignment.id}`);
+      } else {
+        toast.error(result.error || "Failed to join the lesson.");
+        router.push('/my-lessons');
+      }
+    };
+
+    handleJoin();
+  }, [status, session, params, router]);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <p>{message}</p>
+    </div>
+  );
 }

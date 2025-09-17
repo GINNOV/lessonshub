@@ -3,7 +3,7 @@
 
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
-import { Role, AssignmentStatus } from "@prisma/client"; // Import AssignmentStatus
+import { Role, AssignmentStatus } from "@prisma/client";
 import { sendEmail, createButton } from "@/lib/email-templates";
 
 /**
@@ -50,75 +50,6 @@ export async function sendFeedbackToTeachers(feedbackMessage: string) {
 }
 
 /**
- * Calculates the average rating for a specific lesson.
- */
-export async function getLessonAverageRating(lessonId: string) {
-  try {
-    const result = await prisma.assignment.aggregate({
-      _avg: {
-        rating: true,
-      },
-      where: {
-        lessonId: lessonId,
-        rating: {
-          not: null,
-        },
-      },
-    });
-    return result._avg.rating;
-  } catch (error) {
-    console.error(`Failed to get average rating for lesson ${lessonId}:`, error);
-    return null;
-  }
-}
-
-/**
- * Fetches and calculates data for the student leaderboard.
- */
-export async function getLeaderboardData() {
-  try {
-    const students = await prisma.user.findMany({
-      where: { role: Role.STUDENT },
-      include: {
-        assignments: {
-          where: {
-            status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED] },
-            gradedAt: { not: null },
-          },
-        },
-      },
-    });
-
-    const leaderboard = students.map(student => {
-      const completedCount = student.assignments.length;
-      let totalCompletionTime = 0;
-
-      student.assignments.forEach(a => {
-        if (a.gradedAt) {
-          totalCompletionTime += new Date(a.gradedAt).getTime() - new Date(a.assignedAt).getTime();
-        }
-      });
-      
-      const averageCompletionTime = completedCount > 0 ? totalCompletionTime / completedCount : 0;
-
-      return {
-        id: student.id,
-        name: student.name,
-        completedCount,
-        averageCompletionTime,
-      };
-    })
-    .filter(s => s.completedCount > 0)
-    .sort((a, b) => b.completedCount - a.completedCount || a.averageCompletionTime - b.averageCompletionTime);
-
-    return leaderboard;
-  } catch (error) {
-    console.error("Failed to fetch leaderboard data:", error);
-    return [];
-  }
-}
-
-/**
  * Checks if a student has reached a 10-lesson milestone and sends a notification.
  */
 export async function checkAndSendMilestoneEmail(studentId: string) {
@@ -157,5 +88,71 @@ export async function checkAndSendMilestoneEmail(studentId: string) {
     }
   } catch (error) {
     console.error("Failed to check for milestone:", error);
+  }
+}
+
+/**
+ * Fetches and calculates data for the student leaderboard.
+ */
+export async function getLeaderboardData() {
+  try {
+    const students = await prisma.user.findMany({
+      where: { role: Role.STUDENT },
+      include: {
+        assignments: {
+          where: {
+            status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED] },
+            gradedAt: { not: null },
+          },
+        },
+      },
+    });
+
+    const studentStats = students.map(student => {
+      const completedCount = student.assignments.length;
+      let totalCompletionTime = 0;
+
+      student.assignments.forEach(a => {
+        if (a.gradedAt) {
+          totalCompletionTime += new Date(a.gradedAt).getTime() - new Date(a.assignedAt).getTime();
+        }
+      });
+      
+      const averageCompletionTime = completedCount > 0 ? totalCompletionTime / completedCount : 0;
+
+      return {
+        id: student.id,
+        name: student.name,
+        image: student.image,
+        completedCount,
+        averageCompletionTime,
+      };
+    })
+    .filter(s => s.completedCount > 0);
+
+    const allTimes = studentStats.map(s => s.averageCompletionTime).filter(t => t > 0);
+    if (allTimes.length > 1) {
+        const avg = allTimes.reduce((a, b) => a + b, 0) / allTimes.length;
+        const stdDev = Math.sqrt(allTimes.map(x => Math.pow(x - avg, 2)).reduce((a, b) => a + b) / allTimes.length);
+        
+        studentStats.forEach(s => {
+            if (s.averageCompletionTime < avg - 0.5 * stdDev) {
+                (s as any).speedTier = 'fast';
+            } else if (s.averageCompletionTime > avg + 0.5 * stdDev) {
+                (s as any).speedTier = 'slow';
+            } else {
+                (s as any).speedTier = 'average';
+            }
+        });
+    }
+
+    const leaderboard = studentStats.sort((a, b) => 
+        b.completedCount - a.completedCount || a.averageCompletionTime - b.averageCompletionTime
+    );
+
+    return leaderboard;
+  } catch (error) {
+    console.error("Failed to fetch leaderboard data:", error);
+    return [];
   }
 }

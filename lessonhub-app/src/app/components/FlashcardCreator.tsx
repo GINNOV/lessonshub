@@ -3,267 +3,213 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, PlusCircle, ImageIcon } from 'lucide-react';
-import Image from 'next/image';
-import { Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
+import { toast } from 'sonner';
+import { Upload } from 'lucide-react';
 
-type LessonWithFlashcards = Omit<Lesson, 'price'> & {
+type SerializableLesson = Omit<Lesson, 'price'>;
+
+type LessonWithFlashcards = SerializableLesson & {
   flashcards: PrismaFlashcard[];
 };
 
-type Flashcard = {
-  id: string | number;
-  term: string;
-  definition: string;
-  imageUrl?: string | null;
+type TeacherPreferences = {
+    defaultLessonPreview?: string | null;
+    defaultLessonInstructions?: string | null;
 };
 
 interface FlashcardCreatorProps {
   lesson?: LessonWithFlashcards | null;
+  teacherPreferences?: TeacherPreferences | null;
 }
 
-export default function FlashcardCreator({ lesson }: FlashcardCreatorProps) {
+type FlashcardState = {
+    term: string;
+    definition: string;
+    termImageUrl: string | null;
+    definitionImageUrl: string | null;
+};
+
+export default function FlashcardCreator({ lesson, teacherPreferences }: FlashcardCreatorProps) {
   const router = useRouter();
-  const isEditMode = !!lesson;
-
   const [title, setTitle] = useState('');
-  const [lessonPreview, setLessonPreview] = useState('');
-  const [assignmentText, setAssignmentText] = useState('👉🏼 INSTRUCTIONS:\nReview all the flashcards in the deck. When you are done, click "Finish Lesson" to mark it as complete.');
+  const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
+  const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
   const [attachmentUrl, setAttachmentUrl] = useState('');
-  const [notes, setNotes] = useState('');
-
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
-  const [nextId, setNextId] = useState(1);
-  const [isUploading, setIsUploading] = useState<number | null>(null);
+  const [recentUrls, setRecentUrls] = useState<string[]>([]);
+  const [flashcards, setFlashcards] = useState<FlashcardState[]>([{ term: '', definition: '', termImageUrl: null, definitionImageUrl: null }]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const isEditMode = !!lesson;
 
   useEffect(() => {
     if (lesson) {
       setTitle(lesson.title);
       setLessonPreview(lesson.lesson_preview || '');
-      setAssignmentText(lesson.assignment_text || '👉🏼 INSTRUCTIONS:\nReview all the flashcards in the deck. When you are done, click "Finish Lesson" to mark it as complete.');
+      setAssignmentText(lesson.assignment_text || '👉🏼 INSTRUCTIONS:\n');
       setAttachmentUrl(lesson.attachment_url || '');
-      setNotes(lesson.notes || '');
-
-      if (lesson.flashcards && Array.isArray(lesson.flashcards)) {
-        const existingFlashcards = lesson.flashcards.map((card, index) => ({
-          ...card,
-          id: index + 1,
-        }));
-        setFlashcards(existingFlashcards);
-        setNextId(existingFlashcards.length + 1);
+      if (lesson.flashcards && lesson.flashcards.length > 0) {
+        // Correctly map the new fields
+        setFlashcards(lesson.flashcards.map(fc => ({ 
+            term: fc.term, 
+            definition: fc.definition, 
+            termImageUrl: fc.termImageUrl, 
+            definitionImageUrl: fc.definitionImageUrl 
+        })));
       }
-    } else {
-      setFlashcards([
-        { id: 1, term: '', definition: '' },
-        { id: 2, term: '', definition: '' },
-      ]);
-      setNextId(3);
+    }
+     try {
+      const savedUrls = localStorage.getItem('recentAttachmentUrls');
+      if (savedUrls) {
+        setRecentUrls(JSON.parse(savedUrls));
+      }
+    } catch (e) {
+      console.error("Failed to parse recent URLs from localStorage", e);
     }
   }, [lesson]);
+
+  const handleFlashcardChange = (index: number, field: 'term' | 'definition', value: string) => {
+    const newFlashcards = [...flashcards];
+    newFlashcards[index][field] = value;
+    setFlashcards(newFlashcards);
+  };
   
-  const handleAddCard = () => {
-    setFlashcards([...flashcards, { id: nextId, term: '', definition: '' }]);
-    setNextId(nextId + 1);
-  };
-
-  const handleCardChange = (id: number | string, field: 'term' | 'definition', value: string) => {
-    setFlashcards(flashcards.map(card => card.id === id ? { ...card, [field]: value } : card));
-  };
-
-  const handleImageUpload = async (id: number | string, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, index: number, field: 'termImageUrl' | 'definitionImageUrl') => {
+    event.preventDefault();
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(id as number);
-    setError(null);
-    
+    setUploadingIndex(index);
     try {
       const response = await fetch(`/api/upload?filename=${file.name}`, { method: 'POST', body: file });
-      if (!response.ok) throw new Error("Image upload failed.");
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
       const newBlob = await response.json();
-      
-      setFlashcards(flashcards.map(card => card.id === id ? { ...card, imageUrl: newBlob.url } : card));
-    } catch (err: unknown) {
-      setError((err as Error).message);
+      if (newBlob?.url) {
+        const newFlashcards = [...flashcards];
+        newFlashcards[index][field] = newBlob.url;
+        setFlashcards(newFlashcards);
+      }
+    } catch (err) {
+      toast.error((err as Error).message);
     } finally {
-      setIsUploading(null);
+      setUploadingIndex(null);
     }
   };
-  
-  const handleDeleteCard = (id: number | string) => {
-    setFlashcards(flashcards.filter(card => card.id !== id));
+
+  const addFlashcard = () => {
+    setFlashcards([...flashcards, { term: '', definition: '', termImageUrl: null, definitionImageUrl: null }]);
+  };
+
+  const removeFlashcard = (index: number) => {
+    const newFlashcards = flashcards.filter((_, i) => i !== index);
+    setFlashcards(newFlashcards);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
-    const validFlashcards = flashcards
-      .filter((fc) => fc.term.trim() && fc.definition.trim())
-      .map(({ id, ...rest }) => rest);
+    const validFlashcards = flashcards.filter(fc => fc.term.trim() && fc.definition.trim());
 
     if (!title.trim()) {
-      setError('Lesson title is required.');
+      toast.error('Lesson title cannot be empty.');
       setIsLoading(false);
       return;
     }
-    if (validFlashcards.length < 1) {
-      setError('You must create at least one valid flashcard.');
+    if (validFlashcards.length === 0) {
+      toast.error('You must include at least one valid flashcard.');
       setIsLoading(false);
       return;
     }
+
+    const url = isEditMode ? `/api/lessons/flashcard/${lesson.id}` : '/api/lessons/flashcard';
+    const method = isEditMode ? 'PATCH' : 'POST';
 
     try {
-      const url = isEditMode && lesson
-        ? `/api/lessons/flashcard/${lesson.id}`
-        : '/api/lessons/flashcard';
-      const method = isEditMode ? 'PATCH' : 'POST';
-
       const response = await fetch(url, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          flashcards: validFlashcards,
-          lesson_preview: lessonPreview,
-          assignment_text: assignmentText,
-          attachment_url: attachmentUrl,
-          notes,
-        }),
+        body: JSON.stringify({ title, lesson_preview: lessonPreview, assignment_text: assignmentText, attachment_url: attachmentUrl, flashcards: validFlashcards }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          errorData.error ||
-            `Failed to ${isEditMode ? 'update' : 'create'} flashcard lesson.`
-        );
+        throw new Error(errorData.error || 'Failed to save lesson');
       }
 
+      toast.success(`Lesson successfully ${isEditMode ? 'updated' : 'created'}!`);
       router.push('/dashboard');
       router.refresh();
-    } catch (err) {
-      setError((err as Error).message);
+
+    } catch (error) {
+      toast.error((error as Error).message);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {error && (
-        <p className="rounded-md bg-red-100 p-3 text-red-500">{error}</p>
-      )}
-
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="title" className="text-xl font-bold">
-          Lesson Title
-        </Label>
-        <Input
-          id="title"
-          placeholder="e.g., Spanish Vocabulary - Chapter 1"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
+        <Label htmlFor="title">Lesson Title</Label>
+        <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Common English Idioms" />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="lessonPreview">Lesson Preview (Optional)</Label>
-        <Textarea
-          id="lessonPreview"
-          placeholder="A brief preview for the student dashboard."
-          value={lessonPreview}
-          onChange={(e) => setLessonPreview(e.target.value)}
-          disabled={isLoading}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="assignmentText">Instructions (Optional)</Label>
-        <Textarea
-          id="assignmentText"
-          placeholder="Describe the main task for the student."
-          value={assignmentText}
-          onChange={(e) => setAssignmentText(e.target.value)}
-          disabled={isLoading}
-          className="min-h-[150px]"
-        />
+       <div className="space-y-2">
+        <Label htmlFor="lessonPreview">Lesson Preview</Label>
+        <Textarea id="lessonPreview" placeholder="A brief preview of the lesson for students." value={lessonPreview} onChange={(e) => setLessonPreview(e.target.value)} />
       </div>
 
-      <div className="space-y-6">
-        <h3 className="text-lg font-semibold">Flashcards</h3>
-        {flashcards.map((card, index) => (
-          // The entire inner content of this div was restored from the placeholder.
-          <div key={card.id} className="flex items-start gap-4 rounded-lg border bg-gray-50 p-4">
-            <span className="mt-2 text-lg font-bold text-gray-400">{index + 1}</span>
-            <div className="grid flex-grow grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor={`term-${card.id}`}>Term</Label>
-                <Textarea id={`term-${card.id}`} value={card.term} onChange={(e) => handleCardChange(card.id, 'term', e.target.value)} />
+       <div className="space-y-2">
+        <Label htmlFor="assignmentText">Instructions</Label>
+        <Textarea id="assignmentText" placeholder="Describe the main task for the student." value={assignmentText} onChange={(e) => setAssignmentText(e.target.value)} />
+      </div>
+      
+       <div className="space-y-2">
+        <Label htmlFor="attachmentUrl">Reading Material (Optional)</Label>
+        <div className="flex items-center gap-2">
+          <Input type="url" id="attachmentUrl" placeholder="https://example.com" value={attachmentUrl} onChange={(e) => setAttachmentUrl(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {flashcards.map((fc, index) => (
+          <div key={index} className="p-4 border rounded-md space-y-4">
+              <div className="flex justify-between items-center">
+                  <h3 className="font-semibold">Flashcard {index + 1}</h3>
+                  <Button type="button" variant="destructive" size="sm" onClick={() => removeFlashcard(index)} disabled={flashcards.length <= 1}>Delete Card</Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor={`definition-${card.id}`}>Definition</Label>
-                <Textarea id={`definition-${card.id}`} value={card.definition} onChange={(e) => handleCardChange(card.id, 'definition', e.target.value)} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Term Side */}
+                <div className="space-y-2">
+                    <Label>Term (Front)</Label>
+                    <Input placeholder="e.g., Break a leg" value={fc.term} onChange={(e) => handleFlashcardChange(index, 'term', e.target.value)} />
+                    <Label htmlFor={`term-image-${index}`} className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer"><Upload size={16} /> Upload Image</Label>
+                    <Input id={`term-image-${index}`} type="file" className="hidden" onChange={(e) => handleImageUpload(e, index, 'termImageUrl')} />
+                    {fc.termImageUrl && <Image src={fc.termImageUrl} alt="Term image" width={100} height={100} className="rounded-md mt-2" />}
+                </div>
+                {/* Definition Side */}
+                <div className="space-y-2">
+                    <Label>Definition (Back)</Label>
+                    <Input placeholder="e.g., Good luck!" value={fc.definition} onChange={(e) => handleFlashcardChange(index, 'definition', e.target.value)} />
+                    <Label htmlFor={`def-image-${index}`} className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer"><Upload size={16} /> Upload Image</Label>
+                    <Input id={`def-image-${index}`} type="file" className="hidden" onChange={(e) => handleImageUpload(e, index, 'definitionImageUrl')} />
+                    {fc.definitionImageUrl && <Image src={fc.definitionImageUrl} alt="Definition image" width={100} height={100} className="rounded-md mt-2" />}
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-                <label htmlFor={`image-${card.id}`} className="cursor-pointer">
-                    <Button asChild variant="outline" size="icon">
-                        <div>
-                            <ImageIcon className="h-4 w-4" />
-                            <input id={`image-${card.id}`} type="file" className="sr-only" onChange={(e) => handleImageUpload(card.id, e)} disabled={isUploading === card.id} />
-                        </div>
-                    </Button>
-                </label>
-                {card.imageUrl && <Image src={card.imageUrl} alt="preview" width={40} height={40} className="rounded-sm object-cover" />}
-                {isUploading === card.id && <p className="text-xs">...</p>}
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => handleDeleteCard(card.id)} aria-label="Delete flashcard">
-              <Trash2 className="h-4 w-4 text-gray-500" />
-            </Button>
           </div>
         ))}
       </div>
-      
-      <div className="flex items-center justify-between">
-        <Button type="button" variant="outline" onClick={handleAddCard}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Card
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="attachmentUrl">Attachment URL (Optional)</Label>
-        <Input
-          id="attachmentUrl"
-          type="url"
-          placeholder="https://example.com/worksheet.pdf"
-          value={attachmentUrl}
-          onChange={(e) => setAttachmentUrl(e.target.value)}
-          disabled={isLoading}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="notes">Private Teacher Notes (Optional)</Label>
-        <Input
-          id="notes"
-          placeholder="Notes for yourself, not visible to students."
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          disabled={isLoading}
-        />
-      </div>
-      
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Saving...' : 'Save Lesson'}
-        </Button>
+      <div className="flex justify-between">
+        <Button type="button" onClick={addFlashcard}>Add Flashcard</Button>
+        <Button type="submit" disabled={isLoading || uploadingIndex !== null}>{isLoading ? 'Saving...' : 'Save Lesson'}</Button>
       </div>
     </form>
   );
