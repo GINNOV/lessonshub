@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, lesson_preview, assignment_text, attachment_url, flashcards } = body;
+  const { title, lesson_preview, assignment_text, attachment_url, flashcards, price } = body;
 
   if (!title || !flashcards || flashcards.length === 0) {
     return new NextResponse(
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     const newLesson = await prisma.lesson.create({
       data: {
         title: title,
+        price: price,
         lesson_preview: lesson_preview,
         assignment_text: assignment_text,
         attachment_url: attachment_url,

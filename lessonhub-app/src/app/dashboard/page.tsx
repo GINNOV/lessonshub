@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLessonsForTeacher, getLessonAverageRating } from "@/actions/lessonActions";
-import { getTeacherPreferences } from "@/actions/teacherActions";
+import { getTeacherPreferences, getLeaderboardDataForTeacher } from "@/actions/teacherActions";
 import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import TeacherLessonList from "@/app/components/TeacherLessonList";
@@ -15,6 +15,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import TeacherClassLeaderboard from "@/app/components/TeacherClassLeaderboard";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -27,9 +30,10 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  const [lessons, preferences] = await Promise.all([
+  const [lessons, preferences, leaderboardData] = await Promise.all([
     getLessonsForTeacher(session.user.id),
     getTeacherPreferences(),
+    getLeaderboardDataForTeacher(session.user.id),
   ]);
 
   const lessonsWithRatings = await Promise.all(
@@ -81,7 +85,18 @@ export default async function DashboardPage() {
         </DropdownMenu>
       </div>
       <TeacherLessonList lessons={lessonsWithRatings} />
-      <TeacherPreferences initialPreferences={serializablePreferences} />
+      
+      <Accordion type="single" collapsible className="w-full mt-8">
+        <AccordionItem value="item-1">
+          <AccordionTrigger>Lesson Defaults</AccordionTrigger>
+          <AccordionContent>
+            <TeacherPreferences initialPreferences={serializablePreferences} />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
+      <TeacherClassLeaderboard leaderboardData={leaderboardData} />
     </div>
   );
 }
+

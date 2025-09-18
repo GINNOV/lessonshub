@@ -14,14 +14,17 @@ import { toast } from 'sonner';
 type SerializableLesson = Omit<Lesson, 'price'>;
 
 type LessonWithQuestions = SerializableLesson & {
+  price: number;
   multiChoiceQuestions: (PrismaQuestion & {
     options: PrismaOption[];
   })[];
 };
 
 type TeacherPreferences = {
+    defaultLessonPrice?: number | null;
     defaultLessonPreview?: string | null;
     defaultLessonInstructions?: string | null;
+    defaultLessonNotes?: string | null;
 };
 
 interface MultiChoiceCreatorProps {
@@ -42,9 +45,11 @@ type QuestionState = {
 export default function MultiChoiceCreator({ lesson, teacherPreferences }: MultiChoiceCreatorProps) {
   const router = useRouter();
   const [title, setTitle] = useState('');
+  const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
   const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
   const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
   const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
   const [questions, setQuestions] = useState<QuestionState[]>([{ question: '', options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }] }]);
   const [isLoading, setIsLoading] = useState(false);
   const isEditMode = !!lesson;
@@ -52,9 +57,11 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
   useEffect(() => {
     if (lesson) {
       setTitle(lesson.title);
+      setPrice(lesson.price.toString());
       setLessonPreview(lesson.lesson_preview || '');
       setAssignmentText(lesson.assignment_text || '');
       setAttachmentUrl(lesson.attachment_url || '');
+      setNotes(lesson.notes || '');
       if (lesson.multiChoiceQuestions && lesson.multiChoiceQuestions.length > 0) {
         setQuestions(lesson.multiChoiceQuestions.map(q => ({
           question: q.question,
@@ -113,7 +120,6 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Add validation logic here...
     
     const url = isEditMode ? `/api/lessons/multi-choice/${lesson.id}` : '/api/lessons/multi-choice';
     const method = isEditMode ? 'PATCH' : 'POST';
@@ -122,7 +128,15 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
         const response = await fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, lesson_preview: lessonPreview, assignment_text: assignmentText, attachment_url: attachmentUrl, questions }),
+            body: JSON.stringify({ 
+                title, 
+                price: parseFloat(price) || 0,
+                lesson_preview: lessonPreview, 
+                assignment_text: assignmentText, 
+                attachment_url: attachmentUrl, 
+                notes,
+                questions 
+            }),
         });
         if (!response.ok) throw new Error('Failed to save lesson');
         toast.success('Lesson saved successfully!');
@@ -143,6 +157,11 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
       </div>
 
        <div className="space-y-2">
+          <Label htmlFor="price">Price (€)</Label>
+          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
+      </div>
+
+       <div className="space-y-2">
         <Label htmlFor="lessonPreview">Lesson Preview</Label>
         <Textarea id="lessonPreview" placeholder="A brief preview of the lesson for students." value={lessonPreview} onChange={(e) => setLessonPreview(e.target.value)} />
       </div>
@@ -155,6 +174,11 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
        <div className="space-y-2">
         <Label htmlFor="attachmentUrl">Reading Material (Optional)</Label>
         <Input type="url" id="attachmentUrl" placeholder="https://example.com" value={attachmentUrl} onChange={(e) => setAttachmentUrl(e.target.value)} />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notes for student (Optional)</Label>
+        <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </div>
       
       {questions.map((q, qIndex) => (

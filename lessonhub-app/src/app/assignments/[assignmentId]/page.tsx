@@ -12,6 +12,7 @@ import { AssignmentStatus, LessonType } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import LocaleDate from "@/app/components/LocaleDate";
 
 // --- SVG Icons ---
 function AlertTriangleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -110,7 +111,7 @@ export default async function AssignmentPage({
 
       <h1 className="mb-2 text-3xl font-bold">{lesson.title}</h1>
       <p className="mb-6 text-sm font-bold text-red-600">
-        Deadline: {new Date(serializableAssignment.deadline).toLocaleString()}
+        Deadline: <LocaleDate date={serializableAssignment.deadline} />
       </p>
 
       {lesson.lesson_preview && (

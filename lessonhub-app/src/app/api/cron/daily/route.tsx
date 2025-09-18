@@ -56,7 +56,7 @@ export async function GET() {
                             studentName: student.name || 'student',
                             teacherName: lesson.teacher.name || 'your teacher',
                             lessonTitle: lesson.title,
-                            deadline: deadline.toLocaleString(),
+                            deadline: new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(deadline)),
                             button: createButton('Start Lesson', assignmentUrl),
                         }
                     });

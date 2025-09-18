@@ -3,7 +3,7 @@
 
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
-import { Role } from "@prisma/client";
+import { Role, AssignmentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -67,4 +67,53 @@ export async function updateTeacherPreferences(data: TeacherPreferences) {
         console.error("Failed to update teacher preferences:", error);
         return { success: false, error: "An error occurred." };
     }
+}
+
+/**
+ * Fetches and calculates data for the teacher's class leaderboard.
+ */
+export async function getLeaderboardDataForTeacher(teacherId: string) {
+  try {
+    const assignedStudentRelations = await prisma.teachersForStudent.findMany({
+      where: { teacherId },
+      select: { studentId: true }
+    });
+    const assignedStudentIds = assignedStudentRelations.map(r => r.studentId);
+
+    if (assignedStudentIds.length === 0) {
+      return [];
+    }
+
+    const students = await prisma.user.findMany({
+      where: { id: { in: assignedStudentIds } },
+      include: {
+        assignments: {
+          where: {
+            status: AssignmentStatus.GRADED,
+            lesson: { teacherId: teacherId }
+          },
+        },
+      },
+    });
+
+    const studentStats = students.map(student => {
+      const completedCount = student.assignments.length;
+      const totalScore = student.assignments.reduce((sum, a) => sum + (a.score || 0), 0);
+      
+      return {
+        id: student.id,
+        name: student.name,
+        image: student.image,
+        completedCount,
+        totalScore,
+      };
+    })
+    .filter(s => s.completedCount > 0)
+    .sort((a, b) => b.totalScore - a.totalScore || b.completedCount - a.completedCount);
+
+    return studentStats;
+  } catch (error) {
+    console.error("Failed to fetch teacher leaderboard data:", error);
+    return [];
+  }
 }

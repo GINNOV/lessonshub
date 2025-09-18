@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, questions } = body;
+    const { title, questions, price, lesson_preview, assignment_text, attachment_url, notes } = body;
 
     if (
       !title ||
@@ -37,6 +37,11 @@ export async function POST(request: Request) {
     const newLesson = await prisma.lesson.create({
       data: {
         title,
+        price,
+        lesson_preview,
+        assignment_text,
+        attachment_url,
+        notes,
         type: LessonType.MULTI_CHOICE, // Use the enum for type safety
         teacherId: session.user.id,
         multiChoiceQuestions: {

@@ -91,10 +91,11 @@ export async function processScheduledAssignments() {
     }
 
     for (const lesson of lessonsToAssign) {
+      const deadline = new Date(Date.now() + 36 * 60 * 60 * 1000); // Default 36h deadline
       const assignmentsData = students.map(student => ({
         lessonId: lesson.id,
         studentId: student.id,
-        deadline: new Date(Date.now() + 36 * 60 * 60 * 1000), // Default 36h deadline
+        deadline: deadline,
       }));
 
       await prisma.assignment.createMany({
@@ -111,7 +112,7 @@ export async function processScheduledAssignments() {
               studentName: student.name || 'student',
               teacherName: lesson.teacher.name || 'your teacher',
               lessonTitle: lesson.title,
-              deadline: new Date(Date.now() + 36 * 60 * 60 * 1000).toLocaleString(),
+              deadline: new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeStyle: 'short' }).format(deadline),
               button: createButton('Start Lesson', `${process.env.AUTH_URL}/my-lessons`),
             }
           });

@@ -82,7 +82,7 @@ export async function PATCH(request: NextRequest) {
                           studentName: student.name || 'student',
                           teacherName: session.user.name || 'your teacher',
                           lessonTitle: lesson.title,
-                          deadline: new Date(deadline).toLocaleString(),
+                          deadline: new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(deadline)),
                           button: createButton('Start Lesson', `${getBaseUrl(request)}/my-lessons`, template.buttonColor || undefined),
                         }
                       });
@@ -99,9 +99,8 @@ export async function PATCH(request: NextRequest) {
       await prisma.$transaction(operations);
     }
 
-    // ✅ THIS IS THE FIX: Revalidate the necessary paths
-    revalidatePath('/my-lessons'); // Revalidates the student dashboard
-    revalidatePath(`/dashboard/assign/${lessonId}`); // Revalidates the teacher's assignment page
+    revalidatePath('/my-lessons');
+    revalidatePath(`/dashboard/assign/${lessonId}`);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

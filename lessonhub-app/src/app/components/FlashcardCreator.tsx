@@ -19,12 +19,13 @@ type LessonWithFlashcards = SerializableLesson & {
 };
 
 type TeacherPreferences = {
+    defaultLessonPrice?: number | null;
     defaultLessonPreview?: string | null;
     defaultLessonInstructions?: string | null;
 };
 
 interface FlashcardCreatorProps {
-  lesson?: LessonWithFlashcards | null;
+  lesson?: LessonWithFlashcards & { price: number } | null;
   teacherPreferences?: TeacherPreferences | null;
 }
 
@@ -38,6 +39,7 @@ type FlashcardState = {
 export default function FlashcardCreator({ lesson, teacherPreferences }: FlashcardCreatorProps) {
   const router = useRouter();
   const [title, setTitle] = useState('');
+  const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
   const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
   const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
   const [attachmentUrl, setAttachmentUrl] = useState('');
@@ -50,6 +52,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
   useEffect(() => {
     if (lesson) {
       setTitle(lesson.title);
+      setPrice(lesson.price.toString());
       setLessonPreview(lesson.lesson_preview || '');
       setAssignmentText(lesson.assignment_text || '👉🏼 INSTRUCTIONS:\n');
       setAttachmentUrl(lesson.attachment_url || '');
@@ -136,7 +139,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
       const response = await fetch(url, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, lesson_preview: lessonPreview, assignment_text: assignmentText, attachment_url: attachmentUrl, flashcards: validFlashcards }),
+        body: JSON.stringify({ title, price: parseFloat(price) || 0, lesson_preview: lessonPreview, assignment_text: assignmentText, attachment_url: attachmentUrl, flashcards: validFlashcards }),
       });
 
       if (!response.ok) {
@@ -160,6 +163,10 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
       <div className="space-y-2">
         <Label htmlFor="title">Lesson Title</Label>
         <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Common English Idioms" />
+      </div>
+       <div className="space-y-2">
+          <Label htmlFor="price">Price (€)</Label>
+          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
       </div>
 
        <div className="space-y-2">
