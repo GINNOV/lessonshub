@@ -48,6 +48,12 @@ const allPlaceholders: PlaceholderCategory[] = [
       { variable: '{{deletedUserEmail}}', description: "A deleted user's email address." },
     ],
   },
+  {
+    title: 'Teacher Notifications',
+    items: [
+        { variable: '{{studentList}}', description: 'An HTML unordered list (<ul>) of student names.' },
+    ],
+  },
 ];
 
 

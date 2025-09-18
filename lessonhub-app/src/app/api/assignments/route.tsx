@@ -27,8 +27,12 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { lessonId, studentIdsToAssign, studentIdsToUnassign, deadline, notifyStudents } = body;
 
-    if (!lessonId || !deadline) {
-      return new NextResponse(JSON.stringify({ error: "Lesson ID and deadline are required" }), { status: 400 });
+    if (!lessonId) {
+      return new NextResponse(JSON.stringify({ error: "Lesson ID is required" }), { status: 400 });
+    }
+    
+    if (studentIdsToAssign?.length > 0 && !deadline) {
+        return new NextResponse(JSON.stringify({ error: "Deadline is required for new assignments" }), { status: 400 });
     }
 
     const operations = [];
@@ -78,7 +82,6 @@ export async function PATCH(request: NextRequest) {
                           studentName: student.name || 'student',
                           teacherName: session.user.name || 'your teacher',
                           lessonTitle: lesson.title,
-                          price: lesson.price.toFixed(2),
                           deadline: new Date(deadline).toLocaleString(),
                           button: createButton('Start Lesson', `${getBaseUrl(request)}/my-lessons`, template.buttonColor || undefined),
                         }

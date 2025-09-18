@@ -21,6 +21,19 @@ interface AssignLessonFormProps {
   existingAssignments: Assignment[];
 }
 
+const formatDateTimeForInput = (date: Date | null | undefined): string => {
+    if (!date) return '';
+    try {
+        const d = new Date(date);
+        // Adjust for timezone offset to display local time correctly in the input
+        const timezoneOffset = d.getTimezoneOffset() * 60000;
+        const localDate = new Date(d.getTime() - timezoneOffset);
+        return localDate.toISOString().slice(0, 16);
+    } catch (e) {
+        return '';
+    }
+};
+
 export default function AssignLessonForm({
   lesson,
   students,
@@ -30,7 +43,10 @@ export default function AssignLessonForm({
   const [selectedStudents, setSelectedStudents] = useState<string[]>(() =>
     existingAssignments.map((a) => a.studentId)
   );
-  const [deadline, setDeadline] = useState('');
+  const [deadline, setDeadline] = useState<string>(() => {
+      const firstAssignment = existingAssignments[0];
+      return formatDateTimeForInput(firstAssignment?.deadline);
+  });
   const [notifyStudents, setNotifyStudents] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -50,15 +66,17 @@ export default function AssignLessonForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!deadline) {
-      toast.error('Please set a deadline for the assignment.');
-      return;
-    }
     setIsLoading(true);
 
     const studentIdsToAssign = selectedStudents.filter(id => !initialAssignedStudents.has(id));
     const studentIdsToUnassign = Array.from(initialAssignedStudents).filter(id => !selectedStudents.includes(id));
     
+    if (studentIdsToAssign.length > 0 && !deadline) {
+      toast.error('A deadline is required when assigning lessons to new students.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/assignments', {
         method: 'PATCH',
@@ -67,7 +85,7 @@ export default function AssignLessonForm({
           lessonId: lesson.id,
           studentIdsToAssign,
           studentIdsToUnassign,
-          deadline,
+          deadline: deadline || null, // Send null if only unassigning
           notifyStudents,
         }),
       });
@@ -98,7 +116,6 @@ export default function AssignLessonForm({
           type="datetime-local"
           value={deadline}
           onChange={(e) => setDeadline(e.target.value)}
-          required
         />
       </div>
 
@@ -108,7 +125,7 @@ export default function AssignLessonForm({
           checked={notifyStudents}
           onCheckedChange={(checked) => setNotifyStudents(!!checked)}
         />
-        <Label htmlFor="notify">Notify students via email</Label>
+        <Label htmlFor="notify">Notify newly assigned students via email</Label>
       </div>
 
       <div className="rounded-lg border">

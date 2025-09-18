@@ -32,9 +32,17 @@ export async function getUploadedImages() {
   }
 }
 
-export async function getStudentsWithStats() {
+export async function getStudentsWithStats(teacherId?: string) {
+  const whereClause: any = { role: Role.STUDENT };
+  if (teacherId) {
+    whereClause.teachers = {
+      some: {
+        teacherId: teacherId
+      }
+    };
+  }
   const students = await prisma.user.findMany({
-    where: { role: Role.STUDENT },
+    where: whereClause,
     include: {
       assignments: {
         where: {

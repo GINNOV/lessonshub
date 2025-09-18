@@ -4,7 +4,7 @@
 import prisma from "@/lib/prisma";
 import { Role, User } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { sendEmail } from "@/lib/email-templates";
+import { sendEmail, createButton } from "@/lib/email-templates";
 import { auth } from "@/auth";
 
 /**
@@ -338,4 +338,77 @@ export async function updateUserPayingStatus(userId: string, isPaying: boolean) 
     console.error("Failed to update user paying status:", error);
     return { success: false, error: "An error occurred." };
   }
+}
+
+export async function getAssignedStudents(teacherId: string) {
+    try {
+        const relations = await prisma.teachersForStudent.findMany({
+            where: { teacherId },
+            select: { student: true }
+        });
+        return relations.map(r => r.student);
+    } catch (error) {
+        console.error("Failed to get assigned students:", error);
+        return [];
+    }
+}
+
+export async function assignStudentsToTeacher(teacherId: string, studentIds: string[]) {
+    try {
+        const teacher = await prisma.user.findUnique({
+            where: { id: teacherId },
+            select: { email: true, name: true }
+        });
+
+        if (!teacher || !teacher.email) {
+            return { success: false, error: "Teacher not found or has no email." };
+        }
+
+        const existingAssignments = await prisma.teachersForStudent.findMany({
+            where: { teacherId },
+            select: { studentId: true }
+        });
+        const existingStudentIds = new Set(existingAssignments.map(a => a.studentId));
+        
+        const newlyAssignedIds = studentIds.filter(id => !existingStudentIds.has(id));
+
+        // Perform DB operations in a transaction
+        await prisma.$transaction([
+            prisma.teachersForStudent.deleteMany({
+                where: { teacherId }
+            }),
+            prisma.teachersForStudent.createMany({
+                data: studentIds.map(studentId => ({
+                    teacherId,
+                    studentId
+                }))
+            })
+        ]);
+
+        // Send notification if there are new students
+        if (newlyAssignedIds.length > 0) {
+            const newlyAssignedStudents = await prisma.user.findMany({
+                where: { id: { in: newlyAssignedIds } },
+                select: { name: true, email: true }
+            });
+
+            const studentListHtml = newlyAssignedStudents.map(s => `<li>${s.name || s.email}</li>`).join('');
+
+            await sendEmail({
+                to: teacher.email,
+                templateName: 'student_assigned_to_teacher',
+                data: {
+                    teacherName: teacher.name || 'Teacher',
+                    studentList: `<ul>${studentListHtml}</ul>`,
+                    button: createButton('View Your Dashboard', `${process.env.AUTH_URL}/dashboard`)
+                }
+            });
+        }
+        
+        revalidatePath(`/admin/teachers/${teacherId}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to assign students to teacher:", error);
+        return { success: false, error: "An error occurred." };
+    }
 }

@@ -17,7 +17,7 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
   
   const [lesson, students, existingAssignments] = await Promise.all([
     getLessonById(lessonId),
-    getStudentsWithStats(), 
+    getStudentsWithStats(session.user.id), 
     getSubmissionsForLesson(lessonId, session.user.id)
   ]);
 

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "dotenv -e .env.local -- prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "dotenv -e .env.local -- prisma generate",
@@ -14,9 +14,6 @@
     "prisma:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "prisma:db:pull": "dotenv -e .env.local -- prisma db pull",
     "prisma:db:push": "dotenv -e .env.local -- prisma db push"
-  },
-  "prisma": {
-    "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.4.1",

@@ -176,6 +176,18 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
         `,
         buttonColor: '#28a745',
     },
+    student_assigned_to_teacher: {
+        subject: '👥 You have new students!',
+        body: `
+            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">New Student Assignment</h1>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{teacherName}},</p>
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">The following student(s) have been assigned to you:</p>
+            {{studentList}}
+            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">You can now assign them lessons from your dashboard.</p>
+            {{button}}
+        `,
+        buttonColor: '#5e6ad2',
+    },
 };
 
 export function replacePlaceholders(template: string, data: Record<string, string>): string {
