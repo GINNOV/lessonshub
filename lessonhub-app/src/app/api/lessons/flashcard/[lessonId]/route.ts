@@ -24,8 +24,11 @@ export async function PATCH(
     const {
       title,
       flashcards,
+      price,
       lesson_preview,
       assignment_text,
+      assignment_image_url,
+      soundcloud_url,
       attachment_url,
       notes,
     } = body;
@@ -63,16 +66,20 @@ export async function PATCH(
         where: { id: lessonId },
         data: {
           title,
+          price,
           type: LessonType.FLASHCARD,
           lesson_preview,
           assignment_text,
+          assignment_image_url,
+          soundcloud_url,
           attachment_url,
           notes,
           flashcards: {
             create: flashcards.map((fc: any) => ({
               term: fc.term,
               definition: fc.definition,
-              imageUrl: fc.imageUrl,
+              termImageUrl: fc.termImageUrl,
+              definitionImageUrl: fc.definitionImageUrl,
             })),
           },
         },

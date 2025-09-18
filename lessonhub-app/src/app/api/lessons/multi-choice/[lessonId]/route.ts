@@ -24,8 +24,11 @@ export async function PATCH(
     const {
       title,
       questions,
+      price,
       lesson_preview,
       assignment_text,
+      assignment_image_url,
+      soundcloud_url,
       attachment_url,
       notes,
     } = body;
@@ -65,9 +68,12 @@ export async function PATCH(
         where: { id: lessonId },
         data: {
           title,
+          price,
           type: LessonType.MULTI_CHOICE,
           lesson_preview,
           assignment_text,
+          assignment_image_url,
+          soundcloud_url,
           attachment_url,
           notes,
           multiChoiceQuestions: {
