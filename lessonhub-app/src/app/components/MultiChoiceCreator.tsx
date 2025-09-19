@@ -10,6 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import Image from 'next/image';
+import ImageBrowser from './ImageBrowser';
+import { Info } from 'lucide-react';
 
 type SerializableLesson = Omit<Lesson, 'price'>;
 
@@ -42,16 +45,37 @@ type QuestionState = {
     options: OptionState[];
 };
 
+const OptionalIndicator = () => <Info className="text-gray-400 ml-1 h-4 w-4" />;
+
+async function safeJson(response: Response) {
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  }
+  
+  try {
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
 export default function MultiChoiceCreator({ lesson, teacherPreferences }: MultiChoiceCreatorProps) {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
   const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
   const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
+  const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
+  const [soundcloudUrl, setSoundcloudUrl] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [recentUrls, setRecentUrls] = useState<string[]>([]);
+  const [linkStatus, setLinkStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
   const [questions, setQuestions] = useState<QuestionState[]>([{ question: '', options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }] }]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const isEditMode = !!lesson;
 
   useEffect(() => {
@@ -60,6 +84,8 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
       setPrice(lesson.price.toString());
       setLessonPreview(lesson.lesson_preview || '');
       setAssignmentText(lesson.assignment_text || '');
+      setAssignmentImageUrl(lesson.assignment_image_url || null);
+      setSoundcloudUrl(lesson.soundcloud_url || '');
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
       if (lesson.multiChoiceQuestions && lesson.multiChoiceQuestions.length > 0) {
@@ -69,7 +95,62 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
         })));
       }
     }
+     try {
+      const savedUrls = localStorage.getItem('recentAttachmentUrls');
+      if (savedUrls) {
+        setRecentUrls(JSON.parse(savedUrls));
+      }
+    } catch (e) {
+      console.error("Failed to parse recent URLs from localStorage", e);
+    }
   }, [lesson]);
+  
+  const handleAssignmentImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+        const response = await fetch(`/api/upload?filename=${file.name}`, { method: 'POST', body: file });
+        if (!response.ok) throw new Error("Upload failed.");
+        const newBlob = await response.json();
+        setAssignmentImageUrl(newBlob.url);
+    } catch (err) {
+        toast.error((err as Error).message);
+    } finally {
+        setIsUploading(false);
+    }
+  };
+  
+  const addUrlToRecents = (url: string) => {
+    if (!url) return;
+    try {
+      const updatedUrls = [url, ...recentUrls.filter(u => u !== url)].slice(0, 3);
+      setRecentUrls(updatedUrls);
+      localStorage.setItem('recentAttachmentUrls', JSON.stringify(updatedUrls));
+    } catch (e) {
+      console.error("Failed to save recent URLs to localStorage", e);
+    }
+  };
+
+  const handleTestLink = async () => {
+    setLinkStatus('testing');
+    try {
+      const response = await fetch('/api/lessons/test-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: attachmentUrl }),
+      });
+      const data = await safeJson(response);
+      setLinkStatus(data?.success ? 'valid' : 'invalid');
+      if (data?.success) {
+        addUrlToRecents(attachmentUrl);
+      }
+    } catch (error) {
+      setLinkStatus('invalid');
+    }
+  };
 
   const handleQuestionChange = (qIndex: number, value: string) => {
     const newQuestions = [...questions];
@@ -133,6 +214,8 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
                 price: parseFloat(price) || 0,
                 lesson_preview: lessonPreview, 
                 assignment_text: assignmentText, 
+                assignment_image_url: assignmentImageUrl,
+                soundcloud_url: soundcloudUrl,
                 attachment_url: attachmentUrl, 
                 notes,
                 questions 
@@ -170,14 +253,57 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
         <Label htmlFor="assignmentText">Instructions</Label>
         <Textarea id="assignmentText" placeholder="Describe the main task for the student." value={assignmentText} onChange={(e) => setAssignmentText(e.target.value)} />
       </div>
+
+       <div className="space-y-2">
+        <div className="flex items-center">
+            <Label htmlFor="assignmentImage">Assignment Image</Label>
+            <OptionalIndicator />
+        </div>
+        <div className="flex items-center gap-2">
+            <Input id="assignmentImage" type="file" onChange={handleAssignmentImageUpload} disabled={isLoading || isUploading} className="flex-grow"/>
+            <ImageBrowser onSelectImage={setAssignmentImageUrl} />
+        </div>
+        {isUploading && <p className="text-sm text-gray-500">Uploading...</p>}
+        {assignmentImageUrl && <Image src={assignmentImageUrl} alt="Uploaded preview" width={500} height={300} className="mt-4 w-full h-auto rounded-md border" />}
+      </div>
       
        <div className="space-y-2">
-        <Label htmlFor="attachmentUrl">Reading Material (Optional)</Label>
-        <Input type="url" id="attachmentUrl" placeholder="https://example.com" value={attachmentUrl} onChange={(e) => setAttachmentUrl(e.target.value)} />
+        <div className="flex items-center">
+            <Label htmlFor="soundcloudUrl">Audio Material</Label>
+            <OptionalIndicator />
+        </div>
+        <Input type="url" id="soundcloudUrl" placeholder="https://soundcloud.com/..." value={soundcloudUrl} onChange={(e) => setSoundcloudUrl(e.target.value)} />
       </div>
-
+      
+       <div className="space-y-2">
+        <div className="flex items-center">
+            <Label htmlFor="attachmentUrl">Reading Material</Label>
+            <OptionalIndicator />
+        </div>
+        <div className="flex items-center gap-2">
+          <Input type="url" id="attachmentUrl" placeholder="https://example.com" value={attachmentUrl} onChange={(e) => setAttachmentUrl(e.target.value)} />
+           <Button type="button" variant="outline" onClick={handleTestLink} disabled={!attachmentUrl || isLoading}>
+            {linkStatus === 'testing' && 'Testing...'}
+            {linkStatus === 'idle' && 'Test Link'}
+            {linkStatus === 'valid' && 'Valid'}
+            {linkStatus === 'invalid' && 'Invalid'}
+          </Button>
+        </div>
+        {recentUrls.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-500">
+            Recent:
+            {recentUrls.map(url => (
+              <button key={url} type="button" className="underline" onClick={() => setAttachmentUrl(url)}>{new URL(url).hostname}</button>
+            ))}
+          </div>
+        )}
+      </div>
+      
       <div className="space-y-2">
-        <Label htmlFor="notes">Notes for student (Optional)</Label>
+        <div className="flex items-center">
+            <Label htmlFor="notes">Notes for student</Label>
+            <OptionalIndicator />
+        </div>
         <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </div>
       
@@ -205,3 +331,4 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
     </form>
   );
 }
+

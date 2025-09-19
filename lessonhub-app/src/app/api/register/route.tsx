@@ -62,13 +62,42 @@ export async function POST(req: NextRequest) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await prisma.user.create({
-      data: { 
-        email, 
-        name, 
-        hashedPassword,
-        referrerId: referrer?.id,
-      },
+    
+    // Use a transaction to ensure user creation and teacher assignment are atomic
+    const user = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+            data: {
+                email,
+                name,
+                hashedPassword,
+                referrerId: referrer?.id,
+            },
+        });
+
+        if (referrer && referrer.role === Role.TEACHER) {
+            // Assign student only to the referring teacher
+            await tx.teachersForStudent.create({
+                data: {
+                    studentId: newUser.id,
+                    teacherId: referrer.id,
+                },
+            });
+        } else {
+            // Assign student to all teachers if there's no referrer or referrer is not a teacher
+            const allTeachers = await tx.user.findMany({
+                where: { role: Role.TEACHER },
+            });
+
+            if (allTeachers.length > 0) {
+                await tx.teachersForStudent.createMany({
+                    data: allTeachers.map((teacher) => ({
+                        studentId: newUser.id,
+                        teacherId: teacher.id,
+                    })),
+                });
+            }
+        }
+        return newUser;
     });
 
     const signInUrl = `${new URL(req.url).origin}/signin`;

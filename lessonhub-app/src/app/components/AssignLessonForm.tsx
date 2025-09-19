@@ -1,7 +1,7 @@
 // file: src/app/components/AssignLessonForm.tsx
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Assignment, Lesson, User } from '@prisma/client';
 import { Button } from '@/components/ui/button';
@@ -40,15 +40,19 @@ export default function AssignLessonForm({
   existingAssignments,
 }: AssignLessonFormProps) {
   const router = useRouter();
-  const [selectedStudents, setSelectedStudents] = useState<string[]>(() =>
-    existingAssignments.map((a) => a.studentId)
-  );
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [deadline, setDeadline] = useState<string>(() => {
       const firstAssignment = existingAssignments[0];
       return formatDateTimeForInput(firstAssignment?.deadline);
   });
   const [notifyStudents, setNotifyStudents] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+
+  // This effect syncs the component's state with the server data
+  // both on initial load and after the data is refreshed.
+  useEffect(() => {
+    setSelectedStudents(existingAssignments.map((a) => a.studentId));
+  }, [existingAssignments]);
 
   const initialAssignedStudents = useMemo(() => new Set(existingAssignments.map(a => a.studentId)), [existingAssignments]);
 
@@ -96,8 +100,7 @@ export default function AssignLessonForm({
       }
       
       toast.success('Assignments updated successfully!');
-      router.push('/dashboard');
-      router.refresh();
+      router.refresh(); // Refresh server data on the current page
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
