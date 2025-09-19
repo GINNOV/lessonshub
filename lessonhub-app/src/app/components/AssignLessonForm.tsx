@@ -9,8 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import LocaleDate from './LocaleDate';
 
-// Define the shape of the student data the component expects
 export type StudentWithStats = User & {
   totalPoints: number;
 };
@@ -25,7 +25,6 @@ const formatDateTimeForInput = (date: Date | null | undefined): string => {
     if (!date) return '';
     try {
         const d = new Date(date);
-        // Adjust for timezone offset to display local time correctly in the input
         const timezoneOffset = d.getTimezoneOffset() * 60000;
         const localDate = new Date(d.getTime() - timezoneOffset);
         return localDate.toISOString().slice(0, 16);
@@ -40,21 +39,39 @@ export default function AssignLessonForm({
   existingAssignments,
 }: AssignLessonFormProps) {
   const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [deadline, setDeadline] = useState<string>(() => {
-      const firstAssignment = existingAssignments[0];
-      return formatDateTimeForInput(firstAssignment?.deadline);
-  });
+  const [deadlines, setDeadlines] = useState<Record<string, string>>({});
   const [notifyStudents, setNotifyStudents] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [masterDeadline, setMasterDeadline] = useState<string>('');
+  
+  const existingAssignmentsMap = useMemo(() => 
+    new Map(existingAssignments.map(a => [a.studentId, a])), 
+  [existingAssignments]);
 
-  // This effect syncs the component's state with the server data
-  // both on initial load and after the data is refreshed.
   useEffect(() => {
-    setSelectedStudents(existingAssignments.map((a) => a.studentId));
+    const initialDeadlines: Record<string, string> = {};
+    const initialSelected: string[] = [];
+    existingAssignments.forEach(a => {
+      initialDeadlines[a.studentId] = formatDateTimeForInput(a.deadline);
+      initialSelected.push(a.studentId);
+    });
+    setDeadlines(initialDeadlines);
+    setSelectedStudents(initialSelected);
+    // Set master deadline to the first found deadline
+    if (existingAssignments.length > 0) {
+        setMasterDeadline(formatDateTimeForInput(existingAssignments[0].deadline));
+    }
   }, [existingAssignments]);
 
-  const initialAssignedStudents = useMemo(() => new Set(existingAssignments.map(a => a.studentId)), [existingAssignments]);
+  const filteredStudents = useMemo(() => {
+    return students.filter(
+      (student) =>
+        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [students, searchTerm]);
 
   const handleSelectStudent = (studentId: string, isSelected: boolean) => {
     setSelectedStudents((prev) =>
@@ -65,20 +82,49 @@ export default function AssignLessonForm({
   };
 
   const handleSelectAll = (isSelected: boolean) => {
-    setSelectedStudents(isSelected ? students.map(s => s.id) : []);
+    setSelectedStudents(isSelected ? filteredStudents.map(s => s.id) : []);
   };
+  
+  const handleMasterDeadlineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDeadline = e.target.value;
+    setMasterDeadline(newDeadline);
+    setDeadlines(prev => {
+        const newDeadlines = { ...prev };
+        selectedStudents.forEach(studentId => {
+            newDeadlines[studentId] = newDeadline;
+        });
+        return newDeadlines;
+    });
+  };
+
+  const handleIndividualDeadlineChange = (studentId: string, value: string) => {
+    setDeadlines(prev => ({ ...prev, [studentId]: value }));
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const studentIdsToAssign = selectedStudents.filter(id => !initialAssignedStudents.has(id));
+    const initialAssignedStudents = new Set(existingAssignments.map(a => a.studentId));
+    
+    // Determine who to create, update, or delete
     const studentIdsToUnassign = Array.from(initialAssignedStudents).filter(id => !selectedStudents.includes(id));
     
-    if (studentIdsToAssign.length > 0 && !deadline) {
-      toast.error('A deadline is required when assigning lessons to new students.');
-      setIsLoading(false);
-      return;
+    const assignmentsToUpsert = selectedStudents.map(id => {
+        if (!deadlines[id]) {
+            toast.error(`Please provide a deadline for ${students.find(s => s.id === id)?.name}.`);
+            return null;
+        }
+        return {
+            studentId: id,
+            deadline: deadlines[id],
+        };
+    }).filter(Boolean);
+
+    if (assignmentsToUpsert.length !== selectedStudents.length) {
+        setIsLoading(false);
+        return;
     }
 
     try {
@@ -87,9 +133,9 @@ export default function AssignLessonForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           lessonId: lesson.id,
-          studentIdsToAssign,
+          studentIdsToAssign: assignmentsToUpsert.filter(a => !initialAssignedStudents.has(a!.studentId)).map(a => a!),
+          studentIdsToUpdate: assignmentsToUpsert.filter(a => initialAssignedStudents.has(a!.studentId)).map(a => a!),
           studentIdsToUnassign,
-          deadline: deadline || null, // Send null if only unassigning
           notifyStudents,
         }),
       });
@@ -100,7 +146,7 @@ export default function AssignLessonForm({
       }
       
       toast.success('Assignments updated successfully!');
-      router.refresh(); // Refresh server data on the current page
+      router.refresh();
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -108,18 +154,30 @@ export default function AssignLessonForm({
     }
   };
   
-  const areAllSelected = students.length > 0 && selectedStudents.length === students.length;
+  const areAllFilteredSelected = filteredStudents.length > 0 && selectedStudents.length >= filteredStudents.length && filteredStudents.every(s => selectedStudents.includes(s.id));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="deadline">Deadline</Label>
-        <Input
-          id="deadline"
-          type="datetime-local"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+            <Label htmlFor="deadline">Set Deadline for Selected Students</Label>
+            <Input
+            id="deadline"
+            type="datetime-local"
+            value={masterDeadline}
+            onChange={handleMasterDeadlineChange}
+            />
+        </div>
+        <div className="space-y-2">
+            <Label htmlFor="search">Search Students</Label>
+            <Input
+            id="search"
+            type="search"
+            placeholder="Filter by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
       </div>
 
       <div className="flex items-center space-x-2">
@@ -131,33 +189,48 @@ export default function AssignLessonForm({
         <Label htmlFor="notify">Notify newly assigned students via email</Label>
       </div>
 
-      <div className="rounded-lg border">
-        <div className="flex items-center p-4 border-b">
-            <Checkbox
-                id="select-all"
-                checked={areAllSelected}
-                onCheckedChange={handleSelectAll}
-                className="mr-2"
-            />
-            <Label htmlFor="select-all" className="font-semibold">Select All Students</Label>
-        </div>
-        <div className="max-h-80 overflow-y-auto">
-            {students.map((student) => (
-                <div key={student.id} className="flex items-center justify-between p-4 border-b last:border-b-0">
-                    <div className="flex items-center gap-2">
+      <div className="rounded-lg border overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+                <tr>
+                    <th className="px-4 py-3 text-left">
                         <Checkbox
-                            id={student.id}
-                            checked={selectedStudents.includes(student.id)}
-                            onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)}
+                            id="select-all"
+                            checked={areAllFilteredSelected}
+                            onCheckedChange={handleSelectAll}
                         />
-                        <Label htmlFor={student.id} className="cursor-pointer">
-                            {student.name} ({student.email})
-                        </Label>
-                    </div>
-                    <span className="text-sm text-gray-500">Total Points: {student.totalPoints}</span>
-                </div>
-            ))}
-        </div>
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deadline</th>
+                </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+                {filteredStudents.map((student) => (
+                    <tr key={student.id}>
+                        <td className="px-4 py-4">
+                            <Checkbox
+                                id={student.id}
+                                checked={selectedStudents.includes(student.id)}
+                                onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)}
+                            />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.totalPoints}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                            <Input
+                                type="datetime-local"
+                                value={deadlines[student.id] || ''}
+                                onChange={(e) => handleIndividualDeadlineChange(student.id, e.target.value)}
+                                className="text-sm"
+                            />
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full">
@@ -166,3 +239,4 @@ export default function AssignLessonForm({
     </form>
   );
 }
+

@@ -1,81 +1,110 @@
-// file: src/app/api/assignments/[assignmentId]/submit/route.ts
-export const runtime = 'nodejs';
-
+// file: src/app/api/assignments/route.ts
 import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import {
-  completeFlashcardAssignment,
-  submitMultiChoiceAssignment,
-  submitStandardAssignment,
-} from "@/actions/lessonActions";
-import { LessonType, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
+import { getEmailTemplateByName } from "@/actions/adminActions";
+import { createButton, sendEmail } from "@/lib/email-templates";
+import { revalidatePath } from "next/cache";
 
-export async function POST(
-  request: NextRequest,
-  // The type signature is now correctly defined as a Promise.
-  { params }: { params: Promise<{ assignmentId: string }> }
-) {
+function getBaseUrl(req: NextRequest): string {
+  const headers = req.headers;
+  const protocol = headers.get('x-forwarded-proto') || 'http';
+  const host = headers.get('host') || 'localhost:3000';
+  return `${protocol}://${host}`;
+}
+
+export async function PATCH(request: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== Role.STUDENT) {
+
+  if (!session || !session.user || session.user.role !== Role.TEACHER) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
     });
   }
 
-  // Restored the `await` keyword as required by the Next.js App Router.
-  const { assignmentId } = await params;
-  const assignment = await prisma.assignment.findUnique({
-    where: { id: assignmentId, studentId: session.user.id },
-    select: {
-      lesson: { select: { type: true } },
-      deadline: true,
-      status: true,
-    },
-  });
-
-  if (!assignment) {
-    return new NextResponse(JSON.stringify({ error: "Assignment not found." }), {
-      status: 404,
-    });
-  }
-  
-  // Centralized checks for deadline and status
-  if (new Date() > new Date(assignment.deadline)) {
-      return new NextResponse(JSON.stringify({ error: "The deadline for this assignment has passed." }), { status: 403 });
-  }
-  if (assignment.status !== 'PENDING') {
-      return new NextResponse(JSON.stringify({ error: "This assignment has already been submitted." }), { status: 400 });
-  }
-
   try {
-    const lessonType = assignment.lesson.type;
     const body = await request.json();
+    const { lessonId, studentIdsToAssign, studentIdsToUnassign, deadline, notifyStudents } = body;
 
-    if (lessonType === LessonType.FLASHCARD) {
-      const result = await completeFlashcardAssignment(assignmentId, session.user.id);
-      if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
-      return NextResponse.json(result);
-    }
-
-    if (lessonType === LessonType.MULTI_CHOICE) {
-      const { answers } = body;
-      const result = await submitMultiChoiceAssignment(assignmentId, session.user.id, answers);
-      if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
-      return NextResponse.json(result.data);
+    if (!lessonId) {
+      return new NextResponse(JSON.stringify({ error: "Lesson ID is required" }), { status: 400 });
     }
     
-    if (lessonType === LessonType.STANDARD) {
-        const { answers, studentNotes, rating } = body;
-        const result = await submitStandardAssignment(assignmentId, session.user.id, { answers, studentNotes, rating });
-        if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
-        return NextResponse.json(result.data);
+    if (studentIdsToAssign?.length > 0 && !deadline) {
+        return new NextResponse(JSON.stringify({ error: "Deadline is required for new assignments" }), { status: 400 });
     }
 
-    return new NextResponse(JSON.stringify({ error: "This lesson type cannot be submitted this way." }), { status: 400 });
+    const operations = [];
 
+    if (studentIdsToUnassign && studentIdsToUnassign.length > 0) {
+      const deleteOperation = prisma.assignment.deleteMany({
+        where: {
+          lessonId: lessonId,
+          studentId: { in: studentIdsToUnassign },
+        },
+      });
+      operations.push(deleteOperation);
+    }
+
+    if (studentIdsToAssign && studentIdsToAssign.length > 0) {
+      const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+      if (!lesson) {
+        return new NextResponse(JSON.stringify({ error: "Lesson not found" }), { status: 404 });
+      }
+
+      const students = await prisma.user.findMany({
+        where: { id: { in: studentIdsToAssign } }
+      });
+
+      const assignmentsData = students.map(student => ({
+        lessonId: lessonId,
+        studentId: student.id,
+        deadline: new Date(deadline),
+      }));
+
+      const createOperation = prisma.assignment.createMany({
+        data: assignmentsData,
+        skipDuplicates: true,
+      });
+      operations.push(createOperation);
+      
+      if (notifyStudents) {
+        const template = await getEmailTemplateByName('new_assignment');
+        if (template) {
+            for (const student of students) {
+                if (student.email) {
+                  try {
+                      await sendEmail({
+                        to: student.email,
+                        templateName: 'new_assignment',
+                        data: {
+                          studentName: student.name || 'student',
+                          teacherName: session.user.name || 'your teacher',
+                          lessonTitle: lesson.title,
+                          deadline: new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(deadline)),
+                          button: createButton('Start Lesson', `${getBaseUrl(request)}/my-lessons`, template.buttonColor || undefined),
+                        }
+                      });
+                  } catch (emailError) {
+                      console.error(`An unexpected error occurred while sending assignment email to ${student.email}:`, emailError);
+                  }
+            }
+          }
+        }
+      }
+    }
+    
+    if (operations.length > 0) {
+      await prisma.$transaction(operations);
+    }
+
+    revalidatePath('/my-lessons');
+    revalidatePath(`/dashboard/assign/${lessonId}`);
+
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-     console.error(`SUBMIT_ERROR`, error);
-     return new NextResponse(JSON.stringify({ error: "Failed to submit response" }), { status: 500 });
+    console.error("ASSIGNMENT_UPDATE_ERROR", error);
+    return new NextResponse(JSON.stringify({ error: "Failed to update assignments" }), { status: 500 });
   }
 }

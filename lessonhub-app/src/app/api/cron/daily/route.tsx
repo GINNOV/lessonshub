@@ -45,7 +45,6 @@ export async function GET() {
         for (const assignment of assignments) {
             const { student, lesson, deadline } = assignment;
 
-            // ✅ THIS IS THE FIX: Only proceed if the student has an email AND the lesson has a teacher.
             if (student.email && lesson.teacher) {
                 try {
                     const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;

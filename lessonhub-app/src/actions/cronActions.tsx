@@ -1,4 +1,4 @@
-// file: src/actions/cronActions.ts
+// file: src/actions/cronActions.tsx
 'use server';
 
 import { auth } from "@/auth";
