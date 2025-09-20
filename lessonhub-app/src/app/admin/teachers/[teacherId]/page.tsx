@@ -17,13 +17,13 @@ async function getAllStudents() {
     return prisma.user.findMany({ where: { role: Role.STUDENT }, orderBy: { name: 'asc' } });
 }
 
-export default async function AssignStudentsPage({ params }: { params: Promise<{ teacherId: string }> }) {
+export default async function AssignStudentsPage({ params }: { params: { teacherId: string } }) {
     const session = await auth();
     if (!session || session.user.role !== Role.ADMIN) {
         redirect("/");
     }
 
-    const { teacherId } = await params;
+    const { teacherId } = params;
     const [teacher, allStudents, assignedStudents] = await Promise.all([
         getTeacher(teacherId),
         getAllStudents(),

@@ -125,7 +125,6 @@ export async function deleteUserByAdmin(userId: string) {
     return { success: false, error: "Unauthorized" };
   }
   try {
-    // Prevent admin from deleting their own account via this action
     if (session.user.id === userId) {
         return { success: false, error: "Admins cannot delete their own account from this panel." };
     }
@@ -160,7 +159,6 @@ export async function stopImpersonating() {
     return { success: false, error: "An error occurred." };
   }
 }
-// ✅ ALIAS EXPORT TO MATCH COMPONENT IMPORT
 export { stopImpersonating as stopImpersonation };
 
 
@@ -179,7 +177,6 @@ export async function getAllEmailTemplates() {
     return [];
   }
 }
-// ✅ ALIAS EXPORT TO MATCH COMPONENT IMPORT
 export { getAllEmailTemplates as getEmailTemplates };
 
 
@@ -244,7 +241,6 @@ export async function getAllLessons() {
 }
 
 /**
- * ✅ ADDED MISSING FUNCTION
  * Reassigns a lesson to a new teacher.
  * @param lessonId The ID of the lesson to reassign.
  * @param newTeacherId The ID of the new teacher.
@@ -265,7 +261,6 @@ export async function reassignLesson(lessonId: string, newTeacherId: string | nu
 }
 
 /**
- * ✅ ADDED MISSING FUNCTION
  * Sends a test email for a specific template.
  * @param templateName The name of the email template to test.
  * @param testEmail The email address to send the test to.
@@ -281,7 +276,7 @@ export async function sendTestEmail(templateName: string, testEmail: string) {
                 teacherName: '[Test Teacher]',
                 lessonTitle: '[Test Lesson]',
                 deadline: new Date().toLocaleString(),
-                button: '<a href="#" style="color: #ffffff; background-color: #007bff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Test Button</a>',
+                button: createButton('Test Button', '#'),
             }
         });
         return { success: true };
@@ -355,56 +350,20 @@ export async function getAssignedStudents(teacherId: string) {
 
 export async function assignStudentsToTeacher(teacherId: string, studentIds: string[]) {
     try {
-        const teacher = await prisma.user.findUnique({
-            where: { id: teacherId },
-            select: { email: true, name: true }
-        });
-
-        if (!teacher || !teacher.email) {
-            return { success: false, error: "Teacher not found or has no email." };
-        }
-
-        const existingAssignments = await prisma.teachersForStudent.findMany({
-            where: { teacherId },
-            select: { studentId: true }
-        });
-        const existingStudentIds = new Set(existingAssignments.map(a => a.studentId));
-        
-        const newlyAssignedIds = studentIds.filter(id => !existingStudentIds.has(id));
-
-        // Perform DB operations in a transaction
-        await prisma.$transaction([
-            prisma.teachersForStudent.deleteMany({
+        await prisma.$transaction(async (tx) => {
+            await tx.teachersForStudent.deleteMany({
                 where: { teacherId }
-            }),
-            prisma.teachersForStudent.createMany({
-                data: studentIds.map(studentId => ({
+            });
+
+            if (studentIds.length > 0) {
+                const data = studentIds.map(studentId => ({
                     teacherId,
                     studentId
-                }))
-            })
-        ]);
+                }));
+                await tx.teachersForStudent.createMany({ data });
+            }
+        });
 
-        // Send notification if there are new students
-        if (newlyAssignedIds.length > 0) {
-            const newlyAssignedStudents = await prisma.user.findMany({
-                where: { id: { in: newlyAssignedIds } },
-                select: { name: true, email: true }
-            });
-
-            const studentListHtml = newlyAssignedStudents.map(s => `<li>${s.name || s.email}</li>`).join('');
-
-            await sendEmail({
-                to: teacher.email,
-                templateName: 'student_assigned_to_teacher',
-                data: {
-                    teacherName: teacher.name || 'Teacher',
-                    studentList: `<ul>${studentListHtml}</ul>`,
-                    button: createButton('View Your Dashboard', `${process.env.AUTH_URL}/dashboard`)
-                }
-            });
-        }
-        
         revalidatePath(`/admin/teachers/${teacherId}`);
         return { success: true };
     } catch (error) {

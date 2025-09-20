@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { getEmailTemplateByName } from "@/actions/adminActions";
-import { replacePlaceholders, createButton, sendEmail } from "@/lib/email-templates";
+import { createButton, sendEmail } from "@/lib/email-templates";
 import { Role } from '@prisma/client';
 
 async function sendAdminNotifications(newUser: { name: string | null; email: string }) {
@@ -18,14 +18,6 @@ async function sendAdminNotifications(newUser: { name: string | null; email: str
     for (const admin of admins) {
         if (admin.email) {
             try {
-                const subject = replacePlaceholders(template.subject, { newUserName: newUser.name || newUser.email });
-                const body = replacePlaceholders(template.body, {
-                    adminName: admin.name || 'Admin',
-                    newUserName: newUser.name || 'Not provided',
-                    newUserEmail: newUser.email,
-                });
-
-                // Using the imported sendEmail function
                 await sendEmail({
                     to: admin.email,
                     templateName: 'new_user_admin',
@@ -63,7 +55,6 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
     
-    // Use a transaction to ensure user creation and teacher assignment are atomic
     const user = await prisma.$transaction(async (tx) => {
         const newUser = await tx.user.create({
             data: {
@@ -75,7 +66,6 @@ export async function POST(req: NextRequest) {
         });
 
         if (referrer && referrer.role === Role.TEACHER) {
-            // Assign student only to the referring teacher
             await tx.teachersForStudent.create({
                 data: {
                     studentId: newUser.id,
@@ -83,7 +73,6 @@ export async function POST(req: NextRequest) {
                 },
             });
         } else {
-            // Assign student to all teachers if there's no referrer or referrer is not a teacher
             const allTeachers = await tx.user.findMany({
                 where: { role: Role.TEACHER },
             });
