@@ -18,62 +18,62 @@ export async function PATCH(request: NextRequest) {
   const session = await auth();
 
   if (!session || !session.user || session.user.role !== Role.TEACHER) {
-    return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-    });
+    return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
   try {
     const body = await request.json();
-    const { lessonId, studentIdsToAssign, studentIdsToUnassign, deadline, notifyStudents } = body;
+    const { lessonId, studentIdsToAssign, studentIdsToUpdate, studentIdsToUnassign, notifyStudents } = body;
 
     if (!lessonId) {
       return new NextResponse(JSON.stringify({ error: "Lesson ID is required" }), { status: 400 });
     }
-    
-    if (studentIdsToAssign?.length > 0 && !deadline) {
-        return new NextResponse(JSON.stringify({ error: "Deadline is required for new assignments" }), { status: 400 });
-    }
 
-    const operations = [];
+    // --- SEQUENTIAL DATABASE OPERATIONS FOR RELIABILITY ---
 
+    // 1. Unassign students
     if (studentIdsToUnassign && studentIdsToUnassign.length > 0) {
-      const deleteOperation = prisma.assignment.deleteMany({
-        where: {
-          lessonId: lessonId,
-          studentId: { in: studentIdsToUnassign },
-        },
+      await prisma.assignment.deleteMany({
+        where: { lessonId, studentId: { in: studentIdsToUnassign } },
       });
-      operations.push(deleteOperation);
     }
 
+    // 2. Update existing assignments
+    if (studentIdsToUpdate && studentIdsToUpdate.length > 0) {
+      for (const assignment of studentIdsToUpdate) {
+        await prisma.assignment.update({
+          where: { lessonId_studentId: { lessonId, studentId: assignment.studentId } },
+          data: { deadline: new Date(assignment.deadline) },
+        });
+      }
+    }
+    
+    // 3. Assign to new students
     if (studentIdsToAssign && studentIdsToAssign.length > 0) {
       const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
       if (!lesson) {
         return new NextResponse(JSON.stringify({ error: "Lesson not found" }), { status: 404 });
       }
 
-      const students = await prisma.user.findMany({
-        where: { id: { in: studentIdsToAssign } }
+      const studentsToAssign = await prisma.user.findMany({
+        where: { id: { in: studentIdsToAssign.map((a: any) => a.studentId) } }
       });
-
-      const assignmentsData = students.map(student => ({
-        lessonId: lessonId,
-        studentId: student.id,
-        deadline: new Date(deadline),
+      
+      const assignmentsData = studentIdsToAssign.map((assignment: any) => ({
+        lessonId,
+        studentId: assignment.studentId,
+        deadline: new Date(assignment.deadline),
       }));
 
-      const createOperation = prisma.assignment.createMany({
-        data: assignmentsData,
-        skipDuplicates: true,
-      });
-      operations.push(createOperation);
+      await prisma.assignment.createMany({ data: assignmentsData, skipDuplicates: true });
       
+      // 4. Notify new students
       if (notifyStudents) {
         const template = await getEmailTemplateByName('new_assignment');
         if (template) {
-            for (const student of students) {
+            for (const student of studentsToAssign) {
                 if (student.email) {
+                  const assignmentData = studentIdsToAssign.find((a: any) => a.studentId === student.id);
                   try {
                       await sendEmail({
                         to: student.email,
@@ -82,7 +82,7 @@ export async function PATCH(request: NextRequest) {
                           studentName: student.name || 'student',
                           teacherName: session.user.name || 'your teacher',
                           lessonTitle: lesson.title,
-                          deadline: new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(deadline)),
+                          deadline: new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(assignmentData.deadline)),
                           button: createButton('Start Lesson', `${getBaseUrl(request)}/my-lessons`, template.buttonColor || undefined),
                         }
                       });
@@ -94,17 +94,13 @@ export async function PATCH(request: NextRequest) {
         }
       }
     }
-    
-    if (operations.length > 0) {
-      await prisma.$transaction(operations);
-    }
 
-    revalidatePath('/my-lessons');
     revalidatePath(`/dashboard/assign/${lessonId}`);
-
     return NextResponse.json({ success: true }, { status: 200 });
+
   } catch (error) {
     console.error("ASSIGNMENT_UPDATE_ERROR", error);
-    return new NextResponse(JSON.stringify({ error: "Failed to update assignments" }), { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    return new NextResponse(JSON.stringify({ error: "Failed to update assignments.", details: errorMessage }), { status: 500 });
   }
 }

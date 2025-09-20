@@ -87,7 +87,9 @@ export default function AssignLessonForm({
     if (isSelected && masterDeadline) {
         const newDeadlines = { ...deadlines };
         allFilteredIds.forEach(id => {
-            newDeadlines[id] = masterDeadline;
+            if (!newDeadlines[id]) { // Only set if not already set
+                newDeadlines[id] = masterDeadline;
+            }
         });
         setDeadlines(newDeadlines);
     }
@@ -107,7 +109,6 @@ export default function AssignLessonForm({
     setDeadlines(prev => ({ ...prev, [studentId]: value }));
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -125,15 +126,15 @@ export default function AssignLessonForm({
             studentId: id,
             deadline: deadlines[id],
         };
-    }).filter(Boolean);
+    }).filter((a): a is { studentId: string; deadline: string } => a !== null);
 
     if (assignmentsToProcess.length !== selectedStudents.length) {
         setIsLoading(false);
         return;
     }
     
-    const assignmentsToUpdate = assignmentsToProcess.filter(a => initialAssignedStudents.has(a!.studentId));
-    const assignmentsToCreate = assignmentsToProcess.filter(a => !initialAssignedStudents.has(a!.studentId));
+    const assignmentsToUpdate = assignmentsToProcess.filter(a => initialAssignedStudents.has(a.studentId));
+    const assignmentsToCreate = assignmentsToProcess.filter(a => !initialAssignedStudents.has(a.studentId));
 
     try {
       const response = await fetch('/api/assignments', {
@@ -154,7 +155,7 @@ export default function AssignLessonForm({
             const errorData = await response.json();
             errorMsg = errorData.error || errorMsg;
         } catch (e) {
-            // The response wasn't JSON. We'll use the generic error message.
+            // The response wasn't JSON, use the generic error.
         }
         throw new Error(errorMsg);
       }
@@ -211,7 +212,7 @@ export default function AssignLessonForm({
                         <Checkbox
                             id="select-all"
                             checked={areAllFilteredSelected}
-                            onCheckedChange={handleSelectAll}
+                            onCheckedChange={(checked) => handleSelectAll(!!checked)}
                         />
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
