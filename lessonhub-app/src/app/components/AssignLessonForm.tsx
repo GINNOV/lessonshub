@@ -9,7 +9,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import LocaleDate from './LocaleDate';
 
 export type StudentWithStats = User & {
   totalPoints: number;
@@ -59,7 +58,6 @@ export default function AssignLessonForm({
     });
     setDeadlines(initialDeadlines);
     setSelectedStudents(initialSelected);
-    // Set master deadline to the first found deadline
     if (existingAssignments.length > 0) {
         setMasterDeadline(formatDateTimeForInput(existingAssignments[0].deadline));
     }
@@ -74,27 +72,35 @@ export default function AssignLessonForm({
   }, [students, searchTerm]);
 
   const handleSelectStudent = (studentId: string, isSelected: boolean) => {
-    setSelectedStudents((prev) =>
-      isSelected
-        ? [...prev, studentId]
-        : prev.filter((id) => id !== studentId)
-    );
+    setSelectedStudents((prev) => {
+      const newSelected = isSelected ? [...prev, studentId] : prev.filter((id) => id !== studentId);
+      if (isSelected && masterDeadline && !deadlines[studentId]) {
+        setDeadlines(prevDeadlines => ({ ...prevDeadlines, [studentId]: masterDeadline }));
+      }
+      return newSelected;
+    });
   };
 
   const handleSelectAll = (isSelected: boolean) => {
-    setSelectedStudents(isSelected ? filteredStudents.map(s => s.id) : []);
+    const allFilteredIds = filteredStudents.map(s => s.id);
+    setSelectedStudents(isSelected ? allFilteredIds : []);
+    if (isSelected && masterDeadline) {
+        const newDeadlines = { ...deadlines };
+        allFilteredIds.forEach(id => {
+            newDeadlines[id] = masterDeadline;
+        });
+        setDeadlines(newDeadlines);
+    }
   };
   
   const handleMasterDeadlineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDeadline = e.target.value;
     setMasterDeadline(newDeadline);
-    setDeadlines(prev => {
-        const newDeadlines = { ...prev };
-        selectedStudents.forEach(studentId => {
-            newDeadlines[studentId] = newDeadline;
-        });
-        return newDeadlines;
+    const newDeadlines = { ...deadlines };
+    selectedStudents.forEach(studentId => {
+        newDeadlines[studentId] = newDeadline;
     });
+    setDeadlines(newDeadlines);
   };
 
   const handleIndividualDeadlineChange = (studentId: string, value: string) => {
@@ -108,10 +114,9 @@ export default function AssignLessonForm({
 
     const initialAssignedStudents = new Set(existingAssignments.map(a => a.studentId));
     
-    // Determine who to create, update, or delete
     const studentIdsToUnassign = Array.from(initialAssignedStudents).filter(id => !selectedStudents.includes(id));
     
-    const assignmentsToUpsert = selectedStudents.map(id => {
+    const assignmentsToProcess = selectedStudents.map(id => {
         if (!deadlines[id]) {
             toast.error(`Please provide a deadline for ${students.find(s => s.id === id)?.name}.`);
             return null;
@@ -122,10 +127,13 @@ export default function AssignLessonForm({
         };
     }).filter(Boolean);
 
-    if (assignmentsToUpsert.length !== selectedStudents.length) {
+    if (assignmentsToProcess.length !== selectedStudents.length) {
         setIsLoading(false);
         return;
     }
+    
+    const assignmentsToUpdate = assignmentsToProcess.filter(a => initialAssignedStudents.has(a!.studentId));
+    const assignmentsToCreate = assignmentsToProcess.filter(a => !initialAssignedStudents.has(a!.studentId));
 
     try {
       const response = await fetch('/api/assignments', {
@@ -133,16 +141,22 @@ export default function AssignLessonForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           lessonId: lesson.id,
-          studentIdsToAssign: assignmentsToUpsert.filter(a => !initialAssignedStudents.has(a!.studentId)).map(a => a!),
-          studentIdsToUpdate: assignmentsToUpsert.filter(a => initialAssignedStudents.has(a!.studentId)).map(a => a!),
+          studentIdsToAssign: assignmentsToCreate,
+          studentIdsToUpdate: assignmentsToUpdate,
           studentIdsToUnassign,
           notifyStudents,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update assignments');
+        let errorMsg = 'Failed to update assignments. Please try again.';
+        try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorMsg;
+        } catch (e) {
+            // The response wasn't JSON. We'll use the generic error message.
+        }
+        throw new Error(errorMsg);
       }
       
       toast.success('Assignments updated successfully!');
@@ -239,4 +253,3 @@ export default function AssignLessonForm({
     </form>
   );
 }
-
