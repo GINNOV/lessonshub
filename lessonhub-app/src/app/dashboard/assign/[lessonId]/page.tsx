@@ -1,38 +1,46 @@
 // file: src/app/dashboard/assign/[lessonId]/page.tsx
-
-import { redirect } from 'next/navigation';
 import { auth } from "@/auth";
-import { getLessonById, getSubmissionsForLesson, getStudentsWithStats } from "@/actions/lessonActions";
-import AssignLessonForm from '@/app/components/AssignLessonForm';
-import { Role } from '@prisma/client';
+import { redirect } from "next/navigation";
+import { getLessonById, getStudentsWithStats } from "@/actions/lessonActions";
+import AssignLessonForm from "@/app/components/AssignLessonForm";
+import { Role } from "@prisma/client";
+import prisma from "@/lib/prisma";
 
 export default async function AssignPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
-
   if (!session || session.user.role !== Role.TEACHER) {
-    redirect('/');
+    redirect("/signin");
   }
 
   const { lessonId } = await params;
-  
-  const [lesson, students, existingAssignments] = await Promise.all([
-    getLessonById(lessonId),
-    getStudentsWithStats(session.user.id), 
-    getSubmissionsForLesson(lessonId, session.user.id)
-  ]);
+  const lesson = await getLessonById(lessonId);
 
   if (!lesson) {
     return <div>Lesson not found.</div>;
   }
-
+  
   const serializableLesson = {
-    ...lesson,
-    price: lesson.price.toNumber(),
+      ...lesson,
+      price: lesson.price.toNumber(),
   };
 
+  const [studentsFromDb, existingAssignments] = await Promise.all([
+    getStudentsWithStats(session.user.id),
+    prisma.assignment.findMany({ where: { lessonId } }),
+  ]);
+
+  // The 'students' array contains User objects that may have a 'defaultLessonPrice'
+  // which is a Decimal type. We need to convert it to a number before passing
+  // it to the client component.
+  const students = studentsFromDb.map(student => ({
+      ...student,
+      // Safely convert Decimal to number, or null if it doesn't exist.
+      defaultLessonPrice: student.defaultLessonPrice?.toNumber() ?? null,
+  }));
+
   return (
-    <div className="flex justify-center">
-      <div className="w-full max-w-4xl">
+    <div className="container mx-auto p-4">
+      <div className="bg-white p-8 rounded-lg shadow-md">
         <h1 className="text-3xl font-bold mb-2">Assign Lesson</h1>
         <h2 className="text-xl text-gray-600 mb-6">{lesson.title}</h2>
         <AssignLessonForm 
@@ -44,3 +52,4 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
     </div>
   );
 }
+

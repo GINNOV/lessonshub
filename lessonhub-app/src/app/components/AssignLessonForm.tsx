@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
-export type StudentWithStats = User & {
+export type StudentWithStats = Omit<User, 'defaultLessonPrice'> & {
   totalPoints: number;
+  defaultLessonPrice: number | null;
 };
 
 interface AssignLessonFormProps {
@@ -87,7 +88,7 @@ export default function AssignLessonForm({
     if (isSelected && masterDeadline) {
         const newDeadlines = { ...deadlines };
         allFilteredIds.forEach(id => {
-            if (!newDeadlines[id]) { // Only set if not already set
+            if (!newDeadlines[id]) {
                 newDeadlines[id] = masterDeadline;
             }
         });
@@ -113,25 +114,22 @@ export default function AssignLessonForm({
     e.preventDefault();
     setIsLoading(true);
 
+    const studentsWithoutDeadlines = selectedStudents.filter(id => !deadlines[id] || deadlines[id].trim() === '');
+    if (studentsWithoutDeadlines.length > 0) {
+        const studentNames = studentsWithoutDeadlines.map(id => students.find(s => s.id === id)?.name || 'a student').join(', ');
+        toast.error(`Please provide a deadline for: ${studentNames}`);
+        setIsLoading(false);
+        return;
+    }
+
     const initialAssignedStudents = new Set(existingAssignments.map(a => a.studentId));
     
     const studentIdsToUnassign = Array.from(initialAssignedStudents).filter(id => !selectedStudents.includes(id));
     
-    const assignmentsToProcess = selectedStudents.map(id => {
-        if (!deadlines[id]) {
-            toast.error(`Please provide a deadline for ${students.find(s => s.id === id)?.name}.`);
-            return null;
-        }
-        return {
-            studentId: id,
-            deadline: deadlines[id],
-        };
-    }).filter((a): a is { studentId: string; deadline: string } => a !== null);
-
-    if (assignmentsToProcess.length !== selectedStudents.length) {
-        setIsLoading(false);
-        return;
-    }
+    const assignmentsToProcess = selectedStudents.map(id => ({
+        studentId: id,
+        deadline: deadlines[id],
+    }));
     
     const assignmentsToUpdate = assignmentsToProcess.filter(a => initialAssignedStudents.has(a.studentId));
     const assignmentsToCreate = assignmentsToProcess.filter(a => !initialAssignedStudents.has(a.studentId));
@@ -155,12 +153,21 @@ export default function AssignLessonForm({
             const errorData = await response.json();
             errorMsg = errorData.error || errorMsg;
         } catch (e) {
-            // The response wasn't JSON, use the generic error.
+           // The response wasn't JSON, use the generic error.
         }
         throw new Error(errorMsg);
       }
       
-      toast.success('Assignments updated successfully!');
+      // --- UI FEEDBACK FIX ---
+      // Create a dynamic success message based on the actions performed.
+      const messages = [];
+      if (assignmentsToCreate.length > 0) messages.push(`${assignmentsToCreate.length} assigned`);
+      if (assignmentsToUpdate.length > 0) messages.push(`${assignmentsToUpdate.length} updated`);
+      if (studentIdsToUnassign.length > 0) messages.push(`${studentIdsToUnassign.length} unassigned`);
+      
+      const successMessage = messages.length > 0 ? `Assignments updated: ${messages.join(', ')}.` : 'No changes were made.';
+      toast.success(successMessage);
+      
       router.refresh();
     } catch (error) {
       toast.error((error as Error).message);
@@ -254,3 +261,4 @@ export default function AssignLessonForm({
     </form>
   );
 }
+
