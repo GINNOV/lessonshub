@@ -152,7 +152,7 @@ export default function UserTable({
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
                     <div className="flex flex-wrap items-center gap-2">
-                       {user.role === Role.TEACHER && (
+                      {user.role === Role.TEACHER && (
                         <Tooltip>
                             <TooltipTrigger asChild><Button variant="outline" size="icon" asChild><Link href={`/admin/teachers/${user.id}`}><Users className="h-4 w-4" /></Link></Button></TooltipTrigger>
                             <TooltipContent><p>Assign Students</p></TooltipContent>
@@ -199,4 +199,3 @@ export default function UserTable({
     </TooltipProvider>
   );
 }
-

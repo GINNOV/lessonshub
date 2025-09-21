@@ -1,5 +1,4 @@
 // file: src/app/admin/teachers/[teacherId]/page.tsx
-
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
@@ -8,13 +7,10 @@ import prisma from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import AssignStudentsForm from "@/app/components/AssignStudentsForm";
 import { getAssignedStudents } from "@/actions/adminActions";
+import { getAllUsers } from "@/actions/adminActions";
 
 async function getTeacher(teacherId: string) {
     return prisma.user.findUnique({ where: { id: teacherId, role: Role.TEACHER } });
-}
-
-async function getAllStudents() {
-    return prisma.user.findMany({ where: { role: Role.STUDENT }, orderBy: { name: 'asc' } });
 }
 
 export default async function AssignStudentsPage({ params }: { params: { teacherId: string } }) {
@@ -24,9 +20,11 @@ export default async function AssignStudentsPage({ params }: { params: { teacher
     }
 
     const { teacherId } = params;
-    const [teacher, allStudents, assignedStudents] = await Promise.all([
+    const allUsers = await getAllUsers();
+    const allStudents = allUsers.filter(u => u.role === Role.STUDENT);
+
+    const [teacher, assignedStudents] = await Promise.all([
         getTeacher(teacherId),
-        getAllStudents(),
         getAssignedStudents(teacherId)
     ]);
 
@@ -40,6 +38,8 @@ export default async function AssignStudentsPage({ params }: { params: { teacher
             </div>
         );
     }
+
+    const serializableStudents = assignedStudents.map(s => ({...s, defaultLessonPrice: s.defaultLessonPrice?.toNumber() ?? null }));
 
     return (
         <div>
@@ -58,7 +58,7 @@ export default async function AssignStudentsPage({ params }: { params: { teacher
                 <AssignStudentsForm
                     teacherId={teacher.id}
                     allStudents={allStudents}
-                    assignedStudentIds={assignedStudents.map(s => s.id)}
+                    assignedStudentIds={serializableStudents.map(s => s.id)}
                 />
             </div>
         </div>

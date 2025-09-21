@@ -54,7 +54,7 @@ export default function AssignStudentsForm({ teacherId, allStudents, assignedStu
             <Checkbox
                 id="select-all"
                 checked={areAllSelected}
-                onCheckedChange={handleSelectAll}
+                onCheckedChange={(checked) => handleSelectAll(!!checked)}
                 className="mr-2"
             />
             <Label htmlFor="select-all" className="font-semibold">Select All Students</Label>

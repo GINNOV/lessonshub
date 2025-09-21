@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { getWeekAndDay } from '@/lib/utils';
 import DeleteLessonButton from './DeleteLessonButton';
 import WeekDivider from './WeekDivider';
-import { Pencil, UserPlus, Eye, Share2, Mail, Star } from 'lucide-react';
+import { Pencil, UserPlus, Eye, Share2, Mail, Star, Check } from 'lucide-react';
 import { generateShareLink } from '@/actions/lessonActions';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -57,12 +57,15 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+  const [copiedLessonId, setCopiedLessonId] = useState<string | null>(null);
 
   const handleShareClick = async (lessonId: string) => {
     const result = await generateShareLink(lessonId);
     if (result.success && result.url) {
       navigator.clipboard.writeText(result.url);
       toast.success('Public "Join Lesson" link copied to clipboard!');
+      setCopiedLessonId(lessonId);
+      setTimeout(() => setCopiedLessonId(null), 2000); // Reset after 2 seconds
     } else {
       toast.error(result.error || 'Failed to create share link.');
     }
@@ -207,7 +210,7 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                     </div>
                     <div className="flex items-center space-x-2 flex-wrap justify-end">
                       <Button variant="outline" size="icon" onClick={() => handleShareClick(lesson.id)} title="Share Lesson">
-                        <Share2 className="h-4 w-4" />
+                        {copiedLessonId === lesson.id ? <Check className="h-4 w-4 text-green-500" /> : <Share2 className="h-4 w-4" />}
                       </Button>
                       <Button variant="outline" size="icon" asChild title="Edit Lesson">
                         <Link href={`/dashboard/edit/${lesson.id}`}><Pencil className="h-4 w-4" /></Link>
