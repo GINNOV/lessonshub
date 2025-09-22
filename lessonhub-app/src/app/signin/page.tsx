@@ -3,13 +3,14 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Role } from '@prisma/client';
 
 // SVG component for the Google icon
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -23,7 +24,10 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard';
+  const { data: session, status } = useSession();
+
+  // Determine the callback URL
+  const callbackUrl = searchParams?.get('callbackUrl');
   const errorParam = searchParams?.get('error');
 
   const [email, setEmail] = useState('');
@@ -31,6 +35,15 @@ function SignInForm() {
   const [error, setError] = useState('');
   const [magicLinkMessage, setMagicLinkMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const defaultRedirect = session?.user?.role === Role.STUDENT ? '/my-lessons' : '/dashboard';
+  const finalCallbackUrl = callbackUrl || defaultRedirect;
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace(finalCallbackUrl);
+    }
+  }, [status, router, finalCallbackUrl]);
 
   useEffect(() => {
     if (errorParam) {
@@ -53,19 +66,25 @@ function SignInForm() {
     setIsLoading(true);
     setError('');
     
-    // This will redirect the user to a page that says "Check your email"
-    await signIn('resend', { email, redirect: true, callbackUrl });
-    
-    // The page will navigate away, so we don't need to set loading to false here
+    await signIn('resend', { email, redirect: true, callbackUrl: finalCallbackUrl });
   };
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    await signIn('credentials', { redirect: true, email, password, callbackUrl });
+    await signIn('credentials', { redirect: false, email, password, callbackUrl: finalCallbackUrl });
     setIsLoading(false);
   };
+  
+    if (status === 'authenticated') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <p>You are already signed in. Redirecting...</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="mx-auto grid w-[350px] gap-6">
@@ -118,7 +137,7 @@ function SignInForm() {
           type="button" 
           variant="outline" 
           className="w-full" 
-          onClick={() => signIn('google', { callbackUrl })} 
+          onClick={() => signIn('google', { callbackUrl: finalCallbackUrl })} 
           disabled={isLoading}
         >
           <GoogleIcon className="mr-2 h-4 w-4" />
@@ -137,17 +156,12 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    // ✅ FIX: The layout is now a flex column on mobile, and reverses order.
-    // This places the image at the top on small screens.
-    // It becomes a two-column grid on large screens.
     <div className="flex w-full flex-col-reverse lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
       <div className="flex items-center justify-center p-6 sm:p-12">
         <Suspense fallback={<div>Loading...</div>}>
           <SignInForm />
         </Suspense>
       </div>
-      {/* ✅ FIX: Removed the `hidden` class. The element is now always a block. */}
-      {/* The parent `flex` and `grid` classes now control its visibility and position. */}
       <div className="block bg-muted">
         <Image
           src="/hero_signin.png"

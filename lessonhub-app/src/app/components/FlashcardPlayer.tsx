@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import Image from 'next/image';
 import { Assignment, Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, RotateCw } from 'lucide-react';
@@ -106,10 +107,20 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
         <div className="relative h-64 w-full cursor-pointer [perspective:1000px]" onClick={handleFlip}>
             <div className={`relative h-full w-full rounded-lg transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
                 <div className="absolute h-full w-full rounded-lg border p-6 flex justify-center items-center text-center bg-white [backface-visibility:hidden]">
-                    <p className="text-xl font-semibold">{flashcards[currentIndex].term}</p>
+                    <div>
+                      {flashcards[currentIndex].termImageUrl && (
+                        <Image src={flashcards[currentIndex].termImageUrl!} alt={flashcards[currentIndex].term} width={100} height={100} className="rounded-md mb-2 mx-auto" />
+                      )}
+                      <p className="text-xl font-semibold">{flashcards[currentIndex].term}</p>
+                    </div>
                 </div>
                 <div className="absolute h-full w-full rounded-lg border p-6 flex justify-center items-center text-center bg-gray-100 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                  <div>
+                    {flashcards[currentIndex].definitionImageUrl && (
+                        <Image src={flashcards[currentIndex].definitionImageUrl!} alt={flashcards[currentIndex].definition} width={100} height={100} className="rounded-md mb-2 mx-auto" />
+                      )}
                     <p>{flashcards[currentIndex].definition}</p>
+                  </div>
                 </div>
             </div>
         </div>

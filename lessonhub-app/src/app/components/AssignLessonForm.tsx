@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { Check } from 'lucide-react';
 
 export type StudentWithStats = Omit<User, 'defaultLessonPrice'> & {
   totalPoints: number;
@@ -44,6 +45,7 @@ export default function AssignLessonForm({
   const [deadlines, setDeadlines] = useState<Record<string, string>>({});
   const [notifyStudents, setNotifyStudents] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [masterDeadline, setMasterDeadline] = useState<string>('');
   
   const existingAssignmentsMap = useMemo(() => 
@@ -113,6 +115,7 @@ export default function AssignLessonForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setIsSaved(false);
 
     const studentsWithoutDeadlines = selectedStudents.filter(id => !deadlines[id] || deadlines[id].trim() === '');
     if (studentsWithoutDeadlines.length > 0) {
@@ -167,6 +170,8 @@ export default function AssignLessonForm({
       
       const successMessage = messages.length > 0 ? `Assignments updated: ${messages.join(', ')}.` : 'No changes were made.';
       toast.success(successMessage);
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
       
       router.refresh();
     } catch (error) {
@@ -256,9 +261,8 @@ export default function AssignLessonForm({
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Saving...' : 'Save Assignments'}
+        {isLoading ? 'Saving...' : (isSaved ? <Check className="h-4 w-4 text-white" /> : 'Save Assignments')}
       </Button>
     </form>
   );
 }
-
