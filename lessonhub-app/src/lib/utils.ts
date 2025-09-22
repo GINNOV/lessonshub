@@ -26,3 +26,17 @@ export function getWeekAndDay(date: Date): string {
 
   return `${weekNo}-${dayOfWeek}`;
 }
+
+/**
+ * Generates initials from a full name.
+ * @param name The full name of the user.
+ * @returns A string of the user's initials.
+ */
+export const getInitials = (name: string | null | undefined): string => {
+  if (!name) return '??';
+  const names = name.split(' ');
+  if (names.length > 1) {
+    return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};

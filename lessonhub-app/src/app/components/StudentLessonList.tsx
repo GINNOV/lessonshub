@@ -2,111 +2,109 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import {
-  Assignment,
-  Lesson,
-  User,
-  AssignmentStatus,
-  LessonType,
-} from '@prisma/client';
+import { Assignment, Lesson, User, AssignmentStatus } from '@prisma/client';
+import StudentLessonCard from './StudentLessonCard';
 import { Input } from '@/components/ui/input';
-import StudentLessonCard, {
-  SerializableAssignment,
-} from './StudentLessonCard';
-import WeekDivider from './WeekDivider';
+import { Button } from '@/components/ui/button';
 import { getWeekAndDay } from '@/lib/utils';
+import WeekDivider from './WeekDivider';
+
+type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
+  defaultLessonPrice: number | null;
+};
+
+type SerializableAssignment = Omit<Assignment, 'answers' | 'lesson'> & {
+  answers: any;
+  lesson: Omit<Lesson, 'price' | 'teacher' | '_count'> & {
+    price: number;
+    teacher: SerializableUser | null;
+    completionCount: number;
+  };
+};
 
 interface StudentLessonListProps {
   assignments: SerializableAssignment[];
 }
 
-export default function StudentLessonList({
-  assignments,
-}: StudentLessonListProps) {
+export default function StudentLessonList({ assignments }: StudentLessonListProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState('all'); // 'all' or 'due'
 
-  const groupedAndSortedAssignments = useMemo(() => {
-    const filtered = assignments.filter(
-      (a) =>
-        a.lesson.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        // Correctly look for the teacher's name within the nested lesson object
-        a.lesson.teacher?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const grouped: { [key: string]: SerializableAssignment[] } = {
-      pending: filtered.filter((a) => a.status === AssignmentStatus.PENDING),
-      completed: filtered.filter(
-        (a) => a.status === AssignmentStatus.COMPLETED
-      ),
-      graded: filtered.filter((a) => a.status === AssignmentStatus.GRADED),
-      failed: filtered.filter((a) => a.status === AssignmentStatus.FAILED),
-    };
-
-    // Sort each group individually
-    grouped.pending.sort(
-      (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-    );
-    grouped.completed.sort(
-      (a, b) =>
-        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
-    );
-    grouped.graded.sort(
-      (a, b) =>
-        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
-    );
-    grouped.failed.sort(
-      (a, b) =>
-        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
-    );
-
-    // Combine the sorted groups
-    return [
-      ...grouped.pending,
-      ...grouped.completed,
-      ...grouped.graded,
-      ...grouped.failed,
-    ];
-  }, [assignments, searchTerm]);
+  const filteredAssignments = useMemo(() => {
+    const now = new Date();
+    return assignments
+      .map(assignment => ({
+          ...assignment,
+          // Calculate week based on deadline for correct grouping
+          week: parseInt(getWeekAndDay(new Date(assignment.deadline)).split('-')[0], 10),
+      }))
+      .filter((assignment) => {
+        if (filter === 'due') {
+          return assignment.status === AssignmentStatus.PENDING && new Date(assignment.deadline) >= now;
+        }
+        return true;
+      })
+      .filter((assignment) =>
+        assignment.lesson.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        assignment.lesson.teacher?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+  }, [assignments, searchTerm, filter]);
 
   let lastWeek: number | null = null;
 
   return (
-    <>
-      <div className="mb-6">
+    <div>
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
         <Input
           type="search"
-          placeholder="Search lessons..."
+          placeholder="Search by lesson or teacher..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-xs"
         />
+        <div className="flex items-center gap-2">
+          <Button
+            variant={filter === 'all' ? 'default' : 'outline'}
+            onClick={() => setFilter('all')}
+          >
+            All Lessons
+          </Button>
+          <Button
+            variant={filter === 'due' ? 'default' : 'outline'}
+            onClick={() => setFilter('due')}
+          >
+            Due Lessons
+          </Button>
+        </div>
       </div>
-
-      <div className="space-y-4">
-        {groupedAndSortedAssignments.length > 0 ? (
-          groupedAndSortedAssignments.map((assignment, index) => {
-            const week = parseInt(
-              getWeekAndDay(assignment.assignedAt).split('-')[0],
-              10
-            );
-            const showDivider = week !== lastWeek;
-            lastWeek = week;
+      
+      {filteredAssignments.length > 0 ? (
+        <div className="space-y-6">
+          {filteredAssignments.map((assignment, index) => {
+            const showDivider = assignment.week !== lastWeek;
+            lastWeek = assignment.week;
             return (
-              <div key={assignment.id}>
-                {showDivider && <WeekDivider weekNumber={week} />}
-                <StudentLessonCard assignment={assignment} index={index} />
-              </div>
-            );
-          })
-        ) : (
-          <div className="rounded-lg border bg-white py-12 px-6 text-center">
-            <h3 className="text-lg font-semibold">No Lessons Found</h3>
-            <p className="mt-1 text-gray-600">
-              You have not been assigned any lessons yet, or none match your
-              search criteria.
-            </p>
-          </div>
-        )}
-      </div>
-    </>
+                <div key={assignment.id}>
+                    {showDivider && <WeekDivider weekNumber={assignment.week} />}
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        <StudentLessonCard assignment={assignment} index={index} />
+                    </div>
+                </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <h3 className="text-xl font-semibold">No lessons found</h3>
+          <p className="text-gray-500 mt-2">
+            {filter === 'due' 
+              ? "You have no upcoming deadlines. Great job!" 
+              : "Try adjusting your search or filter."
+            }
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
+

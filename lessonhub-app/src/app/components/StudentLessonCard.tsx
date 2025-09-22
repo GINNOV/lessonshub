@@ -3,30 +3,26 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  Assignment,
-  Lesson,
-  User,
-  AssignmentStatus,
-  LessonType,
-} from '@prisma/client';
+import { Assignment, Lesson, User, AssignmentStatus, LessonType } from '@prisma/client';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials, cn, getWeekAndDay } from '@/lib/utils';
+import LocaleDate from '@/app/components/LocaleDate';
 import { Button } from '@/components/ui/button';
-import { cn, getWeekAndDay } from '@/lib/utils';
-import { marked } from 'marked';
-import LocaleDate from './LocaleDate';
+import { Users } from 'lucide-react';
 
-// Define a serializable version of the User type
 type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
-  defaultLessonPrice: number | null;
+    defaultLessonPrice: number | null;
 };
 
-// Update the main assignment type to use the new serializable User type
-export type SerializableAssignment = Assignment & {
-  lesson: Omit<Lesson, 'price'> & {
+type SerializableAssignment = Omit<Assignment, 'answers' | 'lesson'> & {
+  answers: any;
+  lesson: Omit<Lesson, 'price' | 'teacher' | '_count'> & {
     price: number;
     teacher: SerializableUser | null;
+    completionCount: number;
   };
-  completionCount?: number;
 };
 
 interface StudentLessonCardProps {
@@ -34,210 +30,92 @@ interface StudentLessonCardProps {
   index: number;
 }
 
-const statusStyles = {
-  [AssignmentStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
-  [AssignmentStatus.COMPLETED]: 'bg-blue-100 text-blue-800',
-  [AssignmentStatus.GRADED]: 'bg-green-100 text-green-800',
-  [AssignmentStatus.FAILED]: 'bg-red-100 text-red-800',
-  PAST_DUE: 'bg-red-100 text-red-800',
-};
-
-const getGradeBackground = (score: number | null) => {
-  if (score === null) return 'bg-gray-100';
-  if (score === 10) return 'bg-gradient-to-br from-green-100 to-green-200';
-  if (score >= 2 && score <= 5) return 'bg-gradient-to-br from-amber-100 to-amber-200';
-  if (score === -1) return 'bg-gradient-to-br from-red-100 to-red-200';
-  return 'bg-gradient-to-br from-yellow-100 to-yellow-200';
-};
-
 const lessonTypeImages: Record<LessonType, string> = {
-  [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
-  [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
-  [LessonType.STANDARD]: '/my-lessons/multiquestions.png',
-  [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png',
+    [LessonType.STANDARD]: '/my-lessons/multiquestions.png',
+    [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
+    [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
+    [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png',
 };
 
-const getSavingsInfo = (status: AssignmentStatus, score: number | null, price: number) => {
-    if (status === 'FAILED') {
-        return { text: 'You SAVED €0.00', emojis: '😞', color: 'text-gray-500' };
-    }
-    
-    if (status !== 'GRADED' || score === null) {
-        return null;
-    }
+export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {
+  const { lesson, status, deadline, score } = assignment;
+  const isPastDeadline = new Date(deadline) < new Date();
+  const isComplete = status === AssignmentStatus.COMPLETED || status === AssignmentStatus.GRADED || status === AssignmentStatus.FAILED;
+  
+  const getStatusBadge = () => {
+    if (status === AssignmentStatus.GRADED) return <Badge variant="default">Graded: {score}/10</Badge>;
+    if (status === AssignmentStatus.FAILED) return <Badge variant="destructive">Failed</Badge>;
+    if (status === AssignmentStatus.COMPLETED) return <Badge variant="secondary">Submitted</Badge>;
+    if (isPastDeadline) return <Badge variant="destructive" className="animate-pulse">Past Due</Badge>;
+    return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Pending</Badge>;
+  };
 
-    let savedAmount = 0;
-    let emojis = '';
-    let color = 'text-green-600';
+  const imageSrc = (lesson.type === LessonType.STANDARD && lesson.assignment_image_url)
+    ? lesson.assignment_image_url
+    : lessonTypeImages[lesson.type];
 
-    if (score === 10) {
-        savedAmount = price;
-        emojis = '💶 💶 💶 💶 💶';
-    } else if (score >= 6 && score <= 9) {
-        savedAmount = price * 0.8;
-        emojis = '💶 💶 💶';
-        color = 'text-yellow-600';
-    } else if (score >= 2 && score <= 5) {
-        savedAmount = price * 0.5;
-        emojis = '💶 💶';
-        color = 'text-orange-600';
-    } else if (score === -1) {
-        savedAmount = price * 0.01;
-        emojis = '🙊';
-        color = 'text-red-600';
-    }
-
-    return {
-        text: `You SAVED €${savedAmount.toFixed(2)}`,
-        emojis,
-        color,
-    };
-};
-
-const getScoreIcon = (score: number | null) => {
-    if (score === null) return null;
-    if (score === 10) return '🏆';
-    if (score === -1) return '💩';
-    return '🤗';
-}
-
-export default function StudentLessonCard({
-  assignment,
-  index,
-}: StudentLessonCardProps) {
-  const isPastDeadline = new Date() > new Date(assignment.deadline);
-  const status =
-    isPastDeadline && assignment.status === 'PENDING'
-      ? 'PAST_DUE'
-      : assignment.status;
-
-  const commentsHtml = assignment.teacherComments
-    ? marked.parse(assignment.teacherComments)
-    : '';
-    
-  const savingsInfo = getSavingsInfo(assignment.status, assignment.score, assignment.lesson.price);
-  const scoreIcon = getScoreIcon(assignment.score);
-  const cardBgClass = index % 2 === 0 ? 'from-white' : 'from-slate-50';
+  const lessonIdDisplay = `Lesson ${getWeekAndDay(new Date(deadline))}`;
 
   return (
-    <div
-      className={cn(
-        'rounded-lg border p-4 shadow-sm sm:p-6 overflow-hidden',
-        index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-      )}
+    <Card 
+        className="h-full flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-in fade-in-0 slide-in-from-bottom-4 group"
+        style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'backwards' }}
     >
-      <div className="flex flex-col gap-6 sm:flex-row">
-        <div className="w-full flex-shrink-0 sm:w-auto relative">
-          <div className="relative h-[100px] w-full sm:w-[150px] rounded-md overflow-hidden">
-            <Image
-              src={
-                assignment.lesson.assignment_image_url ||
-                lessonTypeImages[assignment.lesson.type]
-              }
-              alt={`Image for ${assignment.lesson.title}`}
-              layout="fill"
-              objectFit="cover"
-              priority={index < 3}
-            />
-            <div className={`absolute bottom-0 left-0 w-full h-3/4 bg-gradient-to-t ${cardBgClass} to-transparent`} />
-          </div>
-          {scoreIcon && (
-            <div className="absolute -bottom-2 -left-2 text-5xl">{scoreIcon}</div>
-          )}
-        </div>
-        <div className="flex-grow">
-          <div className="mb-2 flex items-start justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">
-                {assignment.lesson.title}
-              </h2>
-              <p className="mt-1 text-xs text-gray-400">
-                Lesson {getWeekAndDay(assignment.lesson.createdAt)} - Assigned
-                by:{' '}
-                {assignment.lesson.teacher?.name || (
-                  <span className="italic">Unassigned</span>
-                )}
-              </p>
-            </div>
-            <span
-              className={cn(
-                'rounded-full px-3 py-1 text-xs font-medium',
-                statusStyles[status as keyof typeof statusStyles]
-              )}
-            >
-              {status}
-            </span>
-          </div>
-
-          {assignment.lesson.lesson_preview && (
-            <p className="mt-2 rounded-md border bg-gray-50 p-3 text-sm text-gray-600">
-              {assignment.lesson.lesson_preview}
-            </p>
-          )}
-
-          {assignment.status === 'GRADED' && (
-            <div
-              className={cn(
-                'mt-4 rounded-md border p-3',
-                getGradeBackground(assignment.score)
-              )}
-            >
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
-                  <h3 className="font-semibold">Grade and Feedback</h3>
-                  {savingsInfo && (
-                    <div className={`text-right ${savingsInfo.color}`}>
-                      <div className="text-3xl">{savingsInfo.emojis}</div>
-                      <div className="text-xs font-bold">{savingsInfo.text}</div>
-                    </div>
-                  )}
-              </div>
-              <div className="mt-2 flex items-start gap-4">
-                <div className="flex-shrink-0 rounded-md border bg-white/50 p-2 text-center">
-                  <p className="text-2xl font-bold">{assignment.score}</p>
-                  <p className="text-xs">Score</p>
+        <CardHeader className="p-0">
+            <Link href={`/assignments/${assignment.id}`} className="block relative h-40 w-full overflow-hidden rounded-t-lg">
+                <Image 
+                    src={imageSrc}
+                    alt={lesson.title}
+                    layout="fill"
+                    objectFit="cover"
+                    className="transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className={cn("absolute top-2 right-2 text-2xl")}>
+                    {score !== null && score < 4 && '💩'}
+                    {score === 10 && '🏆'}
                 </div>
-                {assignment.teacherComments && (
-                  <div
-                    className="prose prose-sm flex-grow"
-                    dangerouslySetInnerHTML={{ __html: commentsHtml as string }}
-                  />
-                )}
-              </div>
+                 <div className="absolute bottom-2 left-2 text-xs text-white/70 font-mono">
+                    {lessonIdDisplay}
+                </div>
+            </Link>
+        </CardHeader>
+        <CardContent className="flex-grow p-4">
+            <div className="flex justify-between items-start mb-2">
+                <CardTitle className="text-lg font-bold">
+                    <Link href={`/assignments/${assignment.id}`} className="hover:text-primary transition-colors">
+                        {lesson.title}
+                    </Link>
+                </CardTitle>
+                {getStatusBadge()}
             </div>
-          )}
-
-          <div className="mt-4 flex items-center justify-between border-t pt-4">
-            <div className="text-sm text-gray-500">
-                <p>
-                    <strong>⏳ Deadline:</strong>{' '}
-                    <LocaleDate date={assignment.deadline} />
-                </p>
-                {typeof assignment.completionCount === 'number' && (
-                    <p className="text-xs mt-1">
-                        {assignment.completionCount} student(s) have completed this lesson.
-                    </p>
+            <p className="text-sm text-gray-500 line-clamp-2">{lesson.lesson_preview}</p>
+        </CardContent>
+        <CardFooter className="p-4 border-t flex justify-between items-center text-sm">
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-gray-600" title={`Teacher: ${lesson.teacher?.name || 'Unassigned'}`}>
+                    <Avatar className="h-6 w-6">
+                        <AvatarImage src={lesson.teacher?.image || ''} alt={lesson.teacher?.name || 'teacher'} />
+                        <AvatarFallback>{getInitials(lesson.teacher?.name)}</AvatarFallback>
+                    </Avatar>
+                    <span>{lesson.teacher?.name || 'Unassigned'}</span>
+                </div>
+                 <div className="flex items-center gap-1 text-gray-500" title={`${lesson.completionCount} students have this lesson`}>
+                    <Users className="h-4 w-4" />
+                    <span>{lesson.completionCount}</span>
+                </div>
+            </div>
+            <div className={cn("font-semibold", isPastDeadline && !isComplete ? "text-red-500" : "text-gray-600")}>
+                {isComplete ? (
+                    <Button asChild variant="secondary" size="sm">
+                        <Link href={`/assignments/${assignment.id}`}>View Results</Link>
+                    </Button>
+                ) : (
+                    <LocaleDate date={deadline} />
                 )}
             </div>
-            {assignment.status === 'PENDING' && !isPastDeadline && (
-              <Button asChild>
-                <Link href={`/assignments/${assignment.id}`}>Start Lesson</Link>
-              </Button>
-            )}
-            {assignment.status === 'GRADED' && (
-              <Button variant="outline" asChild>
-                <Link href={`/assignments/${assignment.id}`}>
-                  Review Results
-                </Link>
-              </Button>
-            )}
-            {(status === 'PAST_DUE' || status === 'FAILED') && (
-              <Button variant="secondary" asChild>
-                <Link href={`/assignments/${assignment.id}`}>View Lesson</Link>
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+        </CardFooter>
+    </Card>
   );
 }
+

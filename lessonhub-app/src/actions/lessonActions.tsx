@@ -5,12 +5,10 @@ import prisma from "@/lib/prisma";
 import { Role, AssignmentStatus, LessonType } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
 import { getEmailTemplateByName } from '@/actions/adminActions';
-import { replacePlaceholders, createButton, sendEmail } from '@/lib/email-templates';
+import { createButton, sendEmail } from '@/lib/email-templates';
 import { auth } from "@/auth";
 import { nanoid } from 'nanoid';
 import { checkAndSendMilestoneEmail } from "./studentActions";
-
-
 
 export async function getUploadedImages() {
   try {
@@ -56,12 +54,13 @@ export async function getStudentsWithStats(teacherId?: string) {
 
   return students.map(student => {
     const totalPoints = student.assignments.reduce((sum, a) => sum + (a.score || 0), 0);
-    // eslint-disable-next-line no-unused-vars
     const { assignments, ...studentData } = student;
-    return {
+    const serializableStudent = {
       ...studentData,
+      defaultLessonPrice: studentData.defaultLessonPrice?.toNumber() ?? null,
       totalPoints,
     };
+    return serializableStudent;
   });
 }
 
@@ -306,9 +305,6 @@ export async function submitStandardAssignment(
   }
 }
 
-
-// --- Previously existing functions ---
-
 export async function getLessonsForTeacher(teacherId: string) {
   try {
     const lessons = await prisma.lesson.findMany({
@@ -349,10 +345,13 @@ export async function getAssignmentsForStudent(studentId: string) {
                 lesson: {
                     include: {
                         teacher: true,
+                        _count: {
+                            select: { assignments: true }
+                        }
                     }
                 }
             },
-            orderBy: { assignedAt: 'desc' }
+            orderBy: { deadline: 'asc' }
         });
         return assignments;
     } catch (error) {
@@ -735,3 +734,4 @@ export async function getLessonAverageRating(lessonId: string) {
     return null;
   }
 }
+

@@ -24,19 +24,11 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
       price: lesson.price.toNumber(),
   };
 
-  const [studentsFromDb, existingAssignments] = await Promise.all([
+  
+  const [students, existingAssignments] = await Promise.all([
     getStudentsWithStats(session.user.id),
     prisma.assignment.findMany({ where: { lessonId } }),
   ]);
-
-  // The 'students' array contains User objects that may have a 'defaultLessonPrice'
-  // which is a Decimal type. We need to convert it to a number before passing
-  // it to the client component.
-  const students = studentsFromDb.map(student => ({
-      ...student,
-      // Safely convert Decimal to number, or null if it doesn't exist.
-      defaultLessonPrice: student.defaultLessonPrice?.toNumber() ?? null,
-  }));
 
   return (
     <div className="container mx-auto p-4">

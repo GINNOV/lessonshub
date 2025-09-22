@@ -13,25 +13,11 @@ import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import LocaleDate from "@/app/components/LocaleDate";
+import { Badge } from "@/components/ui/badge";
+import { Check, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // --- SVG Icons ---
-function AlertTriangleIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-    </svg>
-  );
-}
-function CheckCircleIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  );
-}
 function InfoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,10 +45,10 @@ function EyeIcon(props: React.SVGProps<SVGSVGElement>) {
 
 const getGradeBackground = (score: number | null) => {
   if (score === null) return "bg-gray-100";
-  if (score === 10) return "bg-gradient-to-br from-green-100 to-green-200";
-  if (score === 2) return "bg-gradient-to-br from-amber-100 to-amber-200";
-  if (score === -1) return "bg-gradient-to-br from-red-100 to-red-200";
-  return "bg-gradient-to-br from-yellow-100 to-yellow-200";
+  if (score >= 8) return "bg-gradient-to-br from-green-100 to-green-200";
+  if (score >= 6) return "bg-gradient-to-br from-blue-100 to-blue-200";
+  if (score >= 4) return "bg-gradient-to-br from-yellow-100 to-yellow-200";
+  return "bg-gradient-to-br from-red-100 to-red-200";
 };
 
 export default async function AssignmentPage({
@@ -93,13 +79,14 @@ export default async function AssignmentPage({
       ...assignment.lesson,
       price: assignment.lesson.price.toNumber(),
     },
+    answers: assignment.answers as any,
   };
 
   const { lesson } = serializableAssignment;
 
   const assignmentHtml = (await marked.parse(lesson.assignment_text ?? "")) as string;
-  const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : "";
-  const isPastDeadline = new Date() > new Date(serializableAssignment.deadline);
+  const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
+  const showResultsArea = serializableAssignment.status === AssignmentStatus.GRADED || serializableAssignment.status === AssignmentStatus.FAILED;
 
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
@@ -114,17 +101,42 @@ export default async function AssignmentPage({
         Deadline: <LocaleDate date={serializableAssignment.deadline} />
       </p>
 
-      {lesson.lesson_preview && (
-        <div className="mb-6 rounded-lg border bg-gray-50 p-4">
-          <h3 className="flex items-center text-lg font-semibold">
-            <InfoIcon className="h-5 w-5 mr-2" /> Lesson Preview
-          </h3>
-          <p className="mt-2 text-gray-700">{lesson.lesson_preview}</p>
+      {showResultsArea && (
+        <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Results</h2>
+            <div className={cn("p-6 rounded-lg", getGradeBackground(serializableAssignment.score))}>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <p className="text-sm font-medium text-gray-600">Status</p>
+                        <Badge variant={serializableAssignment.status === 'GRADED' ? 'default' : 'destructive'}>
+                            {serializableAssignment.status}
+                        </Badge>
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-600 text-right">Score</p>
+                        <p className="text-3xl font-bold text-gray-800">
+                            {serializableAssignment.score !== null ? `${serializableAssignment.score}/10` : 'N/A'}
+                        </p>
+                    </div>
+                </div>
+                {serializableAssignment.teacherComments && (
+                    <div className="mt-4 border-t border-gray-300 pt-4">
+                        <h3 className="text-md font-semibold text-gray-700">Teacher&apos;s Feedback:</h3>
+                        <div className="prose prose-sm mt-2 text-gray-600">
+                            <p><em>&quot;{serializableAssignment.teacherComments}&quot;</em></p>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
       )}
+      
+      <div className="mb-6 rounded-lg border bg-gray-50 p-4">
+          <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
+          <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
+      </div>
 
-      <div className="prose max-w-none">
-        {lesson.assignment_image_url && (
+       {lesson.assignment_image_url && (
           <div className="my-4">
             <h2 className="text-sm font-semibold uppercase text-gray-500">
               Supporting Material
@@ -138,42 +150,8 @@ export default async function AssignmentPage({
             />
           </div>
         )}
-
-        {lesson.soundcloud_url && (
-            <div className="my-4">
-                <iframe 
-                    width="100%" 
-                    height="166" 
-                    scrolling="no" 
-                    frameBorder="no" 
-                    allow="autoplay" 
-                    src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(lesson.soundcloud_url)}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`}>
-                </iframe>
-            </div>
-        )}
-
-        <div className="mb-6 rounded-lg border bg-gray-50 p-4">
-            <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
-            <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
-        </div>
-
-        {contextHtml && (
-          <>
-            <h3 className="mt-4 text-lg font-semibold">Additional Information</h3>
-            <div dangerouslySetInnerHTML={{ __html: contextHtml }} />
-          </>
-        )}
-
-        {lesson.notes && (
-          <div className="mt-6 border-l-4 border-yellow-400 bg-yellow-50 p-4">
-            <h3 className="text-lg font-semibold text-yellow-800">
-              Teacher&apos;s Note
-            </h3>
-            <p className="mt-1 text-yellow-900">{lesson.notes}</p>
-          </div>
-        )}
-
-        {lesson.attachment_url && (
+      
+       {lesson.attachment_url && (
           <div className="mt-6">
             <h3 className="mb-2 flex items-center text-lg font-semibold">
               <PaperclipIcon className="h-5 w-5 mr-2" /> MATERIAL
@@ -185,18 +163,81 @@ export default async function AssignmentPage({
             </Button>
           </div>
         )}
-      </div>
 
-      <div className="mt-8 border-t border-gray-200 pt-6">
-        <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>
-        {isFlashcard ? (
-          <FlashcardPlayer assignment={serializableAssignment} />
-        ) : isMultiChoice ? (
-          <MultiChoicePlayer assignment={serializableAssignment} />
-        ) : (
-          <LessonResponseForm assignment={serializableAssignment} />
-        )}
-      </div>
+      {showResponseArea ? (
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>
+          {isFlashcard ? (
+            <FlashcardPlayer assignment={serializableAssignment} />
+          ) : isMultiChoice ? (
+            <MultiChoicePlayer assignment={serializableAssignment} />
+          ) : (
+            <LessonResponseForm assignment={serializableAssignment} />
+          )}
+        </div>
+      ) : (
+        <div className="mt-8 border-t pt-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Review Your Submission</h2>
+          {lesson.type === LessonType.STANDARD && Array.isArray(serializableAssignment.answers) && (
+             <div className="mt-2 space-y-4 rounded-lg border bg-gray-50 p-4">
+                {(lesson.questions as string[] || []).map((question, i) => (
+                    <div key={i}>
+                        <p className="text-sm font-semibold text-gray-600">Question {i + 1}: {question}</p>
+                        <p className="prose prose-sm mt-1 text-gray-800 pl-4 border-l-2">{serializableAssignment.answers[i] || 'No answer provided.'}</p>
+                    </div>
+                ))}
+            </div>
+          )}
+          {lesson.type === LessonType.MULTI_CHOICE && Array.isArray(serializableAssignment.answers) && (
+            <div className="space-y-6">
+              {lesson.multiChoiceQuestions.map((q, i) => {
+                const studentAnswer = serializableAssignment.answers.find((a: any) => a.questionId === q.id);
+                return (
+                  <div key={q.id} className="p-4 border rounded-lg">
+                    <p className="font-semibold">{i + 1}. {q.question}</p>
+                    <div className="mt-2 space-y-2">
+                      {q.options.map(opt => {
+                        const isSelected = studentAnswer?.selectedAnswerId === opt.id;
+                        const isCorrect = opt.isCorrect;
+                        return (
+                          <div key={opt.id} className={cn(
+                            "flex items-center gap-2 p-2 rounded-md",
+                            isSelected && !isCorrect && "bg-red-100",
+                            isCorrect && "bg-green-100"
+                          )}>
+                            {isSelected ? (isCorrect ? <Check className="h-5 w-5 text-green-600"/> : <X className="h-5 w-5 text-red-600"/>) : (isCorrect ? <Check className="h-5 w-5 text-green-600"/> : <div className="h-5 w-5"/>)}
+                            <span className={cn(isSelected && "font-bold")}>{opt.text}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {lesson.type === LessonType.FLASHCARD && typeof serializableAssignment.answers === 'object' && serializableAssignment.answers !== null && (
+             <div className="space-y-4">
+                {lesson.flashcards.map((fc) => {
+                    const studentPerformance = serializableAssignment.answers[fc.id];
+                    return (
+                        <div key={fc.id} className={cn("p-4 border rounded-lg flex justify-between items-center",
+                            studentPerformance === 'correct' ? 'bg-green-100' : 'bg-red-100'
+                        )}>
+                            <div>
+                                <p className="font-semibold">{fc.term}</p>
+                                <p className="text-sm text-gray-600">{fc.definition}</p>
+                            </div>
+                            {studentPerformance === 'correct' && <Check className="h-6 w-6 text-green-500"/>}
+                            {studentPerformance === 'incorrect' && <X className="h-6 w-6 text-red-500"/>}
+                        </div>
+                    )
+                })}
+             </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
+

@@ -1,73 +1,59 @@
 // file: src/app/my-lessons/page.tsx
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import {
-  getAssignmentsForStudent,
-  getStudentStats,
-  getLessonCompletionStats,
-} from "@/actions/lessonActions";
-import { getLeaderboardData } from "@/actions/studentActions"; // Import the new action
+import { Role, AssignmentStatus } from "@prisma/client";
+import { getAssignmentsForStudent, getStudentStats } from "@/actions/lessonActions";
 import StudentLessonList from "@/app/components/StudentLessonList";
-import StudentStatsHeader from "@/app/components/StudentStatsHeader";
-import Leaderboard from "@/app/components/Leaderboard"; // Import the new component
-import { AssignmentStatus } from "@prisma/client";
+import StudentStatsHeader from "../components/StudentStatsHeader";
+import Leaderboard from "../components/Leaderboard";
+import { getLeaderboardData } from "@/actions/studentActions";
 
-export default async function StudentDashboard() {
+export default async function MyLessonsPage() {
   const session = await auth();
+
   if (!session) {
     redirect("/signin");
+  } else if (session.user.role !== Role.STUDENT) {
+    redirect("/dashboard");
   }
-
+  
   const [assignments, stats, leaderboardData] = await Promise.all([
     getAssignmentsForStudent(session.user.id),
     getStudentStats(session.user.id),
     getLeaderboardData(),
   ]);
 
-  const assignmentsWithStats = await Promise.all(
-    assignments.map(async (assignment) => {
-      const completionCount = await getLessonCompletionStats(assignment.lessonId);
-      return {
-        ...assignment,
-        lesson: {
-          ...assignment.lesson,
-          price: assignment.lesson.price.toNumber(),
-          teacher: assignment.lesson.teacher ? {
+  const total = assignments.length;
+  const pending = assignments.filter(a => a.status === AssignmentStatus.PENDING).length;
+  const submitted = assignments.filter(a => a.status === AssignmentStatus.COMPLETED).length;
+  const graded = assignments.filter(a => a.status === AssignmentStatus.GRADED).length;
+
+  const serializableAssignments = assignments.map(assignment => ({
+      ...assignment,
+      lesson: {
+        ...assignment.lesson,
+        price: assignment.lesson.price.toNumber(),
+        completionCount: assignment.lesson._count.assignments,
+        teacher: assignment.lesson.teacher ? {
             ...assignment.lesson.teacher,
             defaultLessonPrice: assignment.lesson.teacher.defaultLessonPrice?.toNumber() ?? null,
-          } : null,
-        },
-        completionCount,
-      };
-    })
-  );
-
-  const totalAssignments = assignments.length;
-  const pending = assignments.filter(
-    (a) => a.status === AssignmentStatus.PENDING
-  ).length;
-  const completed = assignments.filter(
-    (a) => a.status === AssignmentStatus.COMPLETED
-  ).length;
-  const graded = assignments.filter(
-    (a) => a.status === AssignmentStatus.GRADED
-  ).length;
+        } : null,
+      },
+  }));
 
   return (
     <div>
-      <h1 className="mb-6 text-3xl font-bold">My Lessons</h1>
-
-      <StudentStatsHeader
+      <StudentStatsHeader 
         totalValue={stats.totalValue}
-        total={totalAssignments}
+        total={total}
         pending={pending}
-        submitted={completed}
+        submitted={submitted}
         graded={graded}
       />
-
-      <StudentLessonList assignments={assignmentsWithStats} />
-
+      <h1 className="text-3xl font-bold mb-8 mt-8">My Lessons</h1>
+      <StudentLessonList assignments={serializableAssignments} />
       <Leaderboard leaderboardData={leaderboardData} />
     </div>
   );
 }
+
