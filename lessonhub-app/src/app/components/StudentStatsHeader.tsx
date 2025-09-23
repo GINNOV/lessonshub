@@ -7,7 +7,8 @@ import {
   CircleCheckBig,
   FileBadge,
   TrendingUp,
-  Info
+  Info,
+  XCircle
 } from 'lucide-react';
 import InvestDialog from './InvestDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -18,6 +19,7 @@ interface StudentStatsHeaderProps {
   pending: number;
   submitted: number;
   graded: number;
+  failed: number;
 }
 
 // A sleek, reusable component for each individual stat in the summary
@@ -47,6 +49,7 @@ export default function StudentStatsHeader({
   pending,
   submitted,
   graded,
+  failed,
 }: StudentStatsHeaderProps) {
   return (
     <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -63,7 +66,7 @@ export default function StudentStatsHeader({
           <div className="mt-4 text-xs text-gray-400">
             Total value from all graded lessons.
             <div className="mt-2">
-                <span>💫 </span>
+                <span>💰</span>
                 <InvestDialog />
             </div>
           </div>
@@ -75,7 +78,7 @@ export default function StudentStatsHeader({
                         <Info className="h-5 w-5 text-gray-400 hover:text-white" />
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Quanto avresti speso con un metodo di insegnamento tradizionale. 💪🏼 Che affare! 💶</p>
+                        <p>Quanto avresti speso con un metodo di insegnamento tradizionale. Che affare!</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
@@ -87,7 +90,7 @@ export default function StudentStatsHeader({
         <h3 className="text-lg font-medium text-gray-600">
           Assignment Summary
         </h3>
-        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-5">
           <StatItem
             icon={ClipboardList}
             value={total}
@@ -111,6 +114,12 @@ export default function StudentStatsHeader({
             value={graded}
             label="Graded"
             colorClassName="text-green-500"
+          />
+          <StatItem
+            icon={XCircle}
+            value={failed}
+            label="Failed"
+            colorClassName="text-red-500"
           />
         </div>
       </div>
