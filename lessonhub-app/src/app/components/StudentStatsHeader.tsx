@@ -11,7 +11,13 @@ import {
   XCircle
 } from 'lucide-react';
 import InvestDialog from './InvestDialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface StudentStatsHeaderProps {
   totalValue: number;
@@ -24,6 +30,7 @@ interface StudentStatsHeaderProps {
     progressCardTitle?: string | null;
     progressCardBody?: string | null;
     progressCardLinkText?: string | null;
+    progressCardLinkUrl?: string | null;
     assignmentSummaryFooter?: string | null;
   } | null;
 }
@@ -74,21 +81,29 @@ export default function StudentStatsHeader({
             {settings?.progressCardBody || 'Total value from all graded lessons.'}
             <div className="mt-2">
                 <span>💰</span>
-                <InvestDialog linkText={settings?.progressCardLinkText || 'Invest in your future - watch now'} />
+                <InvestDialog
+                  linkText={settings?.progressCardLinkText || 'Invest in your future - watch now'}
+                  videoUrl={settings?.progressCardLinkUrl || "https://www.youtube.com/embed/kd8zMU3kd0s?si=j0X6hdJqhcXDYn3g&amp;controls=0"}
+                />
             </div>
           </div>
         </div>
         <div className="absolute bottom-4 right-4">
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger>
-                        <Info className="h-5 w-5 text-gray-400 hover:text-white" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Quanto avresti speso con un metodo di insegnamento tradizionale. Che affare!</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+          <Dialog>
+            <DialogTrigger asChild>
+              <button className="focus:outline-none focus:ring-2 focus:ring-white rounded-full">
+                <Info className="h-5 w-5 text-gray-400 hover:text-white" />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>About &quot;My Progress&quot;</DialogTitle>
+              </DialogHeader>
+              <div className="p-4">
+                <p>Quanto avresti speso con un metodo di insegnamento tradizionale. Che affare!</p>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 

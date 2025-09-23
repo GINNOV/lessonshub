@@ -48,6 +48,7 @@ model User {
   progressCardTitle         String?   @default("My Progress")
   progressCardBody          String?   @default("Total value from all graded lessons.")
   progressCardLinkText      String?   @default("Invest in your future - watch now")
+  progressCardLinkUrl       String?   @default("https://www.youtube.com/embed/kd8zMU3kd0s?si=j0X6hdJqhcXDYn3g&amp;controls=0")
   assignmentSummaryFooter   String?
 }
 

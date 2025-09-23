@@ -50,7 +50,21 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
       );
   }, [assignments, searchTerm, filter]);
 
-  let lastWeek: number | null = null;
+  const groupedAssignments = useMemo(() => {
+    return filteredAssignments.reduce((acc, assignment) => {
+        const week = assignment.week;
+        if (!acc[week]) {
+            acc[week] = [];
+        }
+        acc[week].push(assignment);
+        return acc;
+    }, {} as Record<number, typeof filteredAssignments>);
+  }, [filteredAssignments]);
+
+  const sortedWeeks = useMemo(() => {
+    return Object.keys(groupedAssignments).map(Number).sort((a, b) => b - a); // Sort descending for newest first
+  }, [groupedAssignments]);
+
 
   return (
     <div>
@@ -78,20 +92,22 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
         </div>
       </div>
       
-      {filteredAssignments.length > 0 ? (
-        <div className="space-y-6">
-          {filteredAssignments.map((assignment, index) => {
-            const showDivider = assignment.week !== lastWeek;
-            lastWeek = assignment.week;
-            return (
-                <div key={assignment.id}>
-                    {showDivider && <WeekDivider weekNumber={assignment.week} />}
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        <StudentLessonCard assignment={assignment} index={index} />
-                    </div>
-                </div>
-            )
-          })}
+      {sortedWeeks.length > 0 ? (
+        <div className="space-y-8">
+          {sortedWeeks.map(week => (
+            <div key={week}>
+              <WeekDivider weekNumber={week} />
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mt-6">
+                {groupedAssignments[week].map((assignment, index) => (
+                  <StudentLessonCard
+                    key={assignment.id}
+                    assignment={assignment}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="text-center py-12">
@@ -107,4 +123,3 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
     </div>
   );
 }
-

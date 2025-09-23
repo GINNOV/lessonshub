@@ -12,9 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface InvestDialogProps {
   linkText: string;
+  videoUrl: string;
 }
 
-export default function InvestDialog({ linkText }: InvestDialogProps) {
+export default function InvestDialog({ linkText, videoUrl }: InvestDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -30,7 +31,7 @@ export default function InvestDialog({ linkText }: InvestDialogProps) {
           <div className="aspect-video overflow-hidden rounded-lg">
             <iframe
               className="w-full h-full"
-              src="https://www.youtube.com/embed/kd8zMU3kd0s?si=j0X6hdJqhcXDYn3g&amp;controls=0"
+              src={videoUrl}
               title="YouTube video player"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen

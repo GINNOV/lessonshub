@@ -386,6 +386,7 @@ export async function getDashboardSettings() {
       progressCardTitle: true,
       progressCardBody: true,
       progressCardLinkText: true,
+      progressCardLinkUrl: true,
       assignmentSummaryFooter: true,
     },
   });
@@ -397,6 +398,7 @@ interface DashboardSettings {
     progressCardTitle?: string;
     progressCardBody?: string;
     progressCardLinkText?: string;
+    progressCardLinkUrl?: string;
     assignmentSummaryFooter?: string;
 }
 
@@ -415,6 +417,7 @@ export async function updateDashboardSettings(data: DashboardSettings) {
                 progressCardTitle: data.progressCardTitle,
                 progressCardBody: data.progressCardBody,
                 progressCardLinkText: data.progressCardLinkText,
+                progressCardLinkUrl: data.progressCardLinkUrl,
                 assignmentSummaryFooter: data.assignmentSummaryFooter,
             },
         });

@@ -13,6 +13,7 @@ type Settings = {
   progressCardTitle?: string | null;
   progressCardBody?: string | null;
   progressCardLinkText?: string | null;
+  progressCardLinkUrl?: string | null;
   assignmentSummaryFooter?: string | null;
 };
 
@@ -24,6 +25,7 @@ export default function SettingsForm({ initialSettings }: SettingsFormProps) {
   const [progressCardTitle, setProgressCardTitle] = useState(initialSettings?.progressCardTitle || '');
   const [progressCardBody, setProgressCardBody] = useState(initialSettings?.progressCardBody || '');
   const [progressCardLinkText, setProgressCardLinkText] = useState(initialSettings?.progressCardLinkText || '');
+  const [progressCardLinkUrl, setProgressCardLinkUrl] = useState(initialSettings?.progressCardLinkUrl || '');
   const [assignmentSummaryFooter, setAssignmentSummaryFooter] = useState(initialSettings?.assignmentSummaryFooter || '');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -35,6 +37,7 @@ export default function SettingsForm({ initialSettings }: SettingsFormProps) {
       progressCardTitle,
       progressCardBody,
       progressCardLinkText,
+      progressCardLinkUrl,
       assignmentSummaryFooter,
     });
 
@@ -72,6 +75,15 @@ export default function SettingsForm({ initialSettings }: SettingsFormProps) {
           type="text" 
           value={progressCardLinkText}
           onChange={(e) => setProgressCardLinkText(e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="progressCardLinkUrl">Progress Card Link URL</Label>
+        <Input 
+          id="progressCardLinkUrl" 
+          type="text" 
+          value={progressCardLinkUrl}
+          onChange={(e) => setProgressCardLinkUrl(e.target.value)}
         />
       </div>
       <div className="space-y-2">
