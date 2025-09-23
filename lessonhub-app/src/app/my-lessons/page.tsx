@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Role, AssignmentStatus } from "@prisma/client";
 import { getAssignmentsForStudent, getStudentStats } from "@/actions/lessonActions";
+import { getDashboardSettings } from "@/actions/adminActions";
 import StudentLessonList from "@/app/components/StudentLessonList";
 import StudentStatsHeader from "../components/StudentStatsHeader";
 import Leaderboard from "../components/Leaderboard";
@@ -17,10 +18,11 @@ export default async function MyLessonsPage() {
     redirect("/dashboard");
   }
   
-  const [assignments, stats, leaderboardData] = await Promise.all([
+  const [assignments, stats, leaderboardData, settings] = await Promise.all([
     getAssignmentsForStudent(session.user.id),
     getStudentStats(session.user.id),
     getLeaderboardData(),
+    getDashboardSettings(),
   ]);
 
   const total = assignments.length;
@@ -53,6 +55,7 @@ export default async function MyLessonsPage() {
         submitted={submitted}
         graded={graded}
         failed={failed}
+        settings={settings}
       />
       <h1 className="text-3xl font-bold mb-8 mt-8">My Lessons</h1>
       <StudentLessonList assignments={serializableAssignments} />
