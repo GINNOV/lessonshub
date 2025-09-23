@@ -10,12 +10,16 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function InvestDialog() {
+interface InvestDialogProps {
+  linkText: string;
+}
+
+export default function InvestDialog({ linkText }: InvestDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
         <button className="text-sm text-gray-200 hover:text-white hover:underline">
-          Invest in your future - watch now
+          {linkText}
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">

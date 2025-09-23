@@ -97,6 +97,9 @@ export default function Navbar() {
                         <DropdownMenuItem asChild>
                           <Link href="/admin/emails">Email Editor</Link>
                         </DropdownMenuItem>
+                         <DropdownMenuItem asChild>
+                          <Link href="/admin/settings">Dashboard Settings</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href="/admin/cron">Cron Test Page</Link>
                         </DropdownMenuItem>

@@ -43,6 +43,12 @@ model User {
   defaultLessonPreview      String?   @db.Text
   defaultLessonNotes        String?   @db.Text
   defaultLessonInstructions String?   @db.Text
+
+  // Customizable dashboard fields
+  progressCardTitle         String?   @default("My Progress")
+  progressCardBody          String?   @default("Total value from all graded lessons.")
+  progressCardLinkText      String?   @default("Invest in your future - watch now")
+  assignmentSummaryFooter   String?
 }
 
 model TeachersForStudent {

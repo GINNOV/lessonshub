@@ -371,3 +371,60 @@ export async function assignStudentsToTeacher(teacherId: string, studentIds: str
         return { success: false, error: "An error occurred." };
     }
 }
+
+export async function getDashboardSettings() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return null;
+  }
+  
+  const userWithSettings = await prisma.user.findFirst({
+    where: {
+      role: Role.ADMIN,
+    },
+    select: {
+      progressCardTitle: true,
+      progressCardBody: true,
+      progressCardLinkText: true,
+      assignmentSummaryFooter: true,
+    },
+  });
+  
+  return userWithSettings;
+}
+
+interface DashboardSettings {
+    progressCardTitle?: string;
+    progressCardBody?: string;
+    progressCardLinkText?: string;
+    assignmentSummaryFooter?: string;
+}
+
+export async function updateDashboardSettings(data: DashboardSettings) {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        await prisma.user.updateMany({
+            where: {
+                role: Role.ADMIN,
+            },
+            data: {
+                progressCardTitle: data.progressCardTitle,
+                progressCardBody: data.progressCardBody,
+                progressCardLinkText: data.progressCardLinkText,
+                assignmentSummaryFooter: data.assignmentSummaryFooter,
+            },
+        });
+
+        revalidatePath('/admin/settings');
+        revalidatePath('/my-lessons');
+        return { success: true };
+
+    } catch (error) {
+        console.error("Failed to update dashboard settings:", error);
+        return { success: false, error: "An error occurred." };
+    }
+}

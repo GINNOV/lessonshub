@@ -20,6 +20,12 @@ interface StudentStatsHeaderProps {
   submitted: number;
   graded: number;
   failed: number;
+  settings: {
+    progressCardTitle?: string | null;
+    progressCardBody?: string | null;
+    progressCardLinkText?: string | null;
+    assignmentSummaryFooter?: string | null;
+  } | null;
 }
 
 // A sleek, reusable component for each individual stat in the summary
@@ -50,6 +56,7 @@ export default function StudentStatsHeader({
   submitted,
   graded,
   failed,
+  settings,
 }: StudentStatsHeaderProps) {
   return (
     <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -58,16 +65,16 @@ export default function StudentStatsHeader({
         <TrendingUp className="absolute top-4 right-4 h-16 w-16 text-white/10" />
         <div className="flex h-full flex-col justify-between">
           <div>
-            <h3 className="text-lg font-medium text-gray-300">My Progress</h3>
+            <h3 className="text-lg font-medium text-gray-300">{settings?.progressCardTitle || 'My Progress'}</h3>
             <p className="mt-2 text-5xl font-bold tracking-tight">
               €{totalValue.toFixed(2)}
             </p>
           </div>
           <div className="mt-4 text-xs text-gray-400">
-            Total value from all graded lessons.
+            {settings?.progressCardBody || 'Total value from all graded lessons.'}
             <div className="mt-2">
                 <span>💰</span>
-                <InvestDialog />
+                <InvestDialog linkText={settings?.progressCardLinkText || 'Invest in your future - watch now'} />
             </div>
           </div>
         </div>
@@ -86,42 +93,49 @@ export default function StudentStatsHeader({
       </div>
 
       {/* The Professional Assignment Summary Card */}
-      <div className="rounded-xl border bg-white p-6 shadow-sm lg:col-span-2">
-        <h3 className="text-lg font-medium text-gray-600">
-          Assignment Summary
-        </h3>
-        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-5">
-          <StatItem
-            icon={ClipboardList}
-            value={total}
-            label="Total"
-            colorClassName="text-gray-400"
-          />
-          <StatItem
-            icon={Clock}
-            value={pending}
-            label="Pending"
-            colorClassName="text-yellow-500"
-          />
-          <StatItem
-            icon={CircleCheckBig}
-            value={submitted}
-            label="Submitted"
-            colorClassName="text-blue-500"
-          />
-          <StatItem
-            icon={FileBadge}
-            value={graded}
-            label="Graded"
-            colorClassName="text-green-500"
-          />
-          <StatItem
-            icon={XCircle}
-            value={failed}
-            label="Failed"
-            colorClassName="text-red-500"
-          />
+      <div className="rounded-xl border bg-white p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
+        <div>
+          <h3 className="text-lg font-medium text-gray-600">
+            Assignment Summary
+          </h3>
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-5">
+            <StatItem
+              icon={ClipboardList}
+              value={total}
+              label="Total"
+              colorClassName="text-gray-400"
+            />
+            <StatItem
+              icon={Clock}
+              value={pending}
+              label="Pending"
+              colorClassName="text-yellow-500"
+            />
+            <StatItem
+              icon={CircleCheckBig}
+              value={submitted}
+              label="Submitted"
+              colorClassName="text-blue-500"
+            />
+            <StatItem
+              icon={FileBadge}
+              value={graded}
+              label="Graded"
+              colorClassName="text-green-500"
+            />
+            <StatItem
+              icon={XCircle}
+              value={failed}
+              label="Failed"
+              colorClassName="text-red-500"
+            />
+          </div>
         </div>
+        {settings?.assignmentSummaryFooter && (
+          <div className="mt-4 text-sm text-gray-500 border-t pt-4">
+            {settings.assignmentSummaryFooter}
+          </div>
+        )}
       </div>
     </div>
   );
