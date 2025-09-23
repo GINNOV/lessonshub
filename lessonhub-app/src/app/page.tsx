@@ -4,8 +4,21 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, BookOpen, Users, Brain, Lightbulb, GraduationCap, Globe } from 'lucide-react';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import { Role } from '@prisma/client';
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await auth();
+
+  if (session?.user) {
+    if (session.user.role === Role.TEACHER || session.user.role === Role.ADMIN) {
+      redirect('/dashboard');
+    } else if (session.user.role === Role.STUDENT) {
+      redirect('/my-lessons');
+    }
+  }
+
   const accentColor = "bg-[#2A5E5B]"; // A deep teal/green inspired by the Branch aesthetic
 
   return (
