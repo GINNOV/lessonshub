@@ -6,28 +6,47 @@ import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RatingProps {
-  count?: number;
-  value: number;
-  onChange: (value: number) => void;
+  initialRating?: number;
+  readOnly?: boolean;
+  onRatingChange?: (rating: number) => void;
+  starSize?: number;
+  totalStars?: number;
   disabled?: boolean;
 }
 
-export default function Rating({ count = 5, value, onChange, disabled = false }: RatingProps) {
+export default function Rating({
+  initialRating = 0,
+  readOnly = false,
+  onRatingChange,
+  starSize = 24,
+  totalStars = 5,
+  disabled = false,
+}: RatingProps) {
+  const [rating, setRating] = useState(initialRating);
   const [hoverValue, setHoverValue] = useState<number | undefined>(undefined);
 
+  const handleClick = (value: number) => {
+    if (readOnly) return;
+    setRating(value);
+    if (onRatingChange) {
+      onRatingChange(value);
+    }
+  };
+
   return (
-    <div className="flex items-center space-x-1">
-      {Array.from({ length: count }, (_, i) => (
+    <div className="flex items-center">
+      {Array.from({ length: totalStars }, (_, i) => (
         <Star
           key={i}
+          size={starSize}
           className={cn(
-            "h-6 w-6 cursor-pointer",
-            (hoverValue || value) > i ? "text-yellow-400 fill-yellow-400" : "text-gray-300",
-            disabled && "cursor-not-allowed opacity-50"
+            "cursor-pointer",
+            (hoverValue || rating) > i ? "text-yellow-400 fill-yellow-400" : "text-gray-300",
+            (disabled || readOnly) && "cursor-not-allowed opacity-50"
           )}
-          onClick={() => !disabled && onChange(i + 1)}
-          onMouseEnter={() => !disabled && setHoverValue(i + 1)}
-          onMouseLeave={() => !disabled && setHoverValue(undefined)}
+          onClick={() => handleClick(i + 1)}
+          onMouseEnter={() => !disabled && !readOnly && setHoverValue(i + 1)}
+          onMouseLeave={() => !disabled && !readOnly && setHoverValue(undefined)}
         />
       ))}
     </div>

@@ -14,22 +14,13 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import LocaleDate from "@/app/components/LocaleDate";
 import { Badge } from "@/components/ui/badge";
-import { Check, X } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Check, X, CheckCircle2, XCircle } from "lucide-react";
+import Rating from "@/app/components/Rating";
 
 // --- SVG Icons ---
-function InfoIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="16" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12.01" y2="8" />
-    </svg>
-  );
-}
 function PaperclipIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48" />
     </svg>
   );
@@ -85,6 +76,8 @@ export default async function AssignmentPage({
   const { lesson } = serializableAssignment;
 
   const assignmentHtml = (await marked.parse(lesson.assignment_text ?? "")) as string;
+  const lessonPreviewHtml = lesson.lesson_preview ? marked.parse(lesson.lesson_preview) : null;
+
   const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
   const showResultsArea = serializableAssignment.status === AssignmentStatus.GRADED || serializableAssignment.status === AssignmentStatus.FAILED;
 
@@ -127,14 +120,31 @@ export default async function AssignmentPage({
                         </div>
                     </div>
                 )}
+                 {lesson.type === LessonType.STANDARD && serializableAssignment.rating && (
+                    <div className="mt-4 border-t border-gray-300 pt-4">
+                        <h3 className="text-md font-semibold text-gray-700">Your Rating:</h3>
+                        <div className="mt-1">
+                          <Rating initialRating={serializableAssignment.rating} readOnly={true} starSize={20} />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
       )}
       
-      <div className="mb-6 rounded-lg border bg-gray-50 p-4">
-          <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
-          <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
-      </div>
+      {lessonPreviewHtml && (
+        <div className="mb-6 rounded-lg border bg-gray-50 p-4">
+            <h2 className="text-xl font-semibold">👀 PREVIEW</h2>
+            <div className="prose max-w-none mt-2" dangerouslySetInnerHTML={{ __html: lessonPreviewHtml as string }} />
+        </div>
+      )}
+
+      {!isFlashcard && (
+        <div className="mb-6 rounded-lg border bg-gray-50 p-4">
+            <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
+            <div className="prose max-w-none mt-2" dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
+        </div>
+      )}
 
        {lesson.assignment_image_url && (
           <div className="my-4">
@@ -166,7 +176,7 @@ export default async function AssignmentPage({
 
       {showResponseArea ? (
         <div className="mt-8 border-t border-gray-200 pt-6">
-          <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>
+          {!isFlashcard && <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>}
           {isFlashcard ? (
             <FlashcardPlayer assignment={serializableAssignment} />
           ) : isMultiChoice ? (
@@ -178,14 +188,22 @@ export default async function AssignmentPage({
       ) : (
         <div className="mt-8 border-t pt-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Review Your Submission</h2>
-          {lesson.type === LessonType.STANDARD && Array.isArray(serializableAssignment.answers) && (
+          {lesson.type === LessonType.STANDARD && (
              <div className="mt-2 space-y-4 rounded-lg border bg-gray-50 p-4">
-                {(lesson.questions as string[] || []).map((question, i) => (
+                {Array.isArray(serializableAssignment.answers) && (lesson.questions as string[] || []).map((question, i) => (
                     <div key={i}>
                         <p className="text-sm font-semibold text-gray-600">Question {i + 1}: {question}</p>
                         <p className="prose prose-sm mt-1 text-gray-800 pl-4 border-l-2">{serializableAssignment.answers[i] || 'No answer provided.'}</p>
                     </div>
                 ))}
+                {serializableAssignment.rating && (
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600">Your Rating</p>
+                    <div className="mt-1">
+                       <Rating initialRating={serializableAssignment.rating} readOnly={true} starSize={20} />
+                    </div>
+                  </div>
+                )}
             </div>
           )}
           {lesson.type === LessonType.MULTI_CHOICE && Array.isArray(serializableAssignment.answers) && (
@@ -228,8 +246,18 @@ export default async function AssignmentPage({
                                 <p className="font-semibold">{fc.term}</p>
                                 <p className="text-sm text-gray-600">{fc.definition}</p>
                             </div>
-                            {studentPerformance === 'correct' && <Check className="h-6 w-6 text-green-500"/>}
-                            {studentPerformance === 'incorrect' && <X className="h-6 w-6 text-red-500"/>}
+                            {studentPerformance === 'correct' && (
+                                <div className="flex items-center gap-1 text-green-600 font-semibold">
+                                    <CheckCircle2 className="h-5 w-5" />
+                                    <span>Right</span>
+                                </div>
+                            )}
+                            {studentPerformance === 'incorrect' && (
+                                <div className="flex items-center gap-1 text-red-600 font-semibold">
+                                    <XCircle className="h-5 w-5" />
+                                    <span>Wrong</span>
+                                </div>
+                            )}
                         </div>
                     )
                 })}
@@ -240,4 +268,3 @@ export default async function AssignmentPage({
     </div>
   );
 }
-

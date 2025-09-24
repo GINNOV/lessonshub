@@ -156,7 +156,8 @@ export async function completeFlashcardAssignment(assignmentId: string, studentI
 
 export async function submitFlashcardAssignment(
   assignmentId: string,
-  answers: Record<string, 'correct' | 'incorrect'>
+  answers: Record<string, 'correct' | 'incorrect'>,
+  rating?: number
 ) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -188,6 +189,7 @@ export async function submitFlashcardAssignment(
         answers: answers,
         status: AssignmentStatus.COMPLETED,
         score: score,
+        rating: rating,
       },
     });
 

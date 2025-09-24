@@ -1,14 +1,16 @@
 // file: src/app/components/FlashcardPlayer.tsx
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Assignment, Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, RotateCw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RotateCw, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { marked } from 'marked';
 import { submitFlashcardAssignment } from '@/actions/lessonActions';
+import Rating from '@/app/components/Rating';
+import { useRouter } from 'next/navigation';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -25,31 +27,24 @@ interface FlashcardPlayerProps {
 }
 
 export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
+  const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [answers, setAnswers] = useState<Record<string, 'correct' | 'incorrect'>>({});
   const [showResults, setShowResults] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
+  const [rating, setRating] = useState<number | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const flashcards = useMemo(() => {
     return [...assignment.lesson.flashcards].sort(() => Math.random() - 0.5);
   }, [assignment.lesson.flashcards]);
 
   const instructionsHtml = useMemo(() => {
-    return assignment.lesson.assignment_text ? marked.parse(assignment.lesson.assignment_text) : '';
+    const rawText = assignment.lesson.assignment_text || '';
+    const cleanedText = rawText.replace(/👉🏼 INSTRUCTIONS:/i, '').trim();
+    return cleanedText ? marked.parse(cleanedText) : '';
   }, [assignment.lesson.assignment_text]);
-
-  // When results are shown, submit them to the server.
-  useEffect(() => {
-    if (showResults) {
-      submitFlashcardAssignment(assignment.id, answers).then(result => {
-        if (result.success) {
-          toast.success("Your results have been submitted!");
-        } else {
-          toast.error(result.error || "Failed to submit your results.");
-        }
-      });
-    }
-  }, [showResults, assignment.id, answers]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
@@ -81,10 +76,39 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
     setIsFlipped(false);
     setAnswers({});
     setShowResults(false);
+    setIsStarted(true);
+    setRating(undefined);
   };
   
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    const result = await submitFlashcardAssignment(assignment.id, answers, rating);
+    if (result.success) {
+      toast.success("Your results have been submitted!");
+      router.push('/my-lessons');
+      router.refresh();
+    } else {
+      toast.error(result.error || "Failed to submit your results.");
+      setIsSubmitting(false);
+    }
+  };
+
   const correctCount = Object.values(answers).filter(a => a === 'correct').length;
   const incorrectCount = Object.values(answers).filter(a => a === 'incorrect').length;
+
+  if (!isStarted) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border bg-gray-50 p-4">
+            <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
+            {instructionsHtml && (
+              <div className="prose max-w-none mt-4" dangerouslySetInnerHTML={{ __html: instructionsHtml as string }} />
+            )}
+        </div>
+        <Button onClick={() => setIsStarted(true)} className="w-full">Start</Button>
+      </div>
+    );
+  }
 
   if (showResults) {
     return (
@@ -92,19 +116,27 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
             <h2 className="text-2xl font-bold mb-4">Results</h2>
             <p className="text-green-600 font-semibold">Correct: {correctCount}</p>
             <p className="text-red-600 font-semibold">Incorrect: {incorrectCount}</p>
-            <Button onClick={handleRestart} className="mt-6">
-                <RotateCw className="mr-2 h-4 w-4" /> Restart
-            </Button>
+            <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Rate this lesson</h3>
+                <div className="flex justify-center">
+                  <Rating onRatingChange={setRating} />
+                </div>
+            </div>
+            <div className="flex justify-center gap-4 mt-6">
+              <Button onClick={handleRestart} variant="outline">
+                  <RotateCw className="mr-2 h-4 w-4" /> Restart
+              </Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting}>
+                  <Send className="mr-2 h-4 w-4" /> {isSubmitting ? 'Submitting...' : 'Submit & Finish'}
+              </Button>
+            </div>
         </div>
     );
   }
 
   return (
     <div className="space-y-6">
-        {instructionsHtml && (
-            <div className="prose max-w-none p-4 border rounded-md bg-gray-50" dangerouslySetInnerHTML={{ __html: instructionsHtml as string }} />
-        )}
-        <div className="relative h-64 w-full cursor-pointer [perspective:1000px]" onClick={handleFlip}>
+        <div className="relative h-96 w-full cursor-pointer [perspective:1000px]" onClick={handleFlip}>
             <div className={`relative h-full w-full rounded-lg transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
                 <div className="absolute h-full w-full rounded-lg border p-4 flex flex-col bg-white [backface-visibility:hidden]">
                     {flashcards[currentIndex].termImageUrl ? (
