@@ -431,7 +431,7 @@ export async function getSubmissionsForLesson(lessonId: string, teacherId: strin
         student: true,
       },
       orderBy: {
-        assignedAt: 'desc',
+        deadline: 'asc',
       },
     });
     return submissions;
