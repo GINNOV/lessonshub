@@ -2,178 +2,120 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  Assignment,
-  AssignmentStatus,
-  Lesson,
-  MultiChoiceQuestion as PrismaQuestion,
-  MultiChoiceOption as PrismaOption,
-} from '@prisma/client';
+import { Assignment, Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption } from '@prisma/client';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { submitMultiChoiceAssignment } from '@/actions/lessonActions';
+import { toast } from 'sonner';
+import { RotateCw } from 'lucide-react';
+import Rating from './Rating';
+import { useRouter } from 'next/navigation';
 
-type MultiChoiceAnswer = {
-  questionId: string;
-  selectedAnswerId: string;
-  isCorrect: boolean;
+type SerializableLesson = Omit<Lesson, 'price'> & {
+  price: number;
+  multiChoiceQuestions: (PrismaQuestion & { options: MultiChoiceOption[] })[];
 };
 
-type AssignmentWithMultiChoice = Assignment & {
-  lesson: Omit<Lesson, 'price'> & {
-    price: number;
-    multiChoiceQuestions: (PrismaQuestion & {
-      options: PrismaOption[];
-    })[];
-  };
+type MultiChoiceAssignment = Omit<Assignment, 'lesson'> & {
+  lesson: SerializableLesson;
 };
 
 interface MultiChoicePlayerProps {
-  assignment: AssignmentWithMultiChoice;
+  assignment: MultiChoiceAssignment;
 }
 
-export default function MultiChoicePlayer({
-  assignment,
-}: MultiChoicePlayerProps) {
+export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps) {
   const router = useRouter();
-  const questions = assignment.lesson.multiChoiceQuestions;
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [showResults, setShowResults] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rating, setRating] = useState<number | undefined>(undefined);
+  const { multiChoiceQuestions } = assignment.lesson;
 
-  const [selectedAnswers, setSelectedAnswers] = useState<
-    Record<string, string>
-  >(() => {
-    if (
-      assignment.status !== 'PENDING' &&
-      assignment.answers &&
-      Array.isArray(assignment.answers)
-    ) {
-      return (assignment.answers as MultiChoiceAnswer[]).reduce(
-        (acc, answer) => {
-          acc[answer.questionId] = answer.selectedAnswerId;
-          return acc;
-        },
-        {} as Record<string, string>
-      );
-    }
-    return {};
-  });
-
-  const [studentNotes, setStudentNotes] = useState(
-    assignment.studentNotes || ''
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const isPastDeadline = new Date() > new Date(assignment.deadline);
-  const isReadOnly =
-    assignment.status !== AssignmentStatus.PENDING || isPastDeadline;
-
-  const handleAnswerSelect = (questionId: string, optionId: string) => {
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [questionId]: optionId,
-    }));
+  const handleValueChange = (questionId: string, value: string) => {
+    setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (Object.keys(selectedAnswers).length < questions.length) {
-      setError('Please answer all questions before submitting.');
+  const handleSubmit = async () => {
+    if (Object.keys(answers).length !== multiChoiceQuestions.length) {
+      toast.error('Please answer all questions before submitting.');
       return;
     }
-    setIsLoading(true);
-    setError(null);
+    setIsSubmitting(true);
+    const result = await submitMultiChoiceAssignment(assignment.id, assignment.studentId, answers, rating);
 
-    try {
-      const response = await fetch(
-        `/api/assignments/${assignment.id}/submit`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ answers: selectedAnswers, studentNotes }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit response');
-      }
-
-      router.push('/my-lessons');
-      router.refresh();
-    } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
+    if (result.success) {
+      toast.success('Your assignment has been submitted and graded!');
+      setShowResults(true);
+    } else {
+      toast.error(result.error || 'There was an error submitting your assignment.');
+      setIsSubmitting(false);
     }
   };
 
-  // This function's logic is now guaranteed to always return a string,
-  // which satisfies React's requirement for a valid renderable child (ReactNode).
-  const getButtonText = (): string => {
-    if (isLoading) return 'Submitting...';
-    if (assignment.status !== 'PENDING') return 'Submission Closed';
-    if (isPastDeadline) return 'Deadline Passed';
-    return 'Submit Response';
+  const handleRestart = () => {
+    setAnswers({});
+    setShowResults(false);
+    setIsSubmitting(false);
+    setRating(undefined);
   };
+  
+  if (showResults) {
+    let correctCount = 0;
+    multiChoiceQuestions.forEach(q => {
+      const correctOption = q.options.find(o => o.isCorrect);
+      if (answers[q.id] === correctOption?.id) {
+        correctCount++;
+      }
+    });
+
+    return (
+      <div className="text-center p-8 border rounded-lg">
+        <h2 className="text-2xl font-bold mb-4">Results</h2>
+        <p className="text-green-600 font-semibold">
+          You answered {correctCount} out of {multiChoiceQuestions.length} questions correctly.
+        </p>
+        <div className="flex justify-center gap-4 mt-6">
+          <Button onClick={handleRestart} variant="outline">
+              <RotateCw className="mr-2 h-4 w-4" /> Try Again
+          </Button>
+           <Button onClick={() => router.push('/my-lessons')} >
+              Finish
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-8">
-        {questions.map((question, qIndex) => (
-          <div key={question.id} className="space-y-4">
-            <div className="rounded-md border bg-gray-50 p-3 shadow-sm">
-              <Label className="text-base font-bold">
-                Q{qIndex + 1}❓ {question.question}
-              </Label>
-            </div>
-            <RadioGroup
-              value={selectedAnswers[question.id]}
-              onValueChange={(value) => handleAnswerSelect(question.id, value)}
-              disabled={isLoading || isReadOnly}
-              className="ml-2 space-y-2"
-            >
-              {question.options.map((option) => (
-                <div key={option.id} className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value={option.id}
-                    id={`${question.id}-${option.id}`}
-                  />
-                  <Label htmlFor={`${question.id}-${option.id}`}>
-                    {option.text}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+    <div className="space-y-8">
+      {multiChoiceQuestions.map((question, index) => (
+        <div key={question.id} className="p-4 border rounded-lg">
+          <p className="font-semibold">{index + 1}. {question.question}</p>
+          <RadioGroup 
+            onValueChange={(value) => handleValueChange(question.id, value)} 
+            className="mt-4 space-y-2"
+            value={answers[question.id]}
+          >
+            {question.options.map(option => (
+              <div key={option.id} className="flex items-center space-x-2">
+                <RadioGroupItem value={option.id} id={`${question.id}-${option.id}`} />
+                <Label htmlFor={`${question.id}-${option.id}`}>{option.text}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
+      ))}
+       <div className="mt-6 border-t pt-6">
+          <h3 className="text-lg font-semibold mb-2 text-center">Rate this lesson</h3>
+          <div className="flex justify-center">
+            <Rating onRatingChange={setRating} />
           </div>
-        ))}
       </div>
-
-      <div className="mt-6 space-y-2 border-t pt-6">
-        <Label htmlFor="student-notes">Student Notes</Label>
-        <Textarea
-          id="student-notes"
-          value={studentNotes}
-          onChange={(e) => setStudentNotes(e.target.value)}
-          disabled={isLoading || isReadOnly}
-          placeholder="Add any notes for your teacher here..."
-        />
-      </div>
-
-      {error && (
-        <p className="mt-4 rounded-md bg-red-100 p-3 text-red-500">{error}</p>
-      )}
-
-      {assignment.status === 'PENDING' && (
-        <Button
-          type="submit"
-          disabled={isLoading || isReadOnly}
-          className="mt-4"
-        >
-          {getButtonText()}
-        </Button>
-      )}
-    </form>
+      <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full">
+        {isSubmitting ? 'Submitting...' : 'Submit Answers'}
+      </Button>
+    </div>
   );
 }

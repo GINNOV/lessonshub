@@ -218,7 +218,7 @@ export async function submitFlashcardAssignment(
   }
 }
 
-export async function submitMultiChoiceAssignment(assignmentId: string, studentId: string, answers: { [key: string]: string }) {
+export async function submitMultiChoiceAssignment(assignmentId: string, studentId: string, answers: { [key: string]: string }, rating?: number) {
     try {
         const assignment = await prisma.assignment.findUnique({
             where: { id: assignmentId, studentId: studentId },
@@ -243,12 +243,15 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
                 answers: processedAnswers,
                 status: AssignmentStatus.GRADED,
                 score: score,
-                gradedAt: new Date()
+                gradedAt: new Date(),
+                rating: rating,
             }
         });
         revalidatePath('/my-lessons');
+        await checkAndSendMilestoneEmail(studentId);
         return { success: true, data: updatedAssignment };
     } catch (error) {
+        console.error("Failed to submit multi-choice assignment:", error);
         return { success: false, error: 'Failed to submit assignment.' };
     }
 }
