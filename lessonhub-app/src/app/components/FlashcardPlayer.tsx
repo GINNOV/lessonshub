@@ -106,21 +106,43 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
         )}
         <div className="relative h-64 w-full cursor-pointer [perspective:1000px]" onClick={handleFlip}>
             <div className={`relative h-full w-full rounded-lg transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                <div className="absolute h-full w-full rounded-lg border p-6 flex justify-center items-center text-center bg-white [backface-visibility:hidden]">
-                    <div>
-                      {flashcards[currentIndex].termImageUrl && (
-                        <Image src={flashcards[currentIndex].termImageUrl!} alt={flashcards[currentIndex].term} width={100} height={100} className="rounded-md mb-2 mx-auto" />
-                      )}
-                      <p className="text-xl font-semibold">{flashcards[currentIndex].term}</p>
-                    </div>
+                <div className="absolute h-full w-full rounded-lg border p-4 flex flex-col bg-white [backface-visibility:hidden]">
+                    {flashcards[currentIndex].termImageUrl ? (
+                      <>
+                        <div className="relative flex-grow w-full">
+                          <Image 
+                            src={flashcards[currentIndex].termImageUrl!} 
+                            alt={flashcards[currentIndex].term} 
+                            fill 
+                            className="object-contain rounded-md" 
+                          />
+                        </div>
+                        <p className="text-xl font-semibold text-center mt-2 flex-shrink-0">{flashcards[currentIndex].term}</p>
+                      </>
+                    ) : (
+                      <div className="flex h-full w-full justify-center items-center">
+                          <p className="text-xl font-semibold text-center">{flashcards[currentIndex].term}</p>
+                      </div>
+                    )}
                 </div>
-                <div className="absolute h-full w-full rounded-lg border p-6 flex justify-center items-center text-center bg-gray-100 [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                  <div>
-                    {flashcards[currentIndex].definitionImageUrl && (
-                        <Image src={flashcards[currentIndex].definitionImageUrl!} alt={flashcards[currentIndex].definition} width={100} height={100} className="rounded-md mb-2 mx-auto" />
-                      )}
-                    <p>{flashcards[currentIndex].definition}</p>
-                  </div>
+                <div className="absolute h-full w-full rounded-lg border p-4 flex flex-col bg-gray-100 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                  {flashcards[currentIndex].definitionImageUrl ? (
+                    <>
+                      <div className="relative flex-grow w-full">
+                        <Image 
+                          src={flashcards[currentIndex].definitionImageUrl!} 
+                          alt={flashcards[currentIndex].definition} 
+                          fill 
+                          className="object-contain rounded-md"
+                        />
+                      </div>
+                      <p className="text-center mt-2 flex-shrink-0">{flashcards[currentIndex].definition}</p>
+                    </>
+                  ) : (
+                     <div className="flex h-full w-full justify-center items-center">
+                        <p className="text-center">{flashcards[currentIndex].definition}</p>
+                    </div>
+                  )}
                 </div>
             </div>
         </div>
