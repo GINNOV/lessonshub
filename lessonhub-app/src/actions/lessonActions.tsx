@@ -632,6 +632,37 @@ export async function failAssignment(assignmentId: string) {
   }
 }
 
+export async function extendDeadline(assignmentId: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+    });
+
+    if (!assignment) {
+      return { success: false, error: "Assignment not found." };
+    }
+
+    const newDeadline = new Date();
+    newDeadline.setHours(newDeadline.getHours() + 48);
+
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: { deadline: newDeadline, status: AssignmentStatus.PENDING },
+    });
+
+    revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to extend deadline:", error);
+    return { success: false, error: "An error occurred." };
+  }
+}
+
 export async function gradeAssignment(assignmentId: string, data: { score: number; teacherComments: string }) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== Role.TEACHER) {
@@ -734,4 +765,3 @@ export async function getLessonAverageRating(lessonId: string) {
     return null;
   }
 }
-

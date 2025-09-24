@@ -1,5 +1,4 @@
 // file: src/app/dashboard/submissions/[lessonId]/page.tsx
-
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
@@ -8,6 +7,7 @@ import { Role, AssignmentStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import ReminderButton from "@/components/ReminderButton";
 import FailButton from "@/app/components/FailButton";
+import ExtendDeadlineButton from "@/app/components/ExtendDeadlineButton";
 import LocaleDate from "@/app/components/LocaleDate";
 
 export default async function SubmissionsPage({ params }: { params: Promise<{ lessonId: string }> }) {
@@ -74,7 +74,10 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                         <ReminderButton assignmentId={sub.id} />
                       )}
                       {isPastDue && (
-                        <FailButton assignmentId={sub.id} />
+                        <>
+                          <FailButton assignmentId={sub.id} />
+                          <ExtendDeadlineButton assignmentId={sub.id} />
+                        </>
                       )}
                       {sub.status === 'COMPLETED' && (
                         <Button asChild>
