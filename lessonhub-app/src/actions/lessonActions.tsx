@@ -335,18 +335,19 @@ export async function getAssignmentsForStudent(studentId: string) {
     try {
         const student = await prisma.user.findUnique({
             where: { id: studentId },
-            select: { isSuspended: true }
+            select: { isSuspended: true, isTakingBreak: true } // Select the new field
         });
 
-        if (!student || student.isSuspended) {
+        // If suspended or taking a break, return no assignments
+        if (!student || student.isSuspended || student.isTakingBreak) {
             return [];
         }
 
         const assignments = await prisma.assignment.findMany({
-            where: {
+            where: { 
                 studentId: studentId,
                 startDate: {
-                    lte: new Date(), // Only show assignments that have started
+                    lte: new Date(),
                 },
             },
             include: {

@@ -402,6 +402,36 @@ interface DashboardSettings {
     assignmentSummaryFooter?: string;
 }
 
+export async function toggleTakingABreakForUser(userId: string) {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { isTakingBreak: true }
+        });
+
+        if (!user) {
+            return { success: false, error: "User not found." };
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: { isTakingBreak: !user.isTakingBreak }
+        });
+
+        revalidatePath(`/admin/users/${userId}`);
+
+        return { success: true, isTakingBreak: updatedUser.isTakingBreak };
+    } catch (error) {
+        console.error("Failed to toggle user break status:", error);
+        return { success: false, error: "An error occurred." };
+    }
+}
+
 export async function updateDashboardSettings(data: DashboardSettings) {
     const session = await auth();
     if (!session?.user?.id || session.user.role !== Role.ADMIN) {

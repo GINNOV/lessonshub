@@ -1,15 +1,25 @@
 // file: src/app/admin/users/edit/[userId]/page.tsx
 import { redirect } from "next/navigation";
-import Link from 'next/link';
+import Link from "next/link";
 import { auth } from "@/auth";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import ProfileForm from "@/app/components/ProfileForm";
 import { Button } from "@/components/ui/button";
 
+// This is a helper function to fetch the specific user for this page.
 async function getUserForAdmin(userId: string) {
   try {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+            teachers: {
+                include: {
+                    teacher: true,
+                },
+            },
+        },
+    });
     return user;
   } catch (error) {
     console.error("Failed to fetch user for admin edit:", error);
@@ -55,8 +65,9 @@ export default async function AdminEditUserPage({
           <Link href="/admin/users">&larr; Back to User Management</Link>
         </Button>
       </div>
-      
-      <ProfileForm userToEdit={userToEdit} isAdmin={true} />
+
+      {/* This form is now being used by an admin */}
+      <ProfileForm user={userToEdit} isAdmin={true} />
     </div>
   );
 }

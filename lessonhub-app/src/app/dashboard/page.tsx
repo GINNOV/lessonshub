@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLessonsForTeacher, getLessonAverageRating } from "@/actions/lessonActions";
-import { getTeacherPreferences, getLeaderboardDataForTeacher } from "@/actions/teacherActions";
+import { getLeaderboardDataForTeacher } from "@/actions/teacherActions";
 import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import TeacherLessonList from "@/app/components/TeacherLessonList";
@@ -17,7 +17,7 @@ import {
 import { ChevronDown } from "lucide-react";
 import TeacherClassLeaderboard from "@/app/components/TeacherClassLeaderboard";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-
+import prisma from "@/lib/prisma"; // Import prisma
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -30,9 +30,18 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  const [lessons, preferences, leaderboardData] = await Promise.all([
+  // Fetch the full teacher object instead of just preferences
+  const teacher = await prisma.user.findUnique({
+    where: { id: session.user.id },
+  });
+
+  if (!teacher) {
+    // Handle case where teacher data might not be found
+    return <div>Could not load teacher data. Please try again later.</div>;
+  }
+
+  const [lessons, leaderboardData] = await Promise.all([
     getLessonsForTeacher(session.user.id),
-    getTeacherPreferences(),
     getLeaderboardDataForTeacher(session.user.id),
   ]);
 
@@ -46,11 +55,6 @@ export default async function DashboardPage() {
       };
     })
   );
-  
-  const serializablePreferences = preferences ? {
-      ...preferences,
-      defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
-  } : null;
 
   return (
     <div>
@@ -90,7 +94,8 @@ export default async function DashboardPage() {
         <AccordionItem value="item-1">
           <AccordionTrigger>Lesson Defaults</AccordionTrigger>
           <AccordionContent>
-            <TeacherPreferences initialPreferences={serializablePreferences} />
+            {/* Pass the full teacher object to the component */}
+            <TeacherPreferences teacher={teacher} />
           </AccordionContent>
         </AccordionItem>
       </Accordion>
@@ -99,4 +104,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-

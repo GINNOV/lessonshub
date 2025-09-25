@@ -54,7 +54,6 @@ export const {
         }
         const user = await prisma.user.findUnique({ where: { email: credentials.email } });
         
-        // --- FIX: Prevent suspended users from logging in ---
         if (!user || !user.hashedPassword || user.isSuspended) {
             return null;
         }
@@ -72,15 +71,16 @@ export const {
   secret: process.env.AUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
   callbacks: {
-    async jwt({ token, user }) {
-      if (user?.id) {
+    async jwt({ token, user, account, profile, isNewUser }) {
+      if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.isTakingBreak = user.isTakingBreak;
       }
       return token;
     },
     async session({ session, token }) {
-      const dbUser = await prisma.user.findUnique({
+       const dbUser = await prisma.user.findUnique({
         where: { id: token.id as string },
         select: {
           id: true,
@@ -89,7 +89,8 @@ export const {
           image: true,
           role: true,
           isPaying: true,
-          isSuspended: true, // Include isSuspended in the session data
+          isSuspended: true,
+          isTakingBreak: true, // Include isTakingBreak
           impersonatedBy: {
             select: {
               id: true,
@@ -117,6 +118,7 @@ export const {
           image: impersonatedUser.image,
           role: impersonatedUser.role,
           isSuspended: (impersonatedUser as any).isSuspended,
+          isTakingBreak: (impersonatedUser as any).isTakingBreak, // Pass through impersonated user's status
           impersonating: true,
           originalUserId: dbUser.id,
         };
@@ -127,6 +129,7 @@ export const {
         session.user.image = dbUser.image;
         session.user.role = dbUser.role;
         session.user.isSuspended = dbUser.isSuspended;
+        session.user.isTakingBreak = dbUser.isTakingBreak; // Assign to the direct user
       }
       return session;
     },

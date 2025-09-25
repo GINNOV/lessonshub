@@ -1,21 +1,28 @@
 // file: src/app/profile/page.tsx
-
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import ProfileForm from "@/app/components/ProfileForm";
+import prisma from "@/lib/prisma";
 
 export default async function ProfilePage() {
   const session = await auth();
+
   if (!session) {
     redirect("/signin");
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+  });
+
+  if (!user) {
+    redirect("/signin");
+  }
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Edit Your Profile</h1>
-      <div className="bg-white p-6 rounded-lg shadow-md border">
-        <ProfileForm />
-      </div>
+    <div className="mx-auto max-w-2xl">
+      <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
+      <ProfileForm user={user} />
     </div>
   );
 }

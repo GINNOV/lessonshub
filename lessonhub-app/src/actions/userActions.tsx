@@ -7,7 +7,8 @@ import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
 import { getEmailTemplateByName } from "./adminActions";
 import { replacePlaceholders } from "@/lib/email-templates";
-import { nanoid } from 'nanoid'; // Import nanoid here
+import { nanoid } from 'nanoid';
+import { revalidatePath } from "next/cache";
 
 async function sendDeletionAdminNotifications(deletedUser: { name: string | null; email: string }) {
     const admins = await prisma.user.findMany({ where: { role: Role.ADMIN } });
@@ -43,6 +44,36 @@ async function sendDeletionAdminNotifications(deletedUser: { name: string | null
                 console.error(`Failed to send user deletion notification to admin ${admin.email}:`, error);
             }
         }
+    }
+}
+
+export async function toggleTakingABreak() {
+    const session = await auth();
+    if (!session?.user?.id) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { isTakingBreak: true }
+        });
+
+        if (!user) {
+            return { success: false, error: "User not found." };
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: session.user.id },
+            data: { isTakingBreak: !user.isTakingBreak }
+        });
+
+        revalidatePath('/profile');
+        revalidatePath('/my-lessons');
+
+        return { success: true, isTakingBreak: updatedUser.isTakingBreak };
+    } catch (error) {
+        return { success: false, error: "An error occurred while updating your status." };
     }
 }
 

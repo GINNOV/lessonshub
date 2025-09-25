@@ -20,7 +20,8 @@ model User {
   impersonatedById          String?   @unique
   isPaying                  Boolean   @default(false)
   isSuspended               Boolean   @default(false)
-
+  isTakingBreak             Boolean   @default(false)
+  
   // For students, the teachers they are assigned to.
   teachers                  TeachersForStudent[] @relation("StudentTeachers")
   // For teachers, the students they have assigned.
