@@ -343,8 +343,11 @@ export async function getAssignmentsForStudent(studentId: string) {
         }
 
         const assignments = await prisma.assignment.findMany({
-            where: { 
+            where: {
                 studentId: studentId,
+                startDate: {
+                    lte: new Date(), // Only show assignments that have started
+                },
             },
             include: {
                 lesson: {

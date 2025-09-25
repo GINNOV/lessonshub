@@ -115,6 +115,7 @@ model MultiChoiceOption {
 model Assignment {
   id                String           @id @default(cuid())
   assignedAt        DateTime         @default(now())
+  startDate         DateTime         @default(now()) // New field for visibility
   deadline          DateTime
   status            AssignmentStatus @default(PENDING)
   score             Int?
