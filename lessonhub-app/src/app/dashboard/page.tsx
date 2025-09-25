@@ -26,7 +26,7 @@ export default async function DashboardPage() {
     redirect("/signin");
   } else if (session.user.role === Role.STUDENT) {
     redirect("/my-lessons");
-  } else if (session.user.role !== Role.TEACHER) {
+  } else if (session.user.role !== Role.TEACHER && session.user.role !== Role.ADMIN) {
     redirect("/");
   }
 

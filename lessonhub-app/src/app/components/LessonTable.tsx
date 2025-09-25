@@ -49,6 +49,17 @@ export default function LessonTable({
     setIsSubmitting(false);
   };
 
+  const getEditLink = (lesson: SerializableLesson) => {
+    switch (lesson.type) {
+        case LessonType.FLASHCARD:
+            return `/dashboard/edit/flashcard/${lesson.id}`;
+        case LessonType.MULTI_CHOICE:
+            return `/dashboard/edit/multi-choice/${lesson.id}`;
+        default:
+            return `/dashboard/edit/${lesson.id}`;
+    }
+  }
+
   const filteredLessons = lessons.filter(
     (lesson) =>
       lesson.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -127,7 +138,7 @@ export default function LessonTable({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     <DropdownMenuItem asChild>
-                      <Link href={`/dashboard/edit/${lesson.id}`}>Edit</Link>
+                      <Link href={getEditLink(lesson)}>Edit</Link>
                     </DropdownMenuItem>
                     {teachers.map((teacher) => (
                       <DropdownMenuItem
