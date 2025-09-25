@@ -1,18 +1,8 @@
-// file: src/app/api/assignments/route.ts
+// file: src/app/api/assignments/route.tsx
 import { auth } from "@/auth";
-import { NextResponse, NextRequest } from "next/server";
-import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import { getEmailTemplateByName } from "@/actions/adminActions";
-import { createButton, sendEmail } from "@/lib/email-templates";
-import { revalidatePath } from "next/cache";
-
-function getBaseUrl(req: NextRequest): string {
-  const headers = req.headers;
-  const protocol = headers.get('x-forwarded-proto') || 'http';
-  const host = headers.get('host') || 'localhost:3000';
-  return `${protocol}://${host}`;
-}
+import prisma from "@/lib/prisma";
+import { sendEmail, createButton } from "@/lib/email-templates";
 
 export async function PATCH(req: Request) {
   const session = await auth();
@@ -27,7 +17,7 @@ export async function PATCH(req: Request) {
       studentIdsToAssign,
       studentIdsToUpdate,
       studentIdsToUnassign,
-      notifyStudents,
+      notificationOption, // 'immediate', 'on_start_date', or 'none'
     } = body;
 
     if (!lessonId) {
@@ -37,12 +27,11 @@ export async function PATCH(req: Request) {
     // Unassign students
     if (studentIdsToUnassign && studentIdsToUnassign.length > 0) {
       await prisma.assignment.deleteMany({
-        where: {
-          lessonId: lessonId,
-          studentId: { in: studentIdsToUnassign },
-        },
+        where: { lessonId, studentId: { in: studentIdsToUnassign } },
       });
     }
+
+    const notifyOnStartDate = notificationOption === 'on_start_date';
 
     // Assign new students
     if (studentIdsToAssign && studentIdsToAssign.length > 0) {
@@ -51,11 +40,12 @@ export async function PATCH(req: Request) {
         studentId: item.studentId,
         deadline: new Date(item.deadline),
         startDate: new Date(item.startDate),
+        notifyOnStartDate,
       }));
       await prisma.assignment.createMany({ data: assignmentsData });
 
-      if (notifyStudents) {
-        const newlyAssignedStudents = await prisma.user.findMany({
+      if (notificationOption === 'immediate') {
+         const newlyAssignedStudents = await prisma.user.findMany({
           where: { id: { in: studentIdsToAssign.map((item: { studentId: string }) => item.studentId) } },
           select: { email: true, name: true },
         });
@@ -85,13 +75,11 @@ export async function PATCH(req: Request) {
     if (studentIdsToUpdate && studentIdsToUpdate.length > 0) {
       for (const item of studentIdsToUpdate) {
         await prisma.assignment.updateMany({
-          where: {
-            lessonId,
-            studentId: item.studentId,
-          },
+          where: { lessonId, studentId: item.studentId },
           data: {
             deadline: new Date(item.deadline),
             startDate: new Date(item.startDate),
+            notifyOnStartDate,
           },
         });
       }

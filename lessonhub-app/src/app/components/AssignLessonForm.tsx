@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Check } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export type StudentWithStats = Omit<User, 'defaultLessonPrice'> & {
   totalPoints: number;
@@ -26,7 +27,6 @@ const formatDateTimeForInput = (date: Date | null | undefined): string => {
     if (!date) return '';
     try {
         const d = new Date(date);
-        // Adjust for timezone offset to display local time in the input
         const timezoneOffset = d.getTimezoneOffset() * 60000;
         const localDate = new Date(d.getTime() - timezoneOffset);
         return localDate.toISOString().slice(0, 16);
@@ -38,7 +38,7 @@ const formatDateTimeForInput = (date: Date | null | undefined): string => {
 const getDefaultMidnightDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(23, 59, 0, 0); // Set to 23:59 of tomorrow
+    tomorrow.setHours(23, 59, 0, 0);
     return formatDateTimeForInput(tomorrow);
 }
 
@@ -52,7 +52,7 @@ export default function AssignLessonForm({
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [deadlines, setDeadlines] = useState<Record<string, string>>({});
   const [startDates, setStartDates] = useState<Record<string, string>>({});
-  const [notifyStudents, setNotifyStudents] = useState(true);
+  const [notificationOption, setNotificationOption] = useState('on_start_date');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [masterDeadline, setMasterDeadline] = useState<string>(getDefaultMidnightDate());
@@ -75,6 +75,19 @@ export default function AssignLessonForm({
     setStartDates(initialStartDates);
     setSelectedStudents(initialSelected);
   }, [existingAssignments]);
+
+  useEffect(() => {
+    if (notificationOption === 'none') {
+        const now = formatDateTimeForInput(new Date());
+        setMasterStartDate(now);
+        const newStartDates = { ...startDates };
+        selectedStudents.forEach(id => {
+            newStartDates[id] = now;
+        });
+        setStartDates(newStartDates);
+    }
+  }, [notificationOption, selectedStudents, startDates]);
+
 
   const filteredStudents = useMemo(() => {
     return students.filter(
@@ -169,7 +182,7 @@ export default function AssignLessonForm({
           studentIdsToAssign: assignmentsToCreate,
           studentIdsToUpdate: assignmentsToUpdate,
           studentIdsToUnassign,
-          notifyStudents,
+          notificationOption,
         }),
       });
 
@@ -199,7 +212,7 @@ export default function AssignLessonForm({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
             <Label htmlFor="start-date">Set Start Date</Label>
-            <Input id="start-date" type="datetime-local" value={masterStartDate} onChange={handleMasterStartDateChange} />
+            <Input id="start-date" type="datetime-local" value={masterStartDate} onChange={handleMasterStartDateChange} disabled={notificationOption === 'none'} />
         </div>
         <div className="space-y-2">
             <Label htmlFor="deadline">Set Due Date</Label>
@@ -210,11 +223,25 @@ export default function AssignLessonForm({
             <Input id="search" type="search" placeholder="Filter by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
       </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox id="notify" checked={notifyStudents} onCheckedChange={(checked) => setNotifyStudents(!!checked)} />
-        <Label htmlFor="notify">Notify newly assigned students via email (on start date)</Label>
+      
+      <div className="p-4 border rounded-md">
+        <Label className="mb-2 block font-semibold">Notification Options</Label>
+        <RadioGroup value={notificationOption} onValueChange={setNotificationOption}>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="on_start_date" id="on_start_date" />
+            <Label htmlFor="on_start_date">Notify students on the start date (default)</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="immediate" id="immediate" />
+            <Label htmlFor="immediate">Notify newly assigned students immediately</Label>
+          </div>
+           <div className="flex items-center space-x-2">
+            <RadioGroupItem value="none" id="none" />
+            <Label htmlFor="none">Don&apos;t notify, make available immediately</Label>
+          </div>
+        </RadioGroup>
       </div>
+
 
       <div className="rounded-lg border overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
@@ -233,7 +260,7 @@ export default function AssignLessonForm({
                         <td className="px-4 py-4"><Checkbox id={student.id} checked={selectedStudents.includes(student.id)} onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)} /></td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap"><Input type="datetime-local" value={startDates[student.id] || ''} onChange={(e) => setStartDates(prev => ({ ...prev, [student.id]: e.target.value }))} className="text-sm" /></td>
+                        <td className="px-6 py-4 whitespace-nowrap"><Input type="datetime-local" value={startDates[student.id] || ''} onChange={(e) => setStartDates(prev => ({ ...prev, [student.id]: e.target.value }))} className="text-sm" disabled={notificationOption === 'none'} /></td>
                         <td className="px-6 py-4 whitespace-nowrap"><Input type="datetime-local" value={deadlines[student.id] || ''} onChange={(e) => setDeadlines(prev => ({ ...prev, [student.id]: e.target.value }))} className="text-sm" /></td>
                     </tr>
                 ))}

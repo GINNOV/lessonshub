@@ -113,23 +113,24 @@ model MultiChoiceOption {
 }
 
 model Assignment {
-  id                String           @id @default(cuid())
-  assignedAt        DateTime         @default(now())
-  startDate         DateTime         @default(now()) // New field for visibility
-  deadline          DateTime
-  status            AssignmentStatus @default(PENDING)
-  score             Int?
-  gradedAt          DateTime?
-  studentNotes      String?
-  rating            Int?
-  answers           Json?
-  teacherComments   String?
-  reminderSentAt    DateTime?
-  milestoneNotified Boolean          @default(false)
-  lessonId          String
-  studentId         String
-  lesson            Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  student           User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id                  String           @id @default(cuid())
+  assignedAt          DateTime         @default(now())
+  startDate           DateTime         @default(now())
+  deadline            DateTime
+  status              AssignmentStatus @default(PENDING)
+  score               Int?
+  gradedAt            DateTime?
+  studentNotes        String?
+  rating              Int?
+  answers             Json?
+  teacherComments     String?
+  reminderSentAt      DateTime?
+  milestoneNotified   Boolean          @default(false)
+  notifyOnStartDate   Boolean          @default(true) // New field for scheduled notifications
+  lessonId            String
+  studentId           String
+  lesson              Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student             User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([lessonId, studentId])
 }
