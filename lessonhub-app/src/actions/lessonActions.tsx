@@ -31,7 +31,10 @@ export async function getUploadedImages() {
 }
 
 export async function getStudentsWithStats(teacherId?: string) {
-  const whereClause: any = { role: Role.STUDENT };
+  const whereClause: any = {
+    role: Role.STUDENT,
+    isTakingBreak: false, // Exclude students who are on a break
+  };
   if (teacherId) {
     whereClause.teachers = {
       some: {
