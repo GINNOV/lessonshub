@@ -16,13 +16,14 @@ export default async function ProfilePage() {
   });
 
   if (!user) {
+    // This case should be rare if the session is valid
     redirect("/signin");
   }
 
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
-      <ProfileForm user={user} />
+      <ProfileForm userToEdit={user} />
     </div>
   );
 }

@@ -138,3 +138,52 @@ export async function sendCronTestEmail() {
     }
     return { success: false, message: "No authorized user to send test email to." };
 }
+
+export async function sendPaymentReminders() {
+  const today = new Date();
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  // Find all paying users who haven't received a reminder this month
+  const usersToNotify = await prisma.user.findMany({
+    where: {
+      isPaying: true,
+      OR: [
+        { lastPaymentReminderSentAt: null },
+        { lastPaymentReminderSentAt: { lt: startOfMonth } },
+      ],
+    },
+  });
+
+  if (usersToNotify.length === 0) {
+    return { success: true, message: "No payment reminders to send." };
+  }
+
+  const template = await getEmailTemplateByName('payment_reminder');
+  if (!template) {
+    console.error("Payment reminder email template not found.");
+    return { success: false, message: "Payment reminder email template not found." };
+  }
+
+  let count = 0;
+  for (const user of usersToNotify) {
+    if (user.email) {
+      const paymentUrl = `${process.env.AUTH_URL}/payment`;
+      await sendEmail({
+        to: user.email,
+        templateName: 'payment_reminder',
+        data: {
+          userName: user.name || 'student',
+          button: createButton('Go to Payment Page', paymentUrl, template.buttonColor || undefined),
+        },
+      });
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastPaymentReminderSentAt: new Date() },
+      });
+      count++;
+    }
+  }
+
+  return { success: true, message: `Sent ${count} payment reminders.` };
+}

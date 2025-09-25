@@ -10,16 +10,7 @@ import { Button } from "@/components/ui/button";
 // This is a helper function to fetch the specific user for this page.
 async function getUserForAdmin(userId: string) {
   try {
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-            teachers: {
-                include: {
-                    teacher: true,
-                },
-            },
-        },
-    });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     return user;
   } catch (error) {
     console.error("Failed to fetch user for admin edit:", error);
@@ -67,7 +58,7 @@ export default async function AdminEditUserPage({
       </div>
 
       {/* This form is now being used by an admin */}
-      <ProfileForm user={userToEdit} isAdmin={true} />
+      <ProfileForm userToEdit={userToEdit} isAdmin={true} />
     </div>
   );
 }

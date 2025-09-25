@@ -188,6 +188,10 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
         `,
         buttonColor: '#5e6ad2',
     },
+    payment_reminder: {
+        subject: 'Your LessonHUB Subscription Fee is Due',
+        body: 'Hi {{userName}},\n\nThis is a friendly reminder that your monthly subscription fee is due. Please click the button below to complete your payment and continue your learning journey.\n\n{{button}}\n\nThank you!',
+    },
 };
 
 export function replacePlaceholders(template: string, data: Record<string, string>): string {

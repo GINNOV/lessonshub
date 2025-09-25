@@ -21,6 +21,7 @@ model User {
   isPaying                  Boolean   @default(false)
   isSuspended               Boolean   @default(false)
   isTakingBreak             Boolean   @default(false)
+  lastPaymentReminderSentAt DateTime?
   
   // For students, the teachers they are assigned to.
   teachers                  TeachersForStudent[] @relation("StudentTeachers")
