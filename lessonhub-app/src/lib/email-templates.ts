@@ -167,14 +167,24 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
         `,
     },
     milestone_celebration: {
-        subject: '🎉 Congratulations on completing 10 lessons!',
-        body: `
-            <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">You're on a Roll!</h1>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{studentName}},</p>
-            <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Congratulations on completing another 10 lessons! Your dedication and hard work are paying off. Keep up the fantastic progress!</p>
-            {{button}}
-        `,
-        buttonColor: '#28a745',
+    subject: '🎉 Congratulations on completing 10 lessons!',
+    body: `
+        🇺🇸
+        <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">You're on a Roll!</h1>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{studentName}},</p>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Congratulations on completing another 10 lessons! Your dedication and hard work are paying off. Keep up the fantastic progress!</p>
+
+        <!-- Trophy in the center -->
+        <div style="text-align: center; font-size: 80px; margin: 20px 0;">🏆</div>
+
+        🇮🇹
+        <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Stai andando alla grande!</h1>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Ciao {{studentName}},</p>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Complimenti per aver completato altre 10 lezioni! La tua dedizione e il tuo impegno stanno dando i loro frutti. Continua così!</p>
+
+        {{button}}
+    `,
+    buttonColor: '#28a745',
     },
     student_assigned_to_teacher: {
         subject: '👥 You have new students!',
@@ -189,8 +199,13 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
         buttonColor: '#5e6ad2',
     },
     payment_reminder: {
-        subject: 'Your LessonHUB Subscription Fee is Due',
-        body: 'Hi {{userName}},\n\nThis is a friendly reminder that your monthly subscription fee is due. Please click the button below to complete your payment and continue your learning journey.\n\n{{button}}\n\nThank you!',
+        subject: '💰 Your LessonHUB Subscription Fee is Due',
+        body: `<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Payment Reminder</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{userName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px;">This is a friendly reminder that your monthly subscription fee is due. Please click the button below to complete your payment and continue your learning journey.</p>
+{{button}}
+<p style="color: #525f7f; font-size: 16px; line-height: 24px;">Thank you!</p>`,
+        buttonColor: '#00BCD4',
     },
 };
 
