@@ -40,6 +40,7 @@ export default async function AssignStudentsPage({ params }: { params: { teacher
     }
 
     const serializableStudents = assignedStudents.map(s => ({...s, defaultLessonPrice: s.defaultLessonPrice?.toNumber() ?? null }));
+    const serializableAllStudents = allStudents.map(s => ({...s, defaultLessonPrice: s.defaultLessonPrice?.toNumber() ?? null }));
 
     return (
         <div>
@@ -57,7 +58,7 @@ export default async function AssignStudentsPage({ params }: { params: { teacher
             <div className="bg-white p-6 rounded-lg shadow-md border">
                 <AssignStudentsForm
                     teacherId={teacher.id}
-                    allStudents={allStudents}
+                    allStudents={serializableAllStudents}
                     assignedStudentIds={serializableStudents.map(s => s.id)}
                 />
             </div>

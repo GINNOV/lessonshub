@@ -10,8 +10,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { updateTeacherPreferences } from '@/actions/teacherActions';
 
+type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
+  defaultLessonPrice: number | null;
+};
+
 interface TeacherPreferencesProps {
-  teacher: User;
+  teacher: SerializableUser;
 }
 
 export default function TeacherPreferences({ teacher }: TeacherPreferencesProps) {

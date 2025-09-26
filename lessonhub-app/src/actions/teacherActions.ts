@@ -117,3 +117,58 @@ export async function getLeaderboardDataForTeacher(teacherId: string) {
     return [];
   }
 }
+
+export async function getTeacherDashboardStats(teacherId: string) {
+  try {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const [
+      totalStudents,
+      studentsOnBreak,
+      totalLessons,
+      lessonsThisWeek,
+    ] = await Promise.all([
+      prisma.user.count({ where: { role: Role.STUDENT } }),
+      prisma.user.count({ where: { role: Role.STUDENT, isTakingBreak: true } }),
+      prisma.lesson.count({ where: { teacherId } }),
+      prisma.assignment.findMany({
+        where: {
+          lesson: {
+            teacherId,
+          },
+          deadline: {
+            gte: startOfWeek,
+            lte: endOfWeek,
+          },
+        },
+        select: {
+          deadline: true,
+        },
+      }),
+    ]);
+    
+    const lessonsThisWeekDays = lessonsThisWeek.map(lesson => new Date(lesson.deadline).getDay());
+
+    return {
+      totalStudents,
+      studentsOnBreak,
+      totalLessons,
+      lessonsThisWeek: lessonsThisWeekDays,
+    };
+  } catch (error) {
+    console.error("Failed to fetch teacher dashboard stats:", error);
+    return {
+      totalStudents: 0,
+      studentsOnBreak: 0,
+      totalLessons: 0,
+      lessonsThisWeek: [],
+    };
+  }
+}

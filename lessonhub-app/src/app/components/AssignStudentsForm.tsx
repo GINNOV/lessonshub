@@ -9,9 +9,14 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { assignStudentsToTeacher } from '@/actions/adminActions';
 
+// This is the key change: Define a type for the serialized user object
+type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
+  defaultLessonPrice: number | null;
+};
+
 interface AssignStudentsFormProps {
   teacherId: string;
-  allStudents: User[];
+  allStudents: SerializableUser[]; // Use the new serializable type here
   assignedStudentIds: string[];
 }
 

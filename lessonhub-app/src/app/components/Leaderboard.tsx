@@ -86,9 +86,9 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.completedCount}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-    <span className="text-2xl mr-1">{getSpeedEmoji(student.speedTier, index + 1)}</span> 
-    {formatDuration(student.averageCompletionTime)}
-</td>
+                                        <span className="text-2xl mr-1">{getSpeedEmoji(student.speedTier, index + 1)}</span> 
+                                        {formatDuration(student.averageCompletionTime)}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

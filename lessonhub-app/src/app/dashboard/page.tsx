@@ -3,8 +3,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLessonsForTeacher, getLessonAverageRating } from "@/actions/lessonActions";
-import { getLeaderboardDataForTeacher } from "@/actions/teacherActions";
-import { Role } from "@prisma/client";
+import { getLeaderboardDataForTeacher, getTeacherDashboardStats } from "@/actions/teacherActions";
+import { Role, User } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import TeacherLessonList from "@/app/components/TeacherLessonList";
 import TeacherPreferences from "@/app/components/TeacherPreferences";
@@ -17,54 +17,71 @@ import {
 import { ChevronDown } from "lucide-react";
 import TeacherClassLeaderboard from "@/app/components/TeacherClassLeaderboard";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import prisma from "@/lib/prisma"; // Import prisma
+import prisma from "@/lib/prisma";
+import TeacherStatsHeader from "@/app/components/TeacherStatsHeader";
+
+export const dynamic = "force-dynamic";
+
+// Match the prop shape expected by <TeacherPreferences>
+type SerializableUser = Omit<User, "defaultLessonPrice"> & {
+  defaultLessonPrice: number | null;
+};
 
 export default async function DashboardPage() {
   const session = await auth();
 
-  if (!session) {
-    redirect("/signin");
-  } else if (session.user.role === Role.STUDENT) {
-    redirect("/my-lessons");
-  } else if (session.user.role !== Role.TEACHER && session.user.role !== Role.ADMIN) {
-    redirect("/");
-  }
+  if (!session) redirect("/signin");
+  if (session.user.role === Role.STUDENT) redirect("/my-lessons");
+  if (session.user.role !== Role.TEACHER && session.user.role !== Role.ADMIN) redirect("/");
 
-  // Fetch the full teacher object instead of just preferences
   const teacher = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: session.user.id }
   });
 
   if (!teacher) {
-    // Handle case where teacher data might not be found
-    return <div>Could not load teacher data. Please try again later.</div>;
+    return (
+      <div className="p-6">
+        <h1 className="text-xl font-semibold">Teacher Dashboard</h1>
+        <p className="mt-2 text-red-600">Could not load teacher data. Please try again later.</p>
+      </div>
+    );
   }
 
-  const [lessons, leaderboardData] = await Promise.all([
+  // Convert Decimal -> number for client/serializable usage
+  const serializableTeacher: SerializableUser = {
+    ...teacher,
+    defaultLessonPrice: teacher.defaultLessonPrice
+      ? Number(teacher.defaultLessonPrice.toString())
+      : null,
+  };
+
+  const [lessons, leaderboardData, stats] = await Promise.all([
     getLessonsForTeacher(session.user.id),
     getLeaderboardDataForTeacher(session.user.id),
+    getTeacherDashboardStats(session.user.id),
   ]);
 
   const lessonsWithRatings = await Promise.all(
     lessons.map(async (lesson) => {
-      const avgRating = await getLessonAverageRating(lesson.id);
-      return {
-        ...lesson,
-        price: lesson.price.toNumber(),
-        averageRating: avgRating,
-      };
+      // Convert lesson price from Decimal to number
+      const price = lesson.price
+        ? Number(lesson.price.toString())
+        : 0;
+
+      const averageRating = (await getLessonAverageRating(lesson.id)) ?? null;
+
+      return { ...lesson, price, averageRating };
     })
   );
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
-          <p className="mt-1 text-gray-600">
-            Welcome, {session.user?.name}!
-          </p>
+          <p className="mt-1 text-gray-600">Welcome, {session.user?.name ?? "Teacher"}!</p>
         </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button>
@@ -88,19 +105,23 @@ export default async function DashboardPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <TeacherStatsHeader stats={stats} />
       <TeacherLessonList lessons={lessonsWithRatings} />
-      
+
       <Accordion type="single" collapsible className="w-full mt-8">
-        <AccordionItem value="item-1">
+        <AccordionItem value="lesson-defaults">
           <AccordionTrigger>Lesson Defaults</AccordionTrigger>
           <AccordionContent>
-            {/* Pass the full teacher object to the component */}
-            <TeacherPreferences teacher={teacher} />
+            {/* Pass the SERIALIZED object, not the raw Prisma result */}
+            <TeacherPreferences teacher={serializableTeacher} />
           </AccordionContent>
         </AccordionItem>
       </Accordion>
 
-      <TeacherClassLeaderboard leaderboardData={leaderboardData} />
+      <div className="mt-8">
+        <TeacherClassLeaderboard leaderboardData={leaderboardData} />
+      </div>
     </div>
   );
 }

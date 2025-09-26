@@ -40,3 +40,17 @@ export const getInitials = (name: string | null | undefined): string => {
   }
   return name.substring(0, 2).toUpperCase();
 };
+
+export const getWeekdays = () => {
+    const weekdays = [];
+    const today = new Date();
+    const currentDay = today.getDay();
+  
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(today);
+      day.setDate(today.getDate() - currentDay + i);
+      weekdays.push(day.toLocaleDateString('en-US', { weekday: 'short' }));
+    }
+  
+    return weekdays;
+  };
