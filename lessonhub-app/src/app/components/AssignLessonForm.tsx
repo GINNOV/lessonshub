@@ -42,6 +42,13 @@ const getDefaultMidnightDate = () => {
     return formatDateTimeForInput(tomorrow);
 }
 
+// CORRECTED LOGIC: New helper function for a sensible default start date
+const getDefaultStartDate = () => {
+    const today = new Date();
+    today.setHours(9, 0, 0, 0); // Today at 9:00 AM
+    return formatDateTimeForInput(today);
+}
+
 export default function AssignLessonForm({
   lesson,
   students,
@@ -55,8 +62,10 @@ export default function AssignLessonForm({
   const [notificationOption, setNotificationOption] = useState('on_start_date');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [masterDeadline, setMasterDeadline] = useState<string>(getDefaultMidnightDate());
-  const [masterStartDate, setMasterStartDate] = useState<string>(formatDateTimeForInput(new Date()));
+  // CORRECTED LOGIC: Use the new helper for the initial state
+  const [masterStartDate, setMasterStartDate] = useState<string>(getDefaultStartDate());
   
   const existingAssignmentsMap = useMemo(() => 
     new Map(existingAssignments.map(a => [a.studentId, a])), 
@@ -195,6 +204,7 @@ export default function AssignLessonForm({
       
       toast.success(messages.length > 0 ? `Assignments updated: ${messages.join(', ')}.` : 'No changes were made.');
       setIsSaved(true);
+      setLastSavedAt(new Date());
       setTimeout(() => setIsSaved(false), 2000);
       
       router.refresh();
@@ -268,9 +278,16 @@ export default function AssignLessonForm({
         </table>
       </div>
 
-      <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Saving...' : (isSaved ? <Check className="h-4 w-4 text-white" /> : 'Save Assignments')}
-      </Button>
+      <div className="flex items-center justify-between gap-4">
+        <Button type="submit" disabled={isLoading} className="flex-grow">
+          {isLoading ? 'Saving...' : (isSaved ? <Check className="h-4 w-4 text-white" /> : 'Save Assignments')}
+        </Button>
+        {lastSavedAt && (
+          <p className="text-sm text-muted-foreground whitespace-nowrap">
+            Last saved: {lastSavedAt.toLocaleTimeString()}
+          </p>
+        )}
+      </div>
     </form>
   );
 }

@@ -22,20 +22,27 @@ import TeacherStatsHeader from "@/app/components/TeacherStatsHeader";
 
 export const dynamic = "force-dynamic";
 
-// Match the prop shape expected by <TeacherPreferences>
 type SerializableUser = Omit<User, "defaultLessonPrice"> & {
   defaultLessonPrice: number | null;
 };
 
-export default async function DashboardPage() {
+// Correctly type searchParams as a Promise for a dynamic page
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const session = await auth();
 
   if (!session) redirect("/signin");
   if (session.user.role === Role.STUDENT) redirect("/my-lessons");
   if (session.user.role !== Role.TEACHER && session.user.role !== Role.ADMIN) redirect("/");
 
+  // Await the searchParams promise to resolve it
+  const resolvedSearchParams = await searchParams;
+
   const teacher = await prisma.user.findUnique({
-    where: { id: session.user.id }
+    where: { id: session.user.id },
   });
 
   if (!teacher) {
@@ -74,6 +81,18 @@ export default async function DashboardPage() {
     })
   );
 
+  // Use the resolved searchParams object to get the day
+  const day = typeof resolvedSearchParams.day === 'string' ? resolvedSearchParams.day : null;
+
+  const filteredLessons = day
+    ? lessonsWithRatings.filter(lesson =>
+        // Check if ANY assignment for this lesson has a deadline on the selected day
+        lesson.assignments.some(
+          assignment => new Date(assignment.deadline).getDay() === Number(day)
+        )
+      )
+    : lessonsWithRatings;
+
   return (
     <div className="p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
@@ -107,14 +126,14 @@ export default async function DashboardPage() {
       </div>
 
       <TeacherStatsHeader stats={stats} />
-      <TeacherLessonList lessons={lessonsWithRatings} />
+      <TeacherLessonList lessons={filteredLessons} />
 
       <Accordion type="single" collapsible className="w-full mt-8">
         <AccordionItem value="lesson-defaults">
           <AccordionTrigger>Lesson Defaults</AccordionTrigger>
           <AccordionContent>
-            {/* Pass the SERIALIZED object, not the raw Prisma result */}
-            <TeacherPreferences teacher={serializableTeacher} />
+            {/* ✅ Pass the SERIALIZED object, not the raw Prisma result */}
+            <TeacherPreferences teacher={serializableTeacher as any} />
           </AccordionContent>
         </AccordionItem>
       </Accordion>

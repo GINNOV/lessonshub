@@ -112,3 +112,6 @@ lessonhub-app/
     ├── auth.ts           \# Auth.js (NextAuth) configuration  
     ├── emails/           \# React Email templates  
     └── lib/              \# Library code (Prisma client, utility functions)  
+    
+# Update email templates
+npx dotenv -e .env.local -- tsx prisma/seed.ts

@@ -1,3 +1,4 @@
+// file: prisma/seed.ts
 import { PrismaClient } from '@prisma/client';
 import { defaultEmailTemplates as defaultTemplates } from '../src/lib/email-templates';
 
@@ -6,8 +7,11 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding the database with default email templates...');
 
-  // Validate templates before processing
   const templateEntries = Object.entries(defaultTemplates);
+  
+  // Debugging: Log the names of all templates found in the source file
+  console.log('Found templates to seed:', templateEntries.map(([name]) => name).join(', '));
+
   const invalidTemplates = templateEntries.filter(([name, template]) => 
     !name || !template.subject || !template.body
   );
@@ -17,7 +21,6 @@ async function main() {
     throw new Error('All templates must have name, subject, and body');
   }
 
-  // Prepare batch operations for better performance
   const operations = templateEntries.map(([name, template]) =>
     prisma.emailTemplate.upsert({
       where: { name: name },
@@ -31,10 +34,8 @@ async function main() {
     })
   );
 
-  // Execute all operations in a transaction
   await prisma.$transaction(operations);
 
-  // Log each processed template
   for (const [name] of templateEntries) {
     console.log(`✅ Upserted template: ${name}`);
   }

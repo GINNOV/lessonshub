@@ -207,6 +207,17 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
 <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Thank you!</p>`,
         buttonColor: '#00BCD4',
     },
+    deadline_extended: {
+    subject: "Good News! Your deadline has been extended",
+    body: `
+      <p>Hi {{studentName}},</p>
+      <p>Good news! Your teacher has extended the deadline for the lesson: <strong>{{lessonTitle}}</strong>.</p>
+      <p>Your new deadline is <strong>{{newDeadline}}</strong>.</p>
+      {{button}}
+      <p>Keep up the great work!</p>
+    `,
+    buttonColor: '#17a2b8',
+  },
 };
 
 export function replacePlaceholders(template: string, data: Record<string, string>): string {
