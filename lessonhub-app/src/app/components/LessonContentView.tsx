@@ -34,13 +34,16 @@ export default async function LessonContentView({ lesson }: LessonContentViewPro
       {lesson.soundcloud_url && (
         <div className="my-4">
           <iframe
+            title={`SoundCloud player for ${lesson.title}`}
             width="100%"
             height="166"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
             scrolling="no"
-            frameBorder="no"
-            allow="autoplay"
-            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(lesson.soundcloud_url)}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`}
-          ></iframe>
+            frameBorder="0"
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(lesson.soundcloud_url)}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=false`}
+           />
         </div>
       )}
 
