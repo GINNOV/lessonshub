@@ -26,6 +26,7 @@ interface StudentStatsHeaderProps {
   submitted: number;
   graded: number;
   failed: number;
+  pastDue: number;
   settings: {
     progressCardTitle?: string | null;
     progressCardBody?: string | null;
@@ -63,6 +64,7 @@ export default function StudentStatsHeader({
   submitted,
   graded,
   failed,
+  pastDue,
   settings,
 }: StudentStatsHeaderProps) {
   return (
@@ -113,7 +115,7 @@ export default function StudentStatsHeader({
           <h3 className="text-lg font-medium text-gray-600">
             Assignment Summary
           </h3>
-          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-5">
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-6">
             <StatItem
               icon={ClipboardList}
               value={total}
@@ -137,6 +139,12 @@ export default function StudentStatsHeader({
               value={graded}
               label="Graded"
               colorClassName="text-green-500"
+            />
+            <StatItem
+              icon={Clock}
+              value={pastDue}
+              label="Past Due"
+              colorClassName="text-red-500"
             />
             <StatItem
               icon={XCircle}

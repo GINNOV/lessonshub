@@ -3,6 +3,8 @@
 import React, { useMemo, useState } from 'react';
 import { Assignment, Lesson, User, AssignmentStatus } from '@prisma/client';
 import StudentLessonCard from '@/app/components/StudentLessonCard';
+import WeekDivider from '@/app/components/WeekDivider';
+import { getWeekAndDay } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 
 type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
@@ -90,10 +92,28 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
           No assignments in this view.
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {filtered.map((assignment, index) => (
-            <StudentLessonCard key={assignment.id} assignment={assignment} index={index} />
-          ))}
+        <div className="space-y-6">
+          {(() => {
+            const groups = new Map<number, SerializableAssignment[]>();
+            filtered.forEach(a => {
+              const week = parseInt(getWeekAndDay(new Date(a.deadline)).split('-')[0], 10);
+              if (!groups.has(week)) groups.set(week, []);
+              groups.get(week)!.push(a);
+            });
+            // Show most recent weeks first
+            const orderedWeeks = Array.from(groups.keys()).sort((a, b) => b - a);
+            let cardIndex = 0;
+            return orderedWeeks.map(week => (
+              <div key={week}>
+                <WeekDivider weekNumber={week} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {groups.get(week)!.map(a => (
+                    <StudentLessonCard key={a.id} assignment={a} index={cardIndex++} />
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
         </div>
       )}
     </div>

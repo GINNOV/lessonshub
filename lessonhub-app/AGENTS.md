@@ -18,9 +18,10 @@
 - Prisma tooling: `npm run prisma:migrate`, `prisma:studio`, `prisma:db:push`, `prisma:generate` (all load `.env.local`).
 
 ## Architecture & Workflows
-- Student view: `src/app/my-lessons/page.tsx` renders `StudentLessonList`, which shows `StudentLessonCard`s, supports search (title/teacher) and status filters (pending/submitted/graded/failed/past due), sorted by deadline.
+- Student view: `src/app/my-lessons/page.tsx` renders `StudentLessonList`, which shows `StudentLessonCard`s, supports search (title/teacher), status filters (ALL/PENDING/GRADED/FAILED with matching status colors), and groups cards by week using `WeekDivider`; sorted by nearest deadline.
 - Teacher view: `src/app/dashboard/assign/[lessonId]/page.tsx` uses `AssignLessonForm` to search/filter students, bulk-select, set start/deadline, choose notification timing, and PATCH `/api/assignments`.
 - Component split: `StudentLessonList` is read-only (display + filters). `AssignLessonForm` owns assignment mutations. Do not merge these concerns.
+ - Assignment page: Uses `LessonContentView` to render audio material, additional information, supporting image, and attachments consistently.
 - Data shaping: Convert Prisma `Decimal` to numbers before sending to client (e.g., lesson `price`, teacher `defaultLessonPrice`). Keep `_count` out of client objects except mapped fields like `completionCount`.
 
 ## Coding Style & Naming Conventions

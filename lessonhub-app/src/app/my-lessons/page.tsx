@@ -45,7 +45,8 @@ export default async function MyLessonsPage() {
   const pending = assignments.filter(a => a.status === AssignmentStatus.PENDING && new Date(a.deadline) > now).length;
   const submitted = assignments.filter(a => a.status === AssignmentStatus.COMPLETED).length;
   const graded = assignments.filter(a => a.status === AssignmentStatus.GRADED).length;
-  const failed = assignments.filter(a => a.status === AssignmentStatus.FAILED || (a.status === AssignmentStatus.PENDING && new Date(a.deadline) <= now)).length;
+  const pastDue = assignments.filter(a => a.status === AssignmentStatus.PENDING && new Date(a.deadline) <= now).length;
+  const failed = assignments.filter(a => a.status === AssignmentStatus.FAILED).length;
 
   const serializableAssignments = assignments.map(assignment => {
       const { _count, ...restOfLesson } = assignment.lesson;
@@ -73,6 +74,7 @@ export default async function MyLessonsPage() {
         submitted={submitted}
         graded={graded}
         failed={failed}
+        pastDue={pastDue}
         settings={settings}
       />
       <h1 className="text-3xl font-bold mb-8 mt-8">My Lessons</h1>

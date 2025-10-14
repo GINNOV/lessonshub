@@ -66,9 +66,9 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                 <Image 
                     src={imageSrc}
                     alt={lesson.title}
-                    layout="fill"
-                    objectFit="cover"
-                    className="transition-transform duration-300 group-hover:scale-105"
+                    fill
+                    priority={index < 3}
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className={cn("absolute top-2 right-2 text-2xl")}>
@@ -118,4 +118,3 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
     </Card>
   );
 }
-
