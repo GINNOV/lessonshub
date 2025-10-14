@@ -16,6 +16,7 @@ model User {
   emailVerified             DateTime?
   image                     String?
   timeZone                  String?
+  gender                    Gender    @default(BINARY)
   role                      Role      @default(STUDENT)
   lastSeen                  DateTime?
   impersonatedById          String?   @unique
@@ -200,6 +201,12 @@ enum Role {
   STUDENT
   TEACHER
   ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  BINARY
 }
 
 enum LessonType {

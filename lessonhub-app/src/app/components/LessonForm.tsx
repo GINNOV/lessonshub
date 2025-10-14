@@ -54,6 +54,9 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
   const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
   const [soundcloudUrl, setSoundcloudUrl] = useState('');
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [feedError, setFeedError] = useState<string | null>(null);
+  const [feedTracks, setFeedTracks] = useState<{ title: string; link: string }[]>([]);
   const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
   const [questions, setQuestions] = useState<string[]>(['']);
   const [contextText, setContextText] = useState('');
@@ -99,6 +102,23 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
       }
     }
   }, [lesson]);
+
+  const loadSoundCloudFeed = async () => {
+    setFeedLoading(true);
+    setFeedError(null);
+    try {
+      const defaultFeed = 'https://feeds.soundcloud.com/users/soundcloud:users:1601932527/sounds.rss';
+      const res = await fetch(`/api/soundcloud/feed?url=${encodeURIComponent(defaultFeed)}`);
+      if (!res.ok) throw new Error('Failed to load SoundCloud feed');
+      const data = await res.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      setFeedTracks(items);
+    } catch (e: any) {
+      setFeedError(e.message || 'Unable to load feed');
+    } finally {
+      setFeedLoading(false);
+    }
+  };
 
   const addUrlToRecents = (url: string) => {
     if (!url) return;
@@ -271,11 +291,40 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
       </div>
       
       <div className="space-y-2">
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center">
             <Label htmlFor="soundcloudUrl">Audio material</Label>
             <OptionalIndicator />
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={loadSoundCloudFeed} disabled={feedLoading}>
+            {feedLoading ? 'Loading…' : 'Load SoundCloud feed'}
+          </Button>
         </div>
-        <Input type="url" id="soundcloudUrl" placeholder="https://soundcloud.com/..." value={soundcloudUrl} onChange={(e) => setSoundcloudUrl(e.target.value)} disabled={isLoading} />
+        <Input
+          type="url"
+          id="soundcloudUrl"
+          placeholder="https://soundcloud.com/..."
+          value={soundcloudUrl}
+          onChange={(e) => setSoundcloudUrl(e.target.value)}
+          disabled={isLoading}
+        />
+        {feedError && <p className="text-sm text-red-600">{feedError}</p>}
+        {feedTracks.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Label htmlFor="soundcloudFeedSelect" className="text-sm">Select from feed</Label>
+            <select
+              id="soundcloudFeedSelect"
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              onChange={(e) => setSoundcloudUrl(e.target.value)}
+              value={feedTracks.find(t => t.link === soundcloudUrl) ? soundcloudUrl : ''}
+            >
+              <option value="">— Choose a track —</option>
+              {feedTracks.map((t) => (
+                <option key={t.link} value={t.link}>{t.title}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

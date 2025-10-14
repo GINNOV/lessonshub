@@ -13,7 +13,7 @@ export async function PATCH(
   try {
     const { userId } = await params; // Correctly await the params
     const body = await request.json();
-    const { name, image } = body;
+    const { name, image, timeZone, gender } = body;
 
     if (session?.user?.id !== userId && session?.user?.role !== Role.ADMIN) {
         return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
@@ -24,6 +24,8 @@ export async function PATCH(
       data: {
         name,
         image,
+        timeZone,
+        gender,
       },
     });
 

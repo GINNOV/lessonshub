@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { changePassword, deleteUserAccount, toggleTakingABreak } from '@/actions/userActions';
 import { toggleTakingABreakForUser } from '@/actions/adminActions';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Role } from '@prisma/client';
+import { User, Role, Gender } from '@prisma/client';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -37,6 +37,7 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
 
   // State for the "Taking a Break" feature
   const [isTakingBreak, setIsTakingBreak] = useState(user?.isTakingBreak ?? false);
+  const [gender, setGender] = useState<Gender>((user as any)?.gender ?? Gender.BINARY);
 
   // Timezone state
   const defaultTz = (() => {
@@ -106,13 +107,13 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     const response = await fetch(apiRoute, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, image, timeZone }),
+      body: JSON.stringify({ name, image, timeZone, gender }),
     });
 
     if (response.ok) {
       toast.success('Profile updated successfully!');
       if (!isAdmin) {
-        await update({ ...session, user: { ...session?.user, name, image, timeZone } });
+        await update({ ...session, user: { ...session?.user, name, image, timeZone, gender } });
       }
     } else {
       const data = await response.json();
