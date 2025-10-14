@@ -66,6 +66,11 @@ export default async function AdminEditUserPage({
     );
   }
 
+  const serializableUser: any = userToEdit ? { 
+    ...userToEdit,
+    defaultLessonPrice: userToEdit.defaultLessonPrice?.toNumber() ?? null,
+  } : null;
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -81,7 +86,7 @@ export default async function AdminEditUserPage({
       </div>
 
       {/* This form is now being used by an admin */}
-      <ProfileForm userToEdit={userToEdit} isAdmin={true} />
+      <ProfileForm userToEdit={serializableUser} isAdmin={true} />
       {teacherAssignBlock}
     </div>
   );

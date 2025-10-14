@@ -105,6 +105,11 @@ export default function Navbar() {
                         </DropdownMenuItem>
                       </>
                     )}
+                    {user?.role === Role.TEACHER && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard/classes">Manage Classes</Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link href="/profile">Profile</Link>
                     </DropdownMenuItem>

@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { Role, AssignmentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { sendEmail, createButton } from "@/lib/email-templates";
 
 /**
  * Fetches the preferences for the currently logged-in teacher.
@@ -72,10 +73,10 @@ export async function updateTeacherPreferences(data: TeacherPreferences) {
 /**
  * Fetches and calculates data for the teacher's class leaderboard.
  */
-export async function getLeaderboardDataForTeacher(teacherId: string) {
+export async function getLeaderboardDataForTeacher(teacherId: string, classId?: string) {
   try {
     const assignedStudentRelations = await prisma.teachersForStudent.findMany({
-      where: { teacherId },
+      where: { teacherId, ...(classId ? { classId } : {}) },
       select: { studentId: true }
     });
     const assignedStudentIds = assignedStudentRelations.map(r => r.studentId);
@@ -153,8 +154,16 @@ export async function getTeacherDashboardStats(teacherId: string) {
       totalLessons,
       lessonsThisWeek,
     ] = await Promise.all([
-      prisma.user.count({ where: { role: Role.STUDENT } }),
-      prisma.user.count({ where: { role: Role.STUDENT, isTakingBreak: true } }),
+      // Count only students assigned to this teacher
+      prisma.teachersForStudent.count({ where: { teacherId } }),
+      // Count students on break among those assigned to this teacher
+      prisma.user.count({
+        where: {
+          role: Role.STUDENT,
+          isTakingBreak: true,
+          teachers: { some: { teacherId } },
+        },
+      }),
       prisma.lesson.count({ where: { teacherId } }),
       prisma.assignment.findMany({
         where: {

@@ -20,10 +20,15 @@ export default async function ProfilePage() {
     redirect("/signin");
   }
 
+  const serializableUser = {
+    ...user,
+    defaultLessonPrice: user.defaultLessonPrice?.toNumber() ?? null,
+  } as any;
+
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
-      <ProfileForm userToEdit={user} />
+      <ProfileForm userToEdit={serializableUser} />
     </div>
   );
 }

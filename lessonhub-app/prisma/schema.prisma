@@ -42,6 +42,7 @@ model User {
   sessions                  Session[]
   lessons                   Lesson[]
   assignments               Assignment[]
+  classes                   Class[]
   defaultLessonPrice        Decimal?
   defaultLessonPreview      String?   @db.Text
   defaultLessonNotes        String?   @db.Text
@@ -60,8 +61,20 @@ model TeachersForStudent {
   student   User   @relation("StudentTeachers", fields: [studentId], references: [id], onDelete: Cascade)
   teacherId String
   teacher   User   @relation("TeacherStudents", fields: [teacherId], references: [id], onDelete: Cascade)
+  classId   String?
+  class     Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
 
   @@id([studentId, teacherId])
+}
+
+model Class {
+  id        String   @id @default(cuid())
+  name      String
+  isActive  Boolean  @default(true)
+  teacherId String
+  teacher   User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  students  TeachersForStudent[]
+  createdAt DateTime @default(now())
 }
 
 model Lesson {

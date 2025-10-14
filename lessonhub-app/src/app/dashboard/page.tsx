@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLessonsForTeacher, getLessonAverageRating } from "@/actions/lessonActions";
 import { getLeaderboardDataForTeacher, getTeacherDashboardStats } from "@/actions/teacherActions";
+import { getClassesForTeacher } from "@/actions/classActions";
 import { Role, User } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import TeacherLessonList from "@/app/components/TeacherLessonList";
@@ -91,10 +92,13 @@ export default async function DashboardPage({
       : null,
   };
 
-  const [lessons, leaderboardData, stats] = await Promise.all([
+  const classId = typeof resolvedSearchParams.classId === 'string' ? resolvedSearchParams.classId : undefined;
+
+  const [lessons, leaderboardData, stats, classes] = await Promise.all([
     getLessonsForTeacher(session.user.id),
-    getLeaderboardDataForTeacher(session.user.id),
+    getLeaderboardDataForTeacher(session.user.id, classId),
     getTeacherDashboardStats(session.user.id),
+    getClassesForTeacher(),
   ]);
 
   const lessonsWithRatings = await Promise.all(
@@ -168,6 +172,14 @@ export default async function DashboardPage({
       </Accordion>
 
       <div className="mt-8">
+        {classes.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <a href="/dashboard" className={`px-3 py-1.5 rounded-md text-sm border ${!classId ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>All</a>
+            {classes.filter((c: any) => c.isActive).map((c: any) => (
+              <a key={c.id} href={`/dashboard?classId=${c.id}`} className={`px-3 py-1.5 rounded-md text-sm border ${classId === c.id ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>{c.name}</a>
+            ))}
+          </div>
+        )}
         <TeacherClassLeaderboard leaderboardData={leaderboardData} />
       </div>
     </div>
