@@ -63,12 +63,6 @@ export default async function MyLessonsPage() {
       }
   });
 
-  // TEMP fix: our StudentLessonList import appears to be typed as AssignLessonFormProps.
-  // Create a locally typed wrapper to accept the assignments we compute here.
-  type StudentLessonListProps = {
-    assignments: typeof serializableAssignments;
-  };
-  const StudentLessonListFixed = StudentLessonList as unknown as React.FC<StudentLessonListProps>;
 
   return (
     <div>
@@ -82,7 +76,7 @@ export default async function MyLessonsPage() {
         settings={settings}
       />
       <h1 className="text-3xl font-bold mb-8 mt-8">My Lessons</h1>
-      <StudentLessonListFixed assignments={serializableAssignments} />
+      <StudentLessonList assignments={serializableAssignments} />
       <Leaderboard leaderboardData={leaderboardData} />
     </div>
   );

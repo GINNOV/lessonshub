@@ -1,38 +1,22 @@
 // file: src/app/assignments/[assignmentId]/page.tsx
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
 import { getAssignmentById } from "@/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
+import LessonContentView from "@/app/components/LessonContentView";
 import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
 import FlashcardPlayer from "@/app/components/FlashcardPlayer";
 import { marked } from "marked";
 import { AssignmentStatus, LessonType } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import LocaleDate from "@/app/components/LocaleDate";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, CheckCircle2, XCircle } from "lucide-react";
 import Rating from "@/app/components/Rating";
 
 // --- SVG Icons ---
-function PaperclipIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-    </svg>
-  );
-}
-function EyeIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
+// Removed inline icons; using shared content view for attachments
 
 const getGradeBackground = (score: number | null) => {
   if (score === null) return "bg-gray-100";
@@ -75,8 +59,8 @@ export default async function AssignmentPage({
 
   const { lesson } = serializableAssignment;
 
-  const assignmentHtml = (await marked.parse(lesson.assignment_text ?? "")) as string;
-  const lessonPreviewHtml = lesson.lesson_preview ? marked.parse(lesson.lesson_preview) : null;
+  const lessonPreviewHtml = lesson.lesson_preview ? await marked.parse(lesson.lesson_preview) : null;
+  const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : null;
 
   const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
   const showResultsArea = serializableAssignment.status === AssignmentStatus.GRADED || serializableAssignment.status === AssignmentStatus.FAILED;
@@ -139,40 +123,9 @@ export default async function AssignmentPage({
         </div>
       )}
 
-      {!isFlashcard && (
-        <div className="mb-6 rounded-lg border bg-gray-50 p-4">
-            <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
-            <div className="prose max-w-none mt-2" dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
-        </div>
-      )}
-
-       {lesson.assignment_image_url && (
-          <div className="my-4">
-            <h2 className="text-sm font-semibold uppercase text-gray-500">
-              Supporting Material
-            </h2>
-            <Image
-              src={lesson.assignment_image_url}
-              alt={`Image for ${lesson.title}`}
-              width={600}
-              height={400}
-              className="mt-2 h-auto w-full rounded-lg border object-contain"
-            />
-          </div>
-        )}
-      
-       {lesson.attachment_url && (
-          <div className="mt-6">
-            <h3 className="mb-2 flex items-center text-lg font-semibold">
-              <PaperclipIcon className="h-5 w-5 mr-2" /> MATERIAL
-            </h3>
-            <Button asChild variant="outline">
-              <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
-                <EyeIcon className="mr-2 h-4 w-4" /> View Attachment
-              </Link>
-            </Button>
-          </div>
-        )}
+      <div className="my-6">
+        <LessonContentView lesson={serializableAssignment.lesson} />
+      </div>
 
       {showResponseArea ? (
         <div className="mt-8 border-t border-gray-200 pt-6">

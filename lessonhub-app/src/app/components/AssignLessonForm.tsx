@@ -1,4 +1,3 @@
-// file: src/app/components/AssignLessonForm.tsx
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -42,7 +41,6 @@ const getDefaultMidnightDate = () => {
     return formatDateTimeForInput(tomorrow);
 }
 
-// CORRECTED LOGIC: New helper function for a sensible default start date
 const getDefaultStartDate = () => {
     const today = new Date();
     today.setHours(9, 0, 0, 0); // Today at 9:00 AM
@@ -52,7 +50,7 @@ const getDefaultStartDate = () => {
 export default function AssignLessonForm({
   lesson,
   students,
-  existingAssignments,
+  existingAssignments = [],
 }: AssignLessonFormProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,8 +61,9 @@ export default function AssignLessonForm({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+  // Initialize with default values first
   const [masterDeadline, setMasterDeadline] = useState<string>(getDefaultMidnightDate());
-  // CORRECTED LOGIC: Use the new helper for the initial state
   const [masterStartDate, setMasterStartDate] = useState<string>(getDefaultStartDate());
   
   const existingAssignmentsMap = useMemo(() => 
@@ -72,17 +71,27 @@ export default function AssignLessonForm({
   [existingAssignments]);
 
   useEffect(() => {
-    const initialDeadlines: Record<string, string> = {};
-    const initialStartDates: Record<string, string> = {};
-    const initialSelected: string[] = [];
-    existingAssignments.forEach(a => {
-      initialDeadlines[a.studentId] = formatDateTimeForInput(a.deadline);
-      initialStartDates[a.studentId] = formatDateTimeForInput(a.startDate);
-      initialSelected.push(a.studentId);
-    });
-    setDeadlines(initialDeadlines);
-    setStartDates(initialStartDates);
-    setSelectedStudents(initialSelected);
+    // This effect runs once when the component mounts and props are available
+    if (existingAssignments && (existingAssignments?.length ?? 0) > 0) {
+      const initialDeadlines: Record<string, string> = {};
+      const initialStartDates: Record<string, string> = {};
+      const initialSelected: string[] = [];
+      existingAssignments.forEach(a => {
+        initialDeadlines[a.studentId] = formatDateTimeForInput(a.deadline);
+        initialStartDates[a.studentId] = formatDateTimeForInput(a.startDate);
+        initialSelected.push(a.studentId);
+      });
+      setDeadlines(initialDeadlines);
+      setStartDates(initialStartDates);
+      setSelectedStudents(initialSelected);
+      
+      const firstAssignment = existingAssignments[0];
+      if (firstAssignment) {
+        // Correctly set the master dates from the loaded data
+        setMasterStartDate(formatDateTimeForInput(firstAssignment.startDate));
+        setMasterDeadline(formatDateTimeForInput(firstAssignment.deadline));
+      }
+    }
   }, [existingAssignments]);
 
   useEffect(() => {
