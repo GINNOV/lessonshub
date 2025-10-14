@@ -57,6 +57,33 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [feedTracks, setFeedTracks] = useState<{ title: string; link: string }[]>([]);
+  const getProviderHint = () => {
+    if (!soundcloudUrl) return '';
+    try {
+      const u = new URL(soundcloudUrl);
+      if (/youtu\.be|youtube\.com/i.test(u.hostname)) return 'Detected: YouTube';
+      if (/soundcloud\.com/i.test(u.hostname)) return 'Detected: SoundCloud';
+      return 'Unknown provider';
+    } catch {
+      return '';
+    }
+  };
+  const isYouTube = (url: string) => {
+    try { const u = new URL(url); return /youtu\.be|youtube\.com/i.test(u.hostname); } catch { return false; }
+  };
+  const isSoundCloud = (url: string) => {
+    try { const u = new URL(url); return /soundcloud\.com/i.test(u.hostname); } catch { return false; }
+  };
+  const getYouTubeId = (url: string): string | null => {
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes('youtu.be')) return u.pathname.replace('/', '');
+      if (u.searchParams.get('v')) return u.searchParams.get('v');
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'embed' || parts[0] === 'shorts') return parts[1] || null;
+      return null;
+    } catch { return null; }
+  };
   const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
   const [questions, setQuestions] = useState<string[]>(['']);
   const [contextText, setContextText] = useState('');
@@ -308,6 +335,9 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
           onChange={(e) => setSoundcloudUrl(e.target.value)}
           disabled={isLoading}
         />
+        {soundcloudUrl && (
+          <p className="text-xs text-gray-500">{getProviderHint()}</p>
+        )}
         {feedError && <p className="text-sm text-red-600">{feedError}</p>}
         {feedTracks.length > 0 && (
           <div className="flex items-center gap-2">
@@ -323,6 +353,38 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
                 <option key={t.link} value={t.link}>{t.title}</option>
               ))}
             </select>
+          </div>
+        )}
+        {!!soundcloudUrl && !isYouTube(soundcloudUrl) && !isSoundCloud(soundcloudUrl) && (
+          <p className="text-xs text-red-600 mt-1">Unsupported audio URL. Please use YouTube or SoundCloud.</p>
+        )}
+        {(isYouTube(soundcloudUrl) && getYouTubeId(soundcloudUrl)) && (
+          <div className="mt-3 aspect-video w-full overflow-hidden rounded-md border">
+            <iframe
+              title="YouTube preview"
+              className="h-full w-full"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              frameBorder="0"
+              src={`https://www.youtube.com/embed/${getYouTubeId(soundcloudUrl)}?rel=0`}
+            />
+          </div>
+        )}
+        {isSoundCloud(soundcloudUrl) && (
+          <div className="mt-3 w-full overflow-hidden rounded-md border">
+            <iframe
+              title="SoundCloud preview"
+              width="100%"
+              height="120"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              scrolling="no"
+              frameBorder="0"
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+              src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(soundcloudUrl)}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=false`}
+            />
           </div>
         )}
       </div>

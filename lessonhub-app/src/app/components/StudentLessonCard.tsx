@@ -45,10 +45,10 @@ interface StudentLessonCardProps {
 }
 
 const lessonTypeImages: Record<LessonType, string> = {
-    [LessonType.STANDARD]: '/my-lessons/multiquestions.png',
+    [LessonType.STANDARD]: '/my-lessons/standard.png',
     [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
     [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
-    [LessonType.LEARNING_SESSION]: '/my-lessons/multiquestions.png',
+    [LessonType.LEARNING_SESSION]: '/my-lessons/learning.png',
 };
 
 export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {
@@ -64,9 +64,8 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
     return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Pending</Badge>;
   };
 
-  const imageSrc = (lesson.type === LessonType.STANDARD && lesson.assignment_image_url)
-    ? lesson.assignment_image_url
-    : lessonTypeImages[lesson.type];
+  // Always use the curated images under public/my-lessons per type
+  const imageSrc = lessonTypeImages[lesson.type];
 
   const lessonIdDisplay = `Lesson ${getWeekAndDay(new Date(deadline))}`;
 

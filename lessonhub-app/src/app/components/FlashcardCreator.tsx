@@ -51,6 +51,17 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [feedTracks, setFeedTracks] = useState<{ title: string; link: string }[]>([]);
+  const getProviderHint = () => {
+    if (!soundcloudUrl) return '';
+    try {
+      const u = new URL(soundcloudUrl);
+      if (/youtu\.be|youtube\.com/i.test(u.hostname)) return 'Detected: YouTube';
+      if (/soundcloud\.com/i.test(u.hostname)) return 'Detected: SoundCloud';
+      return 'Unknown provider';
+    } catch {
+      return '';
+    }
+  };
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
@@ -288,6 +299,41 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
             </Button>
         </div>
         <Input type="url" id="soundcloudUrl" placeholder="https://soundcloud.com/..." value={soundcloudUrl} onChange={(e) => setSoundcloudUrl(e.target.value)} />
+        {soundcloudUrl && (
+          <p className="text-xs text-gray-500">{getProviderHint()}</p>
+        )}
+        {!!soundcloudUrl && !isYouTube(soundcloudUrl) && !isSoundCloud(soundcloudUrl) && (
+          <p className="text-xs text-red-600 mt-1">Unsupported audio URL. Please use YouTube or SoundCloud.</p>
+        )}
+        {(isYouTube(soundcloudUrl) && getYouTubeId(soundcloudUrl)) && (
+          <div className="mt-3 aspect-video w-full overflow-hidden rounded-md border">
+            <iframe
+              title="YouTube preview"
+              className="h-full w-full"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              frameBorder="0"
+              src={`https://www.youtube.com/embed/${getYouTubeId(soundcloudUrl)}?rel=0`}
+            />
+          </div>
+        )}
+        {isSoundCloud(soundcloudUrl) && (
+          <div className="mt-3 w-full overflow-hidden rounded-md border">
+            <iframe
+              title="SoundCloud preview"
+              width="100%"
+              height="120"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              scrolling="no"
+              frameBorder="0"
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+              src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(soundcloudUrl)}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=false`}
+            />
+          </div>
+        )}
         {feedError && <p className="text-sm text-red-600">{feedError}</p>}
         {feedTracks.length > 0 && (
           <div className="flex items-center gap-2">
@@ -372,4 +418,3 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
     </form>
   );
 }
-

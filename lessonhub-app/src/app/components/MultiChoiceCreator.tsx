@@ -80,6 +80,17 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const isEditMode = !!lesson;
+  const getProviderHint = () => {
+    if (!soundcloudUrl) return '';
+    try {
+      const u = new URL(soundcloudUrl);
+      if (/youtu\.be|youtube\.com/i.test(u.hostname)) return 'Detected: YouTube';
+      if (/soundcloud\.com/i.test(u.hostname)) return 'Detected: SoundCloud';
+      return 'Unknown provider';
+    } catch {
+      return '';
+    }
+  };
 
   useEffect(() => {
     if (lesson) {
@@ -297,6 +308,15 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
             </Button>
         </div>
         <Input type="url" id="soundcloudUrl" placeholder="https://soundcloud.com/..." value={soundcloudUrl} onChange={(e) => setSoundcloudUrl(e.target.value)} />
+        {soundcloudUrl && (
+          <p className="text-xs text-gray-500">{getProviderHint()}</p>
+        )}
+        {!!soundcloudUrl && !isYouTube(soundcloudUrl) && !isSoundCloud(soundcloudUrl) && (
+          <p className="text-xs text-red-600 mt-1">Unsupported audio URL. Please use YouTube or SoundCloud.</p>
+        )}
+        {soundcloudUrl && (
+          <p className="text-xs text-gray-500">{getProviderHint()}</p>
+        )}
         {feedError && <p className="text-sm text-red-600">{feedError}</p>}
         {feedTracks.length > 0 && (
           <div className="flex items-center gap-2">
@@ -372,4 +392,3 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
     </form>
   );
 }
-
