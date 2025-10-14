@@ -38,6 +38,18 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
   // State for the "Taking a Break" feature
   const [isTakingBreak, setIsTakingBreak] = useState(user?.isTakingBreak ?? false);
 
+  // Timezone state
+  const defaultTz = (() => {
+    try { return (user as any)?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return (user as any)?.timeZone || 'UTC'; }
+  })();
+  const [timeZone, setTimeZone] = useState<string>(defaultTz);
+  const tzList: string[] = (() => {
+    try {
+      // @ts-ignore
+      return typeof Intl !== 'undefined' && (Intl as any).supportedValuesOf ? (Intl as any).supportedValuesOf('timeZone') : [];
+    } catch { return []; }
+  })();
+
   // All handlers from your original component are preserved
   const getInitials = (name: string | null | undefined): string => {
     if (!name) return '??';
@@ -94,13 +106,13 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     const response = await fetch(apiRoute, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, image }),
+      body: JSON.stringify({ name, image, timeZone }),
     });
 
     if (response.ok) {
       toast.success('Profile updated successfully!');
       if (!isAdmin) {
-        await update({ ...session, user: { ...session?.user, name, image } });
+        await update({ ...session, user: { ...session?.user, name, image, timeZone } });
       }
     } else {
       const data = await response.json();
@@ -184,6 +196,24 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" value={user?.email || ''} disabled className="bg-gray-100" />
                 <p className="text-xs text-gray-500">Email addresses cannot be changed.</p>
+            </div>
+            <div>
+                <Label htmlFor="timeZone">Timezone</Label>
+                {tzList.length > 0 ? (
+                  <select
+                    id="timeZone"
+                    className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+                    value={timeZone}
+                    onChange={(e) => setTimeZone(e.target.value)}
+                  >
+                    {tzList.map(tz => (
+                      <option key={tz} value={tz}>{tz}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <Input id="timeZone" type="text" value={timeZone} onChange={(e) => setTimeZone(e.target.value)} />
+                )}
+                <p className="text-xs text-gray-500 mt-1">Used to format deadlines in emails and reminders.</p>
             </div>
             <Button type="submit" disabled={isSubmittingProfile || isUploading}>
                 {isSubmittingProfile ? 'Saving...' : 'Save Profile Changes'}

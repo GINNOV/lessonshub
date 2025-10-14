@@ -675,7 +675,10 @@ export async function extendDeadline(assignmentId: string) {
   }
 }
 
-export async function gradeAssignment(assignmentId: string, data: { score: number; teacherComments: string }) {
+export async function gradeAssignment(
+  assignmentId: string,
+  data: { score: number; teacherComments: string; answerComments?: Record<number, string> }
+) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== Role.TEACHER) {
     return { success: false, error: "Unauthorized" };
@@ -699,15 +702,40 @@ export async function gradeAssignment(assignmentId: string, data: { score: numbe
       return { success: false, error: "Assignment not found or you don't have permission to grade it." };
     }
 
-    await prisma.assignment.update({
-      where: { id: assignmentId },
-      data: {
-        score: data.score,
-        teacherComments: data.teacherComments,
-        status: AssignmentStatus.GRADED,
-        gradedAt: new Date(),
-      },
-    });
+    try {
+      await prisma.assignment.update({
+        where: { id: assignmentId },
+        data: {
+          score: data.score,
+          teacherComments: data.teacherComments,
+          // Store only when at least one per-answer comment is present
+          teacherAnswerComments:
+            data.answerComments && Object.keys(data.answerComments).length > 0
+              ? (data.answerComments as unknown as object)
+              : undefined,
+          status: AssignmentStatus.GRADED,
+          gradedAt: new Date(),
+        },
+      });
+    } catch (err) {
+      // Fallback if the JSON column isn't available yet: append per-answer comments to teacherComments
+      const hasPerAnswer = data.answerComments && Object.keys(data.answerComments).length > 0;
+      const appended = hasPerAnswer
+        ? `${data.teacherComments || ''}\n\nPer-answer comments:\n${Object.entries(data.answerComments as Record<number, string>)
+            .map(([i, c]) => `- Q${Number(i) + 1}: ${c}`)
+            .join('\n')}`
+        : data.teacherComments;
+
+      await prisma.assignment.update({
+        where: { id: assignmentId },
+        data: {
+          score: data.score,
+          teacherComments: appended,
+          status: AssignmentStatus.GRADED,
+          gradedAt: new Date(),
+        },
+      });
+    }
 
     const template = await getEmailTemplateByName('graded');
     if (template && assignment.student?.email) {

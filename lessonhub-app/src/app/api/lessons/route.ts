@@ -46,16 +46,17 @@ export async function POST(request: Request) {
 
 
     if (assignment_notification !== AssignmentNotification.NOT_ASSIGNED) {
-      const students = await prisma.user.findMany({ where: { role: Role.STUDENT } });
+      const students = await prisma.user.findMany({ where: { role: Role.STUDENT }, select: { id: true, email: true, name: true, timeZone: true } });
       
       // Task 5 & 8 Verification: This logic correctly handles not sending emails
       // when "ASSIGN_WITHOUT_NOTIFICATION" or "ASSIGN_ON_DATE" is chosen.
       // The cron job will handle the notification for "ASSIGN_ON_DATE".
       if (students.length > 0) {
+        const defaultDeadline = new Date(Date.now() + 36 * 60 * 60 * 1000);
         const assignmentsData = students.map(student => ({
             lessonId: newLesson.id,
             studentId: student.id,
-            deadline: new Date(Date.now() + 36 * 60 * 60 * 1000), // Default deadline 36 hours from now
+            deadline: defaultDeadline, // Default deadline 36 hours from now
         }));
         
         await prisma.assignment.createMany({
@@ -71,11 +72,17 @@ export async function POST(request: Request) {
                         try {
                             const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
                             const subject = replacePlaceholders(template.subject, { lessonTitle: newLesson.title });
+                            let deadlineStr: string;
+                            try {
+                              deadlineStr = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: student.timeZone || undefined }).format(defaultDeadline);
+                            } catch {
+                              deadlineStr = defaultDeadline.toLocaleString();
+                            }
                             const body = replacePlaceholders(template.body, {
                                 studentName: student.name || 'student',
                                 teacherName: session.user.name || 'your teacher',
                                 lessonTitle: newLesson.title,
-                                deadline: new Date(Date.now() + 36 * 60 * 60 * 1000).toLocaleString(),
+                                deadline: deadlineStr,
                                 button: createButton('Start Lesson', assignmentUrl),
                             });
                             
@@ -111,4 +118,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

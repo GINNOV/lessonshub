@@ -47,7 +47,7 @@ export async function PATCH(req: Request) {
       if (notificationOption === 'immediate') {
          const newlyAssignedStudents = await prisma.user.findMany({
           where: { id: { in: studentIdsToAssign.map((item: { studentId: string }) => item.studentId) } },
-          select: { email: true, name: true },
+          select: { id: true, email: true, name: true, timeZone: true },
         });
 
         const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, include: { teacher: true }});
@@ -55,6 +55,21 @@ export async function PATCH(req: Request) {
             for (const student of newlyAssignedStudents) {
                 if (student.email) {
                     const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
+                    // Find this student's deadline from payload to personalize the email
+                    const assigned = studentIdsToAssign.find((i: { studentId: string; deadline: string }) => i.studentId === student.id);
+                    let deadlineStr = '';
+                    if (assigned) {
+                      const d = new Date(assigned.deadline);
+                      if (student.timeZone) {
+                        try {
+                          deadlineStr = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: student.timeZone }).format(d);
+                        } catch {
+                          deadlineStr = d.toLocaleString();
+                        }
+                      } else {
+                        deadlineStr = d.toLocaleString();
+                      }
+                    }
                     await sendEmail({
                         to: student.email,
                         templateName: 'new_assignment',
@@ -62,6 +77,7 @@ export async function PATCH(req: Request) {
                             studentName: student.name || 'student',
                             teacherName: lesson.teacher?.name || 'Your Teacher',
                             lessonTitle: lesson.title,
+                            deadline: deadlineStr,
                             button: createButton('Start Lesson', assignmentUrl)
                         }
                     });

@@ -41,19 +41,26 @@ export async function sendDeadlineReminders() {
   }
 
   for (const assignment of assignments) {
-    if (assignment.student.email && assignment.lesson.teacher) {
-      const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
-      await sendEmail({
-        to: assignment.student.email,
-        templateName: 'reminder',
-        data: {
-          studentName: assignment.student.name || 'student',
-          teacherName: assignment.lesson.teacher.name || 'your teacher',
-          lessonTitle: assignment.lesson.title,
-          deadline: assignment.deadline.toLocaleDateString(),
-          button: createButton('Complete Lesson', assignmentUrl, template.buttonColor || undefined),
-        }
-      });
+      if (assignment.student.email && assignment.lesson.teacher) {
+          const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
+          const tz = assignment.student.timeZone || undefined;
+          let deadlineStr: string;
+          try {
+            deadlineStr = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: tz }).format(new Date(assignment.deadline));
+          } catch {
+            deadlineStr = new Date(assignment.deadline).toLocaleString();
+          }
+          await sendEmail({
+            to: assignment.student.email,
+            templateName: 'reminder',
+            data: {
+              studentName: assignment.student.name || 'student',
+              teacherName: assignment.lesson.teacher.name || 'your teacher',
+              lessonTitle: assignment.lesson.title,
+              deadline: deadlineStr,
+              button: createButton('Complete Lesson', assignmentUrl, template.buttonColor || undefined),
+            }
+          });
       await prisma.assignment.update({
         where: { id: assignment.id },
         data: { reminderSentAt: new Date() },
@@ -101,6 +108,13 @@ export async function sendStartDateNotifications() {
   for (const assignment of assignmentsToNotify) {
       if (assignment.student.email && assignment.lesson.teacher) {
           const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
+          const tz = assignment.student.timeZone || undefined;
+          let deadlineStr: string;
+          try {
+            deadlineStr = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: tz }).format(new Date(assignment.deadline));
+          } catch {
+            deadlineStr = new Date(assignment.deadline).toLocaleString();
+          }
           await sendEmail({
               to: assignment.student.email,
               templateName: 'new_assignment',
@@ -108,6 +122,7 @@ export async function sendStartDateNotifications() {
                   studentName: assignment.student.name || 'student',
                   teacherName: assignment.lesson.teacher.name || 'Your Teacher',
                   lessonTitle: assignment.lesson.title,
+                  deadline: deadlineStr,
                   button: createButton('Start Lesson', assignmentUrl, template.buttonColor || undefined),
               },
           });

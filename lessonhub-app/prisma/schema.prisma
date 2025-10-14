@@ -15,6 +15,7 @@ model User {
   hashedPassword            String?
   emailVerified             DateTime?
   image                     String?
+  timeZone                  String?
   role                      Role      @default(STUDENT)
   lastSeen                  DateTime?
   impersonatedById          String?   @unique
@@ -126,6 +127,7 @@ model Assignment {
   rating              Int?
   answers             Json?
   teacherComments     String?
+  teacherAnswerComments Json?
   reminderSentAt      DateTime?
   milestoneNotified   Boolean          @default(false)
   notifyOnStartDate   Boolean          @default(true) // New field for scheduled notifications

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { marked } from "marked";
 import { Lesson, LessonType } from "@prisma/client";
 import { Button } from "@/components/ui/button";
-import { PaperclipIcon, EyeIcon } from "lucide-react";
+import { Paperclip, Eye } from "lucide-react";
 
 interface LessonContentViewProps {
   lesson: Omit<Lesson, 'price'> & { price: number }; // Expects a serialized lesson
@@ -59,11 +59,11 @@ export default async function LessonContentView({ lesson }: LessonContentViewPro
       {lesson.attachment_url && (
         <div className="mt-6">
           <h3 className="mb-2 flex items-center text-lg font-semibold">
-            <PaperclipIcon className="h-5 w-5 mr-2" /> MATERIAL
+            <Paperclip className="h-5 w-5 mr-2" /> MATERIAL
           </h3>
           <Button asChild variant="outline">
             <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
-              <EyeIcon className="mr-2 h-4 w-4" /> View Attachment
+              <Eye className="mr-2 h-4 w-4" /> View Attachment
             </Link>
           </Button>
         </div>
