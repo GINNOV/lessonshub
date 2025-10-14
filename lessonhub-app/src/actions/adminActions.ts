@@ -187,9 +187,14 @@ export { getAllEmailTemplates as getEmailTemplates };
  */
 export async function getEmailTemplateByName(name: string) {
   try {
-    const template = await prisma.emailTemplate.findUnique({
-      where: { name },
-    });
+    let template = await prisma.emailTemplate.findUnique({ where: { name } });
+    if (!template) {
+      const { defaultEmailTemplates } = await import('@/lib/email-templates');
+      const def = (defaultEmailTemplates as any)[name];
+      if (def) {
+        template = await prisma.emailTemplate.create({ data: { name, subject: def.subject, body: def.body, buttonColor: def.buttonColor } });
+      }
+    }
     return template;
   } catch (error) {
     console.error(`Failed to fetch email template "${name}":`, error);

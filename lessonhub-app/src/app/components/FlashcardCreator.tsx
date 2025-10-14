@@ -46,6 +46,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
   const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
   const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
   const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
+  const [contextText, setContextText] = useState('');
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
   const [soundcloudUrl, setSoundcloudUrl] = useState('');
   const [feedLoading, setFeedLoading] = useState(false);
@@ -62,6 +63,24 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
       return '';
     }
   };
+
+  const isYouTube = (url: string) => {
+    try { const u = new URL(url); return /youtu\.be|youtube\.com/i.test(u.hostname); } catch { return false; }
+  };
+  const isSoundCloud = (url: string) => {
+    try { const u = new URL(url); return /soundcloud\.com/i.test(u.hostname); } catch { return false; }
+  };
+  const getYouTubeId = (url: string): string | null => {
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes('youtu.be')) return u.pathname.replace('/', '');
+      if (u.searchParams.get('v')) return u.searchParams.get('v');
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'embed' || parts[0] === 'shorts') return parts[1] || null;
+      return null;
+    } catch { return null; }
+  };
+
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
@@ -80,6 +99,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
       setAssignmentText(lesson.assignment_text || '👉🏼 INSTRUCTIONS:\n');
       setAssignmentImageUrl(lesson.assignment_image_url || null);
       setSoundcloudUrl(lesson.soundcloud_url || '');
+      setContextText(lesson.context_text || '');
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
       if (lesson.flashcards && lesson.flashcards.length > 0) {

@@ -67,7 +67,7 @@ export async function checkAndSendMilestoneEmail(studentId: string) {
     if (completedCount > 0 && completedCount % 10 === 0) {
       const lastAssignment = await prisma.assignment.findFirst({
         where: { studentId: studentId, status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED] } },
-        orderBy: { gradedAt: 'desc' },
+        orderBy: [ { gradedAt: 'desc' }, { assignedAt: 'desc' } ],
       });
 
       if (lastAssignment && !lastAssignment.milestoneNotified) {

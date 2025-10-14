@@ -38,6 +38,7 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
   // State for the "Taking a Break" feature
   const [isTakingBreak, setIsTakingBreak] = useState(user?.isTakingBreak ?? false);
   const [gender, setGender] = useState<Gender>((user as any)?.gender ?? Gender.BINARY);
+  const [weeklySummaryOptOut, setWeeklySummaryOptOut] = useState<boolean>((user as any)?.weeklySummaryOptOut ?? false);
 
   // Timezone state
   const defaultTz = (() => {
@@ -107,13 +108,13 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     const response = await fetch(apiRoute, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, image, timeZone, gender }),
+      body: JSON.stringify({ name, image, timeZone, gender, weeklySummaryOptOut }),
     });
 
     if (response.ok) {
       toast.success('Profile updated successfully!');
       if (!isAdmin) {
-        await update({ ...session, user: { ...session?.user, name, image, timeZone, gender } });
+        await update({ ...session, user: { ...session?.user, name, image, timeZone, gender, weeklySummaryOptOut } });
       }
     } else {
       const data = await response.json();

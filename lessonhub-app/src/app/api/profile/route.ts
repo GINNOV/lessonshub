@@ -14,13 +14,14 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, image, timeZone, gender } = body as { name?: string; image?: string; timeZone?: string; gender?: 'MALE' | 'FEMALE' | 'BINARY' };
+    const { name, image, timeZone, gender, weeklySummaryOptOut } = body as { name?: string; image?: string; timeZone?: string; gender?: 'MALE' | 'FEMALE' | 'BINARY'; weeklySummaryOptOut?: boolean };
 
-    const dataToUpdate: { name?: string; image?: string; timeZone?: string; gender?: 'MALE' | 'FEMALE' | 'BINARY' } = {};
+    const dataToUpdate: { name?: string; image?: string; timeZone?: string; gender?: 'MALE' | 'FEMALE' | 'BINARY'; weeklySummaryOptOut?: boolean } = {};
     if (name) dataToUpdate.name = name;
     if (image) dataToUpdate.image = image;
     if (timeZone) dataToUpdate.timeZone = timeZone;
     if (gender) dataToUpdate.gender = gender;
+    if (typeof weeklySummaryOptOut === 'boolean') dataToUpdate.weeklySummaryOptOut = weeklySummaryOptOut;
 
     if (Object.keys(dataToUpdate).length === 0) {
       return new NextResponse(JSON.stringify({ error: "No fields to update" }), {

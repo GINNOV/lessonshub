@@ -218,6 +218,27 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     `,
     buttonColor: '#17a2b8',
   },
+  weekly_summary: {
+    subject: '🌟 Your Week on LessonHUB ({{weekRange}})',
+    body: `
+      <h1 style="color:#1d1c1d;font-size:32px;font-weight:700;margin:20px 0;">Your Weekly Wins</h1>
+      <p style="color:#525f7f;font-size:16px;line-height:24px;">Hi {{studentName}}, here’s a beautiful wrap‑up of your week ({{weekRange}}):</p>
+      <div style="background:#f6f9fc;border:1px solid #e6ebf1;border-radius:8px;padding:16px;margin:16px 0;">
+        <p style="margin:6px 0;color:#1d1c1d;"><strong>✅ Graded:</strong> {{gradedCount}}</p>
+        <p style="margin:6px 0;color:#1d1c1d;"><strong>🚫 Failed:</strong> {{failedCount}}</p>
+        <p style="margin:6px 0;color:#1d1c1d;"><strong>💶 Savings this week:</strong> €{{savingsWeek}}</p>
+        <p style="margin:6px 0;color:#1d1c1d;"><strong>🏦 Total savings to date:</strong> €{{savingsTotal}}</p>
+      </div>
+      <h3 style="color:#1d1c1d;font-size:20px;margin:12px 0;">Highlights</h3>
+      {{lessonList}}
+      <div style="margin:16px 0;padding:16px;border-left:4px solid #5e6ad2;background:#f6f9fc;">
+        <p style="color:#1d1c1d;font-size:16px;margin:0 0 6px 0;">{{encouragement}}</p>
+        <p style="color:#8898aa;font-size:14px;margin:0;">“{{quoteText}}” — {{quoteAuthor}}</p>
+      </div>
+      {{button}}
+    `,
+    buttonColor: '#5e6ad2'
+  },
 };
 
 export function replacePlaceholders(template: string, data: Record<string, string>): string {

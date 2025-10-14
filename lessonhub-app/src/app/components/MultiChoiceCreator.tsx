@@ -80,6 +80,12 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const isEditMode = !!lesson;
+  const isYouTube = (url: string) => {
+    try { const u = new URL(url); return /youtu\.be|youtube\.com/i.test(u.hostname); } catch { return false; }
+  };
+  const isSoundCloud = (url: string) => {
+    try { const u = new URL(url); return /soundcloud\.com/i.test(u.hostname); } catch { return false; }
+  };
   const getProviderHint = () => {
     if (!soundcloudUrl) return '';
     try {

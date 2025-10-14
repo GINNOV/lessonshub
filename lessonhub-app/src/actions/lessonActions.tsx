@@ -260,7 +260,9 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
         });
         revalidatePath('/my-lessons');
         await checkAndSendMilestoneEmail(studentId);
-        return { success: true, data: updatedAssignment };
+        revalidatePath('/my-lessons');
+    await checkAndSendMilestoneEmail(studentId);
+    return { success: true, data: updatedAssignment };
     } catch (error) {
         console.error("Failed to submit multi-choice assignment:", error);
         return { success: false, error: 'Failed to submit assignment.' };

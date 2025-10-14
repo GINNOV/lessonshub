@@ -202,3 +202,86 @@ export async function sendPaymentReminders() {
 
   return { success: true, message: `Sent ${count} payment reminders.` };
 }
+
+
+export async function sendWeeklySummaries() {
+  const today = new Date();
+  if (today.getDay() != 0) {
+    return { success: true, message: 'Not Sunday — skipping weekly summaries.' };
+  }
+  const end = new Date(today); end.setHours(23,59,59,999)
+  const start = new Date(end); start.setDate(end.getDate()-6); start.setHours(0,0,0,0)
+
+  const students = await (await import('@/lib/prisma')).default.user.findMany({
+    where: { role: (await import('@prisma/client')).Role.STUDENT, isSuspended: false, isTakingBreak: false, weeklySummaryOptOut: false },
+    select: { id: true, name: true, email: true, timeZone: true },
+  });
+
+  const template = await (await import('@/actions/adminActions')).getEmailTemplateByName('weekly_summary');
+  if (!template) {
+    console.error('weekly_summary email template not found.');
+    return { success: false, message: 'weekly_summary template missing' };
+  }
+
+  const quotes = [
+    { text: 'Learning never exhausts the mind.', author: 'Leonardo da Vinci' },
+    { text: 'The secret of getting ahead is getting started.', author: 'Mark Twain' },
+    { text: 'Small progress is still progress.', author: 'Unknown' },
+    { text: 'The beautiful thing about learning is nobody can take it away from you.', author: 'B.B. King' },
+  ];
+  const fmtCurrency = (n:number)=> n.toFixed(2)
+  const fmtRange = (tz?: string) => { try { const f=new Intl.DateTimeFormat(undefined,{dateStyle:'medium', timeZone:tz}); return f.format(start)+' – '+f.format(end);} catch { return start.toLocaleDateString()+' – '+end.toLocaleDateString(); } }
+
+  let sent=0
+  for (const s of students) {
+    if (!s.email) continue
+    const weekAssignments = await (await import('@/lib/prisma')).default.assignment.findMany({
+      where: {
+        studentId: s.id,
+        OR: [ { gradedAt: { gte: start, lte: end } }, { assignedAt: { gte: start, lte: end } } ],
+        status: { in: [ (await import('@prisma/client')).AssignmentStatus.COMPLETED, (await import('@prisma/client')).AssignmentStatus.GRADED, (await import('@prisma/client')).AssignmentStatus.FAILED ] },
+      },
+      include: { lesson: { select: { title: true, price: true } } },
+      orderBy: { gradedAt: 'asc' },
+    })
+    const { AssignmentStatus } = await import('@prisma/client')
+    const gradedCount = weekAssignments.filter(a=>a.status===AssignmentStatus.GRADED).length
+    const failedCount = weekAssignments.filter(a=>a.status===AssignmentStatus.FAILED).length
+    let savingsWeek=0
+    for (const a of weekAssignments){ const price=a.lesson?.price? Number(a.lesson.price.toString()):0; if (a.status===AssignmentStatus.FAILED) savingsWeek-=price; else if (a.status===AssignmentStatus.GRADED && (a.score??0)>=0) savingsWeek+=price }
+
+    const allResults = await (await import('@/lib/prisma')).default.assignment.findMany({
+      where: { studentId: s.id, status: { in: [AssignmentStatus.GRADED, AssignmentStatus.FAILED] } },
+      include: { lesson: { select: { price: true } } },
+    })
+    let savingsTotal=0
+    for (const a of allResults){ const price=a.lesson?.price? Number(a.lesson.price.toString()):0; if (a.status===AssignmentStatus.FAILED) savingsTotal-=price; else if ((a.score??0)>=0) savingsTotal+=price }
+
+    const itemsHtml = weekAssignments.length ? '<ul style="padding-left:18px;color:#1d1c1d;">'+weekAssignments.map(a=>`<li style="margin:6px 0;">${a.lesson?.title||'Lesson'} — <strong>${a.status}</strong>${a.status==='GRADED'&&a.score!==null?` (score: ${a.score}/10)`:''}</li>`).join('')+'</ul>' : '<p style="color:#8898aa;">No graded activity this week — a fresh start awaits! 💪</p>'
+    const encouragement = gradedCount>=3 ? 'Fantastic week! Your consistency is building real momentum.' : gradedCount>=1 ? 'Great job — keep that rhythm going into next week!' : 'New week, new start. Even one lesson makes a difference!'
+    const quote = quotes[Math.floor(Math.random()*quotes.length)]
+
+    const { createButton, sendEmail } = await import('@/lib/email-templates')
+    const button = createButton('Go to My Lessons', `${process.env.AUTH_URL}/my-lessons`, template.buttonColor || undefined)
+
+    await sendEmail({
+      to: s.email,
+      templateName: 'weekly_summary',
+      data: {
+        studentName: s.name || 'student',
+        weekRange: fmtRange(s.timeZone || undefined),
+        gradedCount: String(gradedCount),
+        failedCount: String(failedCount),
+        savingsWeek: fmtCurrency(savingsWeek),
+        savingsTotal: fmtCurrency(savingsTotal),
+        lessonList: itemsHtml,
+        encouragement,
+        quoteText: quote.text,
+        quoteAuthor: quote.author,
+        button,
+      }
+    })
+    sent++
+  }
+  return { success: true, message: `Sent ${sent} weekly summaries.` }
+}
