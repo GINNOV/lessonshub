@@ -168,9 +168,22 @@ export { stopImpersonating as stopImpersonation };
  */
 export async function getAllEmailTemplates() {
   try {
-    const templates = await prisma.emailTemplate.findMany({
-      orderBy: { name: 'asc' },
-    });
+    const { defaultEmailTemplates } = await import('@/lib/email-templates');
+    const existing = await prisma.emailTemplate.findMany({ select: { name: true } });
+    const existingNames = new Set(existing.map(t => t.name));
+    const missing = Object.keys(defaultEmailTemplates).filter(n => !existingNames.has(n));
+    if (missing.length > 0) {
+      await prisma.emailTemplate.createMany({
+        data: missing.map((n) => ({
+          name: n,
+          subject: (defaultEmailTemplates as any)[n].subject,
+          body: (defaultEmailTemplates as any)[n].body,
+          buttonColor: (defaultEmailTemplates as any)[n].buttonColor,
+        })),
+        skipDuplicates: true,
+      });
+    }
+    const templates = await prisma.emailTemplate.findMany({ orderBy: { name: 'asc' } });
     return templates;
   } catch (error) {
     console.error("Failed to fetch email templates:", error);
