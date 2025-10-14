@@ -1,23 +1,37 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Assignment, Lesson, User, AssignmentStatus } from '@prisma/client';
+import { AssignmentStatus, LessonType } from '@prisma/client';
 import StudentLessonCard from '@/app/components/StudentLessonCard';
 import WeekDivider from '@/app/components/WeekDivider';
 import { getWeekAndDay } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 
-type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
+type SerializableUser = {
+  id: string;
+  name: string | null;
+  image: string | null;
   defaultLessonPrice: number | null;
 };
 
-type SerializableAssignment = Omit<Assignment, 'answers' | 'lesson'> & {
+type SerializableLesson = {
+  id: string;
+  title: string;
+  type: LessonType;
+  lesson_preview: string | null;
+  assignment_image_url: string | null;
+  price: number;
+  teacher: SerializableUser | null;
+  completionCount: number;
+};
+
+type SerializableAssignment = {
+  id: string;
+  status: AssignmentStatus;
+  deadline: Date | string;
+  score: number | null;
   answers: any;
-  lesson: Omit<Lesson, 'price' | 'teacher' | '_count'> & {
-    price: number;
-    teacher: SerializableUser | null;
-    completionCount: number;
-  };
+  lesson: SerializableLesson;
 };
 
 interface StudentLessonListProps {

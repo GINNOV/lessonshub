@@ -52,6 +52,8 @@ export default async function MyLessonsPage() {
       const { _count, ...restOfLesson } = assignment.lesson;
       return {
         ...assignment,
+        // Ensure optional columns missing in some DBs are present for typing
+        teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
         lesson: {
           ...restOfLesson,
           price: assignment.lesson.price.toNumber(),

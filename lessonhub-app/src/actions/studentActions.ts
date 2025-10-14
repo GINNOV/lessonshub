@@ -98,14 +98,22 @@ export async function getLeaderboardData() {
   try {
     const students = await prisma.user.findMany({
       where: { role: Role.STUDENT },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        image: true,
         assignments: {
           where: {
             status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
           },
-          include: {
+          select: {
+            id: true,
+            status: true,
+            score: true,
+            gradedAt: true,
+            assignedAt: true,
             lesson: { select: { price: true } },
-          }
+          },
         },
       },
     });
@@ -138,7 +146,10 @@ export async function getLeaderboardData() {
         averageCompletionTime,
         savings,
       };
-    }).filter(s => s.completedCount > 0);
+    })
+    // Include students who have any relevant assignment (COMPLETED, GRADED, or FAILED),
+    // even if their completedCount is 0 (e.g., only FAILED so far).
+    .filter((_s, idx) => students[idx].assignments.length > 0);
 
     const allTimes = studentStats.map(s => s.averageCompletionTime).filter(t => t > 0);
     if (allTimes.length > 1) {

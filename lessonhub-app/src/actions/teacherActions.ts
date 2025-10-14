@@ -86,11 +86,18 @@ export async function getLeaderboardDataForTeacher(teacherId: string) {
 
     const students = await prisma.user.findMany({
       where: { id: { in: assignedStudentIds } },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        image: true,
         assignments: {
           where: {
             status: AssignmentStatus.GRADED,
-            lesson: { teacherId: teacherId }
+            lesson: { teacherId: teacherId },
+          },
+          select: {
+            id: true,
+            score: true,
           },
         },
       },

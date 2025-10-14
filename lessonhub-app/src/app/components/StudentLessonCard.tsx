@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Assignment, Lesson, User, AssignmentStatus, LessonType } from '@prisma/client';
+import { AssignmentStatus, LessonType } from '@prisma/client';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,17 +12,31 @@ import LocaleDate from '@/app/components/LocaleDate';
 import { Button } from '@/components/ui/button';
 import { Users } from 'lucide-react';
 
-type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
-    defaultLessonPrice: number | null;
+type SerializableUser = {
+  id: string;
+  name: string | null;
+  image: string | null;
+  defaultLessonPrice: number | null;
 };
 
-type SerializableAssignment = Omit<Assignment, 'answers' | 'lesson'> & {
+type SerializableLesson = {
+  id: string;
+  title: string;
+  type: LessonType;
+  lesson_preview: string | null;
+  assignment_image_url: string | null;
+  price: number;
+  teacher: SerializableUser | null;
+  completionCount: number;
+};
+
+type SerializableAssignment = {
+  id: string;
+  status: AssignmentStatus;
+  deadline: Date | string;
+  score: number | null;
   answers: any;
-  lesson: Omit<Lesson, 'price' | 'teacher' | '_count'> & {
-    price: number;
-    teacher: SerializableUser | null;
-    completionCount: number;
-  };
+  lesson: SerializableLesson;
 };
 
 interface StudentLessonCardProps {

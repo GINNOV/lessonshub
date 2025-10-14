@@ -101,7 +101,7 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                     </table>
                 </div>
                 {leaderboardData.length === 0 && (
-                    <p className="p-6 text-center text-gray-500">No student data available yet. Complete some lessons to see the leaderboard!</p>
+                    <p className="p-6 text-center text-gray-500">No leaderboard activity yet. Submissions and grades will appear here.</p>
                 )}
             </div>
 
@@ -132,7 +132,7 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                     </div>
                 ))}
                 {leaderboardData.length === 0 && (
-                    <p className="p-4 text-center text-gray-500">No student data yet.</p>
+                    <p className="p-4 text-center text-gray-500">No leaderboard activity yet.</p>
                 )}
             </div>
         </div>

@@ -60,7 +60,7 @@ export default function TeacherClassLeaderboard({ leaderboardData }: TeacherClas
                     </table>
                 </div>
                 {leaderboardData.length === 0 && (
-                    <p className="p-6 text-center text-gray-500">No student data available yet. Graded assignments will appear here.</p>
+                    <p className="p-6 text-center text-gray-500">No class activity yet. Graded submissions will appear here.</p>
                 )}
             </div>
         </div>

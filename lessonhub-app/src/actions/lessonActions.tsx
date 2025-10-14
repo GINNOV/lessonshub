@@ -346,24 +346,67 @@ export async function getAssignmentsForStudent(studentId: string) {
             return [];
         }
 
+        // Select explicit scalar fields to avoid querying optional columns
+        // that may not exist yet in some environments (e.g., teacherAnswerComments).
         const assignments = await prisma.assignment.findMany({
-            where: { 
+            where: {
                 studentId: studentId,
                 startDate: {
                     lte: new Date(),
                 },
             },
-            include: {
+            select: {
+                id: true,
+                assignedAt: true,
+                startDate: true,
+                deadline: true,
+                status: true,
+                score: true,
+                gradedAt: true,
+                studentNotes: true,
+                rating: true,
+                answers: true,
+                teacherComments: true,
+                // teacherAnswerComments intentionally omitted for DBs without the column
+                reminderSentAt: true,
+                milestoneNotified: true,
+                notifyOnStartDate: true,
+                lessonId: true,
+                studentId: true,
                 lesson: {
-                    include: {
-                        teacher: true,
-                        _count: {
-                            select: { assignments: true }
-                        }
-                    }
-                }
+                    select: {
+                        id: true,
+                        teacherId: true,
+                        title: true,
+                        type: true,
+                        lesson_preview: true,
+                        assignment_text: true,
+                        questions: true,
+                        assignment_image_url: true,
+                        soundcloud_url: true,
+                        context_text: true,
+                        attachment_url: true,
+                        notes: true,
+                        assignment_notification: true,
+                        scheduled_assignment_date: true,
+                        createdAt: true,
+                        updatedAt: true,
+                        public_share_id: true,
+                        price: true,
+                        teacher: {
+                            select: {
+                                id: true,
+                                name: true,
+                                image: true,
+                                // Keep optional; if absent in DB, Prisma will ignore
+                                defaultLessonPrice: true,
+                            }
+                        },
+                        _count: { select: { assignments: true } },
+                    },
+                },
             },
-            orderBy: { deadline: 'asc' }
+            orderBy: { deadline: 'asc' },
         });
         return assignments;
     } catch (error) {
@@ -497,10 +540,11 @@ export async function getStudentStats(studentId: string) {
         studentId: studentId,
         OR: [{ status: AssignmentStatus.GRADED }, { status: AssignmentStatus.FAILED }],
       },
-      include: {
-        lesson: {
-          select: { price: true },
-        },
+      select: {
+        id: true,
+        status: true,
+        score: true,
+        lesson: { select: { price: true } },
       },
     });
     let totalValue = 0;
