@@ -66,7 +66,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
   const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
-  const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
+  const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '');
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
   const [soundcloudUrl, setSoundcloudUrl] = useState('');
   const [feedLoading, setFeedLoading] = useState(false);

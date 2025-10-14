@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Assignment, Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, RotateCw, Send } from 'lucide-react';
+import { RotateCw, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { marked } from 'marked';
 import { submitFlashcardAssignment } from '@/actions/lessonActions';
@@ -45,6 +45,24 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
     const cleanedText = rawText.replace(/👉🏼 INSTRUCTIONS:/i, '').trim();
     return cleanedText ? marked.parse(cleanedText) : '';
   }, [assignment.lesson.assignment_text]);
+  const additionalInfoHtml = useMemo(() => {
+    const raw = assignment.lesson.context_text || '';
+    return raw ? marked.parse(raw) : '';
+  }, [assignment.lesson.context_text]);
+
+  // Audio material support (SoundCloud or YouTube) using the lesson.soundcloud_url field
+  const audioUrl = assignment.lesson.soundcloud_url || '';
+  const isYouTubeUrl = (url: string) => /(?:youtube\.com|youtu\.be)\//i.test(url);
+  const getYouTubeId = (url: string): string | null => {
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes('youtu.be')) return u.pathname.replace('/', '');
+      if (u.searchParams.get('v')) return u.searchParams.get('v');
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'embed' || parts[0] === 'shorts') return parts[1] || null;
+      return null;
+    } catch { return null; }
+  };
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
@@ -99,12 +117,55 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
   if (!isStarted) {
     return (
       <div className="space-y-6">
+        {audioUrl && (
+          <div className="rounded-lg border bg-white p-3">
+            {isYouTubeUrl(audioUrl) ? (
+              (() => {
+                const vid = getYouTubeId(audioUrl);
+                if (!vid) return null as any;
+                const ytSrc = `https://www.youtube.com/embed/${vid}?rel=0`;
+                return (
+                  <iframe
+                    title={`YouTube player for ${assignment.lesson.title}`}
+                    width="100%"
+                    height="200"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    frameBorder="0"
+                    src={ytSrc}
+                  />
+                );
+              })()
+            ) : (
+              <iframe
+                title={`SoundCloud player for ${assignment.lesson.title}`}
+                width="100%"
+                height="120"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                scrolling="no"
+                frameBorder="0"
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(audioUrl)}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=false`}
+              />
+            )}
+          </div>
+        )}
         <div className="rounded-lg border bg-gray-50 p-4">
             <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
             {instructionsHtml && (
               <div className="prose max-w-none mt-4" dangerouslySetInnerHTML={{ __html: instructionsHtml as string }} />
             )}
+            {additionalInfoHtml && (
+              <>
+                <h3 className="mt-4 text-lg font-semibold">Additional Information</h3>
+                <div className="prose max-w-none mt-2" dangerouslySetInnerHTML={{ __html: additionalInfoHtml as string }} />
+              </>
+            )}
         </div>
+        <p className="text-sm text-gray-500">Tap the card to flip between front and back. After flipping, choose whether you were right or wrong.</p>
         <Button onClick={() => setIsStarted(true)} className="w-full">Start</Button>
       </div>
     );
@@ -136,6 +197,42 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
 
   return (
     <div className="space-y-6">
+        {audioUrl && (
+          <div className="rounded-lg border bg-white p-3">
+            {isYouTubeUrl(audioUrl) ? (
+              (() => {
+                const vid = getYouTubeId(audioUrl);
+                if (!vid) return null as any;
+                const ytSrc = `https://www.youtube.com/embed/${vid}?rel=0`;
+                return (
+                  <iframe
+                    title={`YouTube player for ${assignment.lesson.title}`}
+                    width="100%"
+                    height="200"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    frameBorder="0"
+                    src={ytSrc}
+                  />
+                );
+              })()
+            ) : (
+              <iframe
+                title={`SoundCloud player for ${assignment.lesson.title}`}
+                width="100%"
+                height="120"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                scrolling="no"
+                frameBorder="0"
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(audioUrl)}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=false`}
+              />
+            )}
+          </div>
+        )}
         <div className="relative h-96 w-full cursor-pointer [perspective:1000px]" onClick={handleFlip}>
             <div className={`relative h-full w-full rounded-lg transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
                 <div className="absolute h-full w-full rounded-lg border p-4 flex flex-col bg-white [backface-visibility:hidden]">
@@ -178,10 +275,19 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
                 </div>
             </div>
         </div>
-        <div className="flex justify-between items-center">
-            <Button onClick={handlePrev} disabled={currentIndex === 0}><ArrowLeft className="mr-2 h-4 w-4"/> Previous</Button>
+        <div className="flex justify-center">
+          <Button type="button" variant="outline" onClick={handleFlip} aria-label="Flip card">
+            Flip
+          </Button>
+        </div>
+        {assignment.lesson.notes && (
+          <div className="rounded-lg border bg-gray-50 p-3 text-sm text-gray-700">
+            <h3 className="font-semibold mb-1">Notes</h3>
+            <p>{assignment.lesson.notes}</p>
+          </div>
+        )}
+        <div className="flex justify-center items-center text-sm text-gray-600">
             <span>{currentIndex + 1} / {flashcards.length}</span>
-            <Button onClick={handleNext} disabled={!isFlipped}><ArrowRight className="mr-2 h-4 w-4"/> Next</Button>
         </div>
          {isFlipped && (
             <div className="flex justify-center gap-4 pt-4 border-t">

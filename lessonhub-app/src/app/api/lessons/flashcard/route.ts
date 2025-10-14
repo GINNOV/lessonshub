@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, lesson_preview, assignment_text, attachment_url, flashcards, price } = body;
+  const { title, lesson_preview, assignment_text, context_text, attachment_url, assignment_image_url, soundcloud_url, notes, flashcards, price } = body;
 
   if (!title || !flashcards || flashcards.length === 0) {
     return new NextResponse(
@@ -29,7 +29,11 @@ export async function POST(request: Request) {
         price: price,
         lesson_preview: lesson_preview,
         assignment_text: assignment_text,
+        context_text: context_text,
+        assignment_image_url: assignment_image_url,
+        soundcloud_url: soundcloud_url,
         attachment_url: attachment_url,
+        notes: notes,
         type: LessonType.FLASHCARD,
         teacherId: session.user.id,
         flashcards: {

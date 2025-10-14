@@ -27,6 +27,7 @@ export async function PATCH(
       price,
       lesson_preview,
       assignment_text,
+      context_text,
       assignment_image_url,
       soundcloud_url,
       attachment_url,

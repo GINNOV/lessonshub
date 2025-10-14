@@ -123,12 +123,20 @@ export default async function AssignmentPage({
         </div>
       )}
 
-      <div className="my-6">
-        <LessonContentView lesson={serializableAssignment.lesson} />
-      </div>
+      {!isFlashcard && (
+        <div className="my-6">
+          <LessonContentView lesson={serializableAssignment.lesson} />
+        </div>
+      )}
 
       {showResponseArea ? (
         <div className="mt-8 border-t border-gray-200 pt-6">
+          {!isFlashcard && lesson.notes && (
+            <div className="mb-4 rounded-lg border bg-gray-50 p-4 text-gray-800">
+              <h3 className="text-lg font-semibold mb-1">Notes</h3>
+              <p className="text-sm leading-relaxed">{lesson.notes}</p>
+            </div>
+          )}
           {!isFlashcard && <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>}
           {isFlashcard ? (
             <FlashcardPlayer assignment={serializableAssignment} />

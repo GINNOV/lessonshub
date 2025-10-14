@@ -234,6 +234,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
             price: parseFloat(price) || 0, 
             lesson_preview: lessonPreview, 
             assignment_text: assignmentText, 
+            context_text: contextText,
             assignment_image_url: assignmentImageUrl,
             soundcloud_url: soundcloudUrl,
             attachment_url: attachmentUrl, 
