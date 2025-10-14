@@ -2,6 +2,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getLessonById, getStudentsWithStats } from "@/actions/lessonActions";
+import { getClassesForTeacher } from "@/actions/classActions";
 import AssignLessonForm from "@/app/components/AssignLessonForm";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
@@ -25,9 +26,10 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
   };
 
   
-  const [students, existingAssignments] = await Promise.all([
+  const [students, existingAssignments, classes] = await Promise.all([
     getStudentsWithStats(session.user.id),
     prisma.assignment.findMany({ where: { lessonId } }),
+    getClassesForTeacher(),
   ]);
 
   return (
@@ -37,8 +39,9 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
         <h2 className="text-xl text-gray-600 mb-6">{lesson.title}</h2>
         <AssignLessonForm 
           lesson={serializableLesson} 
-          students={students} 
+          students={students as any} 
           existingAssignments={existingAssignments} 
+          classes={(classes || []).map((c: any) => ({ id: c.id, name: c.name, isActive: c.isActive }))}
         />
       </div>
     </div>

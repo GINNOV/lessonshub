@@ -14,12 +14,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 export type StudentWithStats = Omit<User, 'defaultLessonPrice'> & {
   totalPoints: number;
   defaultLessonPrice: number | null;
+  currentClassId?: string | null;
 };
 
 interface AssignLessonFormProps {
   lesson: Omit<Lesson, 'price'> & { price: number };
   students: StudentWithStats[];
   existingAssignments: Assignment[];
+  classes?: { id: string; name: string; isActive: boolean }[];
 }
 
 const formatDateTimeForInput = (date: Date | null | undefined): string => {
@@ -51,6 +53,7 @@ export default function AssignLessonForm({
   lesson,
   students,
   existingAssignments = [],
+  classes = [],
 }: AssignLessonFormProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
@@ -61,6 +64,7 @@ export default function AssignLessonForm({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [classFilter, setClassFilter] = useState<string>('all'); // 'all' | 'none' | classId
 
   // Initialize with default values first
   const [masterDeadline, setMasterDeadline] = useState<string>(getDefaultMidnightDate());
@@ -108,12 +112,17 @@ export default function AssignLessonForm({
 
 
   const filteredStudents = useMemo(() => {
-    return students.filter(
-      (student) =>
-        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [students, searchTerm]);
+    const term = searchTerm.toLowerCase();
+    return students
+      .filter((student) =>
+        (student.name?.toLowerCase().includes(term) || student.email.toLowerCase().includes(term))
+      )
+      .filter((student) => {
+        if (classFilter === 'all') return true;
+        if (classFilter === 'none') return !student.currentClassId;
+        return student.currentClassId === classFilter;
+      });
+  }, [students, searchTerm, classFilter]);
 
   const handleSelectStudent = (studentId: string, isSelected: boolean) => {
     setSelectedStudents((prev) => {
@@ -228,7 +237,7 @@ export default function AssignLessonForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="space-y-2">
             <Label htmlFor="start-date">Set Start Date</Label>
             <Input id="start-date" type="datetime-local" value={masterStartDate} onChange={handleMasterStartDateChange} disabled={notificationOption === 'none'} />
@@ -240,6 +249,21 @@ export default function AssignLessonForm({
         <div className="space-y-2">
             <Label htmlFor="search">Search Students</Label>
             <Input id="search" type="search" placeholder="Filter by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="class-filter">Filter by Class</Label>
+          <select
+            id="class-filter"
+            className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+          >
+            <option value="all">All students</option>
+            <option value="none">No class</option>
+            {classes.filter(c => c.isActive).map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
         </div>
       </div>
       

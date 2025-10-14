@@ -51,16 +51,24 @@ export async function getStudentsWithStats(teacherId?: string) {
           score: { not: null },
         },
       },
+      teachers: {
+        select: { teacherId: true, classId: true },
+      },
     },
     orderBy: { name: 'asc' }
   });
 
-  return students.map(student => {
-    const totalPoints = student.assignments.reduce((sum, a) => sum + (a.score || 0), 0);
+  return students.map((student: any) => {
+    const totalPoints = student.assignments.reduce((sum: number, a: any) => sum + (a.score || 0), 0);
     const { assignments, ...studentData } = student;
+    const linkArr: Array<{ teacherId: string; classId: string | null }> = student.teachers || [];
+    const currentClassId = teacherId
+      ? (linkArr.find(l => l.teacherId === teacherId)?.classId ?? null)
+      : null;
     const serializableStudent = {
       ...studentData,
-      defaultLessonPrice: studentData.defaultLessonPrice?.toNumber() ?? null,
+      defaultLessonPrice: studentData.defaultLessonPrice?.toNumber?.() ?? null,
+      currentClassId,
       totalPoints,
     };
     return serializableStudent;
