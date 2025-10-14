@@ -12,7 +12,7 @@ import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
 import LocaleDate from "@/app/components/LocaleDate";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, CheckCircle2, XCircle } from "lucide-react";
+import { Check, X, CheckCircle2, XCircle, GraduationCap } from "lucide-react";
 import Rating from "@/app/components/Rating";
 
 // --- SVG Icons ---
@@ -68,6 +68,49 @@ export default async function AssignmentPage({
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
   const showConfetti = serializableAssignment.score === 10;
+  const teacherAnswerCommentsMap: Record<number, string> = (() => {
+    const src = (serializableAssignment as any).teacherAnswerComments;
+    if (!src) return {};
+    if (Array.isArray(src)) {
+      return src.reduce((acc: Record<number, string>, value, index) => {
+        if (typeof value === "string" && value.trim()) {
+          acc[index] = value.trim();
+        }
+        return acc;
+      }, {});
+    }
+    if (typeof src === "object") {
+      return Object.entries(src as Record<string, unknown>).reduce(
+        (acc: Record<number, string>, [key, value]) => {
+          if (typeof value === "string" && value.trim()) {
+            const numericKey = Number(key);
+            if (!Number.isNaN(numericKey)) {
+              acc[numericKey] = value.trim();
+            }
+          }
+          return acc;
+        },
+        {},
+      );
+    }
+    return {};
+  })();
+  const lessonQuestions: string[] = Array.isArray(lesson.questions)
+    ? lesson.questions.map((item): string => {
+        if (typeof item === "string") return item;
+        if (item === null || item === undefined) return "";
+        return typeof item === "object" ? JSON.stringify(item) : String(item);
+      })
+    : [];
+  const teacherCommentsBlock = serializableAssignment.teacherComments ? (
+    <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+      <GraduationCap className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+      <div className="space-y-1">
+        <p className="font-medium">Teacher&apos;s feedback</p>
+        <p className="whitespace-pre-wrap">{serializableAssignment.teacherComments}</p>
+      </div>
+    </div>
+  ) : null;
   
   return (
     <div className="mx-auto max-w-4xl rounded-lg bg-white p-8 shadow-md">
@@ -96,14 +139,6 @@ export default async function AssignmentPage({
                         </p>
                     </div>
                 </div>
-                {serializableAssignment.teacherComments && (
-                    <div className="mt-4 border-t border-gray-300 pt-4">
-                        <h3 className="text-md font-semibold text-gray-700">Teacher&apos;s Feedback:</h3>
-                        <div className="prose prose-sm mt-2 text-gray-600">
-                            <p><em>&quot;{serializableAssignment.teacherComments}&quot;</em></p>
-                        </div>
-                    </div>
-                )}
                  {serializableAssignment.rating && (
                     <div className="mt-4 border-t border-gray-300 pt-4">
                         <h3 className="text-md font-semibold text-gray-700">Your Rating:</h3>
@@ -151,12 +186,22 @@ export default async function AssignmentPage({
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Review Your Submission</h2>
           {lesson.type === LessonType.STANDARD && (
              <div className="mt-2 space-y-4 rounded-lg border bg-gray-50 p-4">
-                {Array.isArray(serializableAssignment.answers) && (lesson.questions as string[] || []).map((question, i) => (
-                    <div key={i}>
+                {Array.isArray(serializableAssignment.answers) && lessonQuestions.map((question, i) => {
+                    const teacherComment = teacherAnswerCommentsMap[i];
+                    return (
+                      <div key={i} className="space-y-2">
                         <p className="text-sm font-semibold text-gray-600">Question {i + 1}: {question}</p>
-                        <p className="prose prose-sm mt-1 text-gray-800 pl-4 border-l-2">{serializableAssignment.answers[i] || 'No answer provided.'}</p>
-                    </div>
-                ))}
+                        <p className="prose prose-sm mt-1 border-l-2 pl-4 text-gray-800">{serializableAssignment.answers[i] || 'No answer provided.'}</p>
+                        {teacherComment && (
+                          <div className="mt-1 flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+                            <GraduationCap className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+                            <p className="whitespace-pre-wrap">{teacherComment}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                })}
+                {teacherCommentsBlock}
                 {serializableAssignment.rating && (
                   <div>
                     <p className="text-sm font-semibold text-gray-600">Your Rating</p>
@@ -168,61 +213,67 @@ export default async function AssignmentPage({
             </div>
           )}
           {lesson.type === LessonType.MULTI_CHOICE && Array.isArray(serializableAssignment.answers) && (
-            <div className="space-y-6">
-              {lesson.multiChoiceQuestions.map((q, i) => {
-                const studentAnswer = serializableAssignment.answers.find((a: any) => a.questionId === q.id);
-                return (
-                  <div key={q.id} className="p-4 border rounded-lg">
-                    <p className="font-semibold">{i + 1}. {q.question}</p>
-                    <div className="mt-2 space-y-2">
-                      {q.options.map(opt => {
-                        const isSelected = studentAnswer?.selectedAnswerId === opt.id;
-                        const isCorrect = opt.isCorrect;
-                        return (
-                          <div key={opt.id} className={cn(
-                            "flex items-center gap-2 p-2 rounded-md",
-                            isSelected && !isCorrect && "bg-red-100",
-                            isCorrect && "bg-green-100"
-                          )}>
-                            {isSelected ? (isCorrect ? <Check className="h-5 w-5 text-green-600"/> : <X className="h-5 w-5 text-red-600"/>) : (isCorrect ? <Check className="h-5 w-5 text-green-600"/> : <div className="h-5 w-5"/>)}
-                            <span className={cn(isSelected && "font-bold")}>{opt.text}</span>
-                          </div>
-                        )
-                      })}
+            <>
+              <div className="space-y-6">
+                {lesson.multiChoiceQuestions.map((q, i) => {
+                  const studentAnswer = serializableAssignment.answers.find((a: any) => a.questionId === q.id);
+                  return (
+                    <div key={q.id} className="rounded-lg border p-4">
+                      <p className="font-semibold">{i + 1}. {q.question}</p>
+                      <div className="mt-2 space-y-2">
+                        {q.options.map(opt => {
+                          const isSelected = studentAnswer?.selectedAnswerId === opt.id;
+                          const isCorrect = opt.isCorrect;
+                          return (
+                            <div key={opt.id} className={cn(
+                              "flex items-center gap-2 rounded-md p-2",
+                              isSelected && !isCorrect && "bg-red-100",
+                              isCorrect && "bg-green-100"
+                            )}>
+                              {isSelected ? (isCorrect ? <Check className="h-5 w-5 text-green-600"/> : <X className="h-5 w-5 text-red-600"/>) : (isCorrect ? <Check className="h-5 w-5 text-green-600"/> : <div className="h-5 w-5"/>)}
+                              <span className={cn(isSelected && "font-bold")}>{opt.text}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+              {teacherCommentsBlock}
+            </>
           )}
           {lesson.type === LessonType.FLASHCARD && typeof serializableAssignment.answers === 'object' && serializableAssignment.answers !== null && (
-             <div className="space-y-4">
+            <>
+              <div className="space-y-4">
                 {lesson.flashcards.map((fc) => {
-                    const studentPerformance = serializableAssignment.answers[fc.id];
-                    return (
-                        <div key={fc.id} className={cn("p-4 border rounded-lg flex justify-between items-center",
-                            studentPerformance === 'correct' ? 'bg-green-100' : 'bg-red-100'
-                        )}>
-                            <div>
-                                <p className="font-semibold">{fc.term}</p>
-                                <p className="text-sm text-gray-600">{fc.definition}</p>
-                            </div>
-                            {studentPerformance === 'correct' && (
-                                <div className="flex items-center gap-1 text-green-600 font-semibold">
-                                    <CheckCircle2 className="h-5 w-5" />
-                                    <span>Right</span>
-                                </div>
-                            )}
-                            {studentPerformance === 'incorrect' && (
-                                <div className="flex items-center gap-1 text-red-600 font-semibold">
-                                    <XCircle className="h-5 w-5" />
-                                    <span>Wrong</span>
-                                </div>
-                            )}
+                  const studentPerformance = serializableAssignment.answers[fc.id];
+                  return (
+                    <div key={fc.id} className={cn("flex items-center justify-between rounded-lg border p-4",
+                        studentPerformance === 'correct' ? 'bg-green-100' : 'bg-red-100'
+                    )}>
+                        <div>
+                            <p className="font-semibold">{fc.term}</p>
+                            <p className="text-sm text-gray-600">{fc.definition}</p>
                         </div>
-                    )
+                        {studentPerformance === 'correct' && (
+                            <div className="flex items-center gap-1 text-green-600 font-semibold">
+                                <CheckCircle2 className="h-5 w-5" />
+                                <span>Right</span>
+                            </div>
+                        )}
+                        {studentPerformance === 'incorrect' && (
+                            <div className="flex items-center gap-1 text-red-600 font-semibold">
+                                <XCircle className="h-5 w-5" />
+                                <span>Wrong</span>
+                            </div>
+                        )}
+                    </div>
+                  )
                 })}
-             </div>
+              </div>
+              {teacherCommentsBlock}
+            </>
           )}
         </div>
       )}
