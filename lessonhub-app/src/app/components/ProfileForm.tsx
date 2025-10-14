@@ -200,6 +200,26 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
                 <p className="text-xs text-gray-500">Email addresses cannot be changed.</p>
             </div>
             <div>
+                <Label htmlFor="gender">Gender</Label>
+                <select
+                  id="gender"
+                  className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as Gender)}
+                >
+                  <option value={Gender.MALE}>male</option>
+                  <option value={Gender.FEMALE}>female</option>
+                  <option value={Gender.BINARY}>binary</option>
+                </select>
+            </div>
+            <div className="flex items-center justify-between border rounded-md p-3">
+              <div>
+                <Label htmlFor="weekly-summary" className="font-medium">Weekly summary emails</Label>
+                <p className="text-xs text-gray-500">Receive a Sunday recap of your accomplishments.</p>
+              </div>
+              <Switch id="weekly-summary" checked={!weeklySummaryOptOut} onCheckedChange={(v) => setWeeklySummaryOptOut(!v)} />
+            </div>
+            <div>
                 <Label htmlFor="timeZone">Timezone</Label>
                 {tzList.length > 0 ? (
                   <select
