@@ -10,6 +10,7 @@ type LeaderboardData = {
     completedCount: number;
     averageCompletionTime: number;
     speedTier?: 'fast' | 'average' | 'slow';
+    savings?: number;
 };
 
 interface LeaderboardProps {
@@ -60,22 +61,24 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
     return (
         <div className="mt-12">
             <h2 className="text-2xl font-bold mb-4">🏆 Student Leaderboard</h2>
-            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            {/* Desktop/tablet table */}
+            <div className="bg-white shadow-md rounded-lg overflow-hidden hidden md:block">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lessons Completed</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Completion Time</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Time</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Savings</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {leaderboardData.map((student, index) => (
                                 <tr key={student.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
                                         <div className="flex items-center gap-2">
                                             <Avatar className="h-8 w-8">
                                                 <AvatarImage src={student.image || ''} alt={student.name || ''} />
@@ -84,10 +87,13 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                                             <span>{anonymizeName(student.name)}</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.completedCount}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <span className="text-2xl mr-1">{getSpeedEmoji(student.speedTier, index + 1)}</span> 
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{student.completedCount}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        <span className="text-2xl mr-1">{getSpeedEmoji(student.speedTier, index + 1)}</span>
                                         {formatDuration(student.averageCompletionTime)}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-700">
+                                        {typeof student.savings === 'number' ? `€${student.savings.toFixed(2)}` : '—'}
                                     </td>
                                 </tr>
                             ))}
@@ -96,6 +102,37 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                 </div>
                 {leaderboardData.length === 0 && (
                     <p className="p-6 text-center text-gray-500">No student data available yet. Complete some lessons to see the leaderboard!</p>
+                )}
+            </div>
+
+            {/* Mobile compact list */}
+            <div className="md:hidden space-y-3">
+                {leaderboardData.map((student, index) => (
+                    <div key={student.id} className="flex items-center justify-between rounded-lg border bg-white p-3 shadow-sm">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="text-xs font-semibold text-gray-600 w-6 text-center">{index + 1}</div>
+                            <Avatar className="h-8 w-8 flex-shrink-0">
+                                <AvatarImage src={student.image || ''} alt={student.name || ''} />
+                                <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                            </Avatar>
+                            <div className="truncate">
+                                <div className="text-sm font-medium truncate">{anonymizeName(student.name)}</div>
+                                <div className="text-xs text-gray-500">{student.completedCount} completed</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                                <span className="text-base leading-none">{getSpeedEmoji(student.speedTier, index + 1)}</span>
+                                {formatDuration(student.averageCompletionTime)}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
+                                {typeof student.savings === 'number' ? `€${student.savings.toFixed(0)}` : '—'}
+                            </span>
+                        </div>
+                    </div>
+                ))}
+                {leaderboardData.length === 0 && (
+                    <p className="p-4 text-center text-gray-500">No student data yet.</p>
                 )}
             </div>
         </div>

@@ -71,7 +71,7 @@ export default function StudentStatsHeader({
     <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
       {/* The "Hero" Card for My Progress */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 p-6 text-white shadow-lg lg:col-span-1">
-        <TrendingUp className="absolute top-4 right-4 h-16 w-16 text-white/10" />
+        <TrendingUp className="absolute top-4 right-4 h-16 w-16 text-white/60 drop-shadow-md" />
         <div className="flex h-full flex-col justify-between">
           <div>
             <h3 className="text-lg font-medium text-gray-300">{settings?.progressCardTitle || 'My Progress'}</h3>

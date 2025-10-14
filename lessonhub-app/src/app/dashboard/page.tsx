@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Users, BookOpen, Mail, Settings, Timer, UserCircle2 } from "lucide-react";
 import TeacherClassLeaderboard from "@/app/components/TeacherClassLeaderboard";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import prisma from "@/lib/prisma";
@@ -37,6 +37,35 @@ export default async function DashboardPage({
   if (!session) redirect("/signin");
   if (session.user.role === Role.STUDENT) redirect("/my-lessons");
   if (session.user.role !== Role.TEACHER && session.user.role !== Role.ADMIN) redirect("/");
+
+  // Admins see an Admin Dashboard instead of the Teacher view
+  if (session.user.role === Role.ADMIN) {
+    const adminTiles = [
+      { href: '/admin/users', label: 'User Management', icon: Users, color: 'bg-blue-50 text-blue-700 border-blue-200' },
+      { href: '/admin/lessons', label: 'Lesson Management', icon: BookOpen, color: 'bg-purple-50 text-purple-700 border-purple-200' },
+      { href: '/admin/emails', label: 'Email Editor', icon: Mail, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      { href: '/admin/settings', label: 'Dashboard Settings', icon: Settings, color: 'bg-amber-50 text-amber-700 border-amber-200' },
+      { href: '/admin/cron', label: 'Cron Test Page', icon: Timer, color: 'bg-rose-50 text-rose-700 border-rose-200' },
+      { href: '/profile', label: 'Profile', icon: UserCircle2, color: 'bg-slate-50 text-slate-700 border-slate-200' },
+    ];
+
+    return (
+      <div className="p-6">
+        <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+        <p className="text-gray-600 mb-8">Quick access to admin tools.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {adminTiles.map(({ href, label, icon: Icon, color }) => (
+            <Link key={href} href={href} className={`block rounded-xl border ${color} p-8 text-center shadow-sm hover:shadow-lg transition-shadow`}> 
+              <div className="flex flex-col items-center gap-3">
+                <Icon className="h-10 w-10" />
+                <span className="text-lg font-semibold">{label}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Await the searchParams promise to resolve it
   const resolvedSearchParams = await searchParams;

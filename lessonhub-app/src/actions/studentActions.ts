@@ -101,24 +101,34 @@ export async function getLeaderboardData() {
       include: {
         assignments: {
           where: {
-            status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED] },
-            gradedAt: { not: null },
+            status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
           },
+          include: {
+            lesson: { select: { price: true } },
+          }
         },
       },
     });
 
     const studentStats = students.map(student => {
-      const completedCount = student.assignments.length;
-      let totalCompletionTime = 0;
+      const completedAssignments = student.assignments.filter(a => a.status === AssignmentStatus.COMPLETED || a.status === AssignmentStatus.GRADED);
+      const completedCount = completedAssignments.length;
 
-      student.assignments.forEach(a => {
+      let totalCompletionTime = 0;
+      completedAssignments.forEach(a => {
         if (a.gradedAt) {
           totalCompletionTime += new Date(a.gradedAt).getTime() - new Date(a.assignedAt).getTime();
         }
       });
-      
       const averageCompletionTime = completedCount > 0 ? totalCompletionTime / completedCount : 0;
+
+      // Savings logic: match My Progress: +price for GRADED, -price for FAILED
+      let savings = 0;
+      student.assignments.forEach(a => {
+        const price = a.lesson?.price ? Number(a.lesson.price.toString()) : 0;
+        if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score >= 0) savings += price;
+        if (a.status === AssignmentStatus.FAILED) savings -= price;
+      });
 
       return {
         id: student.id,
@@ -126,9 +136,9 @@ export async function getLeaderboardData() {
         image: student.image,
         completedCount,
         averageCompletionTime,
+        savings,
       };
-    })
-    .filter(s => s.completedCount > 0);
+    }).filter(s => s.completedCount > 0);
 
     const allTimes = studentStats.map(s => s.averageCompletionTime).filter(t => t > 0);
     if (allTimes.length > 1) {
@@ -146,8 +156,8 @@ export async function getLeaderboardData() {
         });
     }
 
-    const leaderboard = studentStats.sort((a, b) => 
-        b.completedCount - a.completedCount || a.averageCompletionTime - b.averageCompletionTime
+    const leaderboard = studentStats.sort((a, b) =>
+      b.completedCount - a.completedCount || a.averageCompletionTime - b.averageCompletionTime
     );
 
     return leaderboard;
