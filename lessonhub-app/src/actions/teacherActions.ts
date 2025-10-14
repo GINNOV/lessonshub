@@ -85,40 +85,51 @@ export async function getLeaderboardDataForTeacher(teacherId: string) {
     }
 
     const students = await prisma.user.findMany({
-      where: { id: { in: assignedStudentIds } },
+      where: {
+        id: { in: assignedStudentIds },
+        isTakingBreak: false,
+      },
       select: {
         id: true,
         name: true,
         image: true,
         assignments: {
           where: {
-            status: AssignmentStatus.GRADED,
+            status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
             lesson: { teacherId: teacherId },
           },
           select: {
             id: true,
+            status: true,
             score: true,
+            lesson: { select: { price: true } },
           },
         },
       },
     });
 
-    const studentStats = students.map(student => {
-      const completedCount = student.assignments.length;
-      const totalScore = student.assignments.reduce((sum, a) => sum + (a.score || 0), 0);
-      
-      return {
-        id: student.id,
-        name: student.name,
-        image: student.image,
-        completedCount,
-        totalScore,
-      };
-    })
-    .filter(s => s.completedCount > 0)
-    .sort((a, b) => b.totalScore - a.totalScore || b.completedCount - a.completedCount);
+    const studentStats = students
+      .map(student => {
+        const completedCount = student.assignments.filter(a => a.status === AssignmentStatus.COMPLETED || a.status === AssignmentStatus.GRADED).length;
+        let savings = 0;
+        for (const a of student.assignments) {
+          const price = a.lesson?.price ? Number(a.lesson.price.toString()) : 0;
+          if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score >= 0) savings += price;
+          if (a.status === AssignmentStatus.FAILED) savings -= price;
+        }
 
-    return studentStats;
+        return {
+          id: student.id,
+          name: student.name,
+          image: student.image,
+          completedCount,
+          savings,
+        };
+      })
+      .filter(s => s.completedCount > 0 || s.savings !== 0)
+      .sort((a, b) => b.savings - a.savings || b.completedCount - a.completedCount);
+
+    return studentStats as Array<{ id: string; name: string | null; image: string | null; completedCount: number; savings: number }>;
   } catch (error) {
     console.error("Failed to fetch teacher leaderboard data:", error);
     return [];

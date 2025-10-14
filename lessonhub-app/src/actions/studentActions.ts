@@ -96,8 +96,24 @@ export async function checkAndSendMilestoneEmail(studentId: string) {
  */
 export async function getLeaderboardData() {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return [];
+
+    // Determine the current student's teachers
+    const teacherLinks = await prisma.teachersForStudent.findMany({
+      where: { studentId: session.user.id },
+      select: { teacherId: true },
+    });
+    const teacherIds = teacherLinks.map(t => t.teacherId);
+    if (teacherIds.length === 0) return [];
+
+    // Fetch peers: same teachers, not on break
     const students = await prisma.user.findMany({
-      where: { role: Role.STUDENT },
+      where: {
+        role: Role.STUDENT,
+        isTakingBreak: false,
+        teachers: { some: { teacherId: { in: teacherIds } } },
+      },
       select: {
         id: true,
         name: true,

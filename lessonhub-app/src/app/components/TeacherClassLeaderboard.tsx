@@ -8,7 +8,7 @@ type LeaderboardData = {
     name: string | null;
     image: string | null;
     completedCount: number;
-    totalScore: number;
+    savings: number;
 };
 
 interface TeacherClassLeaderboardProps {
@@ -35,7 +35,7 @@ export default function TeacherClassLeaderboard({ leaderboardData }: TeacherClas
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Score</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Savings</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lessons Completed</th>
                             </tr>
                         </thead>
@@ -52,7 +52,7 @@ export default function TeacherClassLeaderboard({ leaderboardData }: TeacherClas
                                             <span>{student.name || 'Anonymous'}</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{student.totalScore}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">€{student.savings.toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.completedCount}</td>
                                 </tr>
                             ))}

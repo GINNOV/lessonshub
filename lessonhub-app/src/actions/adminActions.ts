@@ -348,6 +348,19 @@ export async function getAssignedStudents(teacherId: string) {
     }
 }
 
+export async function getAssignedTeachers(studentId: string) {
+    try {
+        const relations = await prisma.teachersForStudent.findMany({
+            where: { studentId },
+            select: { teacherId: true }
+        });
+        return relations.map(r => r.teacherId);
+    } catch (error) {
+        console.error("Failed to get assigned teachers:", error);
+        return [] as string[];
+    }
+}
+
 export async function assignStudentsToTeacher(teacherId: string, studentIds: string[]) {
     try {
         await prisma.$transaction(async (tx) => {
@@ -368,6 +381,28 @@ export async function assignStudentsToTeacher(teacherId: string, studentIds: str
         return { success: true };
     } catch (error) {
         console.error("Failed to assign students to teacher:", error);
+        return { success: false, error: "An error occurred." };
+    }
+}
+
+export async function assignTeachersToStudent(studentId: string, teacherIds: string[]) {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+        return { success: false, error: "Unauthorized" };
+    }
+    try {
+        await prisma.$transaction(async (tx) => {
+            await tx.teachersForStudent.deleteMany({ where: { studentId } });
+            if (teacherIds.length > 0) {
+                const data = teacherIds.map(teacherId => ({ studentId, teacherId }));
+                await tx.teachersForStudent.createMany({ data });
+            }
+        });
+        revalidatePath(`/admin/users/edit/${studentId}`);
+        revalidatePath('/admin/users');
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to assign teachers to student:", error);
         return { success: false, error: "An error occurred." };
     }
 }

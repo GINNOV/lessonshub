@@ -5,6 +5,8 @@ import { auth } from "@/auth";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import ProfileForm from "@/app/components/ProfileForm";
+import AssignTeachersToStudent from "@/app/components/AssignTeachersToStudent";
+import { getAllTeachers, getAssignedTeachers } from "@/actions/adminActions";
 import { Button } from "@/components/ui/button";
 
 // This is a helper function to fetch the specific user for this page.
@@ -43,6 +45,27 @@ export default async function AdminEditUserPage({
     );
   }
 
+  // Prepare teacher assignment data if the user is a student.
+  let teacherAssignBlock: React.ReactNode = null;
+  if (userToEdit.role === Role.STUDENT) {
+    const [allTeachers, assignedTeacherIds] = await Promise.all([
+      getAllTeachers(),
+      getAssignedTeachers(userId),
+    ]);
+    const serializableTeachers = allTeachers.map(t => ({ id: t.id, name: t.name, email: t.email }));
+    teacherAssignBlock = (
+      <div id="assign-teachers" className="mt-10">
+        <h2 className="text-xl font-semibold mb-3">Assign Teachers</h2>
+        <p className="text-sm text-muted-foreground mb-4">Select one or more teachers to assign to this student.</p>
+        <AssignTeachersToStudent
+          studentId={userId}
+          allTeachers={serializableTeachers}
+          assignedTeacherIds={assignedTeacherIds}
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -59,6 +82,7 @@ export default async function AdminEditUserPage({
 
       {/* This form is now being used by an admin */}
       <ProfileForm userToEdit={userToEdit} isAdmin={true} />
+      {teacherAssignBlock}
     </div>
   );
 }
