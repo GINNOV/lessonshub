@@ -14,7 +14,8 @@ import { toast } from 'sonner';
 interface GradingFormProps {
   // Assignment with lesson and potential existing per-answer comments
   assignment: Assignment & {
-    lesson?: { type: LessonType; questions?: string[] };
+    // Accept a broader lesson shape from Prisma, only `type` and `questions` are read
+    lesson?: { type: LessonType; questions?: any } & Record<string, any>;
     answers?: any;
     teacherAnswerComments?: any;
   };
@@ -36,7 +37,7 @@ export default function GradingForm({ assignment }: GradingFormProps) {
   );
   const [scoreError, setScoreError] = useState<string | null>(null);
   const isStandard = assignment.lesson?.type === 'STANDARD';
-  const questions = (assignment.lesson?.questions as string[]) || [];
+  const questions = (assignment.lesson?.questions as any as string[]) || [];
   const studentAnswers: string[] | null = Array.isArray(assignment.answers) ? (assignment.answers as string[]) : null;
   // Normalize existing comments: support array or object from DB
   const existingMap: Record<number, string> = (() => {

@@ -21,7 +21,8 @@
 - Student view: `src/app/my-lessons/page.tsx` renders `StudentLessonList`, which shows `StudentLessonCard`s, supports search (title/teacher), status filters (ALL/PENDING/GRADED/FAILED with matching status colors), and groups cards by week using `WeekDivider`; sorted by nearest deadline.
 - Teacher view: `src/app/dashboard/assign/[lessonId]/page.tsx` uses `AssignLessonForm` to search/filter students, bulk-select, set start/deadline, choose notification timing, and PATCH `/api/assignments`.
 - Component split: `StudentLessonList` is read-only (display + filters). `AssignLessonForm` owns assignment mutations. Do not merge these concerns.
- - Assignment page: Uses `LessonContentView` to render audio material, additional information, supporting image, and attachments consistently.
+- Assignment page: Uses `LessonContentView` to render audio material, additional information, supporting image, and attachments consistently.
+- Admin view: `/dashboard` shows admin tiles linking to Users, Lessons, Emails, Settings, Cron, and Profile (large buttons with icons) instead of teacher dashboard.
 - Data shaping: Convert Prisma `Decimal` to numbers before sending to client (e.g., lesson `price`, teacher `defaultLessonPrice`). Keep `_count` out of client objects except mapped fields like `completionCount`.
 
 ## Coding Style & Naming Conventions
@@ -36,6 +37,9 @@
 ## Practical Tips
 - Handle undefined props gracefully in client components (e.g., `prop ?? []`, lazy `useState` initializers) to avoid first-render errors during data hydration.
 - Keep student and teacher flows isolated to prevent accidental UX regressions.
+- Timezone: `TimezoneSync` stores browser IANA timezone; users can override in `Profile` (saved to `User.timeZone`). Email deadlines honor the saved timezone.
+- Grading: Standard lessons support optional per‑answer comments (stored in `teacherAnswerComments`; gracefully appended to overall comments if column absent).
+- Leaderboard: Student leaderboard shows “Savings” (matches My Progress calculation) and uses a compact mobile layout.
 
 ## Testing Guidelines
 - No test runner is configured yet. If adding tests, prefer Vitest + React Testing Library.
@@ -51,3 +55,15 @@
 ## Security & Config Tips
 - Environment: define secrets in `.env.local` (DB URL, NextAuth, email, blob storage). Never commit secrets.
 - Data model changes require a migration (`npm run prisma:migrate`) and seed updates (`prisma/seed.ts`) when applicable.
+
+## Quick Links
+- Admin: `/dashboard` (tiles), `/admin/users`, `/admin/lessons`, `/admin/emails`, `/admin/settings`, `/admin/cron`.
+- Teacher: `/dashboard/assign/[lessonId]`, `/dashboard/submissions/[lessonId]`, `/dashboard/grade/[assignmentId]`.
+- Student: `/my-lessons`, `/assignments/[assignmentId]`, `/profile`.
+
+## Common Pitfalls
+- Migrations: after schema updates (e.g., `User.timeZone`, `Assignment.teacherAnswerComments`), run `npm run prisma:migrate` then `npm run prisma:generate`.
+- Email placeholders: ensure `deadline` is passed when sending `new_assignment`/reminder emails; deadlines are formatted with `User.timeZone` if set.
+- Image props: Next 13+ deprecates `layout`/`objectFit`; use `fill` + `object-cover`. Add `priority` for above‑the‑fold LCP images.
+- Decimal serialization: convert Prisma `Decimal` to number before sending to client (lesson `price`, teacher `defaultLessonPrice`).
+- Role views: Admins see admin tiles at `/dashboard`; teachers see the teacher dashboard; students go to `/my-lessons`.
