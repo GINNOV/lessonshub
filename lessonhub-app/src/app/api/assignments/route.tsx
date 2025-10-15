@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendEmail, createButton } from "@/lib/email-templates";
+import { AssignmentScheduleEntry, getImmediateStartStudentIds } from "@/lib/assignmentNotifications";
 
 export async function PATCH(req: Request) {
   const session = await auth();
@@ -20,22 +21,85 @@ export async function PATCH(req: Request) {
       notificationOption, // 'immediate', 'on_start_date', or 'none'
     } = body;
 
+    type AssignmentRequestPayload = {
+      studentId: string;
+      deadline: string;
+      startDate: string;
+    };
+
+    type AssignmentWithRelations = {
+      id: string;
+      deadline: Date;
+      startDate: Date;
+      student: {
+        email: string | null;
+        name: string | null;
+        timeZone: string | null;
+      } | null;
+      lesson: {
+        title: string;
+        teacher: {
+          name: string | null;
+        } | null;
+      } | null;
+    };
+
+    const formatDeadline = (deadline: Date, timeZone?: string | null) => {
+      try {
+        return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: timeZone || undefined }).format(deadline);
+      } catch {
+        return deadline.toLocaleString();
+      }
+    };
+
+    const sendStartAvailabilityEmail = async (assignment: AssignmentWithRelations) => {
+      const student = assignment.student;
+      const lesson = assignment.lesson;
+      if (!student?.email || !lesson?.teacher) {
+        return false;
+      }
+      const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
+      const deadlineStr = formatDeadline(new Date(assignment.deadline), student.timeZone);
+      await sendEmail({
+        to: student.email,
+        templateName: 'new_assignment',
+        data: {
+          studentName: student.name || 'student',
+          teacherName: lesson.teacher.name || 'Your Teacher',
+          lessonTitle: lesson.title,
+          deadline: deadlineStr,
+          button: createButton('Start Lesson', assignmentUrl),
+        },
+      });
+      return true;
+    };
+
     if (!lessonId) {
       return new Response(JSON.stringify({ error: "Lesson ID is required" }), { status: 400 });
     }
 
+    const assignmentsToAssign = Array.isArray(studentIdsToAssign)
+      ? (studentIdsToAssign as AssignmentRequestPayload[])
+      : [];
+    const assignmentsToUpdate = Array.isArray(studentIdsToUpdate)
+      ? (studentIdsToUpdate as AssignmentRequestPayload[])
+      : [];
+    const studentIdsToUnassignArray = Array.isArray(studentIdsToUnassign)
+      ? (studentIdsToUnassign as string[])
+      : [];
+
     // Unassign students
-    if (studentIdsToUnassign && studentIdsToUnassign.length > 0) {
+    if (studentIdsToUnassignArray.length > 0) {
       await prisma.assignment.deleteMany({
-        where: { lessonId, studentId: { in: studentIdsToUnassign } },
+        where: { lessonId, studentId: { in: studentIdsToUnassignArray } },
       });
     }
 
     const notifyOnStartDate = notificationOption === 'on_start_date';
 
     // Assign new students
-    if (studentIdsToAssign && studentIdsToAssign.length > 0) {
-      const assignmentsData = studentIdsToAssign.map((item: { studentId: string; deadline: string; startDate: string; }) => ({
+    if (assignmentsToAssign.length > 0) {
+      const assignmentsData = assignmentsToAssign.map((item) => ({
         lessonId,
         studentId: item.studentId,
         deadline: new Date(item.deadline),
@@ -46,7 +110,7 @@ export async function PATCH(req: Request) {
 
       if (notificationOption === 'immediate') {
          const newlyAssignedStudents = await prisma.user.findMany({
-          where: { id: { in: studentIdsToAssign.map((item: { studentId: string }) => item.studentId) } },
+          where: { id: { in: assignmentsToAssign.map((item) => item.studentId) } },
           select: { id: true, email: true, name: true, timeZone: true },
         });
 
@@ -56,20 +120,8 @@ export async function PATCH(req: Request) {
                 if (student.email) {
                     const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
                     // Find this student's deadline from payload to personalize the email
-                    const assigned = studentIdsToAssign.find((i: { studentId: string; deadline: string }) => i.studentId === student.id);
-                    let deadlineStr = '';
-                    if (assigned) {
-                      const d = new Date(assigned.deadline);
-                      if (student.timeZone) {
-                        try {
-                          deadlineStr = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: student.timeZone }).format(d);
-                        } catch {
-                          deadlineStr = d.toLocaleString();
-                        }
-                      } else {
-                        deadlineStr = d.toLocaleString();
-                      }
-                    }
+                    const assigned = assignmentsToAssign.find((i) => i.studentId === student.id);
+                    const deadlineStr = assigned ? formatDeadline(new Date(assigned.deadline), student.timeZone) : '';
                     await sendEmail({
                         to: student.email,
                         templateName: 'new_assignment',
@@ -85,19 +137,70 @@ export async function PATCH(req: Request) {
             }
         }
       }
+
+      if (notifyOnStartDate) {
+        const now = new Date();
+        const scheduleEntries: AssignmentScheduleEntry[] = assignmentsData.map(({ studentId, startDate }) => ({
+          studentId,
+          startDate,
+        }));
+        const studentIdsNeedingImmediateNotification = getImmediateStartStudentIds(scheduleEntries, now);
+
+        if (studentIdsNeedingImmediateNotification.length > 0) {
+          const assignmentsNeedingEmail = await prisma.assignment.findMany({
+            where: {
+              lessonId,
+              studentId: { in: studentIdsNeedingImmediateNotification },
+            },
+            include: {
+              student: true,
+              lesson: { include: { teacher: true } },
+            },
+          });
+
+          const idsToDisable: string[] = [];
+          for (const assignment of assignmentsNeedingEmail as AssignmentWithRelations[]) {
+            const didSend = await sendStartAvailabilityEmail(assignment);
+            if (didSend) {
+              idsToDisable.push(assignment.id);
+            }
+          }
+
+          if (idsToDisable.length > 0) {
+            await prisma.assignment.updateMany({
+              where: { id: { in: idsToDisable } },
+              data: { notifyOnStartDate: false },
+            });
+          }
+        }
+      }
     }
 
     // Update existing assignments
-    if (studentIdsToUpdate && studentIdsToUpdate.length > 0) {
-      for (const item of studentIdsToUpdate) {
-        await prisma.assignment.updateMany({
-          where: { lessonId, studentId: item.studentId },
+    if (assignmentsToUpdate.length > 0) {
+      for (const item of assignmentsToUpdate) {
+        const updatedAssignment = await prisma.assignment.update({
+          where: { lessonId_studentId: { lessonId, studentId: item.studentId } },
           data: {
             deadline: new Date(item.deadline),
             startDate: new Date(item.startDate),
             notifyOnStartDate,
           },
+          include: {
+            student: true,
+            lesson: { include: { teacher: true } },
+          },
         });
+
+        if (notifyOnStartDate && updatedAssignment.startDate && updatedAssignment.startDate <= new Date()) {
+          const didSend = await sendStartAvailabilityEmail(updatedAssignment as AssignmentWithRelations);
+          if (didSend) {
+            await prisma.assignment.update({
+              where: { id: updatedAssignment.id },
+              data: { notifyOnStartDate: false },
+            });
+          }
+        }
       }
     }
 

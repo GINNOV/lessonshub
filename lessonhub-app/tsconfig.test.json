@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "tmp/test-dist",
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "include": [
+    "src/lib/assignmentNotifications.ts",
+    "src/lib/__tests__/assignmentNotifications.test.ts"
+  ]
+}

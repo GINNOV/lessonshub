@@ -8,6 +8,8 @@
     "build": "dotenv -e .env.local -- prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "npm run test:build && node --test tmp/test-dist/__tests__/assignmentNotifications.test.js",
+    "test:build": "tsc -p tsconfig.test.json",
     "prisma:generate": "dotenv -e .env.local -- prisma generate",
     "prisma:push": "dotenv -e .env.local -- prisma db push",
     "prisma:studio": "dotenv -e .env.local -- prisma studio",

@@ -72,63 +72,67 @@ export async function sendDeadlineReminders() {
 
 
 export async function sendStartDateNotifications() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
+  const now = new Date();
 
   const assignmentsToNotify = await prisma.assignment.findMany({
-      where: {
-          status: AssignmentStatus.PENDING,
-          notifyOnStartDate: true,
-          startDate: {
-              gte: today,
-              lt: tomorrow,
-          },
+    where: {
+      status: AssignmentStatus.PENDING,
+      notifyOnStartDate: true,
+      startDate: { lte: now },
+    },
+    include: {
+      student: true,
+      lesson: {
+        include: { teacher: true },
       },
-      include: {
-          student: true,
-          lesson: {
-              include: { teacher: true },
-          },
-      },
+    },
   });
 
   if (assignmentsToNotify.length === 0) {
-      return { success: true, message: "No start date notifications to send." };
+    return { success: true, message: "No start date notifications to send." };
   }
 
   const template = await getEmailTemplateByName('new_assignment');
   if (!template) {
-      console.error("New assignment email template not found.");
-      return { success: false, message: "New assignment email template not found." };
+    console.error("New assignment email template not found.");
+    return { success: false, message: "New assignment email template not found." };
   }
 
   let count = 0;
+  const notifiedIds: string[] = [];
   for (const assignment of assignmentsToNotify) {
-      if (assignment.student.email && assignment.lesson.teacher) {
-          const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
-          const tz = assignment.student.timeZone || undefined;
-          let deadlineStr: string;
-          try {
-            deadlineStr = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: tz }).format(new Date(assignment.deadline));
-          } catch {
-            deadlineStr = new Date(assignment.deadline).toLocaleString();
-          }
-          await sendEmail({
-              to: assignment.student.email,
-              templateName: 'new_assignment',
-              data: {
-                  studentName: assignment.student.name || 'student',
-                  teacherName: assignment.lesson.teacher.name || 'Your Teacher',
-                  lessonTitle: assignment.lesson.title,
-                  deadline: deadlineStr,
-                  button: createButton('Start Lesson', assignmentUrl, template.buttonColor || undefined),
-              },
-          });
-          count++;
+    if (assignment.student.email && assignment.lesson.teacher) {
+      const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
+      const tz = assignment.student.timeZone || undefined;
+      let deadlineStr: string;
+      try {
+        deadlineStr = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: tz }).format(new Date(assignment.deadline));
+      } catch {
+        deadlineStr = new Date(assignment.deadline).toLocaleString();
       }
+      await sendEmail({
+        to: assignment.student.email,
+        templateName: 'new_assignment',
+        data: {
+          studentName: assignment.student.name || 'student',
+          teacherName: assignment.lesson.teacher.name || 'Your Teacher',
+          lessonTitle: assignment.lesson.title,
+          deadline: deadlineStr,
+          button: createButton('Start Lesson', assignmentUrl, template.buttonColor || undefined),
+        },
+      });
+      notifiedIds.push(assignment.id);
+      count++;
+    }
   }
+
+  if (notifiedIds.length > 0) {
+    await prisma.assignment.updateMany({
+      where: { id: { in: notifiedIds } },
+      data: { notifyOnStartDate: false },
+    });
+  }
+
   return { success: true, message: `Sent ${count} start date notifications.` };
 }
 
