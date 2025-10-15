@@ -66,12 +66,12 @@ export default function GradingForm({ assignment }: GradingFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     if (scoreValue === '') {
       setScoreError('Please select a score.');
       toast.error('Please select a score.');
       return;
     }
+    setIsLoading(true);
     try {
       // Only send non-empty comments
       const cleaned: Record<number, string> = Object.keys(answerComments).reduce((acc, key) => {
