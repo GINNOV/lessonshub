@@ -2,7 +2,7 @@
 'use server';
 
 import prisma from "@/lib/prisma";
-import { Role, AssignmentStatus, LessonType } from "@prisma/client";
+import { Role, AssignmentStatus, LessonType, Prisma } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
 import { getEmailTemplateByName } from '@/actions/adminActions';
 import { createButton, sendEmail } from '@/lib/email-templates';
@@ -87,6 +87,84 @@ export async function deleteLesson(lessonId: string) {
     } catch (error) {
         return { success: false, error: 'Failed to delete lesson.' };
     }
+}
+
+export async function duplicateLesson(lessonId: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  try {
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, teacherId: session.user.id },
+      include: {
+        flashcards: true,
+        multiChoiceQuestions: {
+          include: { options: true },
+        },
+      },
+    });
+
+    if (!lesson) {
+      return { success: false, error: 'Lesson not found.' };
+    }
+
+    const prefixedTitle = lesson.title.trim().toLowerCase().startsWith('copy ')
+      ? lesson.title.trim()
+      : `copy ${lesson.title.trim()}`;
+
+    const duplicatedLesson = await prisma.lesson.create({
+      data: {
+        title: prefixedTitle,
+        type: lesson.type,
+        lesson_preview: lesson.lesson_preview,
+        assignment_text: lesson.assignment_text,
+        questions: lesson.questions === null ? undefined : (lesson.questions as Prisma.InputJsonValue),
+        assignment_image_url: lesson.assignment_image_url,
+        soundcloud_url: lesson.soundcloud_url,
+        context_text: lesson.context_text,
+        attachment_url: lesson.attachment_url,
+        notes: lesson.notes,
+        assignment_notification: lesson.assignment_notification,
+        scheduled_assignment_date: lesson.scheduled_assignment_date,
+        teacherId: session.user.id,
+        price: lesson.price,
+        public_share_id: null,
+        flashcards: lesson.flashcards.length
+          ? {
+              create: lesson.flashcards.map((card) => ({
+                term: card.term,
+                definition: card.definition,
+                termImageUrl: card.termImageUrl,
+                definitionImageUrl: card.definitionImageUrl,
+              })),
+            }
+          : undefined,
+        multiChoiceQuestions: lesson.multiChoiceQuestions.length
+          ? {
+              create: lesson.multiChoiceQuestions.map((question) => ({
+                question: question.question,
+                options: question.options.length
+                  ? {
+                      create: question.options.map((option) => ({
+                        text: option.text,
+                        isCorrect: option.isCorrect,
+                      })),
+                    }
+                  : undefined,
+              })),
+            }
+          : undefined,
+      },
+    });
+
+    revalidatePath('/dashboard');
+    return { success: true, lessonId: duplicatedLesson.id };
+  } catch (error) {
+    console.error('Failed to duplicate lesson:', error);
+    return { success: false, error: 'Failed to duplicate lesson.' };
+  }
 }
 
 export async function sendCustomEmailToAssignedStudents(lessonId: string, subject: string, body: string) {

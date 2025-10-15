@@ -69,6 +69,7 @@ export default function GradingForm({ assignment }: GradingFormProps) {
     if (scoreValue === '') {
       setScoreError('Please select a score.');
       toast.error('Please select a score.');
+      setIsLoading(false);
       return;
     }
     setIsLoading(true);
