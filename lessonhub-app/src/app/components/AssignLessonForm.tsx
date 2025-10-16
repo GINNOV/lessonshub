@@ -49,6 +49,15 @@ const getDefaultStartDate = () => {
     return formatDateTimeForInput(today);
 }
 
+const toISOStringWithTimezone = (value: string | undefined): string | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return parsed.toISOString();
+};
+
 export default function AssignLessonForm({
   lesson,
   students,
@@ -179,7 +188,16 @@ export default function AssignLessonForm({
     setIsLoading(true);
     setIsSaved(false);
 
-    const studentsWithoutDates = selectedStudents.filter(id => !deadlines[id] || !startDates[id]);
+    const assignmentsWithParsedDates = selectedStudents.map((id) => ({
+      studentId: id,
+      deadlineISO: toISOStringWithTimezone(deadlines[id]),
+      startDateISO: toISOStringWithTimezone(startDates[id]),
+    }));
+
+    const studentsWithoutDates = assignmentsWithParsedDates
+      .filter(({ deadlineISO, startDateISO }) => !deadlineISO || !startDateISO)
+      .map(({ studentId }) => studentId);
+
     if (studentsWithoutDates.length > 0) {
         const studentNames = studentsWithoutDates.map(id => students.find(s => s.id === id)?.name || 'a student').join(', ');
         toast.error(`Please provide a start date and deadline for: ${studentNames}`);
@@ -191,10 +209,10 @@ export default function AssignLessonForm({
     
     const studentIdsToUnassign = Array.from(initialAssignedStudents).filter(id => !selectedStudents.includes(id));
     
-    const assignmentsToProcess = selectedStudents.map(id => ({
-        studentId: id,
-        deadline: deadlines[id],
-        startDate: startDates[id],
+    const assignmentsToProcess = assignmentsWithParsedDates.map(({ studentId, deadlineISO, startDateISO }) => ({
+        studentId,
+        deadline: deadlineISO as string,
+        startDate: startDateISO as string,
     }));
     
     const assignmentsToUpdate = assignmentsToProcess.filter(a => initialAssignedStudents.has(a.studentId));

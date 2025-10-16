@@ -22,9 +22,10 @@ type StandardAssignment = Omit<Assignment, 'lesson'> & {
 
 interface LessonResponseFormProps {
   assignment: StandardAssignment;
+  isSubmissionLocked?: boolean;
 }
 
-export default function LessonResponseForm({ assignment }: LessonResponseFormProps) {
+export default function LessonResponseForm({ assignment, isSubmissionLocked = false }: LessonResponseFormProps) {
   const router = useRouter();
   const [answers, setAnswers] = useState<string[]>([]);
   const [studentNotes, setStudentNotes] = useState('');
@@ -53,7 +54,12 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isReadOnly) return;
+    if (isReadOnly || isSubmissionLocked) {
+      if (isSubmissionLocked) {
+        toast.error("The deadline has passed. Submissions are disabled for this lesson.");
+      }
+      return;
+    }
 
     const isConfirmed = window.confirm("Are you sure you want to submit your answers? You won't be able to edit them later.");
     if (!isConfirmed) {
@@ -114,13 +120,13 @@ export default function LessonResponseForm({ assignment }: LessonResponseFormPro
          <div className="mt-6 border-t pt-6">
             <div className="flex items-center gap-2">
                 <Label>Rate this lesson:</Label>
-                <Rating initialRating={rating} onRatingChange={setRating} disabled={isLoading || isReadOnly} />
+                <Rating initialRating={rating} onRatingChange={setRating} disabled={isLoading || isReadOnly || isSubmissionLocked} />
             </div>
         </div>
       )}
 
       {!isReadOnly && (
-        <Button type="submit" disabled={isLoading} className="w-full">
+        <Button type="submit" disabled={isLoading || isSubmissionLocked} className="w-full">
           {isLoading ? 'Submitting...' : 'Submit Assignment'}
         </Button>
       )}

@@ -64,6 +64,9 @@ export default async function AssignmentPage({
 
   const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
   const showResultsArea = serializableAssignment.status === AssignmentStatus.GRADED || serializableAssignment.status === AssignmentStatus.FAILED;
+  const isPastDue =
+    serializableAssignment.status === AssignmentStatus.PENDING &&
+    new Date(serializableAssignment.deadline).getTime() < Date.now();
 
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
@@ -120,6 +123,14 @@ export default async function AssignmentPage({
       <p className="mb-6 text-sm font-bold text-red-600">
         Deadline: <LocaleDate date={serializableAssignment.deadline} />
       </p>
+      {isPastDue && (
+        <div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <p className="font-semibold">Deadline missed</p>
+          <p className="mt-1">
+            You didn&apos;t submit this lesson before the due date. The material remains visible so you can review it, but submitting answers is disabled.
+          </p>
+        </div>
+      )}
 
       {showResultsArea && (
         <div className="mb-8">
@@ -174,11 +185,11 @@ export default async function AssignmentPage({
           )}
           {!isFlashcard && <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>}
           {isFlashcard ? (
-            <FlashcardPlayer assignment={serializableAssignment} />
+            <FlashcardPlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
           ) : isMultiChoice ? (
-            <MultiChoicePlayer assignment={serializableAssignment} />
+            <MultiChoicePlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
           ) : (
-            <LessonResponseForm assignment={serializableAssignment} />
+            <LessonResponseForm assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
           )}
         </div>
       ) : (

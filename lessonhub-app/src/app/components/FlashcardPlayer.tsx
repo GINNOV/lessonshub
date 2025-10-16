@@ -24,9 +24,10 @@ type AssignmentWithFlashcards = Assignment & {
 
 interface FlashcardPlayerProps {
   assignment: AssignmentWithFlashcards;
+  isSubmissionLocked?: boolean;
 }
 
-export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
+export default function FlashcardPlayer({ assignment, isSubmissionLocked = false }: FlashcardPlayerProps) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -99,6 +100,10 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
   };
   
   const handleSubmit = async () => {
+    if (isSubmissionLocked) {
+      toast.error("The deadline has passed. Submissions are disabled for this lesson.");
+      return;
+    }
     setIsSubmitting(true);
     const result = await submitFlashcardAssignment(assignment.id, answers, rating);
     if (result.success) {
@@ -180,14 +185,14 @@ export default function FlashcardPlayer({ assignment }: FlashcardPlayerProps) {
             <div className="mt-6">
                 <h3 className="text-lg font-semibold mb-2">Rate this lesson</h3>
                 <div className="flex justify-center">
-                  <Rating onRatingChange={setRating} />
+                  <Rating onRatingChange={setRating} disabled={isSubmissionLocked} />
                 </div>
             </div>
             <div className="flex justify-center gap-4 mt-6">
               <Button onClick={handleRestart} variant="outline">
                   <RotateCw className="mr-2 h-4 w-4" /> Restart
               </Button>
-              <Button onClick={handleSubmit} disabled={isSubmitting}>
+              <Button onClick={handleSubmit} disabled={isSubmitting || isSubmissionLocked}>
                   <Send className="mr-2 h-4 w-4" /> {isSubmitting ? 'Submitting...' : 'Submit & Finish'}
               </Button>
             </div>

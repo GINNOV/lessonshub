@@ -267,6 +267,9 @@ export async function submitFlashcardAssignment(
     if (assignment.status !== AssignmentStatus.PENDING) {
       return { success: false, error: "Assignment has already been submitted." };
     }
+    if (new Date() > new Date(assignment.deadline)) {
+      return { success: false, error: "The deadline for this assignment has passed." };
+    }
 
     const correctCount = Object.values(answers).filter(a => a === 'correct').length;
     const totalCount = Object.keys(answers).length;
@@ -314,6 +317,12 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
             include: { lesson: { include: { multiChoiceQuestions: { include: { options: true }}}}}
         });
         if (!assignment) return { success: false, error: 'Assignment not found' };
+        if (assignment.status !== AssignmentStatus.PENDING) {
+          return { success: false, error: 'Assignment has already been submitted.' };
+        }
+        if (new Date() > new Date(assignment.deadline)) {
+          return { success: false, error: "The deadline for this assignment has passed." };
+        }
 
         let correctCount = 0;
         const processedAnswers = assignment.lesson.multiChoiceQuestions.map(q => {

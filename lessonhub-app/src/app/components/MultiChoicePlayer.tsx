@@ -23,9 +23,10 @@ type MultiChoiceAssignment = Omit<Assignment, 'lesson'> & {
 
 interface MultiChoicePlayerProps {
   assignment: MultiChoiceAssignment;
+  isSubmissionLocked?: boolean;
 }
 
-export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps) {
+export default function MultiChoicePlayer({ assignment, isSubmissionLocked = false }: MultiChoicePlayerProps) {
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
@@ -38,6 +39,10 @@ export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps
   };
 
   const handleSubmit = async () => {
+    if (isSubmissionLocked) {
+      toast.error('The deadline has passed. Submissions are disabled for this lesson.');
+      return;
+    }
     if (Object.keys(answers).length !== multiChoiceQuestions.length) {
       toast.error('Please answer all questions before submitting.');
       return;
@@ -110,10 +115,10 @@ export default function MultiChoicePlayer({ assignment }: MultiChoicePlayerProps
        <div className="mt-6 border-t pt-6">
           <h3 className="text-lg font-semibold mb-2 text-center">Rate this lesson</h3>
           <div className="flex justify-center">
-            <Rating onRatingChange={setRating} />
+            <Rating onRatingChange={setRating} disabled={isSubmissionLocked} />
           </div>
       </div>
-      <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full">
+      <Button onClick={handleSubmit} disabled={isSubmitting || isSubmissionLocked} className="w-full">
         {isSubmitting ? 'Submitting...' : 'Submit Answers'}
       </Button>
     </div>
