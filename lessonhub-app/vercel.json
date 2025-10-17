@@ -6,6 +6,10 @@
       "schedule": "0 9 * * *"
     },
     {
+      "path": "/api/cron/start?secret=${CRON_SECRET}",
+      "schedule": "0 * * * *"
+    },
+    {
       "path": "/api/cron/scheduled?secret=${CRON_SECRET}",
       "schedule": "0 8 * * *"
     }

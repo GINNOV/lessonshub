@@ -19,11 +19,14 @@
 
 ## Architecture & Workflows
 - Student view: `src/app/my-lessons/page.tsx` renders `StudentLessonList`, which shows `StudentLessonCard`s, supports search (title/teacher), status filters (ALL/PENDING/GRADED/FAILED with matching status colors), and groups cards by week using `WeekDivider`; sorted by nearest deadline.
+- Student lesson cards: teacher avatar links to `/teachers#<teacherId>`; footer shows submitted vs total counts (e.g., `7 of 8`) and includes a copy-to-clipboard share button.
 - Teacher view: `src/app/dashboard/assign/[lessonId]/page.tsx` uses `AssignLessonForm` to search/filter students, bulk-select, set start/deadline, choose notification timing, and PATCH `/api/assignments`.
 - Component split: `StudentLessonList` is read-only (display + filters). `AssignLessonForm` owns assignment mutations. Do not merge these concerns.
 - Assignment page: Uses `LessonContentView` to render audio material, additional information, supporting image, and attachments consistently.
 - Admin view: `/dashboard` shows admin tiles linking to Users, Lessons, Emails, Settings, Cron, and Profile (large buttons with icons) instead of teacher dashboard.
+- Cron jobs: `/api/cron/start` runs hourly to send start-date notifications; `/api/cron/daily` (09:00 UTC) handles reminders and weekly summaries.
 - Data shaping: Convert Prisma `Decimal` to numbers before sending to client (e.g., lesson `price`, teacher `defaultLessonPrice`). Keep `_count` out of client objects except mapped fields like `completionCount`.
+- Teacher directory: `/teachers` lists every teacher (requires auth) using the `User.teacherBio` field for their “About” section; cards expose anchor IDs so student cards can deep-link.
 
 ## Coding Style & Naming Conventions
 - Language: TypeScript; React 19; Next.js App Router.
@@ -38,6 +41,7 @@
 - Handle undefined props gracefully in client components (e.g., `prop ?? []`, lazy `useState` initializers) to avoid first-render errors during data hydration.
 - Keep student and teacher flows isolated to prevent accidental UX regressions.
 - Timezone: `TimezoneSync` stores browser IANA timezone; users can override in `Profile` (saved to `User.timeZone`). Email deadlines honor the saved timezone.
+- Teacher bios: teachers can edit their “About me” content from `/profile` (stored in `User.teacherBio`); changes revalidate `/teachers`.
 - Grading: Standard lessons support optional per‑answer comments (stored in `teacherAnswerComments`; gracefully appended to overall comments if column absent).
 - Leaderboard: Student leaderboard shows “Savings” (matches My Progress calculation) and uses a compact mobile layout.
 
