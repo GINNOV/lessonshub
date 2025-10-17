@@ -1,6 +1,7 @@
 // file: src/app/components/StudentLessonCard.tsx
 'use client';
 
+import { useCallback, useState, type MouseEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AssignmentStatus, LessonType } from '@prisma/client';
@@ -10,7 +11,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials, cn, getWeekAndDay } from '@/lib/utils';
 import LocaleDate from '@/app/components/LocaleDate';
 import { Button } from '@/components/ui/button';
-import { Users } from 'lucide-react';
+import { Share2, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import { ensureLessonShareLink } from '@/actions/lessonActions';
 
 type SerializableUser = {
   id: string;
@@ -26,6 +29,7 @@ type SerializableLesson = {
   lesson_preview: string | null;
   assignment_image_url: string | null;
   price: number;
+  public_share_id: string | null;
   teacher: SerializableUser | null;
   completionCount: number;
 };
@@ -55,6 +59,8 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
   const { lesson, status, deadline, score } = assignment;
   const isPastDeadline = new Date(deadline) < new Date();
   const isComplete = status === AssignmentStatus.COMPLETED || status === AssignmentStatus.GRADED || status === AssignmentStatus.FAILED;
+  const [shareId, setShareId] = useState<string | null>(lesson.public_share_id);
+  const [isCopying, setIsCopying] = useState(false);
   
   const getStatusBadge = () => {
     if (status === AssignmentStatus.GRADED) return <Badge variant="default">Graded: {score}/10</Badge>;
@@ -68,6 +74,70 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
   const imageSrc = lessonTypeImages[lesson.type];
 
   const lessonIdDisplay = `Lesson ${getWeekAndDay(new Date(deadline))}`;
+
+  const copyToClipboard = async (text: string) => {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+
+    const selection = document.getSelection();
+    const originalRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+
+    textarea.select();
+    const succeeded = document.execCommand('copy');
+    document.body.removeChild(textarea);
+
+    if (originalRange && selection) {
+      selection.removeAllRanges();
+      selection.addRange(originalRange);
+    }
+
+    if (!succeeded) {
+      throw new Error('Copy command failed');
+    }
+  };
+
+  const handleShare = useCallback(async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (isCopying) {
+      return;
+    }
+
+    setIsCopying(true);
+    try {
+      let currentShareId = shareId;
+
+      if (!currentShareId) {
+        const result = await ensureLessonShareLink(lesson.id);
+        if (!result.success || !result.shareId) {
+          toast.error(result.error || 'Failed to generate share link.');
+          return;
+        }
+        currentShareId = result.shareId;
+        setShareId(currentShareId);
+      }
+
+      const origin = window?.location?.origin || '';
+      const shareUrl = `${origin}/share/lesson/${currentShareId}`;
+      await copyToClipboard(shareUrl);
+      toast.success('Lesson link copied to clipboard.');
+    } catch (error) {
+      console.error('Failed to copy share link', error);
+      toast.error('Unable to copy share link.');
+    } finally {
+      setIsCopying(false);
+    }
+  }, [shareId, lesson.id, isCopying]);
 
   return (
     <Card 
@@ -94,13 +164,27 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
             </Link>
         </CardHeader>
         <CardContent className="flex-grow p-4">
-            <div className="flex justify-between items-start mb-2">
+            <div className="flex justify-between items-start mb-2 gap-3">
                 <CardTitle className="text-lg font-bold">
                     <Link href={`/assignments/${assignment.id}`} className="hover:text-primary transition-colors">
                         {lesson.title}
                     </Link>
                 </CardTitle>
-                {getStatusBadge()}
+                <div className="flex items-start gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleShare}
+                      disabled={isCopying}
+                      className="h-8 w-8"
+                      aria-label="Copy lesson share link"
+                      title="Copy lesson share link"
+                    >
+                      <Share2 className={cn("h-4 w-4", isCopying && "animate-pulse")} />
+                    </Button>
+                    {getStatusBadge()}
+                </div>
             </div>
             <p className="text-sm text-gray-500 line-clamp-2">{lesson.lesson_preview}</p>
         </CardContent>

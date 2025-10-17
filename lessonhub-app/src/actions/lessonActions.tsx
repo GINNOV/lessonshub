@@ -565,6 +565,57 @@ export async function getLessonById(lessonId: string) {
   }
 }
 
+export async function getLessonByShareId(shareId: string) {
+  try {
+    const lesson = await prisma.lesson.findFirst({
+      where: { public_share_id: shareId },
+      include: {
+        flashcards: {
+          select: {
+            id: true,
+            term: true,
+            definition: true,
+            termImageUrl: true,
+            definitionImageUrl: true,
+            lessonId: true,
+          },
+        },
+        multiChoiceQuestions: {
+          include: {
+            options: true,
+          },
+        },
+        teacher: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            defaultLessonPrice: true,
+          },
+        },
+      },
+    });
+
+    if (!lesson) {
+      return null;
+    }
+
+    return {
+      ...lesson,
+      price: lesson.price.toNumber(),
+      teacher: lesson.teacher
+        ? {
+            ...lesson.teacher,
+            defaultLessonPrice: lesson.teacher.defaultLessonPrice?.toNumber() ?? null,
+          }
+        : null,
+    };
+  } catch (error) {
+    console.error("Failed to fetch shared lesson:", error);
+    return null;
+  }
+}
+
 export async function getSubmissionsForLesson(lessonId: string, teacherId: string) {
   try {
     const submissions = await prisma.assignment.findMany({
@@ -686,6 +737,53 @@ export async function generateShareLink(lessonId: string) {
   } catch (error) {
     console.error("Failed to generate share link:", error);
     return { success: false, error: 'Failed to generate share link.' };
+  }
+}
+
+export async function ensureLessonShareLink(lessonId: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  try {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { public_share_id: true, teacherId: true },
+    });
+
+    if (!lesson) {
+      return { success: false, error: 'Lesson not found.' };
+    }
+
+    const isAdmin = session.user.role === Role.ADMIN;
+    const isLessonTeacher =
+      session.user.role === Role.TEACHER && lesson.teacherId === session.user.id;
+
+    if (!isAdmin && !isLessonTeacher) {
+      const assignment = await prisma.assignment.findFirst({
+        where: { lessonId, studentId: session.user.id },
+        select: { id: true },
+      });
+
+      if (!assignment) {
+        return { success: false, error: 'Unauthorized' };
+      }
+    }
+
+    let shareId = lesson.public_share_id;
+    if (!shareId) {
+      shareId = nanoid(12);
+      await prisma.lesson.update({
+        where: { id: lessonId },
+        data: { public_share_id: shareId },
+      });
+    }
+
+    return { success: true, shareId };
+  } catch (error) {
+    console.error("Failed to ensure lesson share link:", error);
+    return { success: false, error: 'Failed to ensure share link.' };
   }
 }
 

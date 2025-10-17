@@ -21,6 +21,7 @@ type SerializableLesson = {
   lesson_preview: string | null;
   assignment_image_url: string | null;
   price: number;
+  public_share_id: string | null;
   teacher: SerializableUser | null;
   completionCount: number;
 };

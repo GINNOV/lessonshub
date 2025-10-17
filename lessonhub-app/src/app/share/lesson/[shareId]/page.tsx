@@ -1,57 +1,82 @@
-// file: src/app/share/lesson/[shareId]/page.tsx
-'use client';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { Role } from '@prisma/client';
+import { auth } from '@/auth';
+import LessonContentView from '@/app/components/LessonContentView';
+import { getLessonByShareId } from '@/actions/lessonActions';
+import prisma from '@/lib/prisma';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter, redirect } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { assignLessonByShareId } from '@/actions/lessonActions';
-import { toast } from 'sonner';
+interface ShareLessonPageProps {
+  params: { shareId: string };
+}
 
-export default function JoinLessonPage() {
-  const router = useRouter();
-  const params = useParams();
-  const { data: session, status } = useSession();
-  const [message, setMessage] = useState('Joining lesson...');
+export default async function ShareLessonPage({ params }: ShareLessonPageProps) {
+  const { shareId } = params;
+  const [lesson, session] = await Promise.all([
+    getLessonByShareId(shareId),
+    auth(),
+  ]);
 
-  useEffect(() => {
-    if (status === 'loading') {
-      return;
-    }
+  if (!lesson) {
+    notFound();
+  }
 
-    if (status === 'unauthenticated') {
-      toast.error("Please sign in to join the lesson.");
-      router.push('/signin');
-      return;
-    }
+  const isStudent = session?.user?.role === Role.STUDENT;
 
-    const handleJoin = async () => {
-      // Ensure params and shareId exist before proceeding
-      if (!params || !params.shareId) {
-          setMessage("Invalid share link.");
-          return;
-      }
-      
-      const shareId = params.shareId as string;
-      if (!session?.user?.id) return;
+  const studentId = isStudent ? session?.user?.id : null;
 
-      const result = await assignLessonByShareId(shareId, session.user.id);
+  const assignment = studentId
+    ? await prisma.assignment.findFirst({
+        where: { lessonId: lesson.id, studentId },
+        select: { id: true },
+      })
+    : null;
 
-      if (result.success && result.assignment) {
-        toast.success("Lesson joined successfully!");
-        // Use redirect for navigation after server actions
-        redirect(`/assignments/${result.assignment.id}`);
-      } else {
-        toast.error(result.error || "Failed to join the lesson.");
-        router.push('/my-lessons');
-      }
-    };
-
-    handleJoin();
-  }, [status, session, params, router]);
+  const viewOnly = !assignment;
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <p>{message}</p>
+    <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10">
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          <Badge variant="outline">Shared lesson</Badge>
+          {viewOnly ? (
+            <Badge variant="secondary">View only</Badge>
+          ) : (
+            <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Assigned</Badge>
+          )}
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold">{lesson.title}</h1>
+          {lesson.teacher?.name && (
+            <p className="text-sm text-muted-foreground">Created by {lesson.teacher.name}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-lg border border-dashed border-muted bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          {viewOnly
+            ? isStudent
+              ? 'You can review the lesson below. A teacher must assign it before you can submit work.'
+              : 'This shared lesson is read-only. Sign in as the assigned student to work on it.'
+            : 'You are assigned to this lesson. Review the material and open your assignment when you are ready.'}
+        </p>
+        <div className="flex gap-2">
+          {assignment ? (
+            <Button asChild>
+              <Link href={`/assignments/${assignment.id}`}>Open assignment</Link>
+            </Button>
+          ) : !session ? (
+            <Button variant="secondary" asChild>
+              <Link href="/signin">Sign in</Link>
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      <LessonContentView lesson={lesson} />
     </div>
   );
 }
