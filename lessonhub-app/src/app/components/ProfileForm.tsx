@@ -13,6 +13,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Role, Gender } from '@prisma/client';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from '@/components/ui/textarea';
+import { updateTeacherBio } from '@/actions/teacherActions';
 
 interface ProfileFormProps {
   userToEdit?: User | null;
@@ -51,6 +53,8 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
       return typeof Intl !== 'undefined' && (Intl as any).supportedValuesOf ? (Intl as any).supportedValuesOf('timeZone') : [];
     } catch { return []; }
   })();
+  const [teacherBio, setTeacherBio] = useState(user?.teacherBio ?? '');
+  const [isSubmittingBio, setIsSubmittingBio] = useState(false);
 
   // All handlers from your original component are preserved
   const getInitials = (name: string | null | undefined): string => {
@@ -123,6 +127,33 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     setIsSubmittingProfile(false);
   };
 
+  const handleTeacherBioSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingBio(true);
+
+    try {
+      const result = await updateTeacherBio(teacherBio);
+      if (result.success) {
+        toast.success('About me updated successfully!');
+        if (!isAdmin && session) {
+          await update({
+            ...session,
+            user: {
+              ...session.user,
+              teacherBio,
+            } as any,
+          });
+        }
+      } else {
+        toast.error(result.error || 'Failed to update About me.');
+      }
+    } catch (error) {
+      toast.error('An unexpected error occurred.');
+    }
+
+    setIsSubmittingBio(false);
+  };
+
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
@@ -160,13 +191,30 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     }
   };
 
+  const tabOptions = [
+    { value: 'profile', label: 'Profile', visible: true },
+    { value: 'about', label: 'About me', visible: user?.role === Role.TEACHER },
+    { value: 'status', label: 'Status', visible: user?.role === Role.STUDENT },
+    { value: 'password', label: 'Password', visible: !isAdmin },
+    { value: 'delete', label: 'Delete Account', visible: !isAdmin },
+  ] as const;
+
+  const visibleTabs = tabOptions.filter((option) => option.visible);
+  const visibleCount = visibleTabs.length;
+  const mdCols =
+    visibleCount >= 4 ? 'md:grid-cols-4'
+    : visibleCount === 3 ? 'md:grid-cols-3'
+    : 'md:grid-cols-2';
+  const smCols = visibleCount > 1 ? 'grid-cols-2' : 'grid-cols-1';
+
   return (
     <Tabs defaultValue="profile" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-        <TabsTrigger value="profile">Profile</TabsTrigger>
-        {user?.role === Role.STUDENT && <TabsTrigger value="status">Status</TabsTrigger>}
-        {!isAdmin && <TabsTrigger value="password">Password</TabsTrigger>}
-        {!isAdmin && <TabsTrigger value="delete">Delete Account</TabsTrigger>}
+      <TabsList className={`grid w-full ${smCols} ${mdCols}`}>
+        {visibleTabs.map((tab) => (
+          <TabsTrigger key={tab.value} value={tab.value}>
+            {tab.label}
+          </TabsTrigger>
+        ))}
       </TabsList>
       
       <TabsContent value="profile">
@@ -243,6 +291,31 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
             </form>
         </div>
       </TabsContent>
+      {user?.role === Role.TEACHER && (
+        <TabsContent value="about">
+          <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
+            <h2 className="mb-4 text-2xl font-semibold">About Me</h2>
+            <form onSubmit={handleTeacherBioSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="teacher-bio">Share something with your students</Label>
+                <Textarea
+                  id="teacher-bio"
+                  value={teacherBio}
+                  onChange={(e) => setTeacherBio(e.target.value)}
+                  rows={6}
+                  placeholder="Introduce yourself, highlight your teaching style, or share what students can expect from your lessons."
+                />
+                <p className="text-xs text-gray-500">
+                  This message appears on the teachers directory for all logged-in students.
+                </p>
+              </div>
+              <Button type="submit" disabled={isSubmittingBio}>
+                {isSubmittingBio ? 'Saving...' : 'Save About Me'}
+              </Button>
+            </form>
+          </div>
+        </TabsContent>
+      )}
 
       {user?.role === Role.STUDENT && (
         <TabsContent value="status">

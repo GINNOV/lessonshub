@@ -30,6 +30,7 @@ type SerializableLesson = {
   assignment_image_url: string | null;
   price: number;
   public_share_id: string | null;
+  submittedCount: number;
   teacher: SerializableUser | null;
   completionCount: number;
 };
@@ -164,52 +165,60 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
             </Link>
         </CardHeader>
         <CardContent className="flex-grow p-4">
-            <div className="flex justify-between items-start mb-2 gap-3">
+            <div className="flex justify-between items-start mb-2">
                 <CardTitle className="text-lg font-bold">
                     <Link href={`/assignments/${assignment.id}`} className="hover:text-primary transition-colors">
                         {lesson.title}
                     </Link>
                 </CardTitle>
-                <div className="flex items-start gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleShare}
-                      disabled={isCopying}
-                      className="h-8 w-8"
-                      aria-label="Copy lesson share link"
-                      title="Copy lesson share link"
-                    >
-                      <Share2 className={cn("h-4 w-4", isCopying && "animate-pulse")} />
-                    </Button>
-                    {getStatusBadge()}
-                </div>
+                {getStatusBadge()}
             </div>
             <p className="text-sm text-gray-500 line-clamp-2">{lesson.lesson_preview}</p>
         </CardContent>
         <CardFooter className="p-4 border-t flex justify-between items-center text-sm">
             <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-gray-600" title={`Teacher: ${lesson.teacher?.name || 'Unassigned'}`}>
-                    <Avatar className="h-6 w-6">
-                        <AvatarImage src={lesson.teacher?.image || ''} alt={lesson.teacher?.name || 'teacher'} />
-                        <AvatarFallback>{getInitials(lesson.teacher?.name)}</AvatarFallback>
-                    </Avatar>
-                    <span>{lesson.teacher?.name || 'Unassigned'}</span>
+                <div className="flex items-center gap-2 text-gray-600" title={lesson.teacher?.name ? `View ${lesson.teacher.name}'s profile` : 'Unassigned'}>
+                    {lesson.teacher ? (
+                      <Link href={`/teachers#${lesson.teacher.id}`} className="inline-flex" prefetch={false}>
+                        <Avatar className="h-6 w-6">
+                            <AvatarImage src={lesson.teacher.image || ''} alt={lesson.teacher.name || 'teacher'} />
+                            <AvatarFallback>{getInitials(lesson.teacher.name)}</AvatarFallback>
+                        </Avatar>
+                      </Link>
+                    ) : (
+                      <Avatar className="h-6 w-6">
+                          <AvatarImage src="" alt="Unassigned teacher" />
+                          <AvatarFallback>?</AvatarFallback>
+                      </Avatar>
+                    )}
                 </div>
-                 <div className="flex items-center gap-1 text-gray-500" title={`${lesson.completionCount} students have this lesson`}>
+                 <div className="flex items-center gap-1 text-gray-500" title={`${lesson.submittedCount} of ${lesson.completionCount} students have submitted`}>
                     <Users className="h-4 w-4" />
-                    <span>{lesson.completionCount}</span>
+                    <span>{`${lesson.submittedCount} of ${lesson.completionCount}`}</span>
                 </div>
             </div>
-            <div className={cn("font-semibold", isPastDeadline && !isComplete ? "text-red-500" : "text-gray-600")}>
-                {isComplete ? (
-                    <Button asChild variant="secondary" size="sm">
-                        <Link href={`/assignments/${assignment.id}`}>View Results</Link>
-                    </Button>
-                ) : (
-                    <LocaleDate date={deadline} />
-                )}
+            <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleShare}
+                  disabled={isCopying}
+                  className="h-8 w-8"
+                  aria-label="Copy lesson share link"
+                  title="Copy lesson share link"
+                >
+                  <Share2 className={cn("h-4 w-4", isCopying && "animate-pulse")} />
+                </Button>
+                <div className={cn("font-semibold", isPastDeadline && !isComplete ? "text-red-500" : "text-gray-600")}>
+                    {isComplete ? (
+                        <Button asChild variant="secondary" size="sm">
+                            <Link href={`/assignments/${assignment.id}`}>View Results</Link>
+                        </Button>
+                    ) : (
+                        <LocaleDate date={deadline} />
+                    )}
+                </div>
             </div>
         </CardFooter>
     </Card>

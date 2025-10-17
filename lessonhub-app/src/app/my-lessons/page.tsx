@@ -48,19 +48,37 @@ export default async function MyLessonsPage() {
   const pastDue = assignments.filter(a => a.status === AssignmentStatus.PENDING && new Date(a.deadline) <= now).length;
   const failed = assignments.filter(a => a.status === AssignmentStatus.FAILED).length;
 
+  const submittedStatuses = new Set<AssignmentStatus>([
+    AssignmentStatus.COMPLETED,
+    AssignmentStatus.GRADED,
+    AssignmentStatus.FAILED,
+  ]);
+
   const serializableAssignments = assignments.map(assignment => {
-      const { _count, ...restOfLesson } = assignment.lesson;
+      const {
+        _count,
+        assignments: lessonAssignments,
+        price,
+        teacher,
+        ...restOfLesson
+      } = assignment.lesson;
+
+      const submittedCount = (lessonAssignments || []).filter((lessonAssignment) =>
+        submittedStatuses.has(lessonAssignment.status)
+      ).length;
+
       return {
         ...assignment,
         // Ensure optional columns missing in some DBs are present for typing
         teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
         lesson: {
           ...restOfLesson,
-          price: assignment.lesson.price.toNumber(),
+          price: price.toNumber(),
           completionCount: _count.assignments,
-          teacher: assignment.lesson.teacher ? {
-              ...assignment.lesson.teacher,
-              defaultLessonPrice: assignment.lesson.teacher.defaultLessonPrice?.toNumber() ?? null,
+          submittedCount,
+          teacher: teacher ? {
+              ...teacher,
+              defaultLessonPrice: teacher.defaultLessonPrice?.toNumber() ?? null,
           } : null,
         },
       }

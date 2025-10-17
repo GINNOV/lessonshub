@@ -490,6 +490,11 @@ export async function getAssignmentsForStudent(studentId: string) {
                         updatedAt: true,
                         public_share_id: true,
                         price: true,
+                        assignments: {
+                            select: {
+                                status: true,
+                            },
+                        },
                         teacher: {
                             select: {
                                 id: true,

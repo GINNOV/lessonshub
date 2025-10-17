@@ -22,6 +22,7 @@ type SerializableLesson = {
   assignment_image_url: string | null;
   price: number;
   public_share_id: string | null;
+  submittedCount: number;
   teacher: SerializableUser | null;
   completionCount: number;
 };
@@ -41,7 +42,7 @@ interface StudentLessonListProps {
 
 export default function StudentLessonList({ assignments }: StudentLessonListProps) {
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'graded' | 'failed'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'graded' | 'failed'>('pending');
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
@@ -104,7 +105,7 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
 
       {filtered.length === 0 ? (
         <p className="text-center text-gray-500 p-6 border rounded-lg">
-          No assignments in this view.
+          You have no assignments yet. Talk to your teacher if you were expecting some.
         </p>
       ) : (
         <div className="space-y-6">

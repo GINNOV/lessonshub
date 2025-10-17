@@ -70,6 +70,25 @@ export async function updateTeacherPreferences(data: TeacherPreferences) {
     }
 }
 
+export async function updateTeacherBio(teacherBio: string) {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        await prisma.user.update({
+            where: { id: session.user.id },
+            data: { teacherBio },
+        });
+        revalidatePath('/teachers');
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update teacher bio:", error);
+        return { success: false, error: "Failed to update bio." };
+    }
+}
+
 /**
  * Fetches and calculates data for the teacher's class leaderboard.
  */

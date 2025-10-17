@@ -49,6 +49,7 @@ model User {
   defaultLessonPreview      String?   @db.Text
   defaultLessonNotes        String?   @db.Text
   defaultLessonInstructions String?   @db.Text
+  teacherBio                String?   @db.Text
 
   // Customizable dashboard fields
   progressCardTitle         String?   @default("My Progress")
