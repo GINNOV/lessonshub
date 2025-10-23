@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/cron/start?secret=${CRON_SECRET}",
-      "schedule": "0 * * * *"
+      "schedule": "0 10 * * *"
     },
     {
       "path": "/api/cron/scheduled?secret=${CRON_SECRET}",

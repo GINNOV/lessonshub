@@ -25,6 +25,7 @@
 - Assignment page: Uses `LessonContentView` to render audio material, additional information, supporting image, and attachments consistently.
 - Admin view: `/dashboard` shows admin tiles linking to Users, Lessons, Emails, Settings, Cron, and Profile (large buttons with icons) instead of teacher dashboard.
 - Cron jobs: `/api/cron/start` runs hourly to send start-date notifications; `/api/cron/daily` (09:00 UTC) handles reminders and weekly summaries.
+- When deploying on Vercel Hobby, `/api/cron/start` is limited to one run per day (10:00 UTC) to stay within cron limits—adjust the schedule when moving to Pro if you need hourly coverage.
 - Data shaping: Convert Prisma `Decimal` to numbers before sending to client (e.g., lesson `price`, teacher `defaultLessonPrice`). Keep `_count` out of client objects except mapped fields like `completionCount`.
 - Teacher directory: `/teachers` lists every teacher (requires auth) using the `User.teacherBio` field for their “About” section; cards expose anchor IDs so student cards can deep-link.
 
