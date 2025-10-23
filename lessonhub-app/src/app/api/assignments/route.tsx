@@ -95,7 +95,8 @@ export async function PATCH(req: Request) {
       });
     }
 
-    const notifyOnStartDate = notificationOption === 'on_start_date';
+    const shouldScheduleStartNotificationsForNewAssignments = notificationOption === 'on_start_date';
+    const disableStartNotifications = notificationOption === 'none';
 
     // Assign new students
     if (assignmentsToAssign.length > 0) {
@@ -104,7 +105,7 @@ export async function PATCH(req: Request) {
         studentId: item.studentId,
         deadline: new Date(item.deadline),
         startDate: new Date(item.startDate),
-        notifyOnStartDate,
+        notifyOnStartDate: shouldScheduleStartNotificationsForNewAssignments,
       }));
       await prisma.assignment.createMany({ data: assignmentsData });
 
@@ -138,7 +139,7 @@ export async function PATCH(req: Request) {
         }
       }
 
-      if (notifyOnStartDate) {
+      if (shouldScheduleStartNotificationsForNewAssignments) {
         const now = new Date();
         const scheduleEntries: AssignmentScheduleEntry[] = assignmentsData.map(({ studentId, startDate }) => ({
           studentId,
@@ -178,13 +179,33 @@ export async function PATCH(req: Request) {
 
     // Update existing assignments
     if (assignmentsToUpdate.length > 0) {
+      const existingAssignmentStates = await prisma.assignment.findMany({
+        where: {
+          lessonId,
+          studentId: { in: assignmentsToUpdate.map((item) => item.studentId) },
+        },
+        select: {
+          studentId: true,
+          notifyOnStartDate: true,
+        },
+      });
+      const notifyStateByStudent = new Map(existingAssignmentStates.map(({ studentId, notifyOnStartDate }) => [studentId, notifyOnStartDate]));
+
       for (const item of assignmentsToUpdate) {
+        const previousNotifyState = notifyStateByStudent.get(item.studentId);
+        const shouldNotifyOnStartDate =
+          shouldScheduleStartNotificationsForNewAssignments
+            ? true
+            : disableStartNotifications
+              ? false
+              : previousNotifyState ?? false;
+
         const updatedAssignment = await prisma.assignment.update({
           where: { lessonId_studentId: { lessonId, studentId: item.studentId } },
           data: {
             deadline: new Date(item.deadline),
             startDate: new Date(item.startDate),
-            notifyOnStartDate,
+            notifyOnStartDate: shouldNotifyOnStartDate,
           },
           include: {
             student: true,
@@ -192,7 +213,7 @@ export async function PATCH(req: Request) {
           },
         });
 
-        if (notifyOnStartDate && updatedAssignment.startDate && updatedAssignment.startDate <= new Date()) {
+        if (updatedAssignment.notifyOnStartDate && updatedAssignment.startDate && updatedAssignment.startDate <= new Date()) {
           const didSend = await sendStartAvailabilityEmail(updatedAssignment as AssignmentWithRelations);
           if (didSend) {
             await prisma.assignment.update({

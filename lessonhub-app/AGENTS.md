@@ -71,3 +71,5 @@
 - Image props: Next 13+ deprecates `layout`/`objectFit`; use `fill` + `object-cover`. Add `priority` for above‑the‑fold LCP images.
 - Decimal serialization: convert Prisma `Decimal` to number before sending to client (lesson `price`, teacher `defaultLessonPrice`).
 - Role views: Admins see admin tiles at `/dashboard`; teachers see the teacher dashboard; students go to `/my-lessons`.
+- When editing assignments, preserve each row's `notifyOnStartDate` value unless the teacher explicitly switches to "notify on start date" or "don't notify". Accidentally clearing it prevents cron emails from being sent.
+- Use the admin cron test page to trigger start-date, deadline, payment, and weekly jobs; the date/time inputs feed the `/api/cron/test` route (`simulateTime`, `force`) for quick regression checks.

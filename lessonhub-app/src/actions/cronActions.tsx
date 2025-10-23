@@ -71,8 +71,8 @@ export async function sendDeadlineReminders() {
 }
 
 
-export async function sendStartDateNotifications() {
-  const now = new Date();
+export async function sendStartDateNotifications(referenceDate?: Date) {
+  const now = referenceDate ?? new Date();
 
   const assignmentsToNotify = await prisma.assignment.findMany({
     where: {
@@ -208,13 +208,13 @@ export async function sendPaymentReminders() {
 }
 
 
-export async function sendWeeklySummaries() {
-  const today = new Date();
-  if (today.getDay() != 0) {
+export async function sendWeeklySummaries(options: { referenceDate?: Date; force?: boolean } = {}) {
+  const today = options.referenceDate ?? new Date();
+  if (!options.force && today.getDay() != 0) {
     return { success: true, message: 'Not Sunday — skipping weekly summaries.' };
   }
-  const end = new Date(today); end.setHours(23,59,59,999)
-  const start = new Date(end); start.setDate(end.getDate()-6); start.setHours(0,0,0,0)
+  const end = new Date(today); end.setHours(23,59,59,999);
+  const start = new Date(end); start.setDate(end.getDate()-6); start.setHours(0,0,0,0);
 
   const students = await (await import('@/lib/prisma')).default.user.findMany({
     where: { role: (await import('@prisma/client')).Role.STUDENT, isSuspended: false, isTakingBreak: false, weeklySummaryOptOut: false },
