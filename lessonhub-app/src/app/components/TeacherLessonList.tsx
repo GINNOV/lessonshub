@@ -10,11 +10,13 @@ import { Input } from '@/components/ui/input';
 import { getWeekAndDay } from '@/lib/utils';
 import DeleteLessonButton from './DeleteLessonButton';
 import WeekDivider from './WeekDivider';
-import { Pencil, UserPlus, Eye, Share2, Mail, Star, Check, Copy } from 'lucide-react';
+import { Pencil, UserPlus, Eye, Share2, Mail, Star, Check, Copy, Trash2 } from 'lucide-react';
 import { duplicateLesson, generateShareLink } from '@/actions/lessonActions';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import LocaleDate from './LocaleDate';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { LessonDifficultyIndicator, DIFFICULTY_OPTIONS } from '@/app/components/LessonDifficultySelector';
 
 type LessonAssignmentSummary = Pick<Assignment, 'status' | 'deadline' | 'startDate'> & {
   classId: string | null;
@@ -79,14 +81,118 @@ const DATE_FILTER_VALUES = ['all', 'today', 'this_week', 'last_week', 'last_30_d
 const ORDER_VIEW_VALUES: OrderViewValue[] = ['deadline', 'week', 'available'];
 type DateFilterValue = (typeof DATE_FILTER_VALUES)[number];
 
+const STATUS_LEGEND = [
+  {
+    label: 'Pending',
+    badgeClass: 'bg-yellow-100 text-yellow-800',
+    description: 'Students received the lesson but have not submitted their work yet.',
+  },
+  {
+    label: 'Completed',
+    badgeClass: 'bg-blue-100 text-blue-800',
+    description: 'Students submitted their answers but grading is still pending.',
+  },
+  {
+    label: 'Graded',
+    badgeClass: 'bg-green-100 text-green-800',
+    description: 'All submissions were graded and scores are final.',
+  },
+  {
+    label: 'Past Due',
+    badgeClass: 'bg-red-100 text-red-800',
+    description: 'The deadline passed and the student still has not submitted the lesson.',
+  },
+  {
+    label: 'Failed',
+    badgeClass: 'bg-red-200 text-red-900',
+    description: 'The lesson was marked as failed for the student.',
+  },
+] as const;
+
+const CARD_STATE_LEGEND = [
+  {
+    label: 'No students assigned',
+    swatchClass: 'bg-red-50 border border-red-200',
+    description: 'Lessons with zero assignments are highlighted to show they still need students.',
+  },
+  {
+    label: 'Grading complete',
+    swatchClass: 'bg-blue-50 border border-blue-200',
+    description: 'All students have been graded or marked failed for this lesson.',
+  },
+  {
+    label: 'Mixed progress',
+    swatchClass: 'bg-slate-50 border border-slate-200',
+    description: 'Some students still require attention—keep working through the list.',
+  },
+] as const;
+
+const BUTTON_LEGEND = [
+  {
+    label: 'Share',
+    description: 'Copies the public “Join Lesson” link so students can self-enroll.',
+    icon: Share2,
+  },
+  {
+    label: 'Duplicate',
+    description: 'Creates a copy of the lesson with the same content so you can reuse it.',
+    icon: Copy,
+  },
+  {
+    label: 'Assign',
+    description: 'Opens the assignment workflow to schedule the lesson for students.',
+    icon: UserPlus,
+  },
+  {
+    label: 'Submissions',
+    description: 'Reviews student submissions and tracks their status in detail.',
+    icon: Eye,
+  },
+  {
+    label: 'Email',
+    description: 'Starts a custom email draft to follow up with students about this lesson.',
+    icon: Mail,
+  },
+  {
+    label: 'Edit',
+    description: 'Opens the lesson editor so you can update the content.',
+    icon: Pencil,
+  },
+  {
+    label: 'Delete (trash icon)',
+    description: 'Permanently removes the lesson after confirmation.',
+    icon: Trash2,
+  },
+] as const;
+
+const FILTER_LEGEND = [
+  {
+    label: 'Status Filter',
+    description: 'Focus on lessons with specific assignment statuses or highlight past-due work.',
+  },
+  {
+    label: 'Date Filter',
+    description: 'Zoom in on assignments due today, this week, last week, or within the last 30 days.',
+  },
+  {
+    label: 'Class Filter',
+    description: 'Limit the list to students in a specific class or to lessons still unassigned.',
+  },
+  {
+    label: 'Order',
+    description: 'Switch between deadline priority, week groups, or the original availability date.',
+  },
+] as const;
+
 export default function TeacherLessonList({ lessons, classes }: TeacherLessonListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(AssignmentStatus.PENDING);
   const [dateFilter, setDateFilter] = useState<DateFilterValue>('all');
   const [classFilter, setClassFilter] = useState('all');
-  const [orderView, setOrderView] = useState<OrderViewValue>('deadline');
+  const [orderView, setOrderView] = useState<OrderViewValue>('week');
   const [copiedLessonId, setCopiedLessonId] = useState<string | null>(null);
   const [duplicatingLessonId, setDuplicatingLessonId] = useState<string | null>(null);
+  const [isLegendOpen, setIsLegendOpen] = useState(false);
   const router = useRouter();
   const hasHydratedState = useRef(false);
 
@@ -346,7 +452,162 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     }
   }, []);
 
-  let lastWeek: number | null = null;
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      const isMetaShortcut = event.metaKey || event.ctrlKey;
+      const isHelpCombo =
+        event.key === '?' ||
+        (event.key === '/' && event.shiftKey);
+
+      if (isMetaShortcut && isHelpCombo) {
+        event.preventDefault();
+        setIsLegendOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, []);
+
+  const { weekGroups, weekSequence } = useMemo(() => {
+    const groups = new Map<number, LessonWithMeta[]>();
+    const sequence: number[] = [];
+
+    filteredLessons.forEach((lesson) => {
+      if (!groups.has(lesson.week)) {
+        groups.set(lesson.week, []);
+        sequence.push(lesson.week);
+      }
+      groups.get(lesson.week)!.push(lesson);
+    });
+
+    return { weekGroups: groups, weekSequence: sequence };
+  }, [filteredLessons]);
+
+  const weekRenderingOrder = useMemo(
+    () => [...weekSequence].sort((a, b) => b - a),
+    [weekSequence]
+  );
+
+  const renderLessonCard = (lesson: LessonWithMeta, index: number, key?: string) => {
+    const now = new Date();
+    const totalAssignments = lesson.assignments.length;
+    const graded = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.GRADED).length;
+    const completed = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.COMPLETED).length;
+    const pendingUpcoming = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.PENDING && (!a.deadlineDate || a.deadlineDate > now)).length;
+    const pastDue = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.PENDING && a.deadlineDate && a.deadlineDate <= now).length;
+    const failed = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.FAILED).length;
+    const firstDeadline = lesson.nextPendingDeadline ?? lesson.nextOutstandingDeadline ?? lesson.nextDeadline;
+    const classNamesDisplay = lesson.classNames.length
+      ? lesson.classNames.join(', ')
+      : (totalAssignments > 0 ? 'Unassigned' : '—');
+    const allStudentsProcessed = lesson.assignmentsWithDates.length > 0 && lesson.assignmentsWithDates.every(a => a.status === AssignmentStatus.GRADED || a.status === AssignmentStatus.FAILED);
+    const normalizedDifficulty = Math.min(Math.max((lesson.difficulty ?? 3), 1), 5);
+    const difficultyOption = DIFFICULTY_OPTIONS[normalizedDifficulty - 1];
+    const chipBg = difficultyOption.color.replace('500', '100');
+    const chipBorder = difficultyOption.color.replace('500', '200');
+
+    return (
+      <div
+        key={key ?? `lesson-${lesson.id}`}
+        className={cn(
+          "p-4 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center",
+          totalAssignments === 0 && "bg-red-50 border-red-200",
+          allStudentsProcessed && totalAssignments > 0 && "bg-blue-50 border-blue-200",
+          totalAssignments > 0 && !allStudentsProcessed && index % 2 !== 0 && "bg-slate-50"
+        )}
+      >
+        <div className="flex-1 mb-4 sm:mb-0">
+          <div className="flex items-center gap-2">
+            <Link href={`/dashboard/edit/${lesson.id}`} className="font-bold text-lg hover:underline">
+              <span className="mr-2">{lessonTypeEmojis[lesson.type]}</span>
+              {lesson.title}
+            </Link>
+            {lesson.averageRating && (
+              <div className="flex items-center gap-1 text-yellow-500">
+                <Star className="h-4 w-4 fill-current" />
+                <span className="text-sm font-bold">{lesson.averageRating.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mt-1 flex flex-wrap gap-2">
+            <span>Lesson {getWeekAndDay(new Date(lesson.createdAt))}</span>
+            <span>| Available: {lesson.availableDate ? <LocaleDate date={lesson.availableDate} options={{ year: 'numeric', month: 'numeric', day: 'numeric' }} /> : '—'}</span>
+            <span>| Deadline: {firstDeadline ? <LocaleDate date={firstDeadline} options={{ year: 'numeric', month: 'numeric', day: 'numeric' }} /> : '—'}</span>
+            <span>| Class: {classNamesDisplay}</span>
+          </p>
+          <span
+            className={cn(
+              'mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide',
+              chipBg,
+              chipBorder,
+              difficultyOption.text
+            )}
+          >
+            <span className={cn('h-2 w-2 rounded-full', difficultyOption.color)} aria-hidden="true" />
+            {difficultyOption.label}
+          </span>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+              {totalAssignments} Assigned
+            </span>
+            {pendingUpcoming > 0 && (
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                {pendingUpcoming} Pending
+              </span>
+            )}
+            {pastDue > 0 && (
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                {pastDue} Past Due
+              </span>
+            )}
+            {completed > 0 && (
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                {completed} Completed
+              </span>
+            )}
+            {graded > 0 && (
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                {graded} Graded
+              </span>
+            )}
+            {failed > 0 && (
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-200 text-red-900">
+                {failed} Failed
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center space-x-2 flex-wrap justify-end">
+          <Button variant="outline" size="icon" onClick={() => handleShareClick(lesson.id)} title="Share Lesson">
+            {copiedLessonId === lesson.id ? <Check className="h-4 w-4 text-green-500" /> : <Share2 className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => handleDuplicateClick(lesson.id)}
+            disabled={duplicatingLessonId === lesson.id}
+            title={duplicatingLessonId === lesson.id ? 'Duplicating...' : 'Duplicate Lesson'}
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" asChild title="Edit Lesson">
+            <Link href={`/dashboard/edit/${lesson.id}`}><Pencil className="h-4 w-4" /></Link>
+          </Button>
+          <Button variant="outline" size="icon" asChild title="Assign Lesson">
+            <Link href={`/dashboard/assign/${lesson.id}`}><UserPlus className="h-4 w-4" /></Link>
+          </Button>
+          <Button variant="outline" size="icon" asChild title="View Submissions">
+            <Link href={`/dashboard/submissions/${lesson.id}`}><Eye className="h-4 w-4" /></Link>
+          </Button>
+          <Button variant="outline" size="icon" asChild title="Send Custom Email">
+            <Link href={`/dashboard/email/${lesson.id}`}><Mail className="h-4 w-4" /></Link>
+          </Button>
+          <DeleteLessonButton lessonId={lesson.id} isIcon={true} />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -406,125 +667,113 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             <option value={AssignmentStatus.GRADED}>Graded</option>
             <option value={AssignmentStatus.FAILED}>Failed</option>
           </select>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setIsLegendOpen(true)}
+          >
+            <span aria-hidden="true" className="text-base font-semibold">
+              ?
+            </span>
+            <span className="sr-only">Open legend (Cmd + Shift + /)</span>
+          </Button>
         </div>
       </div>
 
       <div className="mt-6 bg-white shadow-md rounded-lg p-6">
         <h2 className="text-2xl font-semibold mb-4">Your Lessons</h2>
         {filteredLessons.length > 0 ? (
-          <ul className="space-y-4">
-            {filteredLessons.map((lesson, index) => {
-               const showDivider = lesson.week !== lastWeek;
-               lastWeek = lesson.week;
-
-              const now = new Date();
-              const totalAssignments = lesson.assignments.length;
-              const graded = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.GRADED).length;
-              const completed = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.COMPLETED).length;
-              const pendingUpcoming = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.PENDING && (!a.deadlineDate || a.deadlineDate > now)).length;
-              const pastDue = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.PENDING && a.deadlineDate && a.deadlineDate <= now).length;
-              const failed = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.FAILED).length;
-              const firstDeadline = lesson.nextPendingDeadline ?? lesson.nextOutstandingDeadline ?? lesson.nextDeadline;
-              const classNamesDisplay = lesson.classNames.length
-                ? lesson.classNames.join(', ')
-                : (totalAssignments > 0 ? 'Unassigned' : '—');
-              const allStudentsProcessed = lesson.assignmentsWithDates.length > 0 && lesson.assignmentsWithDates.every(a => a.status === AssignmentStatus.GRADED || a.status === AssignmentStatus.FAILED);
-
-              return (
-                <div key={lesson.id}>
-                  {showDivider && <WeekDivider weekNumber={lesson.week} />}
-                  <li className={cn(
-                      "p-4 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center",
-                      totalAssignments === 0 && "bg-red-50 border-red-200",
-                      allStudentsProcessed && totalAssignments > 0 && "bg-blue-50 border-blue-200",
-                      totalAssignments > 0 && !allStudentsProcessed && index % 2 !== 0 && "bg-slate-50"
-                  )}>
-                    <div className="flex-1 mb-4 sm:mb-0">
-                      <div className="flex items-center gap-2">
-                        <Link href={`/dashboard/edit/${lesson.id}`} className="font-bold text-lg hover:underline">
-                          <span className="mr-2">{lessonTypeEmojis[lesson.type]}</span>
-                          {lesson.title}
-                        </Link>
-                        {lesson.averageRating && (
-                            <div className="flex items-center gap-1 text-yellow-500">
-                                <Star className="h-4 w-4 fill-current" />
-                                <span className="text-sm font-bold">{lesson.averageRating.toFixed(1)}</span>
-                            </div>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1 flex flex-wrap gap-2">
-                        <span>Lesson {getWeekAndDay(new Date(lesson.createdAt))}</span>
-                        <span>| Available: {lesson.availableDate ? <LocaleDate date={lesson.availableDate} options={{ year: 'numeric', month: 'numeric', day: 'numeric' }} /> : '—'}</span>
-                        <span>| Deadline: {firstDeadline ? <LocaleDate date={firstDeadline} options={{ year: 'numeric', month: 'numeric', day: 'numeric' }} /> : '—'}</span>
-                        <span>| Class: {classNamesDisplay}</span>
-                      </p>
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                          {totalAssignments} Assigned
-                        </span>
-                        {pendingUpcoming > 0 && (
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                            {pendingUpcoming} Pending
-                          </span>
-                        )}
-                        {pastDue > 0 && (
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                            {pastDue} Past Due
-                          </span>
-                        )}
-                        {completed > 0 && (
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {completed} Completed
-                          </span>
-                        )}
-                        {graded > 0 && (
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                            {graded} Graded
-                          </span>
-                        )}
-                        {failed > 0 && (
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-200 text-red-900">
-                            {failed} Failed
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 flex-wrap justify-end">
-                      <Button variant="outline" size="icon" onClick={() => handleShareClick(lesson.id)} title="Share Lesson">
-                        {copiedLessonId === lesson.id ? <Check className="h-4 w-4 text-green-500" /> : <Share2 className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleDuplicateClick(lesson.id)}
-                        disabled={duplicatingLessonId === lesson.id}
-                        title={duplicatingLessonId === lesson.id ? 'Duplicating...' : 'Duplicate Lesson'}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" asChild title="Edit Lesson">
-                        <Link href={`/dashboard/edit/${lesson.id}`}><Pencil className="h-4 w-4" /></Link>
-                      </Button>
-                      <Button variant="outline" size="icon" asChild title="Assign Lesson">
-                        <Link href={`/dashboard/assign/${lesson.id}`}><UserPlus className="h-4 w-4" /></Link>
-                      </Button>
-                      <Button variant="outline" size="icon" asChild title="View Submissions">
-                        <Link href={`/dashboard/submissions/${lesson.id}`}><Eye className="h-4 w-4" /></Link>
-                      </Button>
-                      <Button variant="outline" size="icon" asChild title="Send Custom Email">
-                        <Link href={`/dashboard/email/${lesson.id}`}><Mail className="h-4 w-4" /></Link>
-                      </Button>
-                      <DeleteLessonButton lessonId={lesson.id} isIcon={true} />
-                    </div>
-                  </li>
+          <div className="space-y-6">
+            {(() => {
+              let globalIndex = 0;
+              return weekRenderingOrder.map((week) => (
+                <div key={`week-${week}`} className="space-y-4">
+                  <WeekDivider weekNumber={week} />
+                  <div className="space-y-4">
+                    {(weekGroups.get(week) ?? []).map((lesson) =>
+                      renderLessonCard(lesson, globalIndex++, `lesson-${lesson.id}`)
+                    )}
+                  </div>
                 </div>
-              );
-            })}
-          </ul>
+              ));
+            })()}
+          </div>
         ) : (
           <p>No lessons match your criteria.</p>
         )}
       </div>
+      <Dialog open={isLegendOpen} onOpenChange={setIsLegendOpen}>
+        <DialogContent className="w-[95vw] max-w-4xl sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Dashboard legend</DialogTitle>
+            <DialogDescription>
+              Press Cmd + Shift + / (or Ctrl + Shift + /) anytime to reopen this cheat sheet.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-6 text-sm text-gray-600 sm:grid-cols-2">
+            <section>
+              <p className="text-xs font-semibold uppercase text-gray-500">Status colors</p>
+              <div className="mt-3 space-y-2">
+                {STATUS_LEGEND.map((status) => (
+                  <div key={status.label} className="flex items-start gap-3">
+                    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${status.badgeClass}`}>
+                      {status.label}
+                    </span>
+                    <p className="flex-1 leading-relaxed">{status.description}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <p className="text-xs font-semibold uppercase text-gray-500">Card backgrounds</p>
+              <div className="mt-3 space-y-2">
+                {CARD_STATE_LEGEND.map((card) => (
+                  <div key={card.label} className="flex items-start gap-3">
+                    <span className={`h-5 w-5 rounded-md ${card.swatchClass}`} aria-hidden="true" />
+                    <div className="leading-relaxed">
+                      <p className="font-semibold text-gray-800">{card.label}</p>
+                      <p>{card.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <p className="text-xs font-semibold uppercase text-gray-500">Filters & ordering</p>
+              <div className="mt-3 space-y-2">
+                {FILTER_LEGEND.map((filter) => (
+                  <div key={filter.label} className="leading-relaxed">
+                    <p className="font-semibold text-gray-800">{filter.label}</p>
+                    <p>{filter.description}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <p className="text-xs font-semibold uppercase text-gray-500">Action buttons</p>
+              <div className="mt-3 space-y-2">
+                {BUTTON_LEGEND.map((action) => (
+                  <div key={action.label} className="flex items-start gap-3">
+                    <span className="mt-0.5 inline-flex rounded-md border border-gray-200 bg-gray-50 p-1.5 text-gray-700">
+                      <action.icon className="h-4 w-4" />
+                    </span>
+                    <div className="leading-relaxed">
+                      <p className="font-semibold text-gray-800">{action.label}</p>
+                      <p>{action.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+      </DialogContent>
+      </Dialog>
     </div>
   );
 }

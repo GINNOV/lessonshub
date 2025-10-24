@@ -266,14 +266,14 @@ export default function AssignLessonForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
             <Label htmlFor="start-date">Set Start Date</Label>
-            <Input id="start-date" type="datetime-local" value={masterStartDate} onChange={handleMasterStartDateChange} disabled={notificationOption === 'none'} />
+            <Input id="start-date" type="datetime-local" value={masterStartDate} onChange={handleMasterStartDateChange} disabled={notificationOption === 'none'} className="w-full" />
         </div>
         <div className="space-y-2">
             <Label htmlFor="deadline">Set Due Date</Label>
-            <Input id="deadline" type="datetime-local" value={masterDeadline} onChange={handleMasterDeadlineChange} />
+            <Input id="deadline" type="datetime-local" value={masterDeadline} onChange={handleMasterDeadlineChange} className="w-full" />
         </div>
         <div className="space-y-2">
             <Label htmlFor="search">Search Students</Label>
@@ -296,9 +296,9 @@ export default function AssignLessonForm({
         </div>
       </div>
       
-      <div className="p-4 border rounded-md">
+      <div className="p-4 border rounded-md space-y-3">
         <Label className="mb-2 block font-semibold">Notification Options</Label>
-        <RadioGroup value={notificationOption} onValueChange={setNotificationOption}>
+        <RadioGroup value={notificationOption} onValueChange={setNotificationOption} className="space-y-2">
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="on_start_date" id="on_start_date" />
             <Label htmlFor="on_start_date">Notify students on the start date (default)</Label>
@@ -314,42 +314,138 @@ export default function AssignLessonForm({
         </RadioGroup>
       </div>
 
+      <div className="flex items-center justify-between rounded-md border bg-gray-50 px-3 py-2 text-sm">
+        <div>
+          <span className="font-semibold">{selectedStudents.length}</span> selected of{' '}
+          <span className="font-semibold">{filteredStudents.length}</span> shown
+        </div>
+        <label htmlFor="select-all-filtered" className="flex items-center gap-2 font-medium text-gray-700">
+          <Checkbox
+            id="select-all-filtered"
+            checked={areAllFilteredSelected}
+            onCheckedChange={(checked) => handleSelectAll(!!checked)}
+          />
+          <span>Select all filtered</span>
+        </label>
+      </div>
 
-      <div className="rounded-lg border overflow-x-auto">
+      <div className="hidden md:block rounded-lg border overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-                <tr>
-                    <th className="px-4 py-3 text-left"><Checkbox id="select-all" checked={areAllFilteredSelected} onCheckedChange={(checked) => handleSelectAll(!!checked)} /></th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Start Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
-                </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-                {filteredStudents.map((student) => (
-                    <tr key={student.id}>
-                        <td className="px-4 py-4"><Checkbox id={student.id} checked={selectedStudents.includes(student.id)} onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)} /></td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {student.currentClassName ?? (student.currentClassId ? 'Unknown class' : 'No class')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap"><Input type="datetime-local" value={startDates[student.id] || ''} onChange={(e) => setStartDates(prev => ({ ...prev, [student.id]: e.target.value }))} className="text-sm" disabled={notificationOption === 'none'} /></td>
-                        <td className="px-6 py-4 whitespace-nowrap"><Input type="datetime-local" value={deadlines[student.id] || ''} onChange={(e) => setDeadlines(prev => ({ ...prev, [student.id]: e.target.value }))} className="text-sm" /></td>
-                    </tr>
-                ))}
-            </tbody>
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left">
+                <span className="sr-only">Select student</span>
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Start Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredStudents.map((student) => (
+              <tr key={student.id}>
+                <td className="px-4 py-4">
+                  <Checkbox
+                    id={`desktop-${student.id}`}
+                    checked={selectedStudents.includes(student.id)}
+                    onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)}
+                  />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {student.currentClassName ?? (student.currentClassId ? 'Unknown class' : 'No class')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Input
+                    type="datetime-local"
+                    value={startDates[student.id] || ''}
+                    onChange={(e) => setStartDates((prev) => ({ ...prev, [student.id]: e.target.value }))}
+                    className="text-sm"
+                    disabled={notificationOption === 'none'}
+                  />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Input
+                    type="datetime-local"
+                    value={deadlines[student.id] || ''}
+                    onChange={(e) => setDeadlines((prev) => ({ ...prev, [student.id]: e.target.value }))}
+                    className="text-sm"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <Button type="submit" disabled={isLoading} className="flex-grow">
+      <div className="md:hidden space-y-4">
+        {filteredStudents.map((student) => {
+          const startId = `mobile-start-${student.id}`;
+          const deadlineId = `mobile-deadline-${student.id}`;
+
+          return (
+            <div key={student.id} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-base font-semibold text-gray-900">{student.name ?? 'Unnamed student'}</p>
+                  <p className="text-sm text-gray-500">{student.email}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Class: {student.currentClassName ?? (student.currentClassId ? 'Unknown class' : 'No class')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={`mobile-${student.id}`} className="text-xs font-medium uppercase text-gray-500">
+                    Assign
+                  </Label>
+                  <Checkbox
+                    id={`mobile-${student.id}`}
+                    checked={selectedStudents.includes(student.id)}
+                    onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor={startId} className="text-xs uppercase text-gray-500">Start Date</Label>
+                  <Input
+                    id={startId}
+                    type="datetime-local"
+                    value={startDates[student.id] || ''}
+                    onChange={(e) => setStartDates((prev) => ({ ...prev, [student.id]: e.target.value }))}
+                    disabled={notificationOption === 'none'}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor={deadlineId} className="text-xs uppercase text-gray-500">Due Date</Label>
+                  <Input
+                    id={deadlineId}
+                    type="datetime-local"
+                    value={deadlines[student.id] || ''}
+                    onChange={(e) => setDeadlines((prev) => ({ ...prev, [student.id]: e.target.value }))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredStudents.length === 0 && (
+          <p className="text-center text-sm text-gray-500">No students match the current filters.</p>
+        )}
+      </div>
+
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-4">
+        <Button type="submit" disabled={isLoading} className="w-full sm:flex-1">
           {isLoading ? 'Saving...' : (isSaved ? <Check className="h-4 w-4 text-white" /> : 'Save Assignments')}
         </Button>
         {lastSavedAt && (
-          <p className="text-sm text-muted-foreground whitespace-nowrap">
+          <p className="text-sm text-muted-foreground sm:text-right">
             Last saved: {lastSavedAt.toLocaleTimeString()}
           </p>
         )}

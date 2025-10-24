@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import Image from 'next/image';
 import ImageBrowser from './ImageBrowser';
 import { Info } from 'lucide-react';
+import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 
 type SerializableLesson = Omit<Lesson, 'price'>;
 
@@ -79,6 +80,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
   const [questions, setQuestions] = useState<QuestionState[]>([{ question: '', options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }] }]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
   const isEditMode = !!lesson;
   const isYouTube = (url: string) => {
     try { const u = new URL(url); return /youtu\.be|youtube\.com/i.test(u.hostname); } catch { return false; }
@@ -108,6 +110,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
       setSoundcloudUrl(lesson.soundcloud_url || '');
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
+      setDifficulty(lesson.difficulty ?? 3);
       if (lesson.multiChoiceQuestions && lesson.multiChoiceQuestions.length > 0) {
         setQuestions(lesson.multiChoiceQuestions.map(q => ({
           question: q.question,
@@ -239,7 +242,13 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
+    if (!difficulty || difficulty < 1 || difficulty > 5) {
+      toast.error('Please choose a difficulty before saving.');
+      setIsLoading(false);
+      return;
+    }
+
     const url = isEditMode ? `/api/lessons/multi-choice/${lesson.id}` : '/api/lessons/multi-choice';
     const method = isEditMode ? 'PATCH' : 'POST';
 
@@ -256,6 +265,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
                 soundcloud_url: soundcloudUrl,
                 attachment_url: attachmentUrl, 
                 notes,
+                difficulty,
                 questions 
             }),
         });
@@ -277,11 +287,12 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
         <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., English Prepositions Quiz" />
       </div>
 
-       <div className="space-y-2">
-          <Label htmlFor="price">Price (€)</Label>
-          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
-      </div>
+      <div className="space-y-2">
+         <Label htmlFor="price">Price (€)</Label>
+         <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
+     </div>
 
+      <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />
        <div className="space-y-2">
         <Label htmlFor="lessonPreview">Lesson Preview</Label>
         <Textarea id="lessonPreview" placeholder="A brief preview of the lesson for students." value={lessonPreview} onChange={(e) => setLessonPreview(e.target.value)} />

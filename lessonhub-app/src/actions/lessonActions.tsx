@@ -147,6 +147,7 @@ export async function duplicateLesson(lessonId: string) {
         scheduled_assignment_date: lesson.scheduled_assignment_date,
         teacherId: session.user.id,
         price: lesson.price,
+        difficulty: lesson.difficulty,
         public_share_id: null,
         flashcards: lesson.flashcards.length
           ? {
@@ -528,6 +529,7 @@ export async function getAssignmentsForStudent(studentId: string) {
                         updatedAt: true,
                         public_share_id: true,
                         price: true,
+                        difficulty: true,
                         assignments: {
                             select: {
                                 status: true,
@@ -669,7 +671,16 @@ export async function getSubmissionsForLesson(lessonId: string, teacherId: strin
         },
       },
       include: {
-        student: true,
+        student: {
+          include: {
+            teachers: {
+              where: { teacherId },
+              include: {
+                class: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         deadline: 'asc',

@@ -25,6 +25,7 @@ export async function PATCH(
       title,
       flashcards,
       price,
+      difficulty,
       lesson_preview,
       assignment_text,
       context_text,
@@ -61,6 +62,14 @@ export async function PATCH(
       );
     }
 
+    const difficultyValue = Number(difficulty);
+    if (!Number.isInteger(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
+      return new NextResponse(
+        JSON.stringify({ error: "Difficulty must be an integer between 1 and 5." }),
+        { status: 400 }
+      );
+    }
+
     const [, updatedLesson] = await prisma.$transaction([
       prisma.flashcard.deleteMany({ where: { lessonId } }),
       prisma.lesson.update({
@@ -75,6 +84,7 @@ export async function PATCH(
           soundcloud_url,
           attachment_url,
           notes,
+          difficulty: difficultyValue,
           flashcards: {
             create: flashcards.map((fc: any) => ({
               term: fc.term,
@@ -96,4 +106,3 @@ export async function PATCH(
     );
   }
 }
-

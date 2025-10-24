@@ -12,6 +12,7 @@ import { Lesson, AssignmentNotification } from '@prisma/client';
 import ImageBrowser from './ImageBrowser'; 
 import { getWeekAndDay } from '@/lib/utils';
 import { Info } from 'lucide-react';
+import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -92,6 +93,7 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
   const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
   const [scheduledDate, setScheduledDate] = useState('');
+  const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
 
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -127,6 +129,7 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
         const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         setScheduledDate(formattedDate);
       }
+      setDifficulty(lesson.difficulty ?? 3);
     }
   }, [lesson]);
 
@@ -244,6 +247,10 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
         setError('Please select a date and time to schedule the assignment.');
         return;
     }
+    if (!difficulty || difficulty < 1 || difficulty > 5) {
+      setError('Please choose a difficulty level for this lesson.');
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -258,6 +265,7 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
           price: parseFloat(price) || 0,
           lesson_preview: lessonPreview,
           assignmentText, 
+          difficulty,
           questions: validQuestions,
           contextText,
           assignment_image_url: assignmentImageUrl,
@@ -303,6 +311,8 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
           <Label htmlFor="price">Price (€)</Label>
           <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
       </div>
+
+      <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />
 
       <div className="space-y-2">
         <div className="flex items-center">

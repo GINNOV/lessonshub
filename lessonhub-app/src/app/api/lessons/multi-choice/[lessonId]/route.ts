@@ -25,6 +25,7 @@ export async function PATCH(
       title,
       questions,
       price,
+      difficulty,
       lesson_preview,
       assignment_text,
       assignment_image_url,
@@ -60,6 +61,14 @@ export async function PATCH(
       );
     }
 
+    const difficultyValue = Number(difficulty);
+    if (!Number.isInteger(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
+      return new NextResponse(
+        JSON.stringify({ error: "Difficulty must be an integer between 1 and 5." }),
+        { status: 400 }
+      );
+    }
+
     const [, updatedLesson] = await prisma.$transaction([
       prisma.multiChoiceQuestion.deleteMany({
         where: { lessonId: lessonId },
@@ -76,6 +85,7 @@ export async function PATCH(
           soundcloud_url,
           attachment_url,
           notes,
+          difficulty: difficultyValue,
           multiChoiceQuestions: {
             create: questions.map((q: any) => ({
               question: q.question,

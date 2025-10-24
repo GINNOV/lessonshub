@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, questions, price, lesson_preview, assignment_text, attachment_url, notes } = body;
+    const { title, questions, price, difficulty, lesson_preview, assignment_text, attachment_url, notes, assignment_image_url, soundcloud_url } = body;
 
     if (
       !title ||
@@ -32,14 +32,27 @@ export async function POST(request: Request) {
       );
     }
 
+    const difficultyValue = Number(difficulty);
+    if (!Number.isInteger(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
+      return new NextResponse(
+        JSON.stringify({
+          error: "Difficulty must be an integer between 1 and 5.",
+        }),
+        { status: 400 }
+      );
+    }
+
     // Use a nested write to create the lesson and its related questions/options
     // in a single, transactionally-safe operation.
     const newLesson = await prisma.lesson.create({
       data: {
         title,
         price,
+        difficulty: difficultyValue,
         lesson_preview,
         assignment_text,
+        assignment_image_url,
+        soundcloud_url,
         attachment_url,
         notes,
         type: LessonType.MULTI_CHOICE, // Use the enum for type safety

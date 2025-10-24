@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Share2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { ensureLessonShareLink } from '@/actions/lessonActions';
+import { LessonDifficultyIndicator } from '@/app/components/LessonDifficultySelector';
 
 type SerializableUser = {
   id: string;
@@ -33,6 +34,7 @@ type SerializableLesson = {
   submittedCount: number;
   teacher: SerializableUser | null;
   completionCount: number;
+  difficulty: number;
 };
 
 type SerializableAssignment = {
@@ -174,6 +176,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                 {getStatusBadge()}
             </div>
             <p className="text-sm text-gray-500 line-clamp-2">{lesson.lesson_preview}</p>
+            <LessonDifficultyIndicator value={lesson.difficulty} size="sm" className="mt-3" />
         </CardContent>
         <CardFooter className="p-4 border-t flex justify-between items-center text-sm">
             <div className="flex items-center gap-4">

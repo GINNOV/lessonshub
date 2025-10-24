@@ -13,11 +13,19 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, lesson_preview, assignment_text, context_text, attachment_url, assignment_image_url, soundcloud_url, notes, flashcards, price } = body;
+  const { title, lesson_preview, assignment_text, context_text, attachment_url, assignment_image_url, soundcloud_url, notes, flashcards, price, difficulty } = body;
 
   if (!title || !flashcards || flashcards.length === 0) {
     return new NextResponse(
       JSON.stringify({ error: "Title and at least one flashcard are required" }),
+      { status: 400 }
+    );
+  }
+
+  const difficultyValue = Number(difficulty);
+  if (!Number.isInteger(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
+    return new NextResponse(
+      JSON.stringify({ error: "Difficulty must be an integer between 1 and 5." }),
       { status: 400 }
     );
   }
@@ -34,6 +42,7 @@ export async function POST(request: Request) {
         soundcloud_url: soundcloud_url,
         attachment_url: attachment_url,
         notes: notes,
+        difficulty: difficultyValue,
         type: LessonType.FLASHCARD,
         teacherId: session.user.id,
         flashcards: {

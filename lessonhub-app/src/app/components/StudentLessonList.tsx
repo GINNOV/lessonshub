@@ -25,6 +25,7 @@ type SerializableLesson = {
   submittedCount: number;
   teacher: SerializableUser | null;
   completionCount: number;
+  difficulty: number;
 };
 
 type SerializableAssignment = {

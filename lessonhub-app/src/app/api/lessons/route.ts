@@ -16,11 +16,19 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, price, lesson_preview, assignmentText, questions, contextText, assignment_image_url, soundcloud_url, attachment_url, notes, assignment_notification, scheduled_assignment_date } = body; 
+  const { title, price, difficulty, lesson_preview, assignmentText, questions, contextText, assignment_image_url, soundcloud_url, attachment_url, notes, assignment_notification, scheduled_assignment_date } = body; 
 
   if (!title || !assignmentText) {
     return new NextResponse(
       JSON.stringify({ error: "Title and assignment text are required" }),
+      { status: 400 }
+    );
+  }
+
+  const difficultyValue = Number(difficulty);
+  if (!Number.isInteger(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
+    return new NextResponse(
+      JSON.stringify({ error: "Difficulty must be an integer between 1 and 5." }),
       { status: 400 }
     );
   }
@@ -38,6 +46,7 @@ export async function POST(request: Request) {
         soundcloud_url,
         attachment_url,
         notes,
+        difficulty: difficultyValue,
         assignment_notification,
         scheduled_assignment_date,
         teacherId: session.user.id,

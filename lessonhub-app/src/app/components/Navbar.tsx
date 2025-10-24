@@ -112,6 +112,9 @@ export default function Navbar() {
                         <DropdownMenuItem asChild>
                           <Link href="/dashboard/classes">Manage Classes</Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/dashboard/settings">Settings</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => setIsClassNotesDialogOpen(true)}>
                           Send notes to students
                         </DropdownMenuItem>

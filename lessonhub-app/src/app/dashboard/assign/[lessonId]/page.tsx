@@ -6,6 +6,7 @@ import { getClassesForTeacher } from "@/actions/classActions";
 import AssignLessonForm from "@/app/components/AssignLessonForm";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { LessonDifficultyIndicator } from "@/app/components/LessonDifficultySelector";
 
 export default async function AssignPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
@@ -33,10 +34,11 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
   ]);
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="bg-white p-8 rounded-lg shadow-md">
+    <div className="container mx-auto px-4 py-6 sm:py-8">
+      <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md">
         <h1 className="text-3xl font-bold mb-2">Assign Lesson</h1>
-        <h2 className="text-xl text-gray-600 mb-6">{lesson.title}</h2>
+        <h2 className="text-lg sm:text-xl text-gray-600 mb-6">{lesson.title}</h2>
+        <LessonDifficultyIndicator value={serializableLesson.difficulty} size="md" className="mb-6" />
         <AssignLessonForm 
           lesson={serializableLesson} 
           students={students as any} 
@@ -47,4 +49,3 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
     </div>
   );
 }
-

@@ -62,6 +62,9 @@ export async function updateTeacherPreferences(data: TeacherPreferences) {
 
         revalidatePath('/dashboard');
         revalidatePath('/dashboard/create');
+        revalidatePath('/dashboard/create/flashcard');
+        revalidatePath('/dashboard/create/multi-choice');
+        revalidatePath('/dashboard/settings');
         return { success: true };
 
     } catch (error) {

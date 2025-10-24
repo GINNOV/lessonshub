@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Upload, Info } from 'lucide-react';
 import ImageBrowser from './ImageBrowser';
+import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 
 type SerializableLesson = Omit<Lesson, 'price'>;
 
@@ -89,6 +90,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [linkStatus, setLinkStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
+  const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
   const isEditMode = !!lesson;
 
   useEffect(() => {
@@ -102,6 +104,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
       setContextText(lesson.context_text || '');
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
+      setDifficulty(lesson.difficulty ?? 3);
       if (lesson.flashcards && lesson.flashcards.length > 0) {
         setFlashcards(lesson.flashcards.map(fc => ({ 
             term: fc.term, 
@@ -236,6 +239,11 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
       setIsLoading(false);
       return;
     }
+    if (!difficulty || difficulty < 1 || difficulty > 5) {
+      toast.error('Please choose a difficulty before saving.');
+      setIsLoading(false);
+      return;
+    }
     if (validFlashcards.length === 0) {
       toast.error('You must include at least one valid flashcard.');
       setIsLoading(false);
@@ -259,6 +267,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
             soundcloud_url: soundcloudUrl,
             attachment_url: attachmentUrl, 
             notes,
+            difficulty,
             flashcards: validFlashcards 
         }),
       });
@@ -285,10 +294,12 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
         <Label htmlFor="title">Lesson Title</Label>
         <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Common English Idioms" />
       </div>
-       <div className="space-y-2">
-          <Label htmlFor="price">Price (€)</Label>
-          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
+      <div className="space-y-2">
+         <Label htmlFor="price">Price (€)</Label>
+         <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
       </div>
+
+      <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />
 
        <div className="space-y-2">
         <Label htmlFor="lessonPreview">Lesson Preview</Label>
