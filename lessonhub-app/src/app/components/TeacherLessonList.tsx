@@ -134,6 +134,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
   >;
   availableDate: Date | null;
   classNames: string[];
+  filterDate: Date | null;
 };
 
   const filteredLessons = useMemo<LessonWithMeta[]>(() => {
@@ -192,6 +193,15 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         )
       );
       const hasOutstandingAssignments = lesson.assignments.some(a => a.status !== AssignmentStatus.GRADED);
+      const createdAtDate = new Date(lesson.createdAt);
+      const filterDate =
+        nextPendingDeadline ??
+        nextOutstandingDeadline ??
+        nextDeadline ??
+        availableDate ??
+        (validDeadlines[0]?.deadlineDate ?? null) ??
+        (assignmentsWithDates[0]?.deadlineDate ?? null) ??
+        createdAtDate;
 
       return {
         ...lesson,
@@ -203,6 +213,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         assignmentsWithDates,
         availableDate,
         classNames,
+        filterDate,
       };
     });
 
@@ -227,11 +238,12 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       })
       .filter(lesson => {
         if (dateFilter === 'all') return true;
-        const lessonDate = getStartOfDay(new Date(lesson.createdAt));
-        if (dateFilter === 'today') return lessonDate.getTime() === todayStart.getTime();
-        if (dateFilter === 'this_week') return lessonDate >= thisWeek.start && lessonDate <= thisWeek.end;
-        if (dateFilter === 'last_week') return lessonDate >= lastWeek.start && lessonDate <= lastWeek.end;
-        if (dateFilter === 'last_30_days') return lessonDate >= thirtyDaysAgoStart;
+        const referenceDate = lesson.filterDate ?? new Date(lesson.createdAt);
+        const referenceStart = getStartOfDay(referenceDate);
+        if (dateFilter === 'today') return referenceStart.getTime() === todayStart.getTime();
+        if (dateFilter === 'this_week') return referenceStart >= thisWeek.start && referenceStart <= thisWeek.end;
+        if (dateFilter === 'last_week') return referenceStart >= lastWeek.start && referenceStart <= lastWeek.end;
+        if (dateFilter === 'last_30_days') return referenceStart >= thirtyDaysAgoStart;
         return true;
       })
       .sort((a, b) => {

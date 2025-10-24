@@ -15,7 +15,18 @@ export async function getClassesForTeacher() {
       where: { teacherId: session.user.id },
       include: {
         students: {
-          include: { student: { select: { id: true, name: true, email: true, image: true, isTakingBreak: true } } },
+          include: {
+            student: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+                isTakingBreak: true,
+                isSuspended: true,
+              },
+            },
+          },
         },
       },
       orderBy: { createdAt: 'asc' },
@@ -144,3 +155,86 @@ export async function setStudentClass(studentId: string, classId: string | null)
   }
 }
 
+export async function sendClassNotes(classId: string | null, message: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const trimmedMessage = message.trim();
+  if (!trimmedMessage) {
+    return { success: false, error: 'Message cannot be empty.' };
+  }
+
+  try {
+    const links = await prisma.teachersForStudent.findMany({
+      where: {
+        teacherId: session.user.id,
+        ...(classId ? { classId } : {}),
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            isTakingBreak: true,
+            isSuspended: true,
+          },
+        },
+        class: {
+          select: { name: true },
+        },
+      },
+    });
+
+    const recipientsMap = new Map<string, { name: string | null }>();
+
+    links.forEach((link) => {
+      const student = link.student;
+      if (
+        student?.email &&
+        !student.isSuspended &&
+        !student.isTakingBreak &&
+        !recipientsMap.has(student.email)
+      ) {
+        recipientsMap.set(student.email, { name: student.name });
+      }
+    });
+
+    const recipients = Array.from(recipientsMap.entries());
+
+    if (recipients.length === 0) {
+      return { success: false, error: 'No eligible students found for this message.' };
+    }
+
+    const teacherName = session.user.name || 'Your teacher';
+    const className =
+      classId && links[0]?.class?.name ? links[0].class.name : null;
+    const subject = className
+      ? `Notes for ${className}`
+      : `Notes from ${teacherName}`;
+    const messageBody = `${trimmedMessage}\n\n— ${teacherName}`;
+
+    for (const [email, { name }] of recipients) {
+      await sendEmail({
+        to: email,
+        templateName: 'custom',
+        data: {
+          studentName: name || 'student',
+          teacherName,
+          lessonTitle: '',
+        },
+        override: {
+          subject,
+          body: `Hello ${name || 'student'},\n\n${messageBody}`,
+        },
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send class notes:', error);
+    return { success: false, error: 'An error occurred while sending notes.' };
+  }
+}

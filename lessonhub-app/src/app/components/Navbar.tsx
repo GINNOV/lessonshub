@@ -19,6 +19,7 @@ import { stopImpersonation } from "@/actions/adminActions";
 import { useRouter } from 'next/navigation';
 import { useState } from "react";
 import ReferralDialog from "./ReferralDialog";
+import TeacherClassNotesDialog from "./TeacherClassNotesDialog";
 import FeedbackDialog from "./FeedbackDialog";
 
 export default function Navbar() {
@@ -27,6 +28,7 @@ export default function Navbar() {
   const user = session?.user as any;
   const [isReferralDialogOpen, setIsReferralDialogOpen] = useState(false);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [isClassNotesDialogOpen, setIsClassNotesDialogOpen] = useState(false);
 
   const homeHref =
     status === 'authenticated'
@@ -106,9 +108,14 @@ export default function Navbar() {
                       </>
                     )}
                     {user?.role === Role.TEACHER && (
-                      <DropdownMenuItem asChild>
-                        <Link href="/dashboard/classes">Manage Classes</Link>
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link href="/dashboard/classes">Manage Classes</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setIsClassNotesDialogOpen(true)}>
+                          Send notes to students
+                        </DropdownMenuItem>
+                      </>
                     )}
                     <DropdownMenuItem asChild>
                       <Link href="/profile">Profile</Link>
@@ -116,9 +123,11 @@ export default function Navbar() {
                     <DropdownMenuItem onSelect={() => setIsReferralDialogOpen(true)}>
                       Refer a student
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setIsFeedbackDialogOpen(true)}>
-                      Send Feedback
-                    </DropdownMenuItem>
+                    {user?.role !== Role.TEACHER && (
+                      <DropdownMenuItem onSelect={() => setIsFeedbackDialogOpen(true)}>
+                        Send Feedback
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                       <SignOutButton />
@@ -127,6 +136,9 @@ export default function Navbar() {
                 </DropdownMenu>
                 <ReferralDialog open={isReferralDialogOpen} onOpenChange={setIsReferralDialogOpen} />
                 <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
+                {user?.role === Role.TEACHER && (
+                  <TeacherClassNotesDialog open={isClassNotesDialogOpen} onOpenChange={setIsClassNotesDialogOpen} />
+                )}
               </>
             ) : (
               <Button asChild>
