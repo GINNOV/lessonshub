@@ -27,6 +27,43 @@ type SerializableUser = Omit<User, "defaultLessonPrice"> & {
   defaultLessonPrice: number | null;
 };
 
+function getISOWeek(date: Date) {
+  const tempDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = tempDate.getUTCDay() || 7;
+
+  tempDate.setUTCDate(tempDate.getUTCDate() + 4 - day);
+
+  const yearStart = new Date(Date.UTC(tempDate.getUTCFullYear(), 0, 1));
+  const diff = tempDate.getTime() - yearStart.getTime();
+
+  return Math.ceil((diff / 86400000 + 1) / 7);
+}
+
+function getWeekNumber(date: Date, timeZone?: string | null) {
+  if (!timeZone) {
+    return getISOWeek(date);
+  }
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+
+  const parts = formatter.formatToParts(date);
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const day = Number(parts.find((part) => part.type === "day")?.value);
+
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    return getISOWeek(date);
+  }
+
+  const zonedDate = new Date(Date.UTC(year, month - 1, day));
+  return getISOWeek(zonedDate);
+}
+
 // Correctly type searchParams as a Promise for a dynamic page
 export default async function DashboardPage({
   searchParams,
@@ -93,6 +130,7 @@ export default async function DashboardPage({
   };
 
   const classId = typeof resolvedSearchParams.classId === 'string' ? resolvedSearchParams.classId : undefined;
+  const weekNumber = getWeekNumber(new Date(), teacher.timeZone);
 
   const [lessons, leaderboardData, stats, classes] = await Promise.all([
     getLessonsForTeacher(session.user.id),
@@ -148,7 +186,7 @@ export default async function DashboardPage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
-          <p className="mt-1 text-gray-600">Welcome, {session.user?.name ?? "Teacher"}!</p>
+          <p className="mt-1 text-gray-600">Welcome, {session.user?.name ?? "Teacher"}! It&apos;s week {weekNumber}.</p>
         </div>
 
         <DropdownMenu>
