@@ -92,6 +92,7 @@ model Lesson {
   context_text              String?
   attachment_url            String?
   notes                     String?
+  difficulty                Int       @default(3)
   assignment_notification   AssignmentNotification @default(NOT_ASSIGNED)
   scheduled_assignment_date DateTime?
   createdAt                 DateTime               @default(now())
