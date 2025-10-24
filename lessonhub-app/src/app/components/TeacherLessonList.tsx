@@ -1,7 +1,7 @@
 // file: src/app/components/TeacherLessonList.tsx
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Lesson, Assignment, AssignmentStatus, LessonType } from '@prisma/client';
@@ -16,14 +16,20 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import LocaleDate from './LocaleDate';
 
+type LessonAssignmentSummary = Pick<Assignment, 'status' | 'deadline' | 'startDate'> & {
+  classId: string | null;
+  className: string | null;
+};
+
 type SerializableLessonWithAssignments = Omit<Lesson, 'price'> & {
   price: number;
-  assignments: Pick<Assignment, 'status' | 'deadline'>[];
+  assignments: LessonAssignmentSummary[];
   averageRating?: number | null;
 };
 
 interface TeacherLessonListProps {
   lessons: SerializableLessonWithAssignments[];
+  classes: { id: string; name: string }[];
 }
 
 const WEEK_STARTS_ON: 0 | 1 = 1;
@@ -46,6 +52,10 @@ const getStartOfDay = (date: Date) => {
   return newDate;
 };
 
+const isValidDate = (date: Date | null | undefined): date is Date => {
+  return !!date && !Number.isNaN(date.getTime());
+};
+
 const lessonTypeEmojis: Record<LessonType, string> = {
   [LessonType.STANDARD]: '📝',
   [LessonType.FLASHCARD]: '🃏',
@@ -53,14 +63,32 @@ const lessonTypeEmojis: Record<LessonType, string> = {
   [LessonType.LEARNING_SESSION]: '🧠',
 };
 
+const STORAGE_KEY = 'teacher-dashboard-filters';
 
-export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
+type StatusFilterValue = AssignmentStatus | 'all' | 'past_due';
+type OrderViewValue = 'deadline' | 'week' | 'available';
+const STATUS_FILTER_VALUES: StatusFilterValue[] = [
+  'all',
+  'past_due',
+  AssignmentStatus.PENDING,
+  AssignmentStatus.COMPLETED,
+  AssignmentStatus.GRADED,
+  AssignmentStatus.FAILED,
+];
+const DATE_FILTER_VALUES = ['all', 'today', 'this_week', 'last_week', 'last_30_days'] as const;
+const ORDER_VIEW_VALUES: OrderViewValue[] = ['deadline', 'week', 'available'];
+type DateFilterValue = (typeof DATE_FILTER_VALUES)[number];
+
+export default function TeacherLessonList({ lessons, classes }: TeacherLessonListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(AssignmentStatus.PENDING);
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>('all');
+  const [classFilter, setClassFilter] = useState('all');
+  const [orderView, setOrderView] = useState<OrderViewValue>('deadline');
   const [copiedLessonId, setCopiedLessonId] = useState<string | null>(null);
   const [duplicatingLessonId, setDuplicatingLessonId] = useState<string | null>(null);
   const router = useRouter();
+  const hasHydratedState = useRef(false);
 
   const handleShareClick = async (lessonId: string) => {
     const result = await generateShareLink(lessonId);
@@ -92,7 +120,23 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
     }
   };
 
-  const filteredLessons = useMemo(() => {
+  type LessonWithMeta = SerializableLessonWithAssignments & {
+    week: number;
+  nextDeadline: Date | null;
+  nextPendingDeadline: Date | null;
+  nextOutstandingDeadline: Date | null;
+  hasOutstandingAssignments: boolean;
+  assignmentsWithDates: Array<
+    LessonAssignmentSummary & {
+      deadlineDate: Date | null;
+      startDateValue: Date | null;
+    }
+  >;
+  availableDate: Date | null;
+  classNames: string[];
+};
+
+  const filteredLessons = useMemo<LessonWithMeta[]>(() => {
     const today = new Date();
     const todayStart = getStartOfDay(today);
     const thisWeek = getWeekBounds(today, WEEK_STARTS_ON);
@@ -102,15 +146,84 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 30);
     const thirtyDaysAgoStart = getStartOfDay(thirtyDaysAgo);
-    return lessons
-      .map(lesson => ({
+    const lessonsWithMeta: LessonWithMeta[] = lessons.map((lesson) => {
+      const week = parseInt(getWeekAndDay(new Date(lesson.createdAt)).split('-')[0], 10);
+      const scheduledDate = lesson.scheduled_assignment_date ? new Date(lesson.scheduled_assignment_date) : null;
+      const scheduledDateValue = isValidDate(scheduledDate) ? scheduledDate : null;
+
+      const assignmentsWithDates = lesson.assignments.map((assignment) => {
+        const rawDeadline = assignment.deadline ? new Date(assignment.deadline) : null;
+        const deadlineDate = isValidDate(rawDeadline) ? rawDeadline : null;
+        const rawStart = assignment.startDate ? new Date(assignment.startDate) : null;
+        const startDateValue = isValidDate(rawStart) ? rawStart : null;
+
+        return {
+          ...assignment,
+          deadlineDate,
+          startDateValue,
+        };
+      });
+
+      const validDeadlines = assignmentsWithDates
+        .filter(({ deadlineDate }) => deadlineDate !== null)
+        .sort((a, b) => (a.deadlineDate!.getTime() - b.deadlineDate!.getTime()));
+
+      const pendingAssignments = assignmentsWithDates
+        .filter((assignment) => assignment.status === AssignmentStatus.PENDING && assignment.deadlineDate !== null)
+        .sort((a, b) => (a.deadlineDate!.getTime() - b.deadlineDate!.getTime()));
+
+      const outstandingAssignments = assignmentsWithDates
+        .filter((assignment) => assignment.status !== AssignmentStatus.GRADED && assignment.deadlineDate !== null)
+        .sort((a, b) => (a.deadlineDate!.getTime() - b.deadlineDate!.getTime()));
+
+      const nextDeadline = validDeadlines[0]?.deadlineDate ?? null;
+      const nextPendingDeadline = pendingAssignments[0]?.deadlineDate ?? null;
+      const nextOutstandingDeadline = outstandingAssignments[0]?.deadlineDate ?? null;
+      const startDates = assignmentsWithDates
+        .map((assignment) => assignment.startDateValue)
+        .filter((date): date is Date => !!date)
+        .sort((a, b) => a.getTime() - b.getTime());
+      const availableDate = startDates[0] ?? scheduledDateValue ?? null;
+      const classNames = Array.from(
+        new Set(
+          assignmentsWithDates
+            .map((assignment) => assignment.className)
+            .filter((name): name is string => !!name && name.trim().length > 0)
+        )
+      );
+      const hasOutstandingAssignments = lesson.assignments.some(a => a.status !== AssignmentStatus.GRADED);
+
+      return {
         ...lesson,
-        week: parseInt(getWeekAndDay(lesson.createdAt).split('-')[0], 10),
-      }))
+        week,
+        nextDeadline,
+        nextPendingDeadline,
+        nextOutstandingDeadline,
+        hasOutstandingAssignments,
+        assignmentsWithDates,
+        availableDate,
+        classNames,
+      };
+    });
+
+    const filtered = lessonsWithMeta
       .filter(lesson => lesson.title.toLowerCase().includes(searchTerm.toLowerCase()))
       .filter(lesson => {
         if (statusFilter === 'all') return true;
-        return lesson.assignments.some(a => a.status === statusFilter);
+        if (statusFilter === 'past_due') {
+          return lesson.assignmentsWithDates.some(a => {
+            if (a.status !== AssignmentStatus.PENDING || !a.deadlineDate) return false;
+            return a.deadlineDate <= today;
+          });
+        }
+        return lesson.assignmentsWithDates.some(a => a.status === statusFilter);
+      })
+      .filter(lesson => {
+        if (classFilter === 'all') return true;
+        if (classFilter === 'unassigned') {
+          return lesson.assignmentsWithDates.length === 0 || lesson.assignmentsWithDates.every(a => !a.classId);
+        }
+        return lesson.assignmentsWithDates.some(a => a.classId === classFilter);
       })
       .filter(lesson => {
         if (dateFilter === 'all') return true;
@@ -120,8 +233,106 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
         if (dateFilter === 'last_week') return lessonDate >= lastWeek.start && lessonDate <= lastWeek.end;
         if (dateFilter === 'last_30_days') return lessonDate >= thirtyDaysAgoStart;
         return true;
+      })
+      .sort((a, b) => {
+        if (orderView === 'week') {
+          return b.week - a.week || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+
+        if (orderView === 'available') {
+          const aAvailable = a.availableDate ?? new Date(a.createdAt);
+          const bAvailable = b.availableDate ?? new Date(b.createdAt);
+          const diff = aAvailable.getTime() - bAvailable.getTime();
+          if (diff !== 0) return diff;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+
+        // Deadline ordering focuses on lessons with outstanding work first.
+        if (a.hasOutstandingAssignments && !b.hasOutstandingAssignments) return -1;
+        if (!a.hasOutstandingAssignments && b.hasOutstandingAssignments) return 1;
+
+        const aDeadline = a.nextPendingDeadline ?? a.nextOutstandingDeadline ?? a.nextDeadline;
+        const bDeadline = b.nextPendingDeadline ?? b.nextOutstandingDeadline ?? b.nextDeadline;
+
+        if (!aDeadline && !bDeadline) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        if (!aDeadline) return 1;
+        if (!bDeadline) return -1;
+        return aDeadline.getTime() - bDeadline.getTime();
       });
-  }, [lessons, searchTerm, statusFilter, dateFilter]);
+
+    if (orderView === 'deadline') {
+      const active = filtered.filter(lesson => lesson.hasOutstandingAssignments);
+      const completed = filtered.filter(lesson => !lesson.hasOutstandingAssignments);
+      return [
+        ...active.sort((a, b) => {
+          const aDeadline = a.nextPendingDeadline ?? a.nextOutstandingDeadline ?? a.nextDeadline;
+          const bDeadline = b.nextPendingDeadline ?? b.nextOutstandingDeadline ?? b.nextDeadline;
+          if (!aDeadline && !bDeadline) {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          }
+          if (!aDeadline) return 1;
+          if (!bDeadline) return -1;
+          return aDeadline.getTime() - bDeadline.getTime();
+        }),
+        ...completed.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      ];
+    }
+
+    return filtered;
+  }, [lessons, searchTerm, statusFilter, dateFilter, classFilter, orderView]);
+
+  useEffect(() => {
+    if (!hasHydratedState.current) {
+      return;
+    }
+    const stateToStore = {
+      searchTerm,
+      statusFilter,
+      dateFilter,
+      classFilter,
+      orderView,
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToStore));
+    } catch (error) {
+      console.warn('Unable to persist teacher dashboard filters', error);
+    }
+  }, [searchTerm, statusFilter, dateFilter, classFilter, orderView]);
+
+  useEffect(() => {
+    if (hasHydratedState.current) {
+      return;
+    }
+    hasHydratedState.current = true;
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+      if (!stored) {
+        return;
+      }
+      const parsed = JSON.parse(stored) as {
+        searchTerm?: string;
+        statusFilter?: StatusFilterValue;
+        dateFilter?: string;
+        classFilter?: string;
+        orderView?: OrderViewValue;
+      };
+      if (typeof parsed.searchTerm === 'string') setSearchTerm(parsed.searchTerm);
+      if (parsed.statusFilter && STATUS_FILTER_VALUES.includes(parsed.statusFilter)) {
+        setStatusFilter(parsed.statusFilter);
+      }
+      if (parsed.dateFilter && DATE_FILTER_VALUES.includes(parsed.dateFilter as DateFilterValue)) {
+        setDateFilter(parsed.dateFilter as DateFilterValue);
+      }
+      if (typeof parsed.classFilter === 'string') setClassFilter(parsed.classFilter);
+      if (parsed.orderView && ORDER_VIEW_VALUES.includes(parsed.orderView)) {
+        setOrderView(parsed.orderView);
+      }
+    } catch (error) {
+      console.warn('Unable to restore teacher dashboard filters', error);
+    }
+  }, []);
 
   let lastWeek: number | null = null;
 
@@ -135,10 +346,34 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-xs"
         />
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-end">
+          <select
+            value={orderView}
+            onChange={(e) => setOrderView(e.target.value as OrderViewValue)}
+            className="border-gray-300 rounded-md shadow-sm"
+          >
+            <option value="deadline">Deadline (Asc)</option>
+            <option value="week">Week Order</option>
+            <option value="available">Available Order</option>
+          </select>
+          {classes.length > 0 && (
+            <select
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              className="border-gray-300 rounded-md shadow-sm"
+            >
+              <option value="all">All Classes</option>
+              <option value="unassigned">Unassigned</option>
+              {classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
+            onChange={(e) => setDateFilter(e.target.value as DateFilterValue)}
             className="border-gray-300 rounded-md shadow-sm"
           >
             <option value="all">All Dates</option>
@@ -149,10 +384,11 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
           </select>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilterValue)}
             className="border-gray-300 rounded-md shadow-sm"
           >
             <option value="all">All Statuses</option>
+            <option value="past_due">Past Due</option>
             <option value={AssignmentStatus.PENDING}>Pending</option>
             <option value={AssignmentStatus.COMPLETED}>Completed</option>
             <option value={AssignmentStatus.GRADED}>Graded</option>
@@ -168,22 +404,28 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
             {filteredLessons.map((lesson, index) => {
                const showDivider = lesson.week !== lastWeek;
                lastWeek = lesson.week;
-               
+
               const now = new Date();
               const totalAssignments = lesson.assignments.length;
-              const graded = lesson.assignments.filter(a => a.status === AssignmentStatus.GRADED).length;
-              const completed = lesson.assignments.filter(a => a.status === AssignmentStatus.COMPLETED).length;
-              const pending = lesson.assignments.filter(a => a.status === AssignmentStatus.PENDING && new Date(a.deadline) > now).length;
-              const pastDue = lesson.assignments.filter(a => a.status === AssignmentStatus.PENDING && new Date(a.deadline) <= now).length;
-              const failed = lesson.assignments.filter(a => a.status === AssignmentStatus.FAILED).length;
-              const firstDeadline = lesson.assignments[0]?.deadline;
+              const graded = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.GRADED).length;
+              const completed = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.COMPLETED).length;
+              const pendingUpcoming = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.PENDING && (!a.deadlineDate || a.deadlineDate > now)).length;
+              const pastDue = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.PENDING && a.deadlineDate && a.deadlineDate <= now).length;
+              const failed = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.FAILED).length;
+              const firstDeadline = lesson.nextPendingDeadline ?? lesson.nextOutstandingDeadline ?? lesson.nextDeadline;
+              const classNamesDisplay = lesson.classNames.length
+                ? lesson.classNames.join(', ')
+                : (totalAssignments > 0 ? 'Unassigned' : '—');
+              const allStudentsProcessed = lesson.assignmentsWithDates.length > 0 && lesson.assignmentsWithDates.every(a => a.status === AssignmentStatus.GRADED || a.status === AssignmentStatus.FAILED);
 
               return (
                 <div key={lesson.id}>
                   {showDivider && <WeekDivider weekNumber={lesson.week} />}
                   <li className={cn(
                       "p-4 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center",
-                      index % 2 !== 0 && "bg-slate-50"
+                      totalAssignments === 0 && "bg-red-50 border-red-200",
+                      allStudentsProcessed && totalAssignments > 0 && "bg-blue-50 border-blue-200",
+                      totalAssignments > 0 && !allStudentsProcessed && index % 2 !== 0 && "bg-slate-50"
                   )}>
                     <div className="flex-1 mb-4 sm:mb-0">
                       <div className="flex items-center gap-2">
@@ -198,34 +440,40 @@ export default function TeacherLessonList({ lessons }: TeacherLessonListProps) {
                             </div>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">
-                          Lesson {getWeekAndDay(lesson.createdAt)} - Created on: <LocaleDate date={lesson.createdAt} options={{ year: 'numeric', month: 'numeric', day: 'numeric' }} />
-                          {firstDeadline && (
-                              <span className="ml-2">| Deadline: <LocaleDate date={firstDeadline} /></span>
-                          )}
+                      <p className="text-xs text-gray-500 mt-1 flex flex-wrap gap-2">
+                        <span>Lesson {getWeekAndDay(new Date(lesson.createdAt))}</span>
+                        <span>| Available: {lesson.availableDate ? <LocaleDate date={lesson.availableDate} options={{ year: 'numeric', month: 'numeric', day: 'numeric' }} /> : '—'}</span>
+                        <span>| Deadline: {firstDeadline ? <LocaleDate date={firstDeadline} options={{ year: 'numeric', month: 'numeric', day: 'numeric' }} /> : '—'}</span>
+                        <span>| Class: {classNamesDisplay}</span>
                       </p>
-                      <div className="flex items-center space-x-2 mt-2 flex-wrap">
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
                           {totalAssignments} Assigned
                         </span>
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                          {pending} Pending
-                        </span>
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {completed} Completed
-                        </span>
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                          {graded} Graded
-                        </span>
+                        {pendingUpcoming > 0 && (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            {pendingUpcoming} Pending
+                          </span>
+                        )}
                         {pastDue > 0 && (
                           <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
                             {pastDue} Past Due
                           </span>
                         )}
+                        {completed > 0 && (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {completed} Completed
+                          </span>
+                        )}
+                        {graded > 0 && (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            {graded} Graded
+                          </span>
+                        )}
                         {failed > 0 && (
-                           <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-200 text-red-900">
-                             {failed} Failed
-                           </span>
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-200 text-red-900">
+                            {failed} Failed
+                          </span>
                         )}
                       </div>
                     </div>

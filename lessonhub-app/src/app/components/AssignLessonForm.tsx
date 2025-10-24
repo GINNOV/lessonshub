@@ -15,6 +15,7 @@ export type StudentWithStats = Omit<User, 'defaultLessonPrice'> & {
   totalPoints: number;
   defaultLessonPrice: number | null;
   currentClassId?: string | null;
+  currentClassName?: string | null;
 };
 
 interface AssignLessonFormProps {
@@ -108,16 +109,26 @@ export default function AssignLessonForm({
   }, [existingAssignments]);
 
   useEffect(() => {
-    if (notificationOption === 'none') {
-        const now = formatDateTimeForInput(new Date());
-        setMasterStartDate(now);
-        const newStartDates = { ...startDates };
-        selectedStudents.forEach(id => {
-            newStartDates[id] = now;
-        });
-        setStartDates(newStartDates);
-    }
-  }, [notificationOption, selectedStudents, startDates]);
+    if (notificationOption !== 'none') return;
+
+    const now = formatDateTimeForInput(new Date());
+
+    setMasterStartDate((prev) => (prev === now ? prev : now));
+
+    setStartDates((prev) => {
+      let hasChanges = false;
+      const updated: Record<string, string> = { ...prev };
+
+      selectedStudents.forEach((id) => {
+        if (updated[id] !== now) {
+          updated[id] = now;
+          hasChanges = true;
+        }
+      });
+
+      return hasChanges ? updated : prev;
+    });
+  }, [notificationOption, selectedStudents]);
 
 
   const filteredStudents = useMemo(() => {
@@ -311,6 +322,7 @@ export default function AssignLessonForm({
                     <th className="px-4 py-3 text-left"><Checkbox id="select-all" checked={areAllFilteredSelected} onCheckedChange={(checked) => handleSelectAll(!!checked)} /></th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Start Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
                 </tr>
@@ -321,6 +333,9 @@ export default function AssignLessonForm({
                         <td className="px-4 py-4"><Checkbox id={student.id} checked={selectedStudents.includes(student.id)} onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)} /></td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {student.currentClassName ?? (student.currentClassId ? 'Unknown class' : 'No class')}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap"><Input type="datetime-local" value={startDates[student.id] || ''} onChange={(e) => setStartDates(prev => ({ ...prev, [student.id]: e.target.value }))} className="text-sm" disabled={notificationOption === 'none'} /></td>
                         <td className="px-6 py-4 whitespace-nowrap"><Input type="datetime-local" value={deadlines[student.id] || ''} onChange={(e) => setDeadlines(prev => ({ ...prev, [student.id]: e.target.value }))} className="text-sm" /></td>
                     </tr>

@@ -110,7 +110,20 @@ export default async function DashboardPage({
 
       const averageRating = (await getLessonAverageRating(lesson.id)) ?? null;
 
-      return { ...lesson, price, averageRating };
+      const { assignments, ...lessonRest } = lesson;
+
+      const sanitizedAssignments = assignments.map((assignment) => {
+        const teacherLink = assignment.student?.teachers?.[0];
+        return {
+          status: assignment.status,
+          deadline: assignment.deadline,
+          startDate: assignment.startDate,
+          classId: teacherLink?.classId ?? null,
+          className: teacherLink?.class?.name ?? null,
+        };
+      });
+
+      return { ...lessonRest, price, assignments: sanitizedAssignments, averageRating };
     })
   );
 
@@ -125,6 +138,10 @@ export default async function DashboardPage({
         )
       )
     : lessonsWithRatings;
+
+  const classFilterOptions = classes
+    .filter((c: any) => c.isActive)
+    .map((c: any) => ({ id: c.id, name: c.name }));
 
   return (
     <div className="p-6">
@@ -159,7 +176,10 @@ export default async function DashboardPage({
       </div>
 
       <TeacherStatsHeader stats={stats} />
-      <TeacherLessonList lessons={filteredLessons} />
+      <TeacherLessonList
+        lessons={filteredLessons}
+        classes={classFilterOptions}
+      />
 
       <Accordion type="single" collapsible className="w-full mt-8">
         <AccordionItem value="lesson-defaults">

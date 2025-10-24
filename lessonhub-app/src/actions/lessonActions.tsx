@@ -52,7 +52,16 @@ export async function getStudentsWithStats(teacherId?: string) {
         },
       },
       teachers: {
-        select: { teacherId: true, classId: true },
+        select: {
+          teacherId: true,
+          classId: true,
+          class: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
       },
     },
     orderBy: { name: 'asc' }
@@ -61,14 +70,22 @@ export async function getStudentsWithStats(teacherId?: string) {
   return students.map((student: any) => {
     const totalPoints = student.assignments.reduce((sum: number, a: any) => sum + (a.score || 0), 0);
     const { assignments, ...studentData } = student;
-    const linkArr: Array<{ teacherId: string; classId: string | null }> = student.teachers || [];
+    const linkArr: Array<{
+      teacherId: string;
+      classId: string | null;
+      class?: { id: string; name: string | null } | null;
+    }> = student.teachers || [];
     const currentClassId = teacherId
       ? (linkArr.find(l => l.teacherId === teacherId)?.classId ?? null)
+      : null;
+    const currentClassName = teacherId
+      ? (linkArr.find(l => l.teacherId === teacherId)?.class?.name ?? null)
       : null;
     const serializableStudent = {
       ...studentData,
       defaultLessonPrice: studentData.defaultLessonPrice?.toNumber?.() ?? null,
       currentClassId,
+      currentClassName,
       totalPoints,
     };
     return serializableStudent;
@@ -419,7 +436,28 @@ export async function getLessonsForTeacher(teacherId: string) {
           select: {
             status: true,
             deadline: true,
+            startDate: true,
+            student: {
+              select: {
+                teachers: {
+                  where: { teacherId },
+                  select: {
+                    classId: true,
+                    class: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           }
+          ,
+          orderBy: {
+            deadline: 'asc',
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
