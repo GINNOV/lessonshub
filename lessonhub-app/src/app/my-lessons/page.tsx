@@ -123,9 +123,9 @@ export default async function MyLessonsPage() {
         pastDue={pastDue}
         settings={settings}
       />
-      <StudentGamificationPanel data={gamificationSnapshot} />
       <h1 className="text-3xl font-bold mb-8 mt-8">My Lessons</h1>
       <StudentLessonList assignments={serializableAssignments} />
+      <StudentGamificationPanel data={gamificationSnapshot} />
       <Leaderboard leaderboardData={leaderboardData} />
     </div>
   );
