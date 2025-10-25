@@ -21,6 +21,7 @@ import {
 
 interface StudentStatsHeaderProps {
   totalValue: number;
+  totalPoints: number;
   total: number;
   pending: number;
   submitted: number;
@@ -59,6 +60,7 @@ const StatItem = ({
 
 export default function StudentStatsHeader({
   totalValue,
+  totalPoints,
   total,
   pending,
   submitted,
@@ -77,6 +79,10 @@ export default function StudentStatsHeader({
             <h3 className="text-lg font-medium text-gray-300">{settings?.progressCardTitle || 'My Progress'}</h3>
             <p className="mt-2 text-5xl font-bold tracking-tight">
               €{totalValue.toFixed(2)}
+            </p>
+            <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white">
+              <span role="img" aria-label="Sparkles">✨</span>
+              {totalPoints.toLocaleString()} pts earned
             </p>
           </div>
           <div className="mt-4 text-xs text-gray-400">

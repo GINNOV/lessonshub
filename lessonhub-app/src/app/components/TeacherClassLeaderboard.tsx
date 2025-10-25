@@ -9,6 +9,8 @@ type LeaderboardData = {
     image: string | null;
     completedCount: number;
     savings: number;
+    totalPoints: number;
+    recentBadges: Array<{ slug: string; name: string; icon: string | null }>;
 };
 
 interface TeacherClassLeaderboardProps {
@@ -35,8 +37,10 @@ export default function TeacherClassLeaderboard({ leaderboardData }: TeacherClas
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Savings</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lessons Completed</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Badges</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -52,8 +56,24 @@ export default function TeacherClassLeaderboard({ leaderboardData }: TeacherClas
                                             <span>{student.name || 'Anonymous'}</span>
                                         </div>
                                     </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">
+                                        {student.totalPoints.toLocaleString()} pts
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">€{student.savings.toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.completedCount}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <div className="flex items-center gap-2">
+                                            {student.recentBadges.length === 0 ? (
+                                                <span className="text-xs text-gray-400">—</span>
+                                            ) : (
+                                                student.recentBadges.map((badge) => (
+                                                    <span key={badge.slug} title={badge.name} className="text-lg">
+                                                        {badge.icon ?? '🎖️'}
+                                                    </span>
+                                                ))
+                                            )}
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

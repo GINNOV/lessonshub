@@ -116,6 +116,20 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
         id: true,
         name: true,
         image: true,
+        totalPoints: true,
+        badges: {
+          orderBy: { awardedAt: 'desc' },
+          take: 3,
+          select: {
+            badge: {
+              select: {
+                slug: true,
+                name: true,
+                icon: true,
+              },
+            },
+          },
+        },
         assignments: {
           where: {
             status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
@@ -125,6 +139,7 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
             id: true,
             status: true,
             score: true,
+            pointsAwarded: true,
             lesson: { select: { price: true } },
           },
         },
@@ -141,18 +156,43 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
           if (a.status === AssignmentStatus.FAILED) savings -= price;
         }
 
+        const derivedPoints = student.assignments.reduce(
+          (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),
+          0
+        );
+
+        const totalPoints = Math.max(student.totalPoints ?? 0, derivedPoints);
+
         return {
           id: student.id,
           name: student.name,
           image: student.image,
           completedCount,
           savings,
+          totalPoints,
+          recentBadges: student.badges.map(({ badge }) => ({
+            slug: badge.slug,
+            name: badge.name,
+            icon: badge.icon,
+          })),
         };
       })
       .filter(s => s.completedCount > 0 || s.savings !== 0)
-      .sort((a, b) => b.savings - a.savings || b.completedCount - a.completedCount);
+      .sort((a, b) =>
+        b.totalPoints - a.totalPoints ||
+        b.savings - a.savings ||
+        b.completedCount - a.completedCount
+      );
 
-    return studentStats as Array<{ id: string; name: string | null; image: string | null; completedCount: number; savings: number }>;
+    return studentStats as Array<{
+      id: string;
+      name: string | null;
+      image: string | null;
+      completedCount: number;
+      savings: number;
+      totalPoints: number;
+      recentBadges: Array<{ slug: string; name: string; icon: string | null }>;
+    }>;
   } catch (error) {
     console.error("Failed to fetch teacher leaderboard data:", error);
     return [];

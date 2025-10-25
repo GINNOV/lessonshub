@@ -2,13 +2,14 @@
 'use server';
 
 import prisma from "@/lib/prisma";
-import { Role, AssignmentStatus, LessonType, Prisma } from "@prisma/client";
+import { Role, AssignmentStatus, LessonType, PointReason, Prisma } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
 import { getEmailTemplateByName } from '@/actions/adminActions';
 import { createButton, sendEmail } from '@/lib/email-templates';
 import { auth } from "@/auth";
 import { nanoid } from 'nanoid';
 import { checkAndSendMilestoneEmail } from "./studentActions";
+import { awardBadgesForStudent, calculateAssignmentPoints } from "@/lib/gamification";
 
 export async function getUploadedImages() {
   try {
@@ -498,6 +499,7 @@ export async function getAssignmentsForStudent(studentId: string) {
                 deadline: true,
                 status: true,
                 score: true,
+                pointsAwarded: true,
                 gradedAt: true,
                 studentNotes: true,
                 rating: true,
@@ -725,16 +727,16 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
 
 export async function getStudentStats(studentId: string) {
   if (!studentId) {
-    return { totalValue: 0 };
+    return { totalValue: 0, totalPoints: 0 };
   }
   try {
     const student = await prisma.user.findUnique({
       where: { id: studentId },
-      select: { isPaying: true },
+      select: { isPaying: true, totalPoints: true },
     });
 
     if (!student?.isPaying) {
-      return { totalValue: 0 };
+      return { totalValue: 0, totalPoints: student?.totalPoints ?? 0 };
     }
 
     const assignments = await prisma.assignment.findMany({
@@ -746,6 +748,7 @@ export async function getStudentStats(studentId: string) {
         id: true,
         status: true,
         score: true,
+        pointsAwarded: true,
         lesson: { select: { price: true } },
       },
     });
@@ -758,10 +761,12 @@ export async function getStudentStats(studentId: string) {
         totalValue += price;
       }
     });
-    return { totalValue };
+    const derivedPoints = assignments.reduce((sum, assignment) => sum + (assignment.pointsAwarded ?? 0), 0);
+    const totalPoints = Math.max(student.totalPoints ?? 0, derivedPoints);
+    return { totalValue, totalPoints };
   } catch (error) {
     console.error("Failed to calculate student stats:", error);
-    return { totalValue: 0 };
+    return { totalValue: 0, totalPoints: 0 };
   }
 }
 
@@ -995,40 +1000,92 @@ export async function gradeAssignment(
       return { success: false, error: "Assignment not found or you don't have permission to grade it." };
     }
 
-    try {
-      await prisma.assignment.update({
-        where: { id: assignmentId },
-        data: {
-          score: data.score,
-          teacherComments: data.teacherComments,
-          // Store only when at least one per-answer comment is present
-          teacherAnswerComments:
-            data.answerComments && Object.keys(data.answerComments).length > 0
-              ? (data.answerComments as unknown as object)
-              : undefined,
-          status: AssignmentStatus.GRADED,
-          gradedAt: new Date(),
-        },
-      });
-    } catch (err) {
-      // Fallback if the JSON column isn't available yet: append per-answer comments to teacherComments
-      const hasPerAnswer = data.answerComments && Object.keys(data.answerComments).length > 0;
-      const appended = hasPerAnswer
-        ? `${data.teacherComments || ''}\n\nPer-answer comments:\n${Object.entries(data.answerComments as Record<number, string>)
-            .map(([i, c]) => `- Q${Number(i) + 1}: ${c}`)
-            .join('\n')}`
-        : data.teacherComments;
+    const now = new Date();
+    const pointsAwarded = calculateAssignmentPoints({
+      score: data.score,
+      difficulty: assignment.lesson?.difficulty ?? null,
+      deadline: assignment.deadline,
+      gradedAt: now,
+      assignedAt: assignment.assignedAt,
+    });
 
-      await prisma.assignment.update({
-        where: { id: assignmentId },
-        data: {
-          score: data.score,
-          teacherComments: appended,
-          status: AssignmentStatus.GRADED,
-          gradedAt: new Date(),
-        },
+    const gradingOutcome = await prisma.$transaction(async (tx) => {
+      let updatedAssignment;
+      try {
+        updatedAssignment = await tx.assignment.update({
+          where: { id: assignmentId },
+          data: {
+            score: data.score,
+            teacherComments: data.teacherComments,
+            teacherAnswerComments:
+              data.answerComments && Object.keys(data.answerComments).length > 0
+                ? (data.answerComments as unknown as object)
+                : undefined,
+            status: AssignmentStatus.GRADED,
+            gradedAt: now,
+            pointsAwarded,
+          },
+        });
+      } catch (err) {
+        const hasPerAnswer = data.answerComments && Object.keys(data.answerComments).length > 0;
+        const appended = hasPerAnswer
+          ? `${data.teacherComments || ''}\n\nPer-answer comments:\n${Object.entries(data.answerComments as Record<number, string>)
+              .map(([i, c]) => `- Q${Number(i) + 1}: ${c}`)
+              .join('\n')}`
+          : data.teacherComments;
+
+        updatedAssignment = await tx.assignment.update({
+          where: { id: assignmentId },
+          data: {
+            score: data.score,
+            teacherComments: appended,
+            status: AssignmentStatus.GRADED,
+            gradedAt: now,
+            pointsAwarded,
+          },
+        });
+      }
+
+      const previousPoints = assignment.pointsAwarded ?? 0;
+      const pointsDelta = pointsAwarded - previousPoints;
+      let totalPoints = assignment.student.totalPoints ?? 0;
+
+      if (pointsDelta !== 0) {
+        totalPoints += pointsDelta;
+        await tx.user.update({
+          where: { id: assignment.studentId },
+          data: {
+            totalPoints,
+          },
+        });
+
+        await tx.pointTransaction.create({
+          data: {
+            userId: assignment.studentId,
+            assignmentId,
+            points: pointsDelta,
+            reason: PointReason.ASSIGNMENT_GRADED,
+            note: `Scored ${data.score}/10 on ${assignment.lesson.title}`,
+          },
+        });
+      }
+
+      const badgeResult = await awardBadgesForStudent({
+        tx,
+        studentId: assignment.studentId,
+        assignmentId,
+        score: data.score,
+        totalPoints,
       });
-    }
+
+      return {
+        updatedAssignment,
+        pointsAwarded,
+        pointsDelta,
+        totalPoints: badgeResult.totalPoints,
+        awardedBadges: badgeResult.awardedBadges,
+      };
+    });
 
     const template = await getEmailTemplateByName('graded');
     if (template && assignment.student?.email) {
@@ -1049,12 +1106,18 @@ export async function gradeAssignment(
         console.error("An unexpected error occurred while sending the email:", emailError);
       }
     }
-    
+
     await checkAndSendMilestoneEmail(assignment.studentId);
 
     revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);
     revalidatePath('/my-lessons');
-    return { success: true };
+    revalidatePath('/dashboard');
+    return {
+      success: true,
+      pointsDelta: gradingOutcome.pointsDelta,
+      totalPoints: gradingOutcome.totalPoints,
+      awardedBadges: gradingOutcome.awardedBadges,
+    };
 
   } catch (error) {
     console.error("GRADE_SUBMISSION_ERROR", error);

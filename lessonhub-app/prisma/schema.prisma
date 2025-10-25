@@ -25,7 +25,8 @@ model User {
   isSuspended               Boolean   @default(false)
   isTakingBreak             Boolean   @default(false)
   lastPaymentReminderSentAt DateTime?
-  
+  totalPoints               Int       @default(0)
+
   // For students, the teachers they are assigned to.
   teachers                  TeachersForStudent[] @relation("StudentTeachers")
   // For teachers, the students they have assigned.
@@ -44,6 +45,8 @@ model User {
   sessions                  Session[]
   lessons                   Lesson[]
   assignments               Assignment[]
+  pointTransactions         PointTransaction[]
+  badges                    UserBadge[]
   classes                   Class[]
   defaultLessonPrice        Decimal?
   defaultLessonPreview      String?   @db.Text
@@ -145,6 +148,7 @@ model Assignment {
   answers             Json?
   teacherComments     String?
   teacherAnswerComments Json?
+  pointsAwarded        Int       @default(0)
   reminderSentAt      DateTime?
   milestoneNotified   Boolean          @default(false)
   notifyOnStartDate   Boolean          @default(true) // New field for scheduled notifications
@@ -152,6 +156,8 @@ model Assignment {
   studentId           String
   lesson              Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   student             User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  pointTransactions   PointTransaction[]
+  badgeAwards         UserBadge[]
 
   @@unique([lessonId, studentId])
 }
@@ -200,6 +206,48 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model Badge {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String
+  category    BadgeCategory @default(PROGRESSION)
+  icon        String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id           String     @id @default(cuid())
+  userId       String
+  badgeId      String
+  assignmentId String?
+  awardedAt    DateTime   @default(now())
+  metadata     Json?
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge        Badge      @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, badgeId])
+  @@index([badgeId])
+}
+
+model PointTransaction {
+  id           String       @id @default(cuid())
+  userId       String
+  assignmentId String?
+  points       Int
+  reason       PointReason
+  note         String?
+  createdAt    DateTime     @default(now())
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignment   Assignment?  @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([assignmentId])
+}
+
 enum Role {
   STUDENT
   TEACHER
@@ -231,4 +279,16 @@ enum AssignmentStatus {
   COMPLETED
   GRADED
   FAILED
+}
+
+enum BadgeCategory {
+  PROGRESSION
+  PERFORMANCE
+  PARTICIPATION
+}
+
+enum PointReason {
+  ASSIGNMENT_GRADED
+  BADGE_BONUS
+  MANUAL_ADJUSTMENT
 }

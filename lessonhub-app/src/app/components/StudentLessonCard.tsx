@@ -42,6 +42,7 @@ type SerializableAssignment = {
   status: AssignmentStatus;
   deadline: Date | string;
   score: number | null;
+  pointsAwarded: number;
   answers: any;
   lesson: SerializableLesson;
 };
@@ -59,11 +60,12 @@ const lessonTypeImages: Record<LessonType, string> = {
 };
 
 export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {
-  const { lesson, status, deadline, score } = assignment;
+  const { lesson, status, deadline, score, pointsAwarded } = assignment;
   const isPastDeadline = new Date(deadline) < new Date();
   const isComplete = status === AssignmentStatus.COMPLETED || status === AssignmentStatus.GRADED || status === AssignmentStatus.FAILED;
   const [shareId, setShareId] = useState<string | null>(lesson.public_share_id);
   const [isCopying, setIsCopying] = useState(false);
+  const pointsEarned = Math.max(pointsAwarded ?? 0, 0);
   
   const getStatusBadge = () => {
     if (status === AssignmentStatus.GRADED) return <Badge variant="default">Graded: {score}/10</Badge>;
@@ -201,6 +203,13 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                 </div>
             </div>
             <div className="flex items-center gap-2">
+                {status === AssignmentStatus.GRADED ? (
+                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
+                    +{pointsEarned} pts
+                  </Badge>
+                ) : (
+                  <span className="text-xs text-gray-400">Points pending</span>
+                )}
                 <Button
                   type="button"
                   variant="ghost"

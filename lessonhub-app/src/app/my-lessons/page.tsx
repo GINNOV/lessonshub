@@ -6,8 +6,9 @@ import { getDashboardSettings } from "@/actions/adminActions";
 import StudentLessonList from "@/app/components/StudentLessonList";
 import StudentStatsHeader from "../components/StudentStatsHeader";
 import Leaderboard from "../components/Leaderboard";
-import { getLeaderboardData } from "@/actions/studentActions";
+import { getLeaderboardData, getStudentGamification } from "@/actions/studentActions";
 import React from "react";
+import StudentGamificationPanel from "../components/StudentGamificationPanel";
 
 export default async function MyLessonsPage() {
   const session = await auth();
@@ -33,11 +34,12 @@ export default async function MyLessonsPage() {
     );
   }
 
-  const [assignments, stats, leaderboardData, settings] = await Promise.all([
+  const [assignments, stats, leaderboardData, settings, gamification] = await Promise.all([
     getAssignmentsForStudent(session.user.id),
     getStudentStats(session.user.id),
     getLeaderboardData(),
     getDashboardSettings(),
+    getStudentGamification(),
   ]);
 
   const total = assignments.length;
@@ -69,6 +71,7 @@ export default async function MyLessonsPage() {
 
       return {
         ...assignment,
+        pointsAwarded: assignment.pointsAwarded ?? 0,
         // Ensure optional columns missing in some DBs are present for typing
         teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
         lesson: {
@@ -84,11 +87,34 @@ export default async function MyLessonsPage() {
       }
   });
 
+  const gamificationSnapshot = gamification
+    ? {
+        totalPoints: gamification.totalPoints,
+        badges: gamification.badges.map(badge => ({
+          id: badge.id,
+          slug: badge.slug,
+          name: badge.name,
+          description: badge.description,
+          icon: badge.icon,
+          category: badge.category,
+          awardedAt: badge.awardedAt.toISOString(),
+        })),
+        nextBadge: gamification.nextBadge,
+        recentTransactions: gamification.recentTransactions.map(transaction => ({
+          id: transaction.id,
+          points: transaction.points,
+          reason: transaction.reason,
+          note: transaction.note,
+          createdAt: transaction.createdAt.toISOString(),
+        })),
+      }
+    : null;
 
   return (
     <div>
       <StudentStatsHeader 
         totalValue={stats.totalValue}
+        totalPoints={stats.totalPoints}
         total={total}
         pending={pending}
         submitted={submitted}
@@ -97,6 +123,7 @@ export default async function MyLessonsPage() {
         pastDue={pastDue}
         settings={settings}
       />
+      <StudentGamificationPanel data={gamificationSnapshot} />
       <h1 className="text-3xl font-bold mb-8 mt-8">My Lessons</h1>
       <StudentLessonList assignments={serializableAssignments} />
       <Leaderboard leaderboardData={leaderboardData} />

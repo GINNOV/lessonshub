@@ -1,6 +1,7 @@
 // file: prisma/seed.ts
 import { PrismaClient } from '@prisma/client';
 import { defaultEmailTemplates as defaultTemplates } from '../src/lib/email-templates';
+import { BADGE_DEFINITIONS } from '../src/lib/gamification';
 
 const prisma = new PrismaClient();
 
@@ -41,6 +42,28 @@ async function main() {
   }
 
   console.log(`✅ Database has been seeded with ${templateEntries.length} email templates.`);
+
+  console.log('Seeding default badges...');
+  for (const badge of BADGE_DEFINITIONS) {
+    await prisma.badge.upsert({
+      where: { slug: badge.slug },
+      update: {
+        name: badge.name,
+        description: badge.description,
+        icon: badge.icon,
+        category: badge.category,
+      },
+      create: {
+        slug: badge.slug,
+        name: badge.name,
+        description: badge.description,
+        icon: badge.icon,
+        category: badge.category,
+      },
+    });
+    console.log(`🏅 Upserted badge: ${badge.name}`);
+  }
+  console.log(`✅ Seeded ${BADGE_DEFINITIONS.length} default badges.`);
 }
 
 main()

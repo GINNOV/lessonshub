@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { Role, AssignmentStatus } from "@prisma/client";
 import { sendEmail, createButton } from "@/lib/email-templates";
+import { getStudentGamificationSnapshot } from "@/lib/gamification";
 
 /**
  * Sends a feedback message from the current student to all teachers.
@@ -118,6 +119,21 @@ export async function getLeaderboardData() {
         id: true,
         name: true,
         image: true,
+        totalPoints: true,
+        badges: {
+          orderBy: { awardedAt: 'desc' },
+          take: 3,
+          select: {
+            badge: {
+              select: {
+                slug: true,
+                name: true,
+                icon: true,
+              },
+            },
+            awardedAt: true,
+          },
+        },
         assignments: {
           where: {
             status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
@@ -126,6 +142,7 @@ export async function getLeaderboardData() {
             id: true,
             status: true,
             score: true,
+            pointsAwarded: true,
             gradedAt: true,
             assignedAt: true,
             lesson: { select: { price: true } },
@@ -154,6 +171,13 @@ export async function getLeaderboardData() {
         if (a.status === AssignmentStatus.FAILED) savings -= price;
       });
 
+      const derivedPoints = student.assignments.reduce(
+        (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),
+        0
+      );
+
+      const totalPoints = Math.max(student.totalPoints ?? 0, derivedPoints);
+
       return {
         id: student.id,
         name: student.name,
@@ -161,6 +185,12 @@ export async function getLeaderboardData() {
         completedCount,
         averageCompletionTime,
         savings,
+        totalPoints,
+        recentBadges: student.badges.map(({ badge }) => ({
+          slug: badge.slug,
+          name: badge.name,
+          icon: badge.icon,
+        })),
       };
     })
     // Include students who have any relevant assignment (COMPLETED, GRADED, or FAILED),
@@ -184,12 +214,28 @@ export async function getLeaderboardData() {
     }
 
     const leaderboard = studentStats.sort((a, b) =>
-      b.completedCount - a.completedCount || a.averageCompletionTime - b.averageCompletionTime
+      b.totalPoints - a.totalPoints ||
+      b.completedCount - a.completedCount ||
+      a.averageCompletionTime - b.averageCompletionTime
     );
 
     return leaderboard;
   } catch (error) {
     console.error("Failed to fetch leaderboard data:", error);
     return [];
+  }
+}
+
+export async function getStudentGamification() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  try {
+    return await getStudentGamificationSnapshot(session.user.id);
+  } catch (error) {
+    console.error('Failed to fetch student gamification snapshot:', error);
+    return null;
   }
 }
