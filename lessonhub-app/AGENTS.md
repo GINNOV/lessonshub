@@ -15,7 +15,9 @@
 - `npm run build`: Generate Prisma client (using `.env.local`) and build Next.js.
 - `npm start`: Run the production build.
 - `npm run lint`: Lint with Next/ESLint.
-- Prisma tooling: `npm run prisma:migrate`, `prisma:studio`, `prisma:db:push`, `prisma:generate` (all load `.env.local`).
+- Prisma tooling: `npm run prisma:migrate`, `npm run prisma:studio`, `npm run prisma:db:push`, `npm run prisma:generate`.
+  - These npm scripts wrap `dotenv -e .env.local`, so Prisma commands automatically pick up DB credentials from `.env.local`.
+  - Avoid calling bare `npx prisma …` unless you export `DATABASE_URL` manually; use the npm scripts instead to prevent P1012 (`Environment variable not found`) errors.
 
 ## Architecture & Workflows
 - Student view: `src/app/my-lessons/page.tsx` renders `StudentLessonList`, which shows `StudentLessonCard`s, supports search (title/teacher), status filters (ALL/PENDING/GRADED/FAILED with matching status colors), and groups cards by week using `WeekDivider`; sorted by nearest deadline.
