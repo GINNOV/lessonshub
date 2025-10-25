@@ -5,10 +5,9 @@ import Link from "next/link";
 import { getLessonsForTeacher, getLessonAverageRating } from "@/actions/lessonActions";
 import { getLeaderboardDataForTeacher, getTeacherDashboardStats } from "@/actions/teacherActions";
 import { getClassesForTeacher } from "@/actions/classActions";
-import { Role, User } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import TeacherLessonList from "@/app/components/TeacherLessonList";
-import TeacherPreferences from "@/app/components/TeacherPreferences";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,15 +16,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, Users, BookOpen, Mail, Settings, Timer, UserCircle2 } from "lucide-react";
 import TeacherClassLeaderboard from "@/app/components/TeacherClassLeaderboard";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import prisma from "@/lib/prisma";
 import TeacherStatsHeader from "@/app/components/TeacherStatsHeader";
 
 export const dynamic = "force-dynamic";
-
-type SerializableUser = Omit<User, "defaultLessonPrice"> & {
-  defaultLessonPrice: number | null;
-};
 
 function getISOWeek(date: Date) {
   const tempDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -121,14 +115,6 @@ export default async function DashboardPage({
     );
   }
 
-  // Convert Decimal -> number for client/serializable usage
-  const serializableTeacher: SerializableUser = {
-    ...teacher,
-    defaultLessonPrice: teacher.defaultLessonPrice
-      ? Number(teacher.defaultLessonPrice.toString())
-      : null,
-  };
-
   const classId = typeof resolvedSearchParams.classId === 'string' ? resolvedSearchParams.classId : undefined;
   const weekNumber = getWeekNumber(new Date(), teacher.timeZone);
 
@@ -218,16 +204,6 @@ export default async function DashboardPage({
         lessons={filteredLessons}
         classes={classFilterOptions}
       />
-
-      <Accordion type="single" collapsible className="w-full mt-8">
-        <AccordionItem value="lesson-defaults">
-          <AccordionTrigger>Lesson Defaults</AccordionTrigger>
-          <AccordionContent>
-            {/* ✅ Pass the SERIALIZED object, not the raw Prisma result */}
-            <TeacherPreferences teacher={serializableTeacher as any} />
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
 
       <div className="mt-8">
         {classes.length > 0 && (
