@@ -39,7 +39,104 @@ type FlashcardState = {
     definitionImageUrl: string | null;
 };
 
+const parseCsv = (content: string): string[][] => {
+  const rows: string[][] = [];
+  let currentField = '';
+  let currentRow: string[] = [];
+  let inQuotes = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+
+    if (char === '"') {
+      if (inQuotes && content[i + 1] === '"') {
+        currentField += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      currentRow.push(currentField);
+      currentField = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && content[i + 1] === '\n') {
+        i++;
+      }
+      currentRow.push(currentField);
+      rows.push(currentRow);
+      currentRow = [];
+      currentField = '';
+      continue;
+    }
+
+    currentField += char;
+  }
+
+  if (currentField.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentField);
+    rows.push(currentRow);
+  }
+
+  return rows.filter((row) => row.some((field) => field.trim().length));
+};
+
+const normalizeUrl = (value?: string): string | null => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+};
+
+const parseFlashcardCsv = (content: string): FlashcardState[] => {
+  const rows = parseCsv(content);
+  if (rows.length === 0) return [];
+
+  const headers = rows[0].map((header) => header.trim().toLowerCase());
+  const frontIndex = headers.indexOf('front');
+  const frontImageIndex = headers.indexOf('front_image');
+  const backIndex = headers.indexOf('back');
+  const backImageIndex = headers.indexOf('back_image');
+
+  if (frontIndex === -1 || backIndex === -1) {
+    throw new Error('CSV file must include "front" and "back" columns in the header row.');
+  }
+
+  return rows.slice(1).reduce<FlashcardState[]>((acc, row) => {
+    const term = row[frontIndex]?.trim() ?? '';
+    const definition = row[backIndex]?.trim() ?? '';
+    const termImageUrl = normalizeUrl(frontImageIndex >= 0 ? row[frontImageIndex] : undefined);
+    const definitionImageUrl = normalizeUrl(backImageIndex >= 0 ? row[backImageIndex] : undefined);
+
+    if (!term && !definition && !termImageUrl && !definitionImageUrl) {
+      return acc;
+    }
+
+    acc.push({
+      term,
+      definition,
+      termImageUrl,
+      definitionImageUrl,
+    });
+
+    return acc;
+  }, []);
+};
+
 const OptionalIndicator = () => <Info className="text-gray-400 ml-1 h-4 w-4" />;
+
+const isBlobHosted = (url: string | null): boolean => {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.endsWith('.public.blob.vercel-storage.com');
+  } catch {
+    return false;
+  }
+};
 
 export default function FlashcardCreator({ lesson, teacherPreferences }: FlashcardCreatorProps) {
   const router = useRouter();
@@ -91,6 +188,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
   const [isUploading, setIsUploading] = useState(false);
   const [linkStatus, setLinkStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
+  const [isImporting, setIsImporting] = useState(false);
   const isEditMode = !!lesson;
 
   useEffect(() => {
@@ -221,6 +319,27 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
 
   const addFlashcard = () => {
     setFlashcards([...flashcards, { term: '', definition: '', termImageUrl: null, definitionImageUrl: null }]);
+  };
+
+  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const content = await file.text();
+      const parsedFlashcards = parseFlashcardCsv(content);
+      if (parsedFlashcards.length === 0) {
+        throw new Error('No flashcards found in the CSV file.');
+      }
+      setFlashcards(parsedFlashcards);
+      toast.success(`Loaded ${parsedFlashcards.length} flashcard${parsedFlashcards.length === 1 ? '' : 's'} from CSV.`);
+    } catch (error) {
+      toast.error((error as Error).message || 'Unable to load CSV file.');
+    } finally {
+      setIsImporting(false);
+      event.target.value = '';
+    }
   };
 
   const removeFlashcard = (index: number) => {
@@ -416,6 +535,14 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
       </div>
 
       <div className="space-y-4">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="flashcardCsv">Import flashcards from CSV</Label>
+            <p className="text-xs text-gray-500">Expected columns: front, front_image, back, back_image.</p>
+          </div>
+          <Input id="flashcardCsv" type="file" accept=".csv,text/csv" onChange={handleCsvUpload} disabled={isLoading || isImporting} className="md:w-72" />
+        </div>
+        {isImporting && <p className="text-sm text-gray-500">Loading CSV…</p>}
         {flashcards.map((fc, index) => (
           <div key={index} className="p-4 border rounded-md space-y-4">
               <div className="flex justify-between items-center">
@@ -429,7 +556,16 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
                     <Input placeholder="e.g., Break a leg" value={fc.term} onChange={(e) => handleFlashcardChange(index, 'term', e.target.value)} />
                     <Label htmlFor={`term-image-${index}`} className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer"><Upload size={16} /> Upload Image</Label>
                     <Input id={`term-image-${index}`} type="file" className="hidden" onChange={(e) => handleCardImageUpload(e, index, 'termImageUrl')} />
-                    {fc.termImageUrl && <Image src={fc.termImageUrl} alt="Term image" width={100} height={100} className="rounded-md mt-2" />}
+                    {fc.termImageUrl && (
+                      isBlobHosted(fc.termImageUrl) ? (
+                        <Image src={fc.termImageUrl} alt="Term image" width={100} height={100} className="rounded-md mt-2" />
+                      ) : (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- external image hosts are not whitelisted so we fallback to a native img */}
+                          <img src={fc.termImageUrl} alt="Term image" className="rounded-md mt-2 h-[100px] w-[100px] object-cover" loading="lazy" />
+                        </>
+                      )
+                    )}
                 </div>
                 {/* Definition Side */}
                 <div className="space-y-2">
@@ -437,7 +573,16 @@ export default function FlashcardCreator({ lesson, teacherPreferences }: Flashca
                     <Input placeholder="e.g., Good luck!" value={fc.definition} onChange={(e) => handleFlashcardChange(index, 'definition', e.target.value)} />
                     <Label htmlFor={`def-image-${index}`} className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer"><Upload size={16} /> Upload Image</Label>
                     <Input id={`def-image-${index}`} type="file" className="hidden" onChange={(e) => handleCardImageUpload(e, index, 'definitionImageUrl')} />
-                    {fc.definitionImageUrl && <Image src={fc.definitionImageUrl} alt="Definition image" width={100} height={100} className="rounded-md mt-2" />}
+                    {fc.definitionImageUrl && (
+                      isBlobHosted(fc.definitionImageUrl) ? (
+                        <Image src={fc.definitionImageUrl} alt="Definition image" width={100} height={100} className="rounded-md mt-2" />
+                      ) : (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- external image hosts are not whitelisted so we fallback to a native img */}
+                          <img src={fc.definitionImageUrl} alt="Definition image" className="rounded-md mt-2 h-[100px] w-[100px] object-cover" loading="lazy" />
+                        </>
+                      )
+                    )}
                 </div>
               </div>
           </div>
