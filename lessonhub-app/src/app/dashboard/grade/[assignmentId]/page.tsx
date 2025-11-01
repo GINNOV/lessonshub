@@ -8,13 +8,14 @@ import GradingForm from "@/app/components/GradingForm";
 import LessonContentView from "@/app/components/LessonContentView";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type MultiChoiceAnswer = {
   questionId: string;
-  selectedAnswerId: string;
-  isCorrect: boolean;
+  selectedAnswerId: string | null;
+  isCorrect: boolean | null;
 };
 
 export default async function GradeSubmissionPage({
@@ -55,13 +56,53 @@ export default async function GradeSubmissionPage({
   };
 
   const flashcards = submission.lesson.flashcards ?? [];
+  const multiChoiceQuestions = submission.lesson.multiChoiceQuestions ?? [];
 
   const parseFlashcardAnswers = (): Record<string, 'correct' | 'incorrect'> | null => {
     if (submission.lesson.type !== LessonType.FLASHCARD) return null;
     const raw = submission.answers;
     if (!raw) return null;
 
-    const toOutcome = (value: unknown): 'correct' | 'incorrect' | null => {
+    function extractOutcomeFromObject(obj: Record<string, unknown>): 'correct' | 'incorrect' | null {
+      const possibleKeys = [
+        'result',
+        'status',
+        'value',
+        'outcome',
+        'answer',
+        'selection',
+        'response',
+        'marked',
+        'choice',
+        'correct',
+        'isCorrect',
+        'wasCorrect',
+        'right',
+        'wrong',
+      ];
+
+      for (const key of possibleKeys) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          const candidate = obj[key];
+          const outcome = toOutcome(candidate);
+          if (outcome) return outcome;
+        }
+      }
+
+      // Some legacy data might nest inside `details` or `meta`
+      const nestedKeys = ['details', 'meta', 'data'];
+      for (const key of nestedKeys) {
+        const nested = obj[key];
+        if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+          const nestedOutcome = extractOutcomeFromObject(nested as Record<string, unknown>);
+          if (nestedOutcome) return nestedOutcome;
+        }
+      }
+
+      return null;
+    }
+
+    function toOutcome(value: unknown): 'correct' | 'incorrect' | null {
       if (value === null || value === undefined) return null;
       if (typeof value === 'string') {
         const normalized = value.trim().toLowerCase();
@@ -71,8 +112,11 @@ export default async function GradeSubmissionPage({
       }
       if (typeof value === 'boolean') return value ? 'correct' : 'incorrect';
       if (typeof value === 'number') return value > 0 ? 'correct' : 'incorrect';
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        return extractOutcomeFromObject(value as Record<string, unknown>);
+      }
       return null;
-    };
+    }
 
     const assignSequentially = (source: unknown[]): Record<string, 'correct' | 'incorrect'> => {
       const record: Record<string, 'correct' | 'incorrect'> = {};
@@ -118,12 +162,27 @@ export default async function GradeSubmissionPage({
               obj.card_id ??
               undefined;
             const outcome = toOutcome(
-              obj.result ?? obj.status ?? obj.value ?? obj.outcome ?? obj.correct ?? obj.isCorrect
+              obj.result ??
+              obj.status ??
+              obj.value ??
+              obj.outcome ??
+              obj.correct ??
+              obj.isCorrect ??
+              obj.answer ??
+              obj.selection
             );
             if (id && outcome) {
               result[String(id)] = outcome;
               return;
             }
+            const fallbackOutcome = extractOutcomeFromObject(obj);
+            if (id && fallbackOutcome) {
+              result[String(id)] = fallbackOutcome;
+              return;
+            }
+            const nestedFromObject = buildRecord(obj);
+            Object.assign(result, nestedFromObject);
+            return;
           }
           if (typeof entry === 'string' && entry.includes(':')) {
             const [rawId, rawOutcome] = entry.split(':', 2);
@@ -151,9 +210,19 @@ export default async function GradeSubmissionPage({
         try {
           const plain = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
           Object.entries(plain).forEach(([key, val]) => {
-            const outcome = toOutcome(val);
-            if (outcome) {
-              result[key] = outcome;
+            const directOutcome = toOutcome(val);
+            if (directOutcome) {
+              result[key] = directOutcome;
+              return;
+            }
+            if (Array.isArray(val)) {
+              const nested = buildRecord(val);
+              Object.assign(result, nested);
+              return;
+            }
+            if (val && typeof val === 'object') {
+              const nested = buildRecord(val);
+              Object.assign(result, nested);
             }
           });
           return result;
@@ -169,9 +238,233 @@ export default async function GradeSubmissionPage({
     return Object.keys(parsed).length > 0 ? parsed : null;
   };
 
+  const parseMultiChoiceAnswers = (): Record<string, MultiChoiceAnswer> => {
+    if (submission.lesson.type !== LessonType.MULTI_CHOICE) return {};
+    const raw = submission.answers;
+    if (!raw) return {};
+
+    const record: Record<string, MultiChoiceAnswer> = {};
+
+    const toBoolean = (value: unknown): boolean | null => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'number') {
+        if (value > 0) return true;
+        if (value < 0) return false;
+        return null;
+      }
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (['correct', 'right', 'true', 'yes', 'y', '1', 'pass'].includes(normalized)) return true;
+        if (['incorrect', 'wrong', 'false', 'no', 'n', '0', 'fail'].includes(normalized)) return false;
+      }
+      return null;
+    };
+
+    const extractSelectedValue = (value: unknown): unknown => {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const obj = value as Record<string, unknown>;
+        const candidate =
+          obj.id ??
+          obj.value ??
+          obj.optionId ??
+          obj.option_id ??
+          obj.selectedAnswerId ??
+          obj.selected_answer_id ??
+          obj.answerId ??
+          obj.answer_id ??
+          obj.choice;
+        if (typeof candidate === 'string' || typeof candidate === 'number') {
+          return candidate;
+        }
+      }
+      return value;
+    };
+
+    const ensureEntry = (
+      questionId: string | undefined,
+      selected: unknown,
+      correctness: unknown,
+      fallbackIndex?: number
+    ) => {
+      const fallbackId =
+        typeof fallbackIndex === 'number'
+          ? multiChoiceQuestions[fallbackIndex]?.id
+          : undefined;
+      const resolvedId = questionId ?? fallbackId;
+      if (!resolvedId) return;
+
+      const targets = new Set<string>([resolvedId]);
+      if (fallbackId && fallbackId !== resolvedId) {
+        targets.add(fallbackId);
+      }
+
+      const extractedSelection = (() => {
+        if (selected === undefined) return undefined;
+        const value = extractSelectedValue(selected);
+        if (value === null) return null;
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number') return String(value);
+        return undefined;
+      })();
+      const boolValue = toBoolean(correctness);
+
+      targets.forEach(id => {
+        if (!record[id]) {
+          record[id] = {
+            questionId: id,
+            selectedAnswerId: null,
+            isCorrect: null,
+          };
+        }
+        if (extractedSelection !== undefined) {
+          record[id].selectedAnswerId = extractedSelection;
+        }
+        if (boolValue !== null) {
+          record[id].isCorrect = boolValue;
+        }
+      });
+    };
+
+    const normalise = (value: unknown, fallbackIndex?: number) => {
+      if (value === null || value === undefined) return;
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return;
+        try {
+          normalise(JSON.parse(trimmed), fallbackIndex);
+          return;
+        } catch {
+          if (trimmed.includes(':')) {
+            const [rawQuestionId, rawSelected] = trimmed.split(':', 2);
+            const selectedValue = rawSelected ?? null;
+            ensureEntry(rawQuestionId || undefined, selectedValue, null, fallbackIndex);
+          }
+          return;
+        }
+      }
+      if (Array.isArray(value)) {
+        if (value.length === 0) return;
+        if (value.length <= 3 && (typeof value[0] === 'string' || typeof value[0] === 'number' || value[0] === null || value[0] === undefined)) {
+          const [maybeQuestionId, maybeSelected, maybeCorrect] = value;
+          const qid = typeof maybeQuestionId === 'string' ? maybeQuestionId : undefined;
+          ensureEntry(qid, maybeSelected, maybeCorrect, fallbackIndex);
+          return;
+        }
+        value.forEach((item, index) => {
+          normalise(item, index);
+        });
+        return;
+      }
+      if (typeof value === 'object') {
+        const obj = value as Record<string, unknown>;
+        if (Object.keys(obj).length === 0) return;
+
+        const questionIdCandidate = [
+          obj.questionId,
+          obj.question_id,
+          obj.id,
+          obj.promptId,
+          obj.prompt_id,
+          obj.key,
+          obj.qid,
+        ].find((candidate): candidate is string => typeof candidate === 'string');
+
+        const rawSelectedCandidate = [
+          obj.selectedAnswerId,
+          obj.selected_answer_id,
+          obj.answerId,
+          obj.answer_id,
+          obj.optionId,
+          obj.option_id,
+          obj.selectedOption,
+          obj.selected_option,
+          obj.selected,
+          obj.value,
+          obj.choice,
+          obj.response,
+        ].find((candidate) => candidate !== undefined);
+
+        const correctnessCandidate = [
+          obj.isCorrect,
+          obj.correct,
+          obj.is_correct,
+          obj.wasCorrect,
+          obj.result,
+          obj.status,
+          obj.outcome,
+          obj.passed,
+        ].find((candidate) => candidate !== undefined);
+
+        if (questionIdCandidate || rawSelectedCandidate !== undefined || correctnessCandidate !== undefined) {
+          ensureEntry(
+            questionIdCandidate,
+            rawSelectedCandidate,
+            correctnessCandidate,
+            fallbackIndex
+          );
+          return;
+        }
+
+        Object.entries(obj).forEach(([key, val]) => {
+          if (val && typeof val === 'object') {
+            normalise({ questionId: key, ...(val as Record<string, unknown>) }, fallbackIndex);
+          } else {
+            ensureEntry(key, val, undefined, fallbackIndex);
+          }
+        });
+        return;
+      }
+      if (typeof value === 'number' || typeof value === 'boolean') {
+        ensureEntry(undefined, value, value, fallbackIndex);
+      }
+    };
+
+    normalise(raw);
+    return record;
+  };
+
   const flashcardAnswers = parseFlashcardAnswers();
   const correctCount = flashcardAnswers ? Object.values(flashcardAnswers).filter(a => a === 'correct').length : 0;
   const incorrectCount = flashcardAnswers ? Object.values(flashcardAnswers).filter(a => a === 'incorrect').length : 0;
+  const multiChoiceAnswers = parseMultiChoiceAnswers();
+  const multiChoiceDetails = multiChoiceQuestions.map((question, index) => {
+    const answer = multiChoiceAnswers[question.id];
+    const selectedOption = answer?.selectedAnswerId
+      ? question.options.find(option => option.id === answer.selectedAnswerId) ?? null
+      : null;
+    const correctOption = question.options.find(option => option.isCorrect) ?? null;
+    let isCorrect: boolean | null = null;
+    if (selectedOption && correctOption) {
+      isCorrect = selectedOption.id === correctOption.id;
+    } else if (typeof answer?.isCorrect === 'boolean') {
+      isCorrect = answer.isCorrect;
+    }
+    return {
+      question,
+      index,
+      answer,
+      selectedOption,
+      correctOption,
+      isCorrect,
+    };
+  });
+  const multiChoiceSummary = multiChoiceDetails.reduce(
+    (acc, detail) => {
+      if (detail.selectedOption && detail.isCorrect === true) {
+        acc.correct += 1;
+      } else if (detail.selectedOption) {
+        acc.incorrect += 1;
+      } else if (detail.answer?.selectedAnswerId) {
+        acc.incorrect += 1;
+      }
+      return acc;
+    },
+    { correct: 0, incorrect: 0 }
+  );
+  const multiChoiceUnanswered = Math.max(
+    multiChoiceDetails.length - (multiChoiceSummary.correct + multiChoiceSummary.incorrect),
+    0
+  );
 
   return (
     <div>
@@ -271,6 +564,107 @@ export default async function GradeSubmissionPage({
                 ) : (
                   <p className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
                     This lesson does not have any flashcards configured yet.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {submission.lesson.type === LessonType.MULTI_CHOICE && (
+              <div className="mt-4 space-y-3">
+                {multiChoiceDetails.length > 0 ? (
+                  <>
+                    <div className="flex flex-wrap justify-around gap-4 rounded-md bg-gray-50 p-3">
+                      <div className="min-w-[90px] text-center">
+                        <p className="text-2xl font-bold text-green-600">{multiChoiceSummary.correct}</p>
+                        <p className="text-sm text-gray-500">Correct</p>
+                      </div>
+                      <div className="min-w-[90px] text-center">
+                        <p className="text-2xl font-bold text-red-600">{multiChoiceSummary.incorrect}</p>
+                        <p className="text-sm text-gray-500">Incorrect</p>
+                      </div>
+                      <div className="min-w-[90px] text-center">
+                        <p className="text-2xl font-bold text-gray-600">{multiChoiceUnanswered}</p>
+                        <p className="text-sm text-gray-500">Unanswered</p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      {multiChoiceDetails.map(detail => {
+                        const { question, index: questionIndex, selectedOption, correctOption, isCorrect, answer } = detail;
+                        const hasSelection = Boolean(
+                          selectedOption ||
+                          answer?.selectedAnswerId ||
+                          typeof answer?.isCorrect === 'boolean'
+                        );
+                        const statusLabel =
+                          isCorrect === true
+                            ? 'Correct'
+                            : isCorrect === false && hasSelection
+                              ? 'Incorrect'
+                              : !hasSelection
+                                ? 'No answer'
+                                : null;
+                        const statusBadgeClasses = cn(
+                          'rounded-full px-3 py-1 text-xs font-semibold',
+                          statusLabel === 'Correct' && 'border-green-200 bg-green-50 text-green-700',
+                          statusLabel === 'Incorrect' && 'border-red-200 bg-red-50 text-red-700',
+                          statusLabel === 'No answer' && 'border-gray-200 bg-gray-50 text-gray-600'
+                        );
+                        return (
+                          <div key={question.id} className="space-y-3 rounded-md border p-4">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                              <div>
+                                <p className="text-sm font-semibold uppercase text-gray-500">Question {questionIndex + 1}</p>
+                                <p className="text-base text-gray-900">{question.question}</p>
+                              </div>
+                              {statusLabel && (
+                                <Badge variant="outline" className={statusBadgeClasses}>
+                                  {statusLabel}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              {question.options.map(option => {
+                                const isSelected = Boolean(selectedOption && option.id === selectedOption.id);
+                                const isCorrectOption = Boolean(correctOption && option.id === correctOption.id);
+                                const optionClasses = cn(
+                                  "flex flex-col gap-2 rounded-md border p-3 text-sm transition-colors md:flex-row md:items-center md:justify-between",
+                                  isSelected && isCorrect === true && "border-green-500 bg-green-50",
+                                  isSelected && isCorrect !== true && "border-red-500 bg-red-50",
+                                  !isSelected && isCorrectOption && "border-green-200 bg-green-50",
+                                  !isSelected && !isCorrectOption && "border-gray-200 bg-white"
+                                );
+                                return (
+                                  <div key={option.id} className={optionClasses}>
+                                    <span className="text-gray-800">{option.text}</span>
+                                    <div className="flex flex-wrap gap-2">
+                                      {isSelected && (
+                                        <span
+                                          className={cn(
+                                            "rounded-full px-2 py-1 text-xs font-semibold",
+                                            isCorrect === true ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"
+                                          )}
+                                        >
+                                          Your selection
+                                        </span>
+                                      )}
+                                      {isCorrectOption && (
+                                        <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
+                                          Correct answer
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <p className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                    This lesson does not include any multiple choice questions yet.
                   </p>
                 )}
               </div>
