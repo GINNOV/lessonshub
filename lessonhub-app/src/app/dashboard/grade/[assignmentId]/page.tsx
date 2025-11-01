@@ -11,6 +11,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { marked } from "marked";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 type MultiChoiceAnswer = {
   questionId: string;
@@ -55,7 +56,38 @@ export default async function GradeSubmissionPage({
     }
   };
 
-  const flashcardAnswers = submission.answers as Record<string, 'correct' | 'incorrect'> | null;
+  const parseFlashcardAnswers = (): Record<string, 'correct' | 'incorrect'> | null => {
+    if (submission.lesson.type !== LessonType.FLASHCARD) return null;
+    const raw = submission.answers;
+    if (!raw) return null;
+    const normalise = (value: unknown): Record<string, 'correct' | 'incorrect'> | null => {
+      if (!value) return null;
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? parsed as Record<string, 'correct' | 'incorrect'>
+            : null;
+        } catch {
+          return null;
+        }
+      }
+      if (typeof value === 'object' && !Array.isArray(value)) {
+        try {
+          const plain = JSON.parse(JSON.stringify(value));
+          return plain && typeof plain === 'object' && !Array.isArray(plain)
+            ? plain as Record<string, 'correct' | 'incorrect'>
+            : null;
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    };
+    return normalise(raw);
+  };
+
+  const flashcardAnswers = parseFlashcardAnswers();
   const correctCount = flashcardAnswers ? Object.values(flashcardAnswers).filter(a => a === 'correct').length : 0;
   const incorrectCount = flashcardAnswers ? Object.values(flashcardAnswers).filter(a => a === 'incorrect').length : 0;
 
@@ -78,46 +110,90 @@ export default async function GradeSubmissionPage({
               Student&apos;s Response
             </h2>
 
-            {submission.lesson.type === LessonType.FLASHCARD && flashcardAnswers && (
-                <div className="mt-4 space-y-2">
-                    <div className="flex justify-around p-2 mb-4 bg-gray-50 rounded-md">
-                        <div className="text-center">
-                            <p className="font-bold text-green-600 text-2xl">{correctCount}</p>
-                            <p className="text-sm text-gray-500">Correct</p>
-                        </div>
-                        <div className="text-center">
-                            <p className="font-bold text-red-600 text-2xl">{incorrectCount}</p>
-                            <p className="text-sm text-gray-500">Incorrect</p>
-                        </div>
+            {submission.lesson.type === LessonType.FLASHCARD && (
+              <div className="mt-4 space-y-3">
+                {flashcardAnswers ? (
+                  <>
+                    <div className="flex justify-around rounded-md bg-gray-50 p-3">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-green-600">{correctCount}</p>
+                        <p className="text-sm text-gray-500">Marked Correct</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-red-600">{incorrectCount}</p>
+                        <p className="text-sm text-gray-500">Marked Incorrect</p>
+                      </div>
                     </div>
-                    {submission.lesson.flashcards.map(flashcard => {
+                    <div className="space-y-3">
+                      {submission.lesson.flashcards.map(flashcard => {
                         const result = flashcardAnswers[flashcard.id];
                         return (
-                            <div key={flashcard.id} className={cn(
-                                "flex items-center justify-between p-2 border rounded-md",
-                                result === 'correct' && 'bg-green-100 border-green-200',
-                                result === 'incorrect' && 'bg-red-100 border-red-200'
-                            )}>
-                                <div>
-                                    <p className="font-semibold">{flashcard.term}</p>
-                                    <p className="text-sm text-gray-500">{flashcard.definition}</p>
+                          <div
+                            key={flashcard.id}
+                            className={cn(
+                              "space-y-3 rounded-md border p-3 transition-colors",
+                              result === 'correct' && 'border-green-200 bg-green-50',
+                              result === 'incorrect' && 'border-red-200 bg-red-50'
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-semibold uppercase text-gray-500">Front</p>
+                                <p className="text-base font-semibold text-gray-900">{flashcard.term}</p>
+                                {flashcard.termImageUrl && (
+                                  <div className="mt-2">
+                                    <Image
+                                      src={flashcard.termImageUrl}
+                                      alt={`Flashcard term ${flashcard.term}`}
+                                      width={160}
+                                      height={120}
+                                      className="h-auto w-full max-w-xs rounded-md border object-cover"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              {result === 'correct' ? (
+                                <div className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  <span>Right</span>
                                 </div>
-                                {result === 'correct' && (
-                                    <div className="flex items-center gap-1 text-green-600 font-semibold">
-                                        <CheckCircle2 className="h-5 w-5" />
-                                        <span>Right</span>
-                                    </div>
-                                )}
-                                {result === 'incorrect' && (
-                                    <div className="flex items-center gap-1 text-red-600 font-semibold">
-                                        <XCircle className="h-5 w-5" />
-                                        <span>Wrong</span>
-                                    </div>
-                                )}
+                              ) : result === 'incorrect' ? (
+                                <div className="flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-700">
+                                  <XCircle className="h-4 w-4" />
+                                  <span>Wrong</span>
+                                </div>
+                              ) : (
+                                <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-500">
+                                  Not Reviewed
+                                </div>
+                              )}
                             </div>
-                        )
-                    })}
-                </div>
+                            <div>
+                              <p className="text-sm font-semibold uppercase text-gray-500">Back</p>
+                              <p className="text-base text-gray-800">{flashcard.definition}</p>
+                              {flashcard.definitionImageUrl && (
+                                <div className="mt-2">
+                                  <Image
+                                    src={flashcard.definitionImageUrl}
+                                    alt={`Flashcard definition ${flashcard.term}`}
+                                    width={160}
+                                    height={120}
+                                    className="h-auto w-full max-w-xs rounded-md border object-cover"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <p className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                    This submission does not include any flashcard results yet.
+                  </p>
+                )}
+              </div>
             )}
             
             {submission.lesson.type === LessonType.STANDARD && (
@@ -158,6 +234,45 @@ export default async function GradeSubmissionPage({
                 <AccordionContent>
                     <div className="p-4 border rounded-md bg-gray-50">
                         <LessonContentView lesson={serializableSubmission.lesson} />
+                        {submission.lesson.type === LessonType.FLASHCARD && submission.lesson.flashcards.length > 0 && (
+                          <div className="mt-6 space-y-3">
+                            <h3 className="text-lg font-semibold text-gray-800">Flashcard Deck</h3>
+                            {submission.lesson.flashcards.map(card => (
+                              <div key={card.id} className="rounded-md border border-gray-200 bg-white p-3 shadow-sm">
+                                <div>
+                                  <p className="text-xs font-semibold uppercase text-gray-500">Front</p>
+                                  <p className="text-base font-medium text-gray-900">{card.term}</p>
+                                  {card.termImageUrl && (
+                                    <div className="mt-2">
+                                      <Image
+                                        src={card.termImageUrl}
+                                        alt={`Flashcard term ${card.term}`}
+                                        width={200}
+                                        height={140}
+                                        className="h-auto w-full max-w-sm rounded-md border object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="mt-4">
+                                  <p className="text-xs font-semibold uppercase text-gray-500">Back</p>
+                                  <p className="text-base text-gray-800">{card.definition}</p>
+                                  {card.definitionImageUrl && (
+                                    <div className="mt-2">
+                                      <Image
+                                        src={card.definitionImageUrl}
+                                        alt={`Flashcard definition ${card.term}`}
+                                        width={200}
+                                        height={140}
+                                        className="h-auto w-full max-w-sm rounded-md border object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                     </div>
                 </AccordionContent>
             </AccordionItem>
