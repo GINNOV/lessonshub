@@ -8,10 +8,8 @@ import GradingForm from "@/app/components/GradingForm";
 import LessonContentView from "@/app/components/LessonContentView";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { marked } from "marked";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 
 type MultiChoiceAnswer = {
   questionId: string;
@@ -56,35 +54,119 @@ export default async function GradeSubmissionPage({
     }
   };
 
+  const flashcards = submission.lesson.flashcards ?? [];
+
   const parseFlashcardAnswers = (): Record<string, 'correct' | 'incorrect'> | null => {
     if (submission.lesson.type !== LessonType.FLASHCARD) return null;
     const raw = submission.answers;
     if (!raw) return null;
-    const normalise = (value: unknown): Record<string, 'correct' | 'incorrect'> | null => {
-      if (!value) return null;
+
+    const toOutcome = (value: unknown): 'correct' | 'incorrect' | null => {
+      if (value === null || value === undefined) return null;
       if (typeof value === 'string') {
-        try {
-          const parsed = JSON.parse(value);
-          return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-            ? parsed as Record<string, 'correct' | 'incorrect'>
-            : null;
-        } catch {
-          return null;
-        }
+        const normalized = value.trim().toLowerCase();
+        if (['correct', 'right', 'true', 'yes', 'y', '1', 'pass'].includes(normalized)) return 'correct';
+        if (['incorrect', 'wrong', 'false', 'no', 'n', '0', 'fail'].includes(normalized)) return 'incorrect';
+        return null;
       }
-      if (typeof value === 'object' && !Array.isArray(value)) {
-        try {
-          const plain = JSON.parse(JSON.stringify(value));
-          return plain && typeof plain === 'object' && !Array.isArray(plain)
-            ? plain as Record<string, 'correct' | 'incorrect'>
-            : null;
-        } catch {
-          return null;
-        }
-      }
+      if (typeof value === 'boolean') return value ? 'correct' : 'incorrect';
+      if (typeof value === 'number') return value > 0 ? 'correct' : 'incorrect';
       return null;
     };
-    return normalise(raw);
+
+    const assignSequentially = (source: unknown[]): Record<string, 'correct' | 'incorrect'> => {
+      const record: Record<string, 'correct' | 'incorrect'> = {};
+      source.forEach((entry, index) => {
+        const card = flashcards[index];
+        const outcome = toOutcome(entry);
+        if (card && outcome) {
+          record[card.id] = outcome;
+        }
+      });
+      return record;
+    };
+
+    const buildRecord = (value: unknown): Record<string, 'correct' | 'incorrect'> => {
+      const result: Record<string, 'correct' | 'incorrect'> = {};
+      if (!value) return result;
+
+      if (typeof value === 'string') {
+        try {
+          return buildRecord(JSON.parse(value));
+        } catch {
+          return result;
+        }
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach((entry, index) => {
+          if (Array.isArray(entry) && entry.length >= 2) {
+            const id = String(entry[0]);
+            const outcome = toOutcome(entry[1]);
+            if (id && outcome) {
+              result[id] = outcome;
+            }
+            return;
+          }
+          if (entry && typeof entry === 'object') {
+            const obj = entry as Record<string, unknown>;
+            const id =
+              obj.flashcardId ??
+              obj.cardId ??
+              obj.id ??
+              obj.flashcard_id ??
+              obj.card_id ??
+              undefined;
+            const outcome = toOutcome(
+              obj.result ?? obj.status ?? obj.value ?? obj.outcome ?? obj.correct ?? obj.isCorrect
+            );
+            if (id && outcome) {
+              result[String(id)] = outcome;
+              return;
+            }
+          }
+          if (typeof entry === 'string' && entry.includes(':')) {
+            const [rawId, rawOutcome] = entry.split(':', 2);
+            const outcome = toOutcome(rawOutcome);
+            if (rawId && outcome) {
+              result[rawId] = outcome;
+              return;
+            }
+          }
+          const card = flashcards[index];
+          const fallbackOutcome = toOutcome(entry);
+          if (card && fallbackOutcome) {
+            result[card.id] = fallbackOutcome;
+          }
+        });
+
+        if (Object.keys(result).length === 0 && flashcards.length === value.length) {
+          return assignSequentially(value);
+        }
+
+        return result;
+      }
+
+      if (value && typeof value === 'object') {
+        try {
+          const plain = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+          Object.entries(plain).forEach(([key, val]) => {
+            const outcome = toOutcome(val);
+            if (outcome) {
+              result[key] = outcome;
+            }
+          });
+          return result;
+        } catch {
+          return result;
+        }
+      }
+
+      return result;
+    };
+
+    const parsed = buildRecord(raw);
+    return Object.keys(parsed).length > 0 ? parsed : null;
   };
 
   const flashcardAnswers = parseFlashcardAnswers();
@@ -112,7 +194,7 @@ export default async function GradeSubmissionPage({
 
             {submission.lesson.type === LessonType.FLASHCARD && (
               <div className="mt-4 space-y-3">
-                {flashcardAnswers ? (
+                {flashcards.length > 0 ? (
                   <>
                     <div className="flex justify-around rounded-md bg-gray-50 p-3">
                       <div className="text-center">
@@ -125,8 +207,8 @@ export default async function GradeSubmissionPage({
                       </div>
                     </div>
                     <div className="space-y-3">
-                      {submission.lesson.flashcards.map(flashcard => {
-                        const result = flashcardAnswers[flashcard.id];
+                      {flashcards.map(flashcard => {
+                        const result = flashcardAnswers?.[flashcard.id] ?? null;
                         return (
                           <div
                             key={flashcard.id}
@@ -137,16 +219,15 @@ export default async function GradeSubmissionPage({
                             )}
                           >
                             <div className="flex items-center justify-between">
-                              <div>
+                              <div className="max-w-md">
                                 <p className="text-sm font-semibold uppercase text-gray-500">Front</p>
                                 <p className="text-base font-semibold text-gray-900">{flashcard.term}</p>
                                 {flashcard.termImageUrl && (
                                   <div className="mt-2">
-                                    <Image
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
                                       src={flashcard.termImageUrl}
                                       alt={`Flashcard term ${flashcard.term}`}
-                                      width={160}
-                                      height={120}
                                       className="h-auto w-full max-w-xs rounded-md border object-cover"
                                     />
                                   </div>
@@ -168,16 +249,15 @@ export default async function GradeSubmissionPage({
                                 </div>
                               )}
                             </div>
-                            <div>
+                            <div className="max-w-md">
                               <p className="text-sm font-semibold uppercase text-gray-500">Back</p>
                               <p className="text-base text-gray-800">{flashcard.definition}</p>
                               {flashcard.definitionImageUrl && (
                                 <div className="mt-2">
-                                  <Image
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
                                     src={flashcard.definitionImageUrl}
                                     alt={`Flashcard definition ${flashcard.term}`}
-                                    width={160}
-                                    height={120}
                                     className="h-auto w-full max-w-xs rounded-md border object-cover"
                                   />
                                 </div>
@@ -190,7 +270,7 @@ export default async function GradeSubmissionPage({
                   </>
                 ) : (
                   <p className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-                    This submission does not include any flashcard results yet.
+                    This lesson does not have any flashcards configured yet.
                   </p>
                 )}
               </div>
@@ -234,21 +314,20 @@ export default async function GradeSubmissionPage({
                 <AccordionContent>
                     <div className="p-4 border rounded-md bg-gray-50">
                         <LessonContentView lesson={serializableSubmission.lesson} />
-                        {submission.lesson.type === LessonType.FLASHCARD && submission.lesson.flashcards.length > 0 && (
+                        {submission.lesson.type === LessonType.FLASHCARD && flashcards.length > 0 && (
                           <div className="mt-6 space-y-3">
                             <h3 className="text-lg font-semibold text-gray-800">Flashcard Deck</h3>
-                            {submission.lesson.flashcards.map(card => (
+                            {flashcards.map(card => (
                               <div key={card.id} className="rounded-md border border-gray-200 bg-white p-3 shadow-sm">
                                 <div>
                                   <p className="text-xs font-semibold uppercase text-gray-500">Front</p>
                                   <p className="text-base font-medium text-gray-900">{card.term}</p>
                                   {card.termImageUrl && (
                                     <div className="mt-2">
-                                      <Image
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
                                         src={card.termImageUrl}
                                         alt={`Flashcard term ${card.term}`}
-                                        width={200}
-                                        height={140}
                                         className="h-auto w-full max-w-sm rounded-md border object-cover"
                                       />
                                     </div>
@@ -259,11 +338,10 @@ export default async function GradeSubmissionPage({
                                   <p className="text-base text-gray-800">{card.definition}</p>
                                   {card.definitionImageUrl && (
                                     <div className="mt-2">
-                                      <Image
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
                                         src={card.definitionImageUrl}
                                         alt={`Flashcard definition ${card.term}`}
-                                        width={200}
-                                        height={140}
                                         className="h-auto w-full max-w-sm rounded-md border object-cover"
                                       />
                                     </div>
