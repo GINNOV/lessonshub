@@ -54,6 +54,17 @@ const getStartOfDay = (date: Date) => {
   return newDate;
 };
 
+const getEndOfDay = (date: Date) => {
+  const newDate = new Date(date);
+  newDate.setHours(23, 59, 59, 999);
+  return newDate;
+};
+
+const formatDateInput = (date: Date) => {
+  const pad = (value: number) => value.toString().padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
 const isValidDate = (date: Date | null | undefined): date is Date => {
   return !!date && !Number.isNaN(date.getTime());
 };
@@ -67,17 +78,18 @@ const lessonTypeEmojis: Record<LessonType, string> = {
 
 const STORAGE_KEY = 'teacher-dashboard-filters';
 
-type StatusFilterValue = AssignmentStatus | 'all' | 'past_due';
+type StatusFilterValue = AssignmentStatus | 'all' | 'past_due' | 'empty_class';
 type OrderViewValue = 'deadline' | 'week' | 'available';
 const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   'all',
   'past_due',
+  'empty_class',
   AssignmentStatus.PENDING,
   AssignmentStatus.COMPLETED,
   AssignmentStatus.GRADED,
   AssignmentStatus.FAILED,
 ];
-const DATE_FILTER_VALUES = ['all', 'today', 'this_week', 'last_week', 'last_30_days'] as const;
+const DATE_FILTER_VALUES = ['today', 'this_week', 'last_week', 'custom'] as const;
 const ORDER_VIEW_VALUES: OrderViewValue[] = ['deadline', 'week', 'available'];
 type DateFilterValue = (typeof DATE_FILTER_VALUES)[number];
 
@@ -172,7 +184,7 @@ const FILTER_LEGEND = [
   },
   {
     label: 'Date Filter',
-    description: 'Zoom in on assignments due today, this week, last week, or within the last 30 days.',
+    description: 'Zoom in on assignments due today, this week, last week, or pick a custom range.',
   },
   {
     label: 'Class Filter',
@@ -187,7 +199,9 @@ const FILTER_LEGEND = [
 export default function TeacherLessonList({ lessons, classes }: TeacherLessonListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(AssignmentStatus.PENDING);
-  const [dateFilter, setDateFilter] = useState<DateFilterValue>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>('this_week');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
   const [classFilter, setClassFilter] = useState('all');
   const [orderView, setOrderView] = useState<OrderViewValue>('week');
   const [copiedLessonId, setCopiedLessonId] = useState<string | null>(null);
@@ -226,6 +240,37 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     }
   };
 
+  const handleDateFilterChange = (value: DateFilterValue) => {
+    if (value === 'custom') {
+      const today = new Date();
+      const defaultEnd = formatDateInput(today);
+      const defaultStartDate = new Date(today);
+      defaultStartDate.setDate(today.getDate() - 7);
+
+      if (!customStartDate) {
+        setCustomStartDate(formatDateInput(defaultStartDate));
+      }
+      if (!customEndDate) {
+        setCustomEndDate(defaultEnd);
+      }
+    }
+    setDateFilter(value);
+  };
+
+  const handleCustomStartChange = (value: string) => {
+    setCustomStartDate(value);
+    if (customEndDate && value && value > customEndDate) {
+      setCustomEndDate(value);
+    }
+  };
+
+  const handleCustomEndChange = (value: string) => {
+    setCustomEndDate(value);
+    if (customStartDate && value && value < customStartDate) {
+      setCustomStartDate(value);
+    }
+  };
+
   type LessonWithMeta = SerializableLessonWithAssignments & {
     week: number;
   nextDeadline: Date | null;
@@ -250,9 +295,10 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     const lastWeekStart = new Date(thisWeek.start);
     lastWeekStart.setDate(thisWeek.start.getDate() - 7);
     const lastWeek = getWeekBounds(lastWeekStart, WEEK_STARTS_ON);
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    const thirtyDaysAgoStart = getStartOfDay(thirtyDaysAgo);
+    const parsedCustomStart = customStartDate ? new Date(customStartDate) : null;
+    const parsedCustomEnd = customEndDate ? new Date(customEndDate) : null;
+    const customStart = isValidDate(parsedCustomStart) ? getStartOfDay(parsedCustomStart) : null;
+    const customEnd = isValidDate(parsedCustomEnd) ? getEndOfDay(parsedCustomEnd) : null;
     const lessonsWithMeta: LessonWithMeta[] = lessons.map((lesson) => {
       const week = parseInt(getWeekAndDay(new Date(lesson.createdAt)).split('-')[0], 10);
       const scheduledDate = lesson.scheduled_assignment_date ? new Date(lesson.scheduled_assignment_date) : null;
@@ -333,6 +379,9 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             return a.deadlineDate <= today;
           });
         }
+        if (statusFilter === 'empty_class') {
+          return lesson.assignmentsWithDates.length === 0;
+        }
         return lesson.assignmentsWithDates.some(a => a.status === statusFilter);
       })
       .filter(lesson => {
@@ -343,13 +392,17 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         return lesson.assignmentsWithDates.some(a => a.classId === classFilter);
       })
       .filter(lesson => {
-        if (dateFilter === 'all') return true;
         const referenceDate = lesson.filterDate ?? new Date(lesson.createdAt);
         const referenceStart = getStartOfDay(referenceDate);
         if (dateFilter === 'today') return referenceStart.getTime() === todayStart.getTime();
         if (dateFilter === 'this_week') return referenceStart >= thisWeek.start && referenceStart <= thisWeek.end;
         if (dateFilter === 'last_week') return referenceStart >= lastWeek.start && referenceStart <= lastWeek.end;
-        if (dateFilter === 'last_30_days') return referenceStart >= thirtyDaysAgoStart;
+        if (dateFilter === 'custom') {
+          if (customStart && customEnd) {
+            return referenceStart >= customStart && referenceStart <= customEnd;
+          }
+          return true;
+        }
         return true;
       })
       .sort((a, b) => {
@@ -399,7 +452,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     }
 
     return filtered;
-  }, [lessons, searchTerm, statusFilter, dateFilter, classFilter, orderView]);
+  }, [lessons, searchTerm, statusFilter, dateFilter, classFilter, orderView, customStartDate, customEndDate]);
 
   useEffect(() => {
     if (!hasHydratedState.current) {
@@ -409,6 +462,8 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       searchTerm,
       statusFilter,
       dateFilter,
+      customStartDate,
+      customEndDate,
       classFilter,
       orderView,
     };
@@ -417,7 +472,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     } catch (error) {
       console.warn('Unable to persist teacher dashboard filters', error);
     }
-  }, [searchTerm, statusFilter, dateFilter, classFilter, orderView]);
+  }, [searchTerm, statusFilter, dateFilter, customStartDate, customEndDate, classFilter, orderView]);
 
   useEffect(() => {
     if (hasHydratedState.current) {
@@ -433,6 +488,8 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         searchTerm?: string;
         statusFilter?: StatusFilterValue;
         dateFilter?: string;
+        customStartDate?: string;
+        customEndDate?: string;
         classFilter?: string;
         orderView?: OrderViewValue;
       };
@@ -440,6 +497,8 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       if (parsed.statusFilter && STATUS_FILTER_VALUES.includes(parsed.statusFilter)) {
         setStatusFilter(parsed.statusFilter);
       }
+      if (typeof parsed.customStartDate === 'string') setCustomStartDate(parsed.customStartDate);
+      if (typeof parsed.customEndDate === 'string') setCustomEndDate(parsed.customEndDate);
       if (parsed.dateFilter && DATE_FILTER_VALUES.includes(parsed.dateFilter as DateFilterValue)) {
         setDateFilter(parsed.dateFilter as DateFilterValue);
       }
@@ -646,15 +705,34 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
           )}
           <select
             value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value as DateFilterValue)}
+            onChange={(e) => handleDateFilterChange(e.target.value as DateFilterValue)}
             className="border-gray-300 rounded-md shadow-sm"
           >
-            <option value="all">All Dates</option>
             <option value="today">Today</option>
             <option value="this_week">This Week</option>
-            <option value="last_week">Last Week</option>
-            <option value="last_30_days">Last 30 Days</option>
+            <option value="last_week">Past Week</option>
+            <option value="custom">Custom</option>
           </select>
+          {dateFilter === 'custom' && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">From</span>
+              <Input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => handleCustomStartChange(e.target.value)}
+                max={customEndDate || undefined}
+                className="w-36"
+              />
+              <span className="text-sm text-gray-500">to</span>
+              <Input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => handleCustomEndChange(e.target.value)}
+                min={customStartDate || undefined}
+                className="w-36"
+              />
+            </div>
+          )}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilterValue)}
@@ -662,6 +740,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
           >
             <option value="all">All Statuses</option>
             <option value="past_due">Past Due</option>
+            <option value="empty_class">Empty Class</option>
             <option value={AssignmentStatus.PENDING}>Pending</option>
             <option value={AssignmentStatus.COMPLETED}>Completed</option>
             <option value={AssignmentStatus.GRADED}>Graded</option>

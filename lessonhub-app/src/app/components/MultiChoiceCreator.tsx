@@ -46,6 +46,136 @@ type QuestionState = {
     options: OptionState[];
 };
 
+const parseCsv = (content: string): string[][] => {
+  const rows: string[][] = [];
+  let currentField = '';
+  let currentRow: string[] = [];
+  let inQuotes = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+
+    if (char === '"') {
+      if (inQuotes && content[i + 1] === '"') {
+        currentField += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      currentRow.push(currentField);
+      currentField = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && content[i + 1] === '\n') {
+        i++;
+      }
+      currentRow.push(currentField);
+      rows.push(currentRow);
+      currentRow = [];
+      currentField = '';
+      continue;
+    }
+
+    currentField += char;
+  }
+
+  if (currentField.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentField);
+    rows.push(currentRow);
+  }
+
+  return rows.filter((row) => row.some((field) => field.trim().length));
+};
+
+const parseMultiChoiceCsv = (content: string): QuestionState[] => {
+  const rows = parseCsv(content);
+  if (rows.length === 0) return [];
+
+  const headers = rows[0].map((header) => header.trim().toLowerCase());
+  const questionIndex = headers.indexOf('question');
+  const rightAnswerIndex = headers.indexOf('right_answer_id');
+  const answerColumns = headers
+    .map((header, idx) => ({ header, idx }))
+    .filter(({ header }) => /^answer\d+$/i.test(header))
+    .sort((a, b) => a.header.localeCompare(b.header, undefined, { numeric: true }));
+
+  if (questionIndex === -1 || rightAnswerIndex === -1 || answerColumns.length === 0) {
+    throw new Error('CSV header must include question, right_answer_id, and answer columns (answer1, answer2, …).');
+  }
+
+  return rows.slice(1).reduce<QuestionState[]>((acc, row, rowIdx) => {
+    const rowNumber = rowIdx + 2; // account for header row
+    const questionText = row[questionIndex]?.trim() ?? '';
+    const answers = answerColumns.map(({ header, idx }, orderIndex) => ({
+      header,
+      orderIndex,
+      value: row[idx]?.trim() ?? '',
+    }));
+    const nonEmptyAnswers = answers.filter((answer) => answer.value.length > 0);
+
+    if (!questionText) {
+      if (nonEmptyAnswers.length === 0) {
+        return acc; // skip empty row
+      }
+      throw new Error(`Row ${rowNumber}: question field is required.`);
+    }
+
+    if (nonEmptyAnswers.length < 2) {
+      throw new Error(`Row ${rowNumber}: please provide at least two answers.`);
+    }
+
+    const rightAnswerRaw = row[rightAnswerIndex]?.trim();
+    if (!rightAnswerRaw) {
+      throw new Error(`Row ${rowNumber}: right_answer_id is required.`);
+    }
+
+    const normalizedRight = rightAnswerRaw.toLowerCase();
+    let correctOrderIndex = answers.findIndex((answer) => answer.header === normalizedRight);
+
+    if (correctOrderIndex === -1) {
+      const numeric = Number.parseInt(rightAnswerRaw, 10);
+      if (!Number.isNaN(numeric) && numeric >= 1 && numeric <= answers.length) {
+        correctOrderIndex = numeric - 1;
+      }
+    }
+
+    if (correctOrderIndex === -1) {
+      correctOrderIndex = answers.findIndex((answer) => answer.value.toLowerCase() === normalizedRight);
+    }
+
+    if (correctOrderIndex === -1) {
+      throw new Error(`Row ${rowNumber}: right_answer_id "${rightAnswerRaw}" does not match any answer column.`);
+    }
+
+    const correctAnswer = answers[correctOrderIndex];
+    if (!correctAnswer.value) {
+      throw new Error(`Row ${rowNumber}: right_answer_id points to an empty answer.`);
+    }
+
+    const options = nonEmptyAnswers.map((answer) => ({
+      text: answer.value,
+      isCorrect: answer.orderIndex === correctOrderIndex,
+    }));
+
+    if (!options.some((option) => option.isCorrect)) {
+      throw new Error(`Row ${rowNumber}: right_answer_id must reference a non-empty answer.`);
+    }
+
+    acc.push({
+      question: questionText,
+      options,
+    });
+
+    return acc;
+  }, []);
+};
+
 const OptionalIndicator = () => <Info className="text-gray-400 ml-1 h-4 w-4" />;
 
 async function safeJson(response: Response) {
@@ -80,6 +210,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
   const [questions, setQuestions] = useState<QuestionState[]>([{ question: '', options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }] }]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
   const isEditMode = !!lesson;
   const isYouTube = (url: string) => {
@@ -239,6 +370,27 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
     setQuestions(newQuestions);
   };
 
+  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const content = await file.text();
+      const parsedQuestions = parseMultiChoiceCsv(content);
+      if (parsedQuestions.length === 0) {
+        throw new Error('No questions found in the CSV file.');
+      }
+      setQuestions(parsedQuestions);
+      toast.success(`Loaded ${parsedQuestions.length} question${parsedQuestions.length === 1 ? '' : 's'} from CSV.`);
+    } catch (error) {
+      toast.error((error as Error).message || 'Unable to load CSV file.');
+    } finally {
+      setIsImporting(false);
+      event.target.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -383,6 +535,17 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences }: Multi
             <OptionalIndicator />
         </div>
         <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="questionsCsv">Import questions from CSV</Label>
+            <p className="text-xs text-gray-500">Columns: question, right_answer_id, answer1, answer2, answer3.</p>
+          </div>
+          <Input id="questionsCsv" type="file" accept=".csv,text/csv" onChange={handleCsvUpload} disabled={isLoading || isImporting} className="md:w-72" />
+        </div>
+        {isImporting && <p className="text-sm text-gray-500">Loading CSV…</p>}
       </div>
       
       {questions.map((q, qIndex) => (
