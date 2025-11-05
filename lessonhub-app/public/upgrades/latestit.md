@@ -22,7 +22,7 @@
   </text>
 </svg>
 
-# Lesson Hub – Aggiornamento Musica e Padronanza
+# Lesson Hub – Sammarcarda release
 
 Bentornato! Ecco una panoramica delle ultime novità introdotte sulla piattaforma.
 

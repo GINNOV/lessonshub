@@ -22,7 +22,7 @@
   </text>
 </svg>
 
-# Lesson Hub Spring Refresh
+# Lesson Hub - Sammarcarda release
 
 Welcome back! Here’s a quick look at the latest improvements rolling out across the platform.
 
