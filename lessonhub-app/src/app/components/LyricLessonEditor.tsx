@@ -572,13 +572,13 @@ export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricL
 
   const validateBeforeSubmit = () => {
     if (!title.trim()) {
-      toast.error('Add a lesson title before saving.', { id: 'lyric-title-missing', important: true });
+      toast.error('Add a lesson title before saving.', { id: 'lyric-title-missing' });
       document.getElementById('title')?.focus();
       return false;
     }
 
     if (!audioUrl.trim()) {
-      toast.error('Attach or upload an audio source before saving.', { id: 'lyric-audio-missing', important: true });
+      toast.error('Attach or upload an audio source before saving.', { id: 'lyric-audio-missing' });
       document.getElementById('audioUrl')?.focus();
       return false;
     }
