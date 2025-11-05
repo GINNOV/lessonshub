@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
-import { Info, Music, Play, Pause, Scissors, Clock, RefreshCw, Upload, HelpCircle, Download, BookOpenText } from 'lucide-react';
+import { Music, Play, Pause, Scissors, Clock, RefreshCw, Upload, HelpCircle, Download, BookOpenText } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -47,6 +47,7 @@ export type LyricLine = {
 export type LyricLessonSettings = {
   defaultMode: 'read' | 'fill' | 'both';
   fillBlankDifficulty: number; // 0 - 1
+  maxReadModeSwitches: number | null;
 };
 
 interface LyricLessonEditorProps {
@@ -57,7 +58,7 @@ interface LyricLessonEditorProps {
 type UploadState = 'idle' | 'uploading' | 'testing';
 type LrcImportState = 'idle' | 'parsing' | 'uploading';
 
-const OptionalIndicator = () => <Info className="text-gray-400 ml-1 h-4 w-4" />;
+const OptionalIndicator = () => <span className="sr-only">Optional</span>;
 
 const createLineId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -170,6 +171,7 @@ async function safeJson(response: Response) {
 const DEFAULT_SETTINGS: LyricLessonSettings = {
   defaultMode: 'read',
   fillBlankDifficulty: 0.2,
+  maxReadModeSwitches: null,
 };
 
 const formatSeconds = (value: number | null) => {
@@ -797,13 +799,7 @@ export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricL
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-slate-900">Lyric lesson details</h2>
-            <p className="text-sm text-slate-500">
-              Upload the audio track and a matching <code>.lrc</code> file to auto-populate lyric timings. Press Cmd + ? for the full guide.
-            </p>
-          </div>
+        <div className="flex items-center justify-end">
           <Button
             type="button"
             variant="outline"

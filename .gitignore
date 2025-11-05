@@ -35,3 +35,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 folder_structure.txt
+lessonhub-app/.npm-cache

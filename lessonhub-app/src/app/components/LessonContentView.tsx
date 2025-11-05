@@ -2,6 +2,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { marked } from "marked";
+
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+});
 import { Lesson } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Paperclip, Eye } from "lucide-react";
@@ -135,20 +140,6 @@ export default async function LessonContentView({ lesson }: LessonContentViewPro
                 className="font-medium text-indigo-600 underline"
               >
                 open track
-              </a>
-            </div>
-          )}
-          {lesson.lyricConfig?.lrcUrl && (
-            <div className="mt-1 text-sm text-slate-600">
-              LRC file:{' '}
-              <a
-                href={lesson.lyricConfig.lrcUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-indigo-600 underline"
-                download
-              >
-                download timed lyrics
               </a>
             </div>
           )}

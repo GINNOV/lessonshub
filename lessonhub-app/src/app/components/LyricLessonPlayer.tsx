@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Download, ExternalLink, Pause, Play, RefreshCw, Sparkles, Volume2 } from 'lucide-react';
+import { ExternalLink, Pause, Play, RefreshCw, Sparkles, Volume2 } from 'lucide-react';
 import type { LyricLine, LyricLessonSettings } from './LyricLessonEditor';
 
 type LyricAttemptAnswers = Record<string, string[]>;
@@ -171,6 +171,8 @@ export default function LyricLessonPlayer({
 }: LyricLessonPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const lineStopAtRef = useRef<number | null>(null);
+  const pendingLinePlayRef = useRef(false);
   const [mode, setMode] = useState<'read' | 'fill'>(() => settings?.defaultMode === 'fill' ? 'fill' : 'read');
   const [activeLineId, setActiveLineId] = useState<string | null>(lines[0]?.id ?? null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -200,12 +202,23 @@ export default function LyricLessonPlayer({
 
     const handlePlay = () => {
       setIsPlaying(true);
+      if (!pendingLinePlayRef.current) {
+        lineStopAtRef.current = null;
+      }
+      pendingLinePlayRef.current = false;
       if (playStartedAt === null) {
         setPlayStartedAt(performance.now());
       }
     };
-    const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => setIsPlaying(false);
+    const handlePause = () => {
+      setIsPlaying(false);
+      pendingLinePlayRef.current = false;
+    };
+    const handleEnded = () => {
+      setIsPlaying(false);
+      pendingLinePlayRef.current = false;
+      lineStopAtRef.current = null;
+    };
 
     audioEl.addEventListener('play', handlePlay);
     audioEl.addEventListener('pause', handlePause);
@@ -227,16 +240,29 @@ export default function LyricLessonPlayer({
 
     const updateActiveLine = () => {
       const time = audioEl.currentTime;
+      const stopAt = lineStopAtRef.current;
+      if (stopAt !== null && time >= stopAt) {
+        lineStopAtRef.current = null;
+        audioEl.pause();
+      }
+
       let selected: PreparedLine | null = null;
 
       for (let i = 0; i < preparedLines.length; i += 1) {
         const current = preparedLines[i];
         const next = preparedLines[i + 1];
-        const windowStart = current.startTime ?? (i === 0 ? 0 : preparedLines[i - 1].endTime ?? 0);
+        const windowStart =
+          typeof current.startTime === 'number'
+            ? current.startTime
+            : i === 0
+            ? 0
+            : preparedLines[i - 1].endTime ?? 0;
         const windowEnd =
-          current.endTime ??
-          next?.startTime ??
-          (windowStart !== null ? windowStart + 6 : time + 1);
+          typeof current.endTime === 'number'
+            ? current.endTime + 0.5
+            : typeof next?.startTime === 'number'
+            ? next.startTime - 0.05
+            : windowStart + 6;
         if (time >= windowStart && time < windowEnd) {
           selected = current;
           break;
@@ -244,8 +270,7 @@ export default function LyricLessonPlayer({
       }
 
       if (!selected) {
-        const lastLine = preparedLines[preparedLines.length - 1];
-        if (lastLine) selected = lastLine;
+        selected = preparedLines.find((line) => line.id === activeLineId) ?? preparedLines.at(-1) ?? null;
       }
 
       if (selected && selected.id !== activeLineId) {
@@ -323,10 +348,46 @@ export default function LyricLessonPlayer({
     if (line.startTime !== null) {
       audioEl.currentTime = line.startTime;
     }
+    const lineIndex = preparedLines.findIndex((item) => item.id === line.id);
+    const nextLine = lineIndex >= 0 ? preparedLines[lineIndex + 1] : null;
+    const nextStart = typeof nextLine?.startTime === 'number' ? nextLine.startTime : null;
+    const safeStart = typeof line.startTime === 'number' ? line.startTime : audioEl.currentTime;
+
+    let stopPoint: number | null = null;
+    if (typeof line.endTime === 'number') {
+      const paddedEnd = line.endTime + 0.45;
+      stopPoint = paddedEnd;
+      if (nextStart !== null) {
+        stopPoint = Math.min(stopPoint, nextStart - 0.05);
+      }
+    } else if (nextStart !== null) {
+      stopPoint = nextStart - 0.05;
+    }
+
+    if (stopPoint !== null) {
+      const minStop = safeStart + 0.2;
+      if (stopPoint < minStop) {
+        stopPoint = minStop;
+      }
+      if (stopPoint <= audioEl.currentTime) {
+        stopPoint = audioEl.currentTime + 0.2;
+      }
+    }
+
+    lineStopAtRef.current = stopPoint;
+    pendingLinePlayRef.current = true;
     audioEl
       .play()
       .then(() => setActiveLineId(line.id))
       .catch(() => toast.error('Unable to start playback. Please check the audio source.'));
+  }, [preparedLines]);
+
+  const stopPlayback = useCallback(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+    lineStopAtRef.current = null;
+    pendingLinePlayRef.current = false;
+    audioEl.pause();
   }, []);
 
   const scoreBadge = submission && (
@@ -375,14 +436,7 @@ export default function LyricLessonPlayer({
                 </a>
               </Button>
             )}
-            {lrcUrl && (
-              <Button asChild type="button" size="sm" variant="outline">
-                <a href={lrcUrl} target="_blank" rel="noopener noreferrer" download>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download LRC
-                </a>
-              </Button>
-            )}
+
           </div>
         </div>
         <audio ref={audioRef} className="mt-4 w-full" src={audioUrl} controls preload="metadata" />
@@ -415,10 +469,16 @@ export default function LyricLessonPlayer({
                     {formatDuration(line.startTime ?? null)} → {formatDuration(line.endTime ?? null)}
                   </span>
                 </div>
-                <Button type="button" variant="ghost" size="sm" onClick={() => playFromLine(line)}>
-                  <Play className="mr-2 h-4 w-4" />
-                  Play line
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => playFromLine(line)}>
+                    <Play className="mr-2 h-4 w-4" />
+                    Play line
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={stopPlayback}>
+                    <Pause className="mr-2 h-4 w-4" />
+                    Pause
+                  </Button>
+                </div>
               </div>
               <div className="mt-3 text-lg leading-relaxed text-slate-800">
                 {mode === 'fill'

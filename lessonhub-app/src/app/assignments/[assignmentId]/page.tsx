@@ -9,6 +9,11 @@ import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
 import FlashcardPlayer from "@/app/components/FlashcardPlayer";
 import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
 import { marked } from "marked";
+
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+});
 import { AssignmentStatus, LessonType } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
@@ -118,6 +123,7 @@ export default async function AssignmentPage({
 
   const lessonPreviewHtml = lesson.lesson_preview ? await marked.parse(lesson.lesson_preview) : null;
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : null;
+  const notesHtml = lesson.notes ? ((await marked.parse(lesson.notes)) as string) : null;
 
   const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
   const showResultsArea = serializableAssignment.status === AssignmentStatus.GRADED || serializableAssignment.status === AssignmentStatus.FAILED;
@@ -235,10 +241,10 @@ export default async function AssignmentPage({
 
       {showResponseArea ? (
         <div className="mt-8 border-t border-gray-200 pt-6">
-          {!isFlashcard && lesson.notes && (
+          {!isFlashcard && notesHtml && (
             <div className="mb-4 rounded-lg border bg-gray-50 p-4 text-gray-800">
               <h3 className="text-lg font-semibold mb-1">Notes</h3>
-              <p className="text-sm leading-relaxed">{lesson.notes}</p>
+              <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: notesHtml }} />
             </div>
           )}
           {!isFlashcard && <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>}
