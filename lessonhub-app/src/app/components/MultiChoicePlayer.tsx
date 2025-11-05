@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { submitMultiChoiceAssignment } from '@/actions/lessonActions';
 import { toast } from 'sonner';
-import { RotateCw } from 'lucide-react';
+import { RotateCw, Check } from 'lucide-react';
 import Rating from './Rating';
 import { useRouter } from 'next/navigation';
 
@@ -24,21 +24,37 @@ type MultiChoiceAssignment = Omit<Assignment, 'lesson'> & {
 interface MultiChoicePlayerProps {
   assignment: MultiChoiceAssignment;
   isSubmissionLocked?: boolean;
+  mode?: 'assignment' | 'practice';
+  practiceExitHref?: string;
 }
 
-export default function MultiChoicePlayer({ assignment, isSubmissionLocked = false }: MultiChoicePlayerProps) {
+export default function MultiChoicePlayer({
+  assignment,
+  isSubmissionLocked = false,
+  mode = 'assignment',
+  practiceExitHref,
+}: MultiChoicePlayerProps) {
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rating, setRating] = useState<number | undefined>(undefined);
   const { multiChoiceQuestions } = assignment.lesson;
+  const isPractice = mode === 'practice';
 
   const handleValueChange = (questionId: string, value: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
 
   const handleSubmit = async () => {
+    if (isPractice) {
+      if (Object.keys(answers).length !== multiChoiceQuestions.length) {
+        toast.error('Answer every question to see your practice results.');
+        return;
+      }
+      setShowResults(true);
+      return;
+    }
     if (isSubmissionLocked) {
       toast.error('The deadline has passed. Submissions are disabled for this lesson.');
       return;
@@ -65,6 +81,14 @@ export default function MultiChoicePlayer({ assignment, isSubmissionLocked = fal
     setIsSubmitting(false);
     setRating(undefined);
   };
+
+  const handlePracticeFinish = () => {
+    if (practiceExitHref) {
+      router.push(practiceExitHref);
+      return;
+    }
+    router.refresh();
+  };
   
   if (showResults) {
     let correctCount = 0;
@@ -85,9 +109,15 @@ export default function MultiChoicePlayer({ assignment, isSubmissionLocked = fal
           <Button onClick={handleRestart} variant="outline">
               <RotateCw className="mr-2 h-4 w-4" /> Try Again
           </Button>
-           <Button onClick={() => router.push('/my-lessons')} >
-              Finish
-          </Button>
+          {isPractice ? (
+            <Button onClick={handlePracticeFinish}>
+              <Check className="mr-2 h-4 w-4" /> Done practicing
+            </Button>
+          ) : (
+            <Button onClick={() => router.push('/my-lessons')} >
+                Finish
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -112,14 +142,20 @@ export default function MultiChoicePlayer({ assignment, isSubmissionLocked = fal
           </RadioGroup>
         </div>
       ))}
-       <div className="mt-6 border-t pt-6">
+       {!isPractice && (
+        <div className="mt-6 border-t pt-6">
           <h3 className="text-lg font-semibold mb-2 text-center">Rate this lesson</h3>
           <div className="flex justify-center">
             <Rating onRatingChange={setRating} disabled={isSubmissionLocked} />
           </div>
-      </div>
-      <Button onClick={handleSubmit} disabled={isSubmitting || isSubmissionLocked} className="w-full">
-        {isSubmitting ? 'Submitting...' : 'Submit Answers'}
+        </div>
+      )}
+      <Button
+        onClick={handleSubmit}
+        disabled={!isPractice ? (isSubmitting || isSubmissionLocked) : false}
+        className="w-full"
+      >
+        {isPractice ? 'Check results' : isSubmitting ? 'Submitting...' : 'Submit Answers'}
       </Button>
     </div>
   );

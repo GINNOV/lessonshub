@@ -2,6 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getAssignmentById } from "@/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
 import LessonContentView from "@/app/components/LessonContentView";
@@ -16,6 +17,7 @@ import LocaleDate from "@/app/components/LocaleDate";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, CheckCircle2, XCircle, GraduationCap } from "lucide-react";
 import Rating from "@/app/components/Rating";
+import { Button } from "@/components/ui/button";
 import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
 
 marked.setOptions({
@@ -35,8 +37,10 @@ const getGradeBackground = (score: number | null) => {
 
 export default async function AssignmentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ assignmentId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
   if (!session) {
@@ -44,6 +48,9 @@ export default async function AssignmentPage({
   }
 
   const { assignmentId } = await params;
+  const query = searchParams ? await searchParams : {};
+  const practiceParamRaw = query?.practice;
+  const practiceParam = Array.isArray(practiceParamRaw) ? practiceParamRaw[0] : practiceParamRaw;
   const assignment = await getAssignmentById(assignmentId, session.user.id);
 
   if (!assignment) {
@@ -119,6 +126,15 @@ export default async function AssignmentPage({
   };
 
   const { lesson } = serializableAssignment;
+  const practiceEligible =
+    serializableAssignment.status === AssignmentStatus.GRADED &&
+    (lesson.type === LessonType.MULTI_CHOICE || lesson.type === LessonType.FLASHCARD);
+  const practiceModeRequested = practiceParam === "1" || practiceParam === "true";
+  const practiceMode = practiceEligible && practiceModeRequested;
+  const practiceToggleHref = practiceMode
+    ? `/assignments/${serializableAssignment.id}`
+    : `/assignments/${serializableAssignment.id}?practice=1`;
+  const practiceExitHref = `/assignments/${serializableAssignment.id}`;
 
   const lessonPreviewHtml = lesson.lesson_preview ? await marked.parse(lesson.lesson_preview) : null;
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : null;
@@ -205,19 +221,32 @@ export default async function AssignmentPage({
                         <Badge variant={serializableAssignment.status === 'GRADED' ? 'default' : 'destructive'}>
                             {serializableAssignment.status}
                         </Badge>
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-600 text-right">Score</p>
-                        <p className="text-3xl font-bold text-gray-800">
-                            {serializableAssignment.score !== null ? `${serializableAssignment.score}/10` : 'N/A'}
-                        </p>
-                    </div>
-                </div>
-                 {serializableAssignment.rating && (
-                    <div className="mt-4 border-t border-gray-300 pt-4">
-                        <h3 className="text-md font-semibold text-gray-700">Your Rating:</h3>
-                        <div className="mt-1">
-                          <Rating initialRating={serializableAssignment.rating} readOnly={true} starSize={20} />
+            </div>
+            <div>
+                <p className="text-sm font-medium text-gray-600 text-right">Score</p>
+                <p className="text-3xl font-bold text-gray-800">
+                    {serializableAssignment.score !== null ? `${serializableAssignment.score}/10` : 'N/A'}
+                </p>
+            </div>
+        </div>
+        {practiceEligible && (
+          <div className="mt-4 flex flex-wrap gap-3">
+            {!practiceMode ? (
+              <Button asChild size="sm">
+                <Link href={practiceToggleHref}>Take the test again</Link>
+              </Button>
+            ) : (
+              <Button asChild size="sm" variant="outline">
+                <Link href={practiceToggleHref}>Exit practice mode</Link>
+              </Button>
+            )}
+          </div>
+        )}
+         {serializableAssignment.rating && (
+            <div className="mt-4 border-t border-gray-300 pt-4">
+                <h3 className="text-md font-semibold text-gray-700">Your Rating:</h3>
+                <div className="mt-1">
+                  <Rating initialRating={serializableAssignment.rating} readOnly={true} starSize={20} />
                         </div>
                     </div>
                 )}
@@ -372,6 +401,30 @@ export default async function AssignmentPage({
               existingAttempt={lesson.lyricAttempts?.[0] ?? null}
               timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
               lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+            />
+          )}
+        </div>
+      )}
+      {practiceMode && practiceEligible && (
+        <div className="mt-10 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Practice Mode</h2>
+              <p className="text-sm text-gray-600">
+                Revisit the questions for extra practice. Your original grade stays the same.
+              </p>
+            </div>
+            <Button asChild variant="ghost" size="sm">
+              <Link href={practiceExitHref}>Done practicing</Link>
+            </Button>
+          </div>
+          {lesson.type === LessonType.FLASHCARD ? (
+            <FlashcardPlayer assignment={serializableAssignment as any} mode="practice" practiceExitHref={practiceExitHref} />
+          ) : (
+            <MultiChoicePlayer
+              assignment={serializableAssignment as any}
+              mode="practice"
+              practiceExitHref={practiceExitHref}
             />
           )}
         </div>

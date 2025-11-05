@@ -18,6 +18,8 @@ import { ChevronDown, Users, BookOpen, Mail, Settings, Timer, UserCircle2 } from
 import TeacherClassLeaderboard from "@/app/components/TeacherClassLeaderboard";
 import prisma from "@/lib/prisma";
 import TeacherStatsHeader from "@/app/components/TeacherStatsHeader";
+import WhatsNewDialog from "@/app/components/WhatsNewDialog";
+import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +72,15 @@ export default async function DashboardPage({
   if (session.user.role === Role.STUDENT) redirect("/my-lessons");
   if (session.user.role !== Role.TEACHER && session.user.role !== Role.ADMIN) redirect("/");
 
+  const [whatsNewUS, whatsNewIT] = await Promise.all([
+    loadLatestUpgradeNote("us"),
+    loadLatestUpgradeNote("it"),
+  ]);
+  const whatsNewNotes = {
+    us: whatsNewUS,
+    it: whatsNewIT,
+  };
+
   // Admins see an Admin Dashboard instead of the Teacher view
   if (session.user.role === Role.ADMIN) {
     const adminTiles = [
@@ -83,6 +94,7 @@ export default async function DashboardPage({
 
     return (
       <div className="p-6">
+        <WhatsNewDialog notes={whatsNewNotes} />
         <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
         <p className="text-gray-600 mb-8">Quick access to admin tools.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -169,6 +181,7 @@ export default async function DashboardPage({
 
   return (
     <div className="p-6">
+      <WhatsNewDialog notes={whatsNewNotes} />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Teacher Dashboard</h1>

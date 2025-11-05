@@ -21,6 +21,7 @@ import { useState } from "react";
 import ReferralDialog from "./ReferralDialog";
 import TeacherClassNotesDialog from "./TeacherClassNotesDialog";
 import FeedbackDialog from "./FeedbackDialog";
+import { requestWhatsNewDialog } from "./WhatsNewDialog";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -122,6 +123,13 @@ export default function Navbar() {
                     )}
                     <DropdownMenuItem asChild>
                       <Link href="/profile">Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        requestWhatsNewDialog();
+                      }}
+                    >
+                      What&apos;s new
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setIsReferralDialogOpen(true)}>
                       Refer a student

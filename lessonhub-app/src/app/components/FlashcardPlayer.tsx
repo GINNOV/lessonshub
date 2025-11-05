@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Assignment, Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
 import { Button } from '@/components/ui/button';
-import { RotateCw, Send } from 'lucide-react';
+import { RotateCw, Send, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { marked } from 'marked';
 import { submitFlashcardAssignment } from '@/actions/lessonActions';
@@ -25,9 +25,16 @@ type AssignmentWithFlashcards = Assignment & {
 interface FlashcardPlayerProps {
   assignment: AssignmentWithFlashcards;
   isSubmissionLocked?: boolean;
+  mode?: 'assignment' | 'practice';
+  practiceExitHref?: string;
 }
 
-export default function FlashcardPlayer({ assignment, isSubmissionLocked = false }: FlashcardPlayerProps) {
+export default function FlashcardPlayer({
+  assignment,
+  isSubmissionLocked = false,
+  mode = 'assignment',
+  practiceExitHref,
+}: FlashcardPlayerProps) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -36,6 +43,7 @@ export default function FlashcardPlayer({ assignment, isSubmissionLocked = false
   const [isStarted, setIsStarted] = useState(false);
   const [rating, setRating] = useState<number | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isPractice = mode === 'practice';
 
   const flashcards = useMemo(() => {
     return [...assignment.lesson.flashcards].sort(() => Math.random() - 0.5);
@@ -100,6 +108,9 @@ export default function FlashcardPlayer({ assignment, isSubmissionLocked = false
   };
   
   const handleSubmit = async () => {
+    if (isPractice) {
+      return;
+    }
     if (isSubmissionLocked) {
       toast.error("The deadline has passed. Submissions are disabled for this lesson.");
       return;
@@ -114,6 +125,14 @@ export default function FlashcardPlayer({ assignment, isSubmissionLocked = false
       toast.error(result.error || "Failed to submit your results.");
       setIsSubmitting(false);
     }
+  };
+
+  const handlePracticeFinish = () => {
+    if (practiceExitHref) {
+      router.push(practiceExitHref);
+      return;
+    }
+    router.refresh();
   };
 
   const correctCount = Object.values(answers).filter(a => a === 'correct').length;
@@ -182,19 +201,27 @@ export default function FlashcardPlayer({ assignment, isSubmissionLocked = false
             <h2 className="text-2xl font-bold mb-4">Results</h2>
             <p className="text-green-600 font-semibold">Correct: {correctCount}</p>
             <p className="text-red-600 font-semibold">Incorrect: {incorrectCount}</p>
-            <div className="mt-6">
+            {!isPractice && (
+              <div className="mt-6">
                 <h3 className="text-lg font-semibold mb-2">Rate this lesson</h3>
                 <div className="flex justify-center">
                   <Rating onRatingChange={setRating} disabled={isSubmissionLocked} />
                 </div>
-            </div>
-            <div className="flex justify-center gap-4 mt-6">
+              </div>
+            )}
+            <div className="flex flex-wrap justify-center gap-4 mt-6">
               <Button onClick={handleRestart} variant="outline">
                   <RotateCw className="mr-2 h-4 w-4" /> Restart
               </Button>
-              <Button onClick={handleSubmit} disabled={isSubmitting || isSubmissionLocked}>
-                  <Send className="mr-2 h-4 w-4" /> {isSubmitting ? 'Submitting...' : 'Submit & Finish'}
-              </Button>
+              {isPractice ? (
+                <Button onClick={handlePracticeFinish}>
+                  <Check className="mr-2 h-4 w-4" /> Done practicing
+                </Button>
+              ) : (
+                <Button onClick={handleSubmit} disabled={isSubmitting || isSubmissionLocked}>
+                    <Send className="mr-2 h-4 w-4" /> {isSubmitting ? 'Submitting...' : 'Submit & Finish'}
+                </Button>
+              )}
             </div>
         </div>
     );

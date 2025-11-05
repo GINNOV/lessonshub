@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials, cn, getWeekAndDay } from '@/lib/utils';
 import LocaleDate from '@/app/components/LocaleDate';
 import { Button } from '@/components/ui/button';
-import { Share2, Users } from 'lucide-react';
+import { Share2, Users, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { ensureLessonShareLink } from '@/actions/lessonActions';
 import { LessonDifficultyIndicator } from '@/app/components/LessonDifficultySelector';
@@ -67,6 +67,9 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
   const [shareId, setShareId] = useState<string | null>(lesson.public_share_id);
   const [isCopying, setIsCopying] = useState(false);
   const pointsEarned = Math.max(pointsAwarded ?? 0, 0);
+  const canPractice =
+    status === AssignmentStatus.GRADED &&
+    (lesson.type === LessonType.FLASHCARD || lesson.type === LessonType.MULTI_CHOICE);
   
   const getStatusBadge = () => {
     if (status === AssignmentStatus.GRADED) return <Badge variant="default">Graded: {score}/10</Badge>;
@@ -223,15 +226,33 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                 >
                   <Share2 className={cn("h-4 w-4", isCopying && "animate-pulse")} />
                 </Button>
-                <div className={cn("font-semibold", isPastDeadline && !isComplete ? "text-red-500" : "text-gray-600")}>
-                    {isComplete ? (
-                        <Button asChild variant="secondary" size="sm">
-                            <Link href={`/assignments/${assignment.id}`}>View Results</Link>
-                        </Button>
-                    ) : (
-                        <LocaleDate date={deadline} />
+                {isComplete ? (
+                  <div className="flex items-center gap-2">
+                    {canPractice && (
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                      >
+                        <Link
+                          href={`/assignments/${assignment.id}?practice=1`}
+                          aria-label="Practice this lesson again"
+                          title="Practice this lesson again"
+                        >
+                          <RotateCw className="h-4 w-4" />
+                        </Link>
+                      </Button>
                     )}
-                </div>
+                    <Button asChild variant="secondary" size="sm">
+                      <Link href={`/assignments/${assignment.id}`}>View Results</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className={cn("font-semibold", isPastDeadline ? "text-red-500" : "text-gray-600")}>
+                    <LocaleDate date={deadline} />
+                  </div>
+                )}
             </div>
         </CardFooter>
     </Card>

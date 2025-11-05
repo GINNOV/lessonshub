@@ -9,6 +9,8 @@ import Leaderboard from "../components/Leaderboard";
 import { getLeaderboardData, getStudentGamification } from "@/actions/studentActions";
 import React from "react";
 import StudentGamificationPanel from "../components/StudentGamificationPanel";
+import WhatsNewDialog from "@/app/components/WhatsNewDialog";
+import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 
 export default async function MyLessonsPage() {
   const session = await auth();
@@ -34,13 +36,19 @@ export default async function MyLessonsPage() {
     );
   }
 
-  const [assignments, stats, leaderboardData, settings, gamification] = await Promise.all([
+  const [assignments, stats, leaderboardData, settings, gamification, whatsNewUS, whatsNewIT] = await Promise.all([
     getAssignmentsForStudent(session.user.id),
     getStudentStats(session.user.id),
     getLeaderboardData(),
     getDashboardSettings(),
     getStudentGamification(),
+    loadLatestUpgradeNote("us"),
+    loadLatestUpgradeNote("it"),
   ]);
+  const whatsNewNotes = {
+    us: whatsNewUS,
+    it: whatsNewIT,
+  };
 
   const total = assignments.length;
   const now = new Date();
@@ -112,6 +120,7 @@ export default async function MyLessonsPage() {
 
   return (
     <div>
+      <WhatsNewDialog notes={whatsNewNotes} defaultLocale="us" />
       <StudentStatsHeader 
         totalValue={stats.totalValue}
         totalPoints={stats.totalPoints}

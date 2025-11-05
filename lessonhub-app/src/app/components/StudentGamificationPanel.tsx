@@ -1,5 +1,10 @@
+'use client';
+
+import { useState } from 'react';
 import { Badge as UiBadge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { BadgeCategory } from '@prisma/client';
 
 type GamificationBadge = {
@@ -57,6 +62,8 @@ function formatDate(value: string) {
 }
 
 export default function StudentGamificationPanel({ data }: StudentGamificationPanelProps) {
+  const [nextUpExpanded, setNextUpExpanded] = useState(false);
+
   if (!data) {
     return null;
   }
@@ -108,62 +115,81 @@ export default function StudentGamificationPanel({ data }: StudentGamificationPa
       </Card>
 
       <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Next Up</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {nextBadge ? (
-            <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm text-purple-900">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{nextBadge.icon ?? '🎯'}</span>
-                <div>
-                  <p className="font-semibold">{nextBadge.name}</p>
-                  <p className="text-xs text-purple-800/80">{nextBadge.description}</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-              You&apos;ve unlocked every badge currently available. Legendary status!
+        <CardHeader className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle>Next Up</CardTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setNextUpExpanded((value) => !value)}
+              aria-label={nextUpExpanded ? 'Hide upcoming rewards' : 'Show upcoming rewards'}
+              aria-expanded={nextUpExpanded}
+            >
+              {nextUpExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+          </div>
+          {!nextUpExpanded && (
+            <p className="text-xs text-gray-500">
+              Peek at the next badge you&apos;ll earn and the latest point updates.
             </p>
           )}
-
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700">Recent activity</h3>
-            {recentTransactions.length === 0 ? (
-              <p className="mt-2 text-xs text-gray-500">
-                Points updates will appear here once your next lesson is graded.
-              </p>
+        </CardHeader>
+        {nextUpExpanded && (
+          <CardContent className="space-y-4">
+            {nextBadge ? (
+              <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm text-purple-900">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{nextBadge.icon ?? '🎯'}</span>
+                  <div>
+                    <p className="font-semibold">{nextBadge.name}</p>
+                    <p className="text-xs text-purple-800/80">{nextBadge.description}</p>
+                  </div>
+                </div>
+              </div>
             ) : (
-              <ul className="mt-2 space-y-3">
-                {recentTransactions.map((transaction) => {
-                  const friendlyReason = reasonLabels[transaction.reason] ?? transaction.reason;
-                  const isPositive = transaction.points >= 0;
-                  return (
-                    <li key={transaction.id} className="rounded-md border bg-white p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{friendlyReason}</p>
-                          {transaction.note && (
-                            <p className="mt-1 text-xs text-gray-500">{transaction.note}</p>
-                          )}
-                        </div>
-                        <UiBadge
-                          variant={isPositive ? 'default' : 'destructive'}
-                          className={isPositive ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : undefined}
-                        >
-                          {isPositive ? '+' : ''}
-                          {transaction.points} pts
-                        </UiBadge>
-                      </div>
-                      <p className="mt-2 text-xs text-gray-400">{formatDate(transaction.createdAt)}</p>
-                    </li>
-                  );
-                })}
-              </ul>
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                You&apos;ve unlocked every badge currently available. Legendary status!
+              </p>
             )}
-          </div>
-        </CardContent>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700">Recent activity</h3>
+              {recentTransactions.length === 0 ? (
+                <p className="mt-2 text-xs text-gray-500">
+                  Points updates will appear here once your next lesson is graded.
+                </p>
+              ) : (
+                <ul className="mt-2 space-y-3">
+                  {recentTransactions.map((transaction) => {
+                    const friendlyReason = reasonLabels[transaction.reason] ?? transaction.reason;
+                    const isPositive = transaction.points >= 0;
+                    return (
+                      <li key={transaction.id} className="rounded-md border bg-white p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{friendlyReason}</p>
+                            {transaction.note && (
+                              <p className="mt-1 text-xs text-gray-500">{transaction.note}</p>
+                            )}
+                          </div>
+                          <UiBadge
+                            variant={isPositive ? 'default' : 'destructive'}
+                            className={isPositive ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : undefined}
+                          >
+                            {isPositive ? '+' : ''}
+                            {transaction.points} pts
+                          </UiBadge>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-400">{formatDate(transaction.createdAt)}</p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
