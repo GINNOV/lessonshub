@@ -174,6 +174,10 @@ export default function LyricLessonPlayer({
   const lineStopAtRef = useRef<number | null>(null);
   const pendingLinePlayRef = useRef(false);
   const [mode, setMode] = useState<'read' | 'fill'>(() => settings?.defaultMode === 'fill' ? 'fill' : 'read');
+  const [remainingReadToggles, setRemainingReadToggles] = useState<number | null>(() => {
+    const allowance = settings?.maxReadModeSwitches;
+    return typeof allowance === 'number' && allowance >= 0 ? allowance : null;
+  });
   const [activeLineId, setActiveLineId] = useState<string | null>(lines[0]?.id ?? null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [answers, setAnswers] = useState<LyricAttemptAnswers>(() => existingAttempt?.answers ?? {});
@@ -183,6 +187,11 @@ export default function LyricLessonPlayer({
 
   const difficulty = settings?.fillBlankDifficulty ?? 0.2;
   const preparedLines = useMemo(() => prepareLines(lines, difficulty), [lines, difficulty]);
+
+  useEffect(() => {
+    const allowance = settings?.maxReadModeSwitches;
+    setRemainingReadToggles(typeof allowance === 'number' && allowance >= 0 ? allowance : null);
+  }, [settings?.maxReadModeSwitches, lessonId]);
 
   useEffect(() => {
     if (!existingAttempt) return;
@@ -301,6 +310,23 @@ export default function LyricLessonPlayer({
     });
   };
 
+  const handleModeChange = useCallback(
+    (targetMode: 'read' | 'fill') => {
+      if (targetMode === mode) return;
+      if (targetMode === 'read') {
+        if (remainingReadToggles !== null) {
+          if (remainingReadToggles <= 0) {
+            toast.error('No read-along switches remaining.');
+            return;
+          }
+          setRemainingReadToggles((prev) => (prev === null ? prev : prev - 1));
+        }
+      }
+      setMode(targetMode);
+    },
+    [mode, remainingReadToggles]
+  );
+
   const handleSubmit = async () => {
     if (status !== AssignmentStatus.PENDING) return;
     setIsSubmitting(true);
@@ -390,6 +416,12 @@ export default function LyricLessonPlayer({
     audioEl.pause();
   }, []);
 
+  const readSwitchesRemaining = remainingReadToggles;
+  const readModeDisabled = mode !== 'read' && readSwitchesRemaining !== null && readSwitchesRemaining <= 0;
+  const readModeLabel = readSwitchesRemaining !== null
+    ? `Read Along (${Math.max(readSwitchesRemaining, 0)} left)`
+    : 'Read Along';
+
   const scoreBadge = submission && (
     <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
       Score: {submission.scorePercent.toFixed(1)}%
@@ -415,15 +447,16 @@ export default function LyricLessonPlayer({
               type="button"
               size="sm"
               variant={mode === 'read' ? 'default' : 'outline'}
-              onClick={() => setMode('read')}
+              disabled={readModeDisabled}
+              onClick={() => handleModeChange('read')}
             >
-              Read Along
+              {readModeLabel}
             </Button>
             <Button
               type="button"
               size="sm"
               variant={mode === 'fill' ? 'default' : 'outline'}
-              onClick={() => setMode('fill')}
+              onClick={() => handleModeChange('fill')}
               disabled={status !== AssignmentStatus.PENDING && !existingAttempt}
             >
               Fill the Blanks

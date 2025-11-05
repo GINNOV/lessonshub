@@ -9,11 +9,6 @@ import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
 import FlashcardPlayer from "@/app/components/FlashcardPlayer";
 import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
 import { marked } from "marked";
-
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
 import { AssignmentStatus, LessonType } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
@@ -23,6 +18,10 @@ import { Check, X, CheckCircle2, XCircle, GraduationCap } from "lucide-react";
 import Rating from "@/app/components/Rating";
 import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
 
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+});
 // --- SVG Icons ---
 // Removed inline icons; using shared content view for attachments
 

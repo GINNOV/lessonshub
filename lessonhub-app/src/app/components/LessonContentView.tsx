@@ -2,14 +2,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { marked } from "marked";
-
+import { Lesson } from "@prisma/client";
+import { Button } from "@/components/ui/button";
+import { Paperclip, Eye } from "lucide-react";
 marked.setOptions({
   gfm: true,
   breaks: true,
 });
-import { Lesson } from "@prisma/client";
-import { Button } from "@/components/ui/button";
-import { Paperclip, Eye } from "lucide-react";
 
 type LessonWithOptionalLyric = Omit<Lesson, 'price'> & {
   price: number;

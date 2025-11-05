@@ -253,9 +253,14 @@ export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricL
       setLines(normalized.length > 0 ? normalized : parseLyricsToLines(lesson.lyricConfig.rawLyrics));
       const initialLineId = normalized.length > 0 ? normalized[0].id : null;
       setSelectedLineId(initialLineId);
+      const storedSettings = (lesson.lyricConfig.settings ?? {}) as Partial<LyricLessonSettings> & Record<string, unknown>;
       setSettings({
         ...DEFAULT_SETTINGS,
-        ...(lesson.lyricConfig.settings ?? {}),
+        ...storedSettings,
+        maxReadModeSwitches:
+          typeof storedSettings.maxReadModeSwitches === 'number' && Number.isFinite(storedSettings.maxReadModeSwitches)
+            ? Math.max(0, Math.floor(storedSettings.maxReadModeSwitches))
+            : null,
       });
       setManualEditingEnabled(!lesson.lyricConfig.lrcUrl);
       setShowAllLines(false);
@@ -611,6 +616,10 @@ export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricL
   const serializeSettings = (): LyricLessonSettings => ({
     defaultMode: settings.defaultMode,
     fillBlankDifficulty: Math.min(0.8, Math.max(0.05, settings.fillBlankDifficulty)),
+    maxReadModeSwitches:
+      typeof settings.maxReadModeSwitches === 'number' && Number.isFinite(settings.maxReadModeSwitches)
+        ? Math.max(0, Math.floor(settings.maxReadModeSwitches))
+        : null,
   });
 
   const renderLineEditor = (line: LyricLine, index: number, showPerLineActions: boolean) => {
@@ -1128,6 +1137,27 @@ export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricL
               />
               <p id="fillBlankDifficultyHelp" className="text-xs text-slate-500">
                 Approximately {Math.round(settings.fillBlankDifficulty * 100)}% of the words will be hidden in fill-in mode.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maxReadSwitches" className="text-sm">Read-along switches</Label>
+              <Input
+                id="maxReadSwitches"
+                type="number"
+                min={0}
+                placeholder="Unlimited"
+                value={settings.maxReadModeSwitches ?? ''}
+                onChange={(event) => {
+                  const { value } = event.target;
+                  setSettings((prev) => ({
+                    ...prev,
+                    maxReadModeSwitches: value === '' ? null : Math.max(0, Math.floor(Number(value) || 0)),
+                  }));
+                }}
+                className="w-36"
+              />
+              <p className="text-xs text-slate-500">
+                Limit how many times students can switch back to Read Along. Leave blank for unlimited access.
               </p>
             </div>
           </div>
