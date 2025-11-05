@@ -20,34 +20,47 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   try {
+    const lowerFilename = filename.toLowerCase();
+    const isImage =
+      lowerFilename.endsWith('.jpg') ||
+      lowerFilename.endsWith('.jpeg') ||
+      lowerFilename.endsWith('.png') ||
+      lowerFilename.endsWith('.webp') ||
+      lowerFilename.endsWith('.gif');
+    const isPlainText = lowerFilename.endsWith('.lrc') || lowerFilename.endsWith('.txt');
+
+    const originalBuffer = Buffer.from(await request.arrayBuffer());
     // Try to load sharp at runtime (works only on Node.js runtime)
     let processedBuffer: Buffer;
-    try {
-      const sharp = (await import('sharp')).default;
+    let contentType = 'application/octet-stream';
 
-      // Convert the request body to a Buffer
-      const imageBuffer = Buffer.from(await request.arrayBuffer());
-
-      // Resize and compress using sharp
-      processedBuffer = await sharp(imageBuffer)
-        .resize({
-          width: 800,
-          height: 800,
-          fit: 'inside',
-          withoutEnlargement: true
-        })
-        .jpeg({ quality: 80 })
-        .toBuffer();
-    } catch (e) {
-      // If sharp isn't installed/available, fall back to original bytes
-      console.warn('sharp not available, uploading original bytes', e);
-      processedBuffer = Buffer.from(await request.arrayBuffer());
+    if (isImage) {
+      try {
+        const sharp = (await import('sharp')).default;
+        processedBuffer = await sharp(originalBuffer)
+          .resize({
+            width: 800,
+            height: 800,
+            fit: 'inside',
+            withoutEnlargement: true,
+          })
+          .jpeg({ quality: 80 })
+          .toBuffer();
+        contentType = 'image/jpeg';
+      } catch (e) {
+        console.warn('sharp not available, uploading original bytes', e);
+        processedBuffer = originalBuffer;
+        contentType = 'application/octet-stream';
+      }
+    } else {
+      processedBuffer = originalBuffer;
+      contentType = isPlainText ? 'text/plain' : 'application/octet-stream';
     }
 
     // Upload the processed image buffer to Vercel Blob
     const blob = await put(filename, processedBuffer, {
       access: 'public',
-      contentType: 'image/jpeg', // Set the content type for the new image
+      contentType,
     });
 
     return NextResponse.json(blob);

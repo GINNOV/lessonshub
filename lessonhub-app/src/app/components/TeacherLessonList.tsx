@@ -74,6 +74,7 @@ const lessonTypeEmojis: Record<LessonType, string> = {
   [LessonType.FLASHCARD]: '🃏',
   [LessonType.MULTI_CHOICE]: '✅',
   [LessonType.LEARNING_SESSION]: '🧠',
+  [LessonType.LYRIC]: '🎵',
 };
 
 const STORAGE_KEY = 'teacher-dashboard-filters';

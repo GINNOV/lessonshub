@@ -6,15 +6,24 @@ import { Lesson } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Paperclip, Eye } from "lucide-react";
 
+type LessonWithOptionalLyric = Omit<Lesson, 'price'> & {
+  price: number;
+  lyricConfig?: {
+    audioUrl: string;
+    timingSourceUrl?: string | null;
+    lrcUrl?: string | null;
+  } | null;
+};
+
 interface LessonContentViewProps {
-  lesson: Omit<Lesson, 'price'> & { price: number }; // Expects a serialized lesson
+  lesson: LessonWithOptionalLyric; // Expects a serialized lesson
 }
 
 export default async function LessonContentView({ lesson }: LessonContentViewProps) {
   const assignmentHtml = lesson.assignment_text ? ((await marked.parse(lesson.assignment_text)) as string) : "";
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : "";
 
-  const audioUrl = lesson.soundcloud_url || "";
+  const audioUrl = lesson.soundcloud_url || lesson.lyricConfig?.audioUrl || "";
 
   const isYouTubeUrl = (url: string) => /(?:youtube\.com|youtu\.be)\//i.test(url);
   const getYouTubeId = (url: string): string | null => {
@@ -96,7 +105,7 @@ export default async function LessonContentView({ lesson }: LessonContentViewPro
                 />
               );
             })()
-          ) : (
+          ) : /soundcloud/i.test(audioUrl) ? (
             <iframe
               title={`SoundCloud player for ${lesson.title}`}
               width="100%"
@@ -108,6 +117,40 @@ export default async function LessonContentView({ lesson }: LessonContentViewPro
               allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
               src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(audioUrl)}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=false`}
             />
+          ) : (
+            <audio
+              className="w-full"
+              controls
+              preload="metadata"
+              src={audioUrl}
+            />
+          )}
+          {lesson.lyricConfig?.timingSourceUrl && (
+            <div className="mt-2 text-sm text-slate-600">
+              Timing reference:{' '}
+              <a
+                href={lesson.lyricConfig.timingSourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-indigo-600 underline"
+              >
+                open track
+              </a>
+            </div>
+          )}
+          {lesson.lyricConfig?.lrcUrl && (
+            <div className="mt-1 text-sm text-slate-600">
+              LRC file:{' '}
+              <a
+                href={lesson.lyricConfig.lrcUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-indigo-600 underline"
+                download
+              >
+                download timed lyrics
+              </a>
+            </div>
           )}
         </div>
       )}

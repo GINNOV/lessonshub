@@ -1,4 +1,5 @@
 // file: src/app/assignments/[assignmentId]/page.tsx
+import { randomUUID } from "node:crypto";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getAssignmentById } from "@/actions/lessonActions";
@@ -6,6 +7,7 @@ import LessonResponseForm from "@/app/components/LessonResponseForm";
 import LessonContentView from "@/app/components/LessonContentView";
 import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
 import FlashcardPlayer from "@/app/components/FlashcardPlayer";
+import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
 import { marked } from "marked";
 import { AssignmentStatus, LessonType } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
@@ -14,6 +16,7 @@ import LocaleDate from "@/app/components/LocaleDate";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, CheckCircle2, XCircle, GraduationCap } from "lucide-react";
 import Rating from "@/app/components/Rating";
+import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
 
 // --- SVG Icons ---
 // Removed inline icons; using shared content view for attachments
@@ -48,11 +51,65 @@ export default async function AssignmentPage({
     );
   }
   
+  const normalizeLyricLines = (value: unknown): LyricLine[] => {
+    if (!Array.isArray(value)) return [];
+    const normalized: LyricLine[] = [];
+    value.forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const record = item as Record<string, unknown>;
+      const text = typeof record.text === "string" ? record.text : "";
+      if (!text.trim()) return;
+      const id = typeof record.id === "string" ? record.id : randomUUID();
+      const startTimeValue =
+        typeof record.startTime === "number"
+          ? record.startTime
+          : typeof record.startTime === "string" && record.startTime.trim()
+          ? Number(record.startTime)
+          : null;
+      const endTimeValue =
+        typeof record.endTime === "number"
+          ? record.endTime
+          : typeof record.endTime === "string" && record.endTime.trim()
+          ? Number(record.endTime)
+          : null;
+      const hiddenWords =
+        Array.isArray(record.hiddenWords)
+          ? record.hiddenWords.filter((word): word is string => typeof word === "string" && word.trim().length > 0)
+          : undefined;
+      const startTime = Number.isFinite(startTimeValue) ? Number(startTimeValue) : null;
+      const endTime = Number.isFinite(endTimeValue) ? Number(endTimeValue) : null;
+      normalized.push({
+        id,
+        text,
+        startTime,
+        endTime,
+        hiddenWords,
+      });
+    });
+    return normalized;
+  };
+
+  const lyricAttempts = (assignment.lesson.lyricAttempts ?? []).map((attempt) => ({
+    id: attempt.id,
+    scorePercent: attempt.scorePercent ? Number(attempt.scorePercent.toString()) : null,
+    timeTakenSeconds: attempt.timeTakenSeconds ?? null,
+    answers: attempt.answers as Record<string, string[]> | null,
+    createdAt: attempt.createdAt.toISOString(),
+  }));
+
   const serializableAssignment = {
     ...assignment,
     lesson: {
       ...assignment.lesson,
       price: assignment.lesson.price.toNumber(),
+      lyricConfig: assignment.lesson.lyricConfig
+        ? {
+            ...assignment.lesson.lyricConfig,
+            lines: normalizeLyricLines(assignment.lesson.lyricConfig.lines),
+            settings: (assignment.lesson.lyricConfig.settings as LyricLessonSettings | null) ?? null,
+          }
+        : null,
+      lyricAttempts,
     },
     answers: assignment.answers as any,
   };
@@ -70,6 +127,7 @@ export default async function AssignmentPage({
 
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
+  const isLyric = lesson.type === LessonType.LYRIC;
   const showConfetti = serializableAssignment.score === 10;
   const teacherAnswerCommentsMap: Record<number, string> = (() => {
     const src = (serializableAssignment as any).teacherAnswerComments;
@@ -188,6 +246,18 @@ export default async function AssignmentPage({
             <FlashcardPlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
           ) : isMultiChoice ? (
             <MultiChoicePlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
+          ) : isLyric && lesson.lyricConfig ? (
+            <LyricLessonPlayer
+              assignmentId={serializableAssignment.id}
+              lessonId={lesson.id}
+              audioUrl={lesson.lyricConfig.audioUrl}
+              lines={lesson.lyricConfig.lines}
+              settings={lesson.lyricConfig.settings}
+              status={serializableAssignment.status}
+              existingAttempt={lesson.lyricAttempts?.[0] ?? null}
+              timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
+              lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+            />
           ) : (
             <LessonResponseForm assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
           )}
@@ -285,6 +355,19 @@ export default async function AssignmentPage({
               </div>
               {teacherCommentsBlock}
             </>
+          )}
+          {lesson.type === LessonType.LYRIC && lesson.lyricConfig && (
+            <LyricLessonPlayer
+              assignmentId={serializableAssignment.id}
+              lessonId={lesson.id}
+              audioUrl={lesson.lyricConfig.audioUrl}
+              lines={lesson.lyricConfig.lines}
+              settings={lesson.lyricConfig.settings}
+              status={serializableAssignment.status}
+              existingAttempt={lesson.lyricAttempts?.[0] ?? null}
+              timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
+              lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+            />
           )}
         </div>
       )}

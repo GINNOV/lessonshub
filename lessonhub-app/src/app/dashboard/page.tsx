@@ -193,6 +193,9 @@ export default async function DashboardPage({
               <Link href="/dashboard/create/multi-choice">Create multi choice</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
+              <Link href="/dashboard/create/lyric">Create lyric lesson</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href="/dashboard/create/learning-session">Create learning session</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>

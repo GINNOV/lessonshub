@@ -57,6 +57,7 @@ const lessonTypeImages: Record<LessonType, string> = {
     [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
     [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
     [LessonType.LEARNING_SESSION]: '/my-lessons/learning.png',
+    [LessonType.LYRIC]: '/my-lessons/learning.png',
 };
 
 export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {

@@ -121,6 +121,7 @@ export async function duplicateLesson(lessonId: string) {
         multiChoiceQuestions: {
           include: { options: true },
         },
+        lyricConfig: true,
       },
     });
 
@@ -173,6 +174,17 @@ export async function duplicateLesson(lessonId: string) {
                     }
                   : undefined,
               })),
+            }
+          : undefined,
+        lyricConfig: lesson.lyricConfig
+          ? {
+              create: {
+                audioUrl: lesson.lyricConfig.audioUrl,
+                audioStorageKey: lesson.lyricConfig.audioStorageKey,
+                rawLyrics: lesson.lyricConfig.rawLyrics,
+                lines: lesson.lyricConfig.lines as Prisma.InputJsonValue,
+                settings: lesson.lyricConfig.settings as Prisma.InputJsonValue | undefined,
+              },
             }
           : undefined,
       },
@@ -572,6 +584,12 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
                 options: true,
               },
             },
+            lyricConfig: true,
+            lyricAttempts: {
+              where: { studentId },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
           },
         },
       },
@@ -603,6 +621,7 @@ export async function getLessonById(lessonId: string) {
             options: true,
           },
         },
+        lyricConfig: true,
       },
     });
     return lesson;
@@ -632,6 +651,7 @@ export async function getLessonByShareId(shareId: string) {
             options: true,
           },
         },
+        lyricConfig: true,
         teacher: {
           select: {
             id: true,

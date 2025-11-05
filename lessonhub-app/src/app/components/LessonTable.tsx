@@ -55,6 +55,8 @@ export default function LessonTable({
             return `/dashboard/edit/flashcard/${lesson.id}`;
         case LessonType.MULTI_CHOICE:
             return `/dashboard/edit/multi-choice/${lesson.id}`;
+        case LessonType.LYRIC:
+            return `/dashboard/edit/lyric/${lesson.id}`;
         default:
             return `/dashboard/edit/${lesson.id}`;
     }

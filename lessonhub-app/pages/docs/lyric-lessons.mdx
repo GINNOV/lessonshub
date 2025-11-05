@@ -1,0 +1,43 @@
+# Lyric Lessons
+
+Lyric lessons let teachers combine an audio track with time-synchronised lyrics so students can follow along or complete fill-in-the-blank exercises directly inside LessonHUB.
+
+## Creating a lyric lesson
+
+1. Open **Create New Lesson → Create lyric lesson** from the teacher dashboard.
+2. Upload an MP3 (or paste an external audio URL). A preview player appears so you can scrub and mark timestamps.
+3. (Optional) Upload a matching **.lrc** file to auto-populate the line timings. After import, manual controls are hidden by default—click *Enable manual adjustments* if you need to tweak individual entries.
+4. If you are not using an LRC file, paste your lyrics into the **Lyric Text** field and click **Generate Lines** to create placeholders manually.
+5. Use the playback controls (when manual adjustments are enabled) to mark start/end times and fine tune individual lines.
+6. Choose the default mode – `Read Along`, `Fill in the Blank`, or `Both` – and adjust the percentage of hidden words used for fill-in practice.
+7. Complete the usual lesson metadata (price, difficulty, instructions) and click **Create Lesson**.
+
+The editor stores timestamp data in `LyricLessonConfig.lines` and lesson options inside `LyricLessonConfig.settings`.
+
+## Editing an existing lesson
+
+Navigate to **Lessons → Edit** for a lyric lesson (or open `/dashboard/edit/lyric/[id]`). The editor pre-loads the saved timestamps, allowing you to tweak timings or regenerate lines as needed.
+
+## Student experience
+
+- Students see a lyric player with audio controls and auto-scrolling lyric lines.
+- When the lesson is set to `Fill in the Blank`, inputs replace the hidden words. Students can check their answers, and LessonHUB records the score and time taken.
+- Attempts are stored in `LyricLessonAttempt` and automatically mark the assignment as completed.
+
+## API surface
+
+| Endpoint | Method | Purpose |
+| -------- | ------ | ------- |
+| `/api/lessons/lyric` | `POST` | Create a lyric lesson. |
+| `/api/lessons/lyric/[lessonId]` | `GET`, `PATCH` | Fetch or update an existing lesson. |
+| `/api/lessons/lyric/attempt` | `POST` | Record a student attempt and mark the assignment complete. |
+
+All endpoints require teacher or student authentication that matches the lesson/assignment.
+
+## Data model additions
+
+- `Lesson.type = LYRIC`
+- `LyricLessonConfig` – stores audio URL, optional timing source URL, raw lyrics, parsed lines, and settings.
+- `LyricLessonAttempt` – captures student answers, scores, and timing metadata.
+
+Run `npm run prisma:migrate` to apply the schema changes, followed by `npm run prisma:generate` to refresh the Prisma client.

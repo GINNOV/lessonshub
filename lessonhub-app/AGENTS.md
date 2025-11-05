@@ -26,6 +26,7 @@
 - Teacher view: `src/app/dashboard/assign/[lessonId]/page.tsx` uses `AssignLessonForm` to search/filter students, bulk-select, set start/deadline, choose notification timing, and PATCH `/api/assignments`.
 - Component split: `StudentLessonList` is read-only (display + filters). `AssignLessonForm` owns assignment mutations. Do not merge these concerns.
 - Assignment page: Uses `LessonContentView` to render audio material, additional information, supporting image, and attachments consistently.
+- Lyric lessons: teachers upload audio plus an optional `.lrc` file in `src/app/components/LyricLessonEditor.tsx`. Importing an LRC auto-populates timings, disables manual edits until the toggle is re-enabled, and surfaces links to the reference track and original LRC. Student playback (`LyricLessonPlayer`) consumes the parsed timings and offers downloads.
 - Admin view: `/dashboard` shows admin tiles linking to Users, Lessons, Emails, Settings, Cron, and Profile (large buttons with icons) instead of teacher dashboard.
 - Cron jobs: `/api/cron/start` runs hourly to send start-date notifications; `/api/cron/daily` (09:00 UTC) handles reminders and weekly summaries.
 - When deploying on Vercel Hobby, `/api/cron/start` is limited to one run per day (10:00 UTC) to stay within cron limits—adjust the schedule when moving to Pro if you need hourly coverage.
@@ -48,6 +49,7 @@
 - Teacher bios: teachers can edit their “About me” content from `/profile` (stored in `User.teacherBio`); changes revalidate `/teachers`.
 - Grading: Standard lessons support optional per‑answer comments (stored in `teacherAnswerComments`; gracefully appended to overall comments if column absent).
 - Leaderboard: Student leaderboard shows “Savings” (matches My Progress calculation) and uses a compact mobile layout.
+- Lyric lessons: if the API returns a 500 mentioning LRC columns, run `npm run prisma:migrate` (no extra flags) followed by `npm run prisma:generate` to add the missing `lrcUrl`/`lrcStorageKey` fields. The API now returns explanatory JSON and the editor displays the message in a toast.
 
 ## Testing Guidelines
 - No test runner is configured yet. If adding tests, prefer Vitest + React Testing Library.

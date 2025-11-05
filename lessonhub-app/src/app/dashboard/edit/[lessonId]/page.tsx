@@ -22,6 +22,10 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
   if (!lesson) {
     return <div>Lesson not found.</div>;
   }
+
+  if (lesson.type === LessonType.LYRIC) {
+    redirect(`/dashboard/edit/lyric/${lessonId}`);
+  }
   
   const preferences = await getTeacherPreferences();
     
