@@ -53,6 +53,7 @@ model User {
   defaultLessonNotes        String?   @db.Text
   defaultLessonInstructions String?   @db.Text
   teacherBio                String?   @db.Text
+  studentBio                String?   @db.Text
   lyricLessonAttempts       LyricLessonAttempt[]
 
   // Customizable dashboard fields

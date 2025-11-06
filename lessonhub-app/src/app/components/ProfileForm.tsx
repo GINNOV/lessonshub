@@ -54,6 +54,7 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     } catch { return []; }
   })();
   const [teacherBio, setTeacherBio] = useState(user?.teacherBio ?? '');
+  const [studentBio, setStudentBio] = useState(user?.studentBio ?? '');
   const [isSubmittingBio, setIsSubmittingBio] = useState(false);
 
   // All handlers from your original component are preserved
@@ -109,16 +110,32 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     
     const apiRoute = isAdmin && userToEdit ? `/api/profile/${userToEdit.id}` : '/api/profile';
     
+    const payload: Record<string, unknown> = { name, image, timeZone, gender, weeklySummaryOptOut };
+    if (user?.role === Role.STUDENT) {
+      payload.studentBio = studentBio;
+    }
+
     const response = await fetch(apiRoute, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, image, timeZone, gender, weeklySummaryOptOut }),
+      body: JSON.stringify(payload),
     });
 
     if (response.ok) {
       toast.success('Profile updated successfully!');
       if (!isAdmin) {
-        await update({ ...session, user: { ...session?.user, name, image, timeZone, gender, weeklySummaryOptOut } });
+        await update({
+          ...session,
+          user: {
+            ...session?.user,
+            name,
+            image,
+            timeZone,
+            gender,
+            weeklySummaryOptOut,
+            ...(user?.role === Role.STUDENT ? { studentBio } : {}),
+          } as any,
+        });
       }
     } else {
       const data = await response.json();
@@ -285,6 +302,19 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
                 )}
                 <p className="text-xs text-gray-500 mt-1">Used to format deadlines in emails and reminders.</p>
             </div>
+            {user?.role === Role.STUDENT && (
+              <div>
+                <Label htmlFor="student-bio">Bio</Label>
+                <Textarea
+                  id="student-bio"
+                  value={studentBio}
+                  onChange={(e) => setStudentBio(e.target.value)}
+                  rows={4}
+                  placeholder="Share a fun fact, learning goal, or what motivates you."
+                />
+                <p className="text-xs text-gray-500 mt-1">Shown on your leaderboard profile so classmates can get to know you.</p>
+              </div>
+            )}
             <Button type="submit" disabled={isSubmittingProfile || isUploading}>
                 {isSubmittingProfile ? 'Saving...' : 'Save Profile Changes'}
             </Button>

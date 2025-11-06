@@ -154,6 +154,7 @@ export async function getLeaderboardData() {
     const studentStats = students.map(student => {
       const completedAssignments = student.assignments.filter(a => a.status === AssignmentStatus.COMPLETED || a.status === AssignmentStatus.GRADED);
       const completedCount = completedAssignments.length;
+      const testsTaken = student.assignments.length;
 
       let totalCompletionTime = 0;
       completedAssignments.forEach(a => {
@@ -186,6 +187,7 @@ export async function getLeaderboardData() {
         averageCompletionTime,
         savings,
         totalPoints,
+        testsTaken,
         recentBadges: student.badges.map(({ badge }) => ({
           slug: badge.slug,
           name: badge.name,
@@ -218,11 +220,147 @@ export async function getLeaderboardData() {
       b.completedCount - a.completedCount ||
       a.averageCompletionTime - b.averageCompletionTime
     );
-
+    
     return leaderboard;
   } catch (error) {
     console.error("Failed to fetch leaderboard data:", error);
     return [];
+  }
+}
+
+export async function getStudentLeaderboardProfile(studentId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return null;
+
+    const viewerId = session.user.id;
+    const viewerRole = session.user.role as Role | undefined;
+
+    const student = await prisma.user.findUnique({
+      where: { id: studentId },
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        studentBio: true,
+        totalPoints: true,
+        teachers: { select: { teacherId: true } },
+        assignments: {
+          where: {
+            status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
+          },
+          select: {
+            id: true,
+            status: true,
+            score: true,
+            pointsAwarded: true,
+            gradedAt: true,
+            assignedAt: true,
+            lesson: { select: { price: true } },
+          },
+          orderBy: { assignedAt: 'desc' },
+        },
+        badges: {
+          orderBy: { awardedAt: 'desc' },
+          take: 8,
+          select: {
+            badge: {
+              select: {
+                slug: true,
+                name: true,
+                icon: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!student) return null;
+
+    const isSelf = viewerId === studentId;
+    let canView = isSelf;
+
+    if (!canView) {
+      if (viewerRole === Role.ADMIN) {
+        canView = true;
+      } else if (viewerRole === Role.TEACHER) {
+        const teachesStudent = await prisma.teachersForStudent.findFirst({
+          where: { teacherId: viewerId, studentId },
+          select: { studentId: true },
+        });
+        canView = Boolean(teachesStudent);
+      } else {
+        const viewerTeachers = await prisma.teachersForStudent.findMany({
+          where: { studentId: viewerId },
+          select: { teacherId: true },
+        });
+        const viewerTeacherIds = viewerTeachers.map((t) => t.teacherId);
+        const studentTeacherIds = student.teachers.map((t) => t.teacherId);
+        canView = viewerTeacherIds.some((id) => studentTeacherIds.includes(id));
+      }
+    }
+
+    if (!canView) return null;
+
+    const completedAssignments = student.assignments.filter(
+      (assignment) =>
+        assignment.status === AssignmentStatus.COMPLETED || assignment.status === AssignmentStatus.GRADED
+    );
+    const testsTaken = student.assignments.length;
+    const completedCount = completedAssignments.length;
+
+    let totalCompletionTime = 0;
+    completedAssignments.forEach((assignment) => {
+      if (assignment.gradedAt) {
+        totalCompletionTime +=
+          new Date(assignment.gradedAt).getTime() - new Date(assignment.assignedAt).getTime();
+      }
+    });
+    const averageCompletionTime = completedCount > 0 ? totalCompletionTime / completedCount : 0;
+
+    let savings = 0;
+    student.assignments.forEach((assignment) => {
+      const price = assignment.lesson?.price ? Number(assignment.lesson.price.toString()) : 0;
+      if (assignment.status === AssignmentStatus.GRADED && assignment.score !== null && assignment.score >= 0) {
+        savings += price;
+      }
+      if (assignment.status === AssignmentStatus.FAILED) {
+        savings -= price;
+      }
+    });
+
+    const derivedPoints = student.assignments.reduce(
+      (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),
+      0
+    );
+
+    const totalPoints = Math.max(student.totalPoints ?? 0, derivedPoints);
+    const completionRate = testsTaken > 0 ? completedCount / testsTaken : 0;
+
+    return {
+      id: student.id,
+      name: student.name ?? 'Anonymous',
+      image: student.image,
+      studentBio: student.studentBio ?? '',
+      stats: {
+        testsTaken,
+        completedCount,
+        completionRate,
+        averageCompletionTime,
+        savings,
+        totalPoints,
+      },
+      recentBadges: student.badges.map(({ badge }) => ({
+        slug: badge.slug,
+        name: badge.name,
+        icon: badge.icon,
+      })),
+      isSelf,
+    };
+  } catch (error) {
+    console.error("Failed to fetch student leaderboard profile:", error);
+    return null;
   }
 }
 

@@ -1,6 +1,7 @@
 // file: src/app/components/TeacherClassLeaderboard.tsx
 'use client';
 
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 type LeaderboardData = {
@@ -53,7 +54,14 @@ export default function TeacherClassLeaderboard({ leaderboardData }: TeacherClas
                                                 <AvatarImage src={student.image || ''} alt={student.name || ''} />
                                                 <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
                                             </Avatar>
-                                            <span>{student.name || 'Anonymous'}</span>
+                                            <Link
+                                                href={`/profile/${student.id}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm font-medium text-purple-700 hover:underline"
+                                            >
+                                                {student.name || 'Anonymous'}
+                                            </Link>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">

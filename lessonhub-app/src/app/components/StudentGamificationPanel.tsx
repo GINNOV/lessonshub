@@ -125,14 +125,38 @@ export default function StudentGamificationPanel({ data }: StudentGamificationPa
               onClick={() => setNextUpExpanded((value) => !value)}
               aria-label={nextUpExpanded ? 'Hide upcoming rewards' : 'Show upcoming rewards'}
               aria-expanded={nextUpExpanded}
+              className={`h-10 w-10 rounded-full border transition ${
+                nextUpExpanded
+                  ? 'border-purple-200 bg-purple-50 text-purple-800'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-purple-200 hover:text-purple-700'
+              }`}
             >
-              {nextUpExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              {nextUpExpanded ? (
+                <ChevronDown className="h-5 w-5" strokeWidth={2.5} />
+              ) : (
+                <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
+              )}
             </Button>
           </div>
           {!nextUpExpanded && (
-            <p className="text-xs text-gray-500">
-              Peek at the next badge you&apos;ll earn and the latest point updates.
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500">
+                Peek at the next badge you&apos;ll earn and the latest point updates.
+              </p>
+              {nextBadge ? (
+                <div className="flex items-center gap-3 rounded-lg border border-purple-100 bg-purple-50/80 px-3 py-2 text-sm text-purple-900">
+                  <span className="text-2xl">{nextBadge.icon ?? '🎯'}</span>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{nextBadge.name}</p>
+                    <p className="truncate text-xs text-purple-800/80">{nextBadge.description}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
+                  You&apos;ve unlocked every badge currently available. Legendary status!
+                </p>
+              )}
+            </div>
           )}
         </CardHeader>
         {nextUpExpanded && (
