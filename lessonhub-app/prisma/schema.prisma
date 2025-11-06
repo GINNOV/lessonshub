@@ -55,6 +55,7 @@ model User {
   teacherBio                String?   @db.Text
   studentBio                String?   @db.Text
   lyricLessonAttempts       LyricLessonAttempt[]
+  instructionBooklets       InstructionBooklet[]
 
   // Customizable dashboard fields
   progressCardTitle         String?   @default("My Progress")
@@ -195,6 +196,16 @@ model Assignment {
   badgeAwards         UserBadge[]
 
   @@unique([lessonId, studentId])
+}
+
+model InstructionBooklet {
+  id        String   @id @default(cuid())
+  title     String
+  body      String   @db.Text
+  teacherId String
+  teacher   User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model EmailTemplate {

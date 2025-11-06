@@ -25,9 +25,16 @@ type TeacherPreferences = {
     defaultLessonInstructions?: string | null;
 };
 
+interface InstructionBooklet {
+  id: string;
+  title: string;
+  body: string;
+}
+
 interface LessonFormProps {
   lesson?: SerializableLesson | null;
   teacherPreferences?: TeacherPreferences | null;
+  instructionBooklets?: InstructionBooklet[];
 }
 
 async function safeJson(response: Response) {
@@ -46,7 +53,7 @@ async function safeJson(response: Response) {
 
 const OptionalIndicator = () => <Info className="text-gray-400 ml-1 h-4 w-4" />;
 
-export default function LessonForm({ lesson, teacherPreferences }: LessonFormProps) {
+export default function LessonForm({ lesson, teacherPreferences, instructionBooklets = [] }: LessonFormProps) {
   const router = useRouter();
   const inputFileRef = useRef<HTMLInputElement>(null);
 
@@ -94,6 +101,7 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
   const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
   const [scheduledDate, setScheduledDate] = useState('');
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
+  const [selectedBookletId, setSelectedBookletId] = useState('');
 
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -400,8 +408,62 @@ export default function LessonForm({ lesson, teacherPreferences }: LessonFormPro
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="assignmentText">Instructions</Label>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <Label htmlFor="assignmentText" className="text-base font-semibold">Instructions</Label>
+          {instructionBooklets.length > 0 && (
+            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <select
+                value={selectedBookletId}
+                onChange={(e) => setSelectedBookletId(e.target.value)}
+                className="rounded-md border border-gray-300 p-2 text-sm shadow-sm"
+              >
+                <option value="">Insert from booklet…</option>
+                {instructionBooklets.map((booklet) => (
+                  <option key={booklet.id} value={booklet.id}>
+                    {booklet.title}
+                  </option>
+                ))}
+              </select>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!selectedBookletId}
+                  onClick={() => {
+                    const booklet = instructionBooklets.find((b) => b.id === selectedBookletId);
+                    if (booklet) {
+                      setAssignmentText(booklet.body);
+                    }
+                  }}
+                >
+                  Replace
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!selectedBookletId}
+                  onClick={() => {
+                    const booklet = instructionBooklets.find((b) => b.id === selectedBookletId);
+                    if (booklet) {
+                      setAssignmentText((prev) => `${prev.trim()}\n\n${booklet.body}`.trim());
+                    }
+                  }}
+                >
+                  Append
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
         <Textarea id="assignmentText" placeholder="Describe the main task for the student." value={assignmentText} onChange={(e) => setAssignmentText(e.target.value)} required disabled={isLoading} className="min-h-[100px]" />
+        <p className="text-xs text-gray-500">
+          Need reusable sets?{' '}
+          <a href="/dashboard/instructions" className="font-semibold text-indigo-600 hover:underline">
+            Manage instruction booklets
+          </a>
+        </p>
       </div>
       
       <div className="space-y-2">

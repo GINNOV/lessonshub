@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import LessonForm from "@/app/components/LessonForm";
 import { Role } from "@prisma/client";
 import { getTeacherPreferences } from "@/actions/teacherActions"; // Import the new action
+import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletActions";
 
 export default async function CreateLessonPage() {
   const session = await auth();
@@ -14,7 +15,10 @@ export default async function CreateLessonPage() {
   }
 
   // Fetch teacher preferences to pass to the form
-  const preferences = await getTeacherPreferences();
+  const [preferences, instructionBooklets] = await Promise.all([
+    getTeacherPreferences(),
+    getInstructionBookletsForTeacher(),
+  ]);
   
   const serializablePreferences = preferences ? {
     ...preferences,
@@ -25,7 +29,14 @@ export default async function CreateLessonPage() {
     <div className="flex min-h-screen flex-col items-center p-8 sm:p-24">
       <div className="w-full max-w-lg">
         <h1 className="text-3xl font-bold mb-6">Create a New Lesson</h1>
-        <LessonForm teacherPreferences={serializablePreferences} />
+        <LessonForm
+          teacherPreferences={serializablePreferences}
+          instructionBooklets={instructionBooklets.map((booklet) => ({
+            ...booklet,
+            createdAt: booklet.createdAt.toISOString(),
+            updatedAt: booklet.updatedAt.toISOString(),
+          }))}
+        />
       </div>
     </div>
   );
