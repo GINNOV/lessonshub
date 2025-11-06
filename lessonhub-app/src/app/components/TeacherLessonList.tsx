@@ -90,7 +90,7 @@ const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   AssignmentStatus.GRADED,
   AssignmentStatus.FAILED,
 ];
-const DATE_FILTER_VALUES = ['today', 'this_week', 'last_week', 'this_month', 'custom'] as const;
+const DATE_FILTER_VALUES = ['today', 'this_week', 'last_week', 'this_month', 'this_year', 'custom'] as const;
 const ORDER_VIEW_VALUES: OrderViewValue[] = ['deadline', 'week', 'available'];
 type DateFilterValue = (typeof DATE_FILTER_VALUES)[number];
 
@@ -302,6 +302,8 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     monthEndAnchor.setMonth(monthEndAnchor.getMonth() + 1);
     monthEndAnchor.setMilliseconds(monthEndAnchor.getMilliseconds() - 1);
     const thisMonthEnd = monthEndAnchor;
+    const thisYearStart = getStartOfDay(new Date(today.getFullYear(), 0, 1));
+    const thisYearEnd = getEndOfDay(new Date(today.getFullYear(), 11, 31));
     const parsedCustomStart = customStartDate ? new Date(customStartDate) : null;
     const parsedCustomEnd = customEndDate ? new Date(customEndDate) : null;
     const customStart = isValidDate(parsedCustomStart) ? getStartOfDay(parsedCustomStart) : null;
@@ -405,6 +407,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         if (dateFilter === 'this_week') return referenceStart >= thisWeek.start && referenceStart <= thisWeek.end;
         if (dateFilter === 'last_week') return referenceStart >= lastWeek.start && referenceStart <= lastWeek.end;
         if (dateFilter === 'this_month') return referenceStart >= thisMonthStart && referenceStart <= thisMonthEnd;
+        if (dateFilter === 'this_year') return referenceStart >= thisYearStart && referenceStart <= thisYearEnd;
         if (dateFilter === 'custom') {
           if (customStart && customEnd) {
             return referenceStart >= customStart && referenceStart <= customEnd;
@@ -720,6 +723,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             <option value="this_week">This Week</option>
             <option value="last_week">Past Week</option>
             <option value="this_month">This Month</option>
+            <option value="this_year">This Year</option>
             <option value="custom">Custom</option>
           </select>
           {dateFilter === 'custom' && (

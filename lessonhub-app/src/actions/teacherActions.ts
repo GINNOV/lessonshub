@@ -210,11 +210,16 @@ export async function getTeacherDashboardStats(teacherId: string) {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
+    const now = new Date();
+
     const [
       totalStudents,
       studentsOnBreak,
       totalLessons,
       lessonsThisWeek,
+      pastDueLessons,
+      completedLessons,
+      emptyLessons,
     ] = await Promise.all([
       // Count only students assigned to this teacher
       prisma.teachersForStudent.count({ where: { teacherId } }),
@@ -241,6 +246,35 @@ export async function getTeacherDashboardStats(teacherId: string) {
           deadline: true,
         },
       }),
+      prisma.lesson.count({
+        where: {
+          teacherId,
+          assignments: {
+            some: {
+              status: AssignmentStatus.PENDING,
+              deadline: { lt: now },
+            },
+          },
+        },
+      }),
+      prisma.lesson.count({
+        where: {
+          teacherId,
+          assignments: {
+            some: {
+              status: AssignmentStatus.COMPLETED,
+            },
+          },
+        },
+      }),
+      prisma.lesson.count({
+        where: {
+          teacherId,
+          assignments: {
+            none: {},
+          },
+        },
+      }),
     ]);
     
     const lessonsThisWeekDays = lessonsThisWeek.map(lesson => new Date(lesson.deadline).getDay());
@@ -250,6 +284,9 @@ export async function getTeacherDashboardStats(teacherId: string) {
       studentsOnBreak,
       totalLessons,
       lessonsThisWeek: lessonsThisWeekDays,
+      pastDueLessons,
+      completedLessons,
+      emptyLessons,
     };
   } catch (error) {
     console.error("Failed to fetch teacher dashboard stats:", error);
@@ -258,6 +295,9 @@ export async function getTeacherDashboardStats(teacherId: string) {
       studentsOnBreak: 0,
       totalLessons: 0,
       lessonsThisWeek: [],
+      pastDueLessons: 0,
+      completedLessons: 0,
+      emptyLessons: 0,
     };
   }
 }
