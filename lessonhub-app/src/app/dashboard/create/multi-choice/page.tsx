@@ -1,6 +1,7 @@
 // file: src/app/dashboard/create/multi-choice/page.tsx
 import MultiChoiceCreator from "@/app/components/MultiChoiceCreator";
 import { getTeacherPreferences } from "@/actions/teacherActions";
+import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletActions";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
@@ -12,7 +13,10 @@ export default async function CreateMultiChoicePage() {
     redirect("/");
   }
 
-  const preferences = await getTeacherPreferences();
+  const [preferences, instructionBooklets] = await Promise.all([
+    getTeacherPreferences(),
+    getInstructionBookletsForTeacher(),
+  ]);
 
   const serializablePreferences = preferences
     ? {
@@ -24,7 +28,14 @@ export default async function CreateMultiChoicePage() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Create Multi-Choice Lesson</h1>
-      <MultiChoiceCreator teacherPreferences={serializablePreferences} />
+      <MultiChoiceCreator
+        teacherPreferences={serializablePreferences}
+        instructionBooklets={instructionBooklets.map((booklet) => ({
+          ...booklet,
+          createdAt: booklet.createdAt.toISOString(),
+          updatedAt: booklet.updatedAt.toISOString(),
+        }))}
+      />
     </div>
   );
 }

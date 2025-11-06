@@ -1,6 +1,7 @@
 // file: src/app/dashboard/create/flashcard/page.tsx
 import FlashcardCreator from "@/app/components/FlashcardCreator";
 import { getTeacherPreferences } from "@/actions/teacherActions";
+import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletActions";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
@@ -11,7 +12,10 @@ export default async function CreateFlashcardPage() {
         redirect('/');
     }
     
-    const preferences = await getTeacherPreferences();
+    const [preferences, instructionBooklets] = await Promise.all([
+        getTeacherPreferences(),
+        getInstructionBookletsForTeacher(),
+    ]);
     
     const serializablePreferences = preferences ? {
         ...preferences,
@@ -21,7 +25,14 @@ export default async function CreateFlashcardPage() {
     return (
         <div>
             <h1 className="text-3xl font-bold mb-6">Create a Flashcard Lesson</h1>
-            <FlashcardCreator teacherPreferences={serializablePreferences} />
+            <FlashcardCreator
+                teacherPreferences={serializablePreferences}
+                instructionBooklets={instructionBooklets.map((booklet) => ({
+                    ...booklet,
+                    createdAt: booklet.createdAt.toISOString(),
+                    updatedAt: booklet.updatedAt.toISOString(),
+                }))}
+            />
         </div>
     );
 }

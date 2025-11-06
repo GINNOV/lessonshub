@@ -38,6 +38,17 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
       defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
   } : null;
 
+  const serializablePreferences = preferences ? {
+      ...preferences,
+      defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+  } : null;
+
+  const serializableBooklets = instructionBooklets.map((booklet) => ({
+    ...booklet,
+    createdAt: booklet.createdAt.toISOString(),
+    updatedAt: booklet.updatedAt.toISOString(),
+  }));
+
   const serializableLesson = {
     ...lesson,
     price: lesson.price.toNumber(),
@@ -51,15 +62,23 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
           <LessonForm
             lesson={serializableLesson}
             teacherPreferences={serializablePreferences}
-            instructionBooklets={instructionBooklets.map((booklet) => ({
-              ...booklet,
-              createdAt: booklet.createdAt.toISOString(),
-              updatedAt: booklet.updatedAt.toISOString(),
-            }))}
+            instructionBooklets={serializableBooklets}
           />
         )}
-        {lesson.type === LessonType.FLASHCARD && <FlashcardCreator lesson={serializableLesson} teacherPreferences={serializablePreferences} />}
-        {lesson.type === LessonType.MULTI_CHOICE && <MultiChoiceCreator lesson={serializableLesson} teacherPreferences={serializablePreferences} />}
+        {lesson.type === LessonType.FLASHCARD && (
+          <FlashcardCreator
+            lesson={serializableLesson}
+            teacherPreferences={serializablePreferences}
+            instructionBooklets={serializableBooklets}
+          />
+        )}
+        {lesson.type === LessonType.MULTI_CHOICE && (
+          <MultiChoiceCreator
+            lesson={serializableLesson}
+            teacherPreferences={serializablePreferences}
+            instructionBooklets={serializableBooklets}
+          />
+        )}
       </div>
     </div>
   );
