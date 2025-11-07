@@ -79,10 +79,19 @@ const lessonTypeEmojis: Record<LessonType, string> = {
   [LessonType.LYRIC]: '🎵',
 };
 
+const lessonTypeLabels: Record<LessonType, string> = {
+  [LessonType.STANDARD]: 'Standard',
+  [LessonType.FLASHCARD]: 'Flashcard',
+  [LessonType.MULTI_CHOICE]: 'Multi-choice',
+  [LessonType.LEARNING_SESSION]: 'Learning session',
+  [LessonType.LYRIC]: 'Lyric',
+};
+
 const STORAGE_KEY = 'teacher-dashboard-filters';
 
 type StatusFilterValue = AssignmentStatus | 'all' | 'past_due' | 'empty_class';
 type OrderViewValue = 'deadline' | 'week' | 'available';
+type LessonTypeFilterValue = 'all' | LessonType;
 const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   'all',
   'past_due',
@@ -91,6 +100,14 @@ const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   AssignmentStatus.COMPLETED,
   AssignmentStatus.GRADED,
   AssignmentStatus.FAILED,
+];
+const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = [
+  'all',
+  LessonType.STANDARD,
+  LessonType.FLASHCARD,
+  LessonType.MULTI_CHOICE,
+  LessonType.LEARNING_SESSION,
+  LessonType.LYRIC,
 ];
 const DATE_FILTER_VALUES = ['today', 'this_week', 'last_week', 'this_month', 'this_year', 'custom'] as const;
 const ORDER_VIEW_VALUES: OrderViewValue[] = ['deadline', 'week', 'available'];
@@ -194,6 +211,10 @@ const FILTER_LEGEND = [
     description: 'Limit the list to students in a specific class or to lessons still unassigned.',
   },
   {
+    label: 'Lesson Type Filter',
+    description: 'Narrow the list down to a specific lesson format like standard, flashcard, lyric, or learning sessions.',
+  },
+  {
     label: 'Order',
     description: 'Switch between deadline priority, week groups, or the original availability date.',
   },
@@ -202,6 +223,7 @@ const FILTER_LEGEND = [
 export default function TeacherLessonList({ lessons, classes }: TeacherLessonListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(AssignmentStatus.PENDING);
+  const [lessonTypeFilter, setLessonTypeFilter] = useState<LessonTypeFilterValue>('all');
   const [dateFilter, setDateFilter] = useState<DateFilterValue>('this_week');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
@@ -410,6 +432,10 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     const filtered = lessonsWithMeta
       .filter(lesson => lesson.title.toLowerCase().includes(searchTerm.toLowerCase()))
       .filter(lesson => {
+        if (lessonTypeFilter === 'all') return true;
+        return lesson.type === lessonTypeFilter;
+      })
+      .filter(lesson => {
         if (statusFilter === 'all') return true;
         if (statusFilter === 'past_due') {
           return lesson.assignmentsWithDates.some(a => {
@@ -492,7 +518,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     }
 
     return filtered;
-  }, [lessons, searchTerm, statusFilter, dateFilter, classFilter, orderView, customStartDate, customEndDate]);
+  }, [lessons, searchTerm, statusFilter, dateFilter, classFilter, orderView, customStartDate, customEndDate, lessonTypeFilter]);
 
   useEffect(() => {
     if (!hasHydratedState.current) {
@@ -501,6 +527,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     const stateToStore = {
       searchTerm,
       statusFilter,
+      lessonTypeFilter,
       dateFilter,
       customStartDate,
       customEndDate,
@@ -512,7 +539,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     } catch (error) {
       console.warn('Unable to persist teacher dashboard filters', error);
     }
-  }, [searchTerm, statusFilter, dateFilter, customStartDate, customEndDate, classFilter, orderView]);
+  }, [searchTerm, statusFilter, lessonTypeFilter, dateFilter, customStartDate, customEndDate, classFilter, orderView]);
 
   useEffect(() => {
     if (hasHydratedState.current) {
@@ -532,6 +559,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         customEndDate?: string;
         classFilter?: string;
         orderView?: OrderViewValue;
+        lessonTypeFilter?: LessonTypeFilterValue;
       };
       if (typeof parsed.searchTerm === 'string') setSearchTerm(parsed.searchTerm);
       if (parsed.statusFilter && STATUS_FILTER_VALUES.includes(parsed.statusFilter)) {
@@ -545,6 +573,9 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       if (typeof parsed.classFilter === 'string') setClassFilter(parsed.classFilter);
       if (parsed.orderView && ORDER_VIEW_VALUES.includes(parsed.orderView)) {
         setOrderView(parsed.orderView);
+      }
+      if (parsed.lessonTypeFilter && LESSON_TYPE_FILTER_VALUES.includes(parsed.lessonTypeFilter)) {
+        setLessonTypeFilter(parsed.lessonTypeFilter);
       }
     } catch (error) {
       console.warn('Unable to restore teacher dashboard filters', error);
@@ -682,6 +713,18 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               </Button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleShareClick(lesson.id)}
+                title="Share Guide"
+              >
+                {copiedLessonId === lesson.id ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Share2 className="h-4 w-4" />
+                )}
+              </Button>
               <Button variant="outline" size="icon" onClick={() => handleDuplicateClick(lesson.id)} title="Duplicate Guide">
                 <Copy className="h-4 w-4" />
               </Button>
@@ -866,6 +909,18 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               />
             </div>
           )}
+          <select
+            value={lessonTypeFilter}
+            onChange={(e) => setLessonTypeFilter(e.target.value as LessonTypeFilterValue)}
+            className="border-gray-300 rounded-md shadow-sm"
+          >
+            <option value="all">All lesson types</option>
+            {LESSON_TYPE_FILTER_VALUES.filter((value): value is LessonType => value !== 'all').map((type) => (
+              <option key={type} value={type}>
+                {lessonTypeEmojis[type]} {lessonTypeLabels[type]}
+              </option>
+            ))}
+          </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilterValue)}
