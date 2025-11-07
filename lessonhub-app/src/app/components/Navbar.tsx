@@ -18,7 +18,6 @@ import { Role } from "@prisma/client";
 import { stopImpersonation } from "@/actions/adminActions";
 import { useRouter } from 'next/navigation';
 import { useState } from "react";
-import ReferralDialog from "./ReferralDialog";
 import TeacherClassNotesDialog from "./TeacherClassNotesDialog";
 import FeedbackDialog from "./FeedbackDialog";
 import { requestWhatsNewDialog } from "./WhatsNewDialog";
@@ -27,7 +26,6 @@ export default function Navbar() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const user = session?.user as any;
-  const [isReferralDialogOpen, setIsReferralDialogOpen] = useState(false);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [isClassNotesDialogOpen, setIsClassNotesDialogOpen] = useState(false);
 
@@ -131,8 +129,8 @@ export default function Navbar() {
                     >
                       What&apos;s new
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setIsReferralDialogOpen(true)}>
-                      Refer a student
+                    <DropdownMenuItem asChild>
+                      <Link href="/referrals">Referral dashboard</Link>
                     </DropdownMenuItem>
                     {user?.role !== Role.TEACHER && (
                       <DropdownMenuItem onSelect={() => setIsFeedbackDialogOpen(true)}>
@@ -145,7 +143,6 @@ export default function Navbar() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <ReferralDialog open={isReferralDialogOpen} onOpenChange={setIsReferralDialogOpen} />
                 <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
                 {user?.role === Role.TEACHER && (
                   <TeacherClassNotesDialog open={isClassNotesDialogOpen} onOpenChange={setIsClassNotesDialogOpen} />

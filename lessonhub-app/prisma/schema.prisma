@@ -37,6 +37,8 @@ model User {
   referrerId                String?
   referrer                  User?     @relation("UserReferrals", fields: [referrerId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   referrals                 User[]    @relation("UserReferrals")
+  referralRewardPercent     Decimal   @default(35)
+  referralRewardMonthlyAmount Decimal @default(100)
 
   impersonatedBy            User?     @relation("Impersonation", fields: [impersonatedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
   impersonating             User?     @relation("Impersonation")

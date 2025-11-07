@@ -38,11 +38,6 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
       defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
   } : null;
 
-  const serializablePreferences = preferences ? {
-      ...preferences,
-      defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
-  } : null;
-
   const serializableBooklets = instructionBooklets.map((booklet) => ({
     ...booklet,
     createdAt: booklet.createdAt.toISOString(),

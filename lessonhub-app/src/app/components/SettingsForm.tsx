@@ -15,6 +15,8 @@ type Settings = {
   progressCardLinkText?: string | null;
   progressCardLinkUrl?: string | null;
   assignmentSummaryFooter?: string | null;
+  referralRewardPercent?: number | null;
+  referralRewardMonthlyAmount?: number | null;
 };
 
 interface SettingsFormProps {
@@ -27,11 +29,24 @@ export default function SettingsForm({ initialSettings }: SettingsFormProps) {
   const [progressCardLinkText, setProgressCardLinkText] = useState(initialSettings?.progressCardLinkText || '');
   const [progressCardLinkUrl, setProgressCardLinkUrl] = useState(initialSettings?.progressCardLinkUrl || '');
   const [assignmentSummaryFooter, setAssignmentSummaryFooter] = useState(initialSettings?.assignmentSummaryFooter || '');
+  const [referralRewardPercent, setReferralRewardPercent] = useState(
+    initialSettings?.referralRewardPercent !== undefined && initialSettings?.referralRewardPercent !== null
+      ? initialSettings.referralRewardPercent.toString()
+      : '35'
+  );
+  const [referralRewardMonthlyAmount, setReferralRewardMonthlyAmount] = useState(
+    initialSettings?.referralRewardMonthlyAmount !== undefined && initialSettings?.referralRewardMonthlyAmount !== null
+      ? initialSettings.referralRewardMonthlyAmount.toString()
+      : '100'
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    const percentValue = Number(referralRewardPercent);
+    const monthlyAmountValue = Number(referralRewardMonthlyAmount);
 
     const result = await updateDashboardSettings({
       progressCardTitle,
@@ -39,6 +54,8 @@ export default function SettingsForm({ initialSettings }: SettingsFormProps) {
       progressCardLinkText,
       progressCardLinkUrl,
       assignmentSummaryFooter,
+      referralRewardPercent: Number.isFinite(percentValue) ? percentValue : undefined,
+      referralRewardMonthlyAmount: Number.isFinite(monthlyAmountValue) ? monthlyAmountValue : undefined,
     });
 
     if (result.success) {
@@ -93,6 +110,30 @@ export default function SettingsForm({ initialSettings }: SettingsFormProps) {
           value={assignmentSummaryFooter}
           onChange={(e) => setAssignmentSummaryFooter(e.target.value)}
         />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="referralRewardPercent">Referral Reward (%)</Label>
+          <Input
+            id="referralRewardPercent"
+            type="number"
+            min="0"
+            step="0.1"
+            value={referralRewardPercent}
+            onChange={(e) => setReferralRewardPercent(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="referralRewardMonthlyAmount">Monthly Subscription Amount</Label>
+          <Input
+            id="referralRewardMonthlyAmount"
+            type="number"
+            min="0"
+            step="0.01"
+            value={referralRewardMonthlyAmount}
+            onChange={(e) => setReferralRewardMonthlyAmount(e.target.value)}
+          />
+        </div>
       </div>
       <Button type="submit" disabled={isLoading}>
         {isLoading ? 'Saving...' : 'Save Settings'}

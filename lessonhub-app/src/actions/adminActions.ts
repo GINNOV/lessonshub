@@ -441,10 +441,20 @@ export async function getDashboardSettings() {
       progressCardLinkText: true,
       progressCardLinkUrl: true,
       assignmentSummaryFooter: true,
+      referralRewardPercent: true,
+      referralRewardMonthlyAmount: true,
     },
   });
   
-  return userWithSettings;
+  if (!userWithSettings) {
+    return null;
+  }
+
+  return {
+    ...userWithSettings,
+    referralRewardPercent: userWithSettings.referralRewardPercent.toNumber(),
+    referralRewardMonthlyAmount: userWithSettings.referralRewardMonthlyAmount.toNumber(),
+  };
 }
 
 interface DashboardSettings {
@@ -453,6 +463,8 @@ interface DashboardSettings {
     progressCardLinkText?: string;
     progressCardLinkUrl?: string;
     assignmentSummaryFooter?: string;
+    referralRewardPercent?: number;
+    referralRewardMonthlyAmount?: number;
 }
 
 export async function toggleTakingABreakForUser(userId: string) {
@@ -502,6 +514,8 @@ export async function updateDashboardSettings(data: DashboardSettings) {
                 progressCardLinkText: data.progressCardLinkText,
                 progressCardLinkUrl: data.progressCardLinkUrl,
                 assignmentSummaryFooter: data.assignmentSummaryFooter,
+                referralRewardPercent: data.referralRewardPercent,
+                referralRewardMonthlyAmount: data.referralRewardMonthlyAmount,
             },
         });
 
