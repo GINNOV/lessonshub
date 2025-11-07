@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Upload, Info } from 'lucide-react';
 import ImageBrowser from './ImageBrowser';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
+import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 
 type SerializableLesson = Omit<Lesson, 'price'>;
 
@@ -491,9 +492,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
         />
         <p className="text-xs text-gray-500">
           Need reusable sets?{' '}
-          <a href="/dashboard/instructions" className="font-semibold text-indigo-600 hover:underline">
-            Manage instruction booklets
-          </a>
+          <ManageInstructionBookletsLink />
         </p>
       </div>
       

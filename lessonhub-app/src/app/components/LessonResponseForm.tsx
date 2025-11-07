@@ -10,6 +10,7 @@ import { submitStandardAssignment } from '@/actions/lessonActions';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Rating from './Rating';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -32,6 +33,7 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
   const [rating, setRating] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     if (assignment.status !== 'PENDING') {
@@ -52,7 +54,7 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
     setAnswers(newAnswers);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isReadOnly || isSubmissionLocked) {
       if (isSubmissionLocked) {
@@ -61,11 +63,10 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
       return;
     }
 
-    const isConfirmed = window.confirm("Are you sure you want to submit your answers? You won't be able to edit them later.");
-    if (!isConfirmed) {
-      return;
-    }
+    setIsDialogOpen(true);
+  };
 
+  const handleConfirmSubmit = async () => {
     setIsLoading(true);
 
     const result = await submitStandardAssignment(assignment.id, assignment.studentId, {
@@ -81,6 +82,7 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
     } else {
       toast.error(result.error || 'There was an error submitting your assignment.');
     }
+    setIsDialogOpen(false);
     setIsLoading(false);
   };
   
@@ -126,9 +128,22 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
       )}
 
       {!isReadOnly && (
-        <Button type="submit" disabled={isLoading || isSubmissionLocked} className="w-full">
-          {isLoading ? 'Submitting...' : 'Submit Assignment'}
-        </Button>
+        <>
+          <Button type="submit" disabled={isLoading || isSubmissionLocked} className="w-full">
+            {isLoading ? 'Submitting...' : 'Submit Assignment'}
+          </Button>
+          <ConfirmDialog
+            open={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            title="Submit assignment?"
+            description="You will not be able to edit your answers after submitting."
+            confirmLabel="Submit"
+            pendingLabel="Submitting..."
+            confirmVariant="default"
+            isConfirming={isLoading}
+            onConfirm={handleConfirmSubmit}
+          />
+        </>
       )}
     </form>
   );

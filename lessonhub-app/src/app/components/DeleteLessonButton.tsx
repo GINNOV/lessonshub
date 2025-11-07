@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { deleteLesson } from '@/actions/lessonActions';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface DeleteLessonButtonProps {
   lessonId: string;
@@ -15,44 +16,55 @@ interface DeleteLessonButtonProps {
 export default function DeleteLessonButton({ lessonId, isIcon = false }: DeleteLessonButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const handleClick = async () => {
-    const confirmed = window.confirm("Are you sure you want to delete this lesson? This action cannot be undone.");
-    
-    if (confirmed) {
-      setIsLoading(true);
-      setError(null);
-      const result = await deleteLesson(lessonId);
-      if (!result.success) {
-        setError(result.error || 'An unknown error occurred.');
-      }
+  const handleDelete = async () => {
+    setIsLoading(true);
+    setError(null);
+    const result = await deleteLesson(lessonId);
+    if (!result.success) {
+      setError(result.error || 'An unknown error occurred.');
       setIsLoading(false);
+      return;
     }
+    setIsDialogOpen(false);
+    setIsLoading(false);
   };
 
-  if (isIcon) {
-    return (
-      <Button
-        variant="destructive"
-        size="icon"
-        onClick={handleClick}
-        disabled={isLoading}
-        title="Delete Lesson"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    );
-  }
+  const button = isIcon ? (
+    <Button
+      variant="destructive"
+      size="icon"
+      onClick={() => setIsDialogOpen(true)}
+      disabled={isLoading}
+      title="Delete Lesson"
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
+  ) : (
+    <Button
+      variant="destructive"
+      onClick={() => setIsDialogOpen(true)}
+      disabled={isLoading}
+    >
+      {isLoading ? 'Deleting...' : 'Delete'}
+    </Button>
+  );
 
   return (
     <>
-      <Button
-        variant="destructive"
-        onClick={handleClick}
-        disabled={isLoading}
-      >
-        {isLoading ? 'Deleting...' : 'Delete'}
-      </Button>
+      {button}
+      <ConfirmDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        title="Delete lesson?"
+        description="This action cannot be undone and will remove the lesson for all teachers and students."
+        confirmLabel="Delete lesson"
+        pendingLabel="Deleting..."
+        confirmVariant="destructive"
+        isConfirming={isLoading}
+        onConfirm={handleDelete}
+      />
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </>
   );

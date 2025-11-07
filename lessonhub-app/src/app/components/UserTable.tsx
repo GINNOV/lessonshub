@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { User as UserIcon, ShieldCheck, UserCog, Edit, Ban, Trash2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
     defaultLessonPrice: number | null;
@@ -35,6 +36,8 @@ export default function UserTable({
   searchTerm: initialSearchTerm,
 }: UserTableProps) {
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const [confirmUser, setConfirmUser] = useState<{ id: string; label: string } | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const router = useRouter();
 
   const filteredUsers = useMemo(() => {
@@ -84,15 +87,17 @@ export default function UserTable({
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    if (window.confirm(`Are you sure you want to permanently delete the user: ${userName}? This action cannot be undone.`)) {
-        const result = await deleteUserByAdmin(userId);
-        if (result.success) {
-            toast.success('User deleted successfully.');
-        } else {
-            toast.error(result.error || 'An unknown error occurred.');
-        }
+  const handleDeleteUser = async () => {
+    if (!confirmUser) return;
+    setDeletingUserId(confirmUser.id);
+    const result = await deleteUserByAdmin(confirmUser.id);
+    if (result.success) {
+      toast.success('User deleted successfully.');
+    } else {
+      toast.error(result.error || 'An unknown error occurred.');
     }
+    setDeletingUserId(null);
+    setConfirmUser(null);
   };
 
   return (
@@ -196,7 +201,16 @@ export default function UserTable({
                       </Tooltip>
                       {user.role !== Role.ADMIN && (
                         <Tooltip>
-                            <TooltipTrigger asChild><Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id, user.name || user.email)}><Trash2 className="h-4 w-4" /></Button></TooltipTrigger>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={() => setConfirmUser({ id: user.id, label: user.name || user.email })}
+                                disabled={deletingUserId === user.id}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
                             <TooltipContent><p>Delete User</p></TooltipContent>
                         </Tooltip>
                       )}
@@ -208,6 +222,25 @@ export default function UserTable({
           </table>
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(confirmUser)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmUser(null);
+          }
+        }}
+        title="Delete user?"
+        description={
+          confirmUser
+            ? `This will permanently delete ${confirmUser.label} and remove all of their data.`
+            : undefined
+        }
+        confirmLabel="Delete user"
+        pendingLabel="Deleting..."
+        confirmVariant="destructive"
+        isConfirming={Boolean(deletingUserId)}
+        onConfirm={handleDeleteUser}
+      />
     </TooltipProvider>
   );
 }

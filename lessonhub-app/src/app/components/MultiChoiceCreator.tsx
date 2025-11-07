@@ -14,6 +14,7 @@ import Image from 'next/image';
 import ImageBrowser from './ImageBrowser';
 import { Info } from 'lucide-react';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
+import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 
 type SerializableLesson = Omit<Lesson, 'price'>;
 
@@ -516,9 +517,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         />
         <p className="text-xs text-gray-500">
           Need reusable sets?{' '}
-          <a href="/dashboard/instructions" className="font-semibold text-indigo-600 hover:underline">
-            Manage instruction booklets
-          </a>
+          <ManageInstructionBookletsLink />
         </p>
       </div>
 

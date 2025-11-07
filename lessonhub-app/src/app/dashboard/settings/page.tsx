@@ -2,9 +2,11 @@
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import TeacherPreferences from "@/app/components/TeacherPreferences";
+import { Button } from "@/components/ui/button";
 
 export default async function TeacherSettingsPage() {
   const session = await auth();
@@ -46,6 +48,18 @@ export default async function TeacherSettingsPage() {
         </p>
       </div>
       <TeacherPreferences teacher={serializableTeacher as any} />
+      <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 className="text-2xl font-semibold">Instruction Booklets</h2>
+        <p className="mt-2 text-gray-600">
+          Create reusable instruction sets once and drop them into any lesson. Manage them without
+          opening the lesson creator.
+        </p>
+        <div className="mt-4">
+          <Button asChild>
+            <Link href="/dashboard/instructions">Open Instruction Booklets</Link>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

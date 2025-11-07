@@ -13,6 +13,7 @@ import ImageBrowser from './ImageBrowser';
 import { getWeekAndDay } from '@/lib/utils';
 import { Info } from 'lucide-react';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
+import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -460,9 +461,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         <Textarea id="assignmentText" placeholder="Describe the main task for the student." value={assignmentText} onChange={(e) => setAssignmentText(e.target.value)} required disabled={isLoading} className="min-h-[100px]" />
         <p className="text-xs text-gray-500">
           Need reusable sets?{' '}
-          <a href="/dashboard/instructions" className="font-semibold text-indigo-600 hover:underline">
-            Manage instruction booklets
-          </a>
+          <ManageInstructionBookletsLink />
         </p>
       </div>
       
