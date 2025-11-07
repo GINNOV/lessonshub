@@ -511,6 +511,9 @@ export type HubGuideSummary = {
   difficulty: number;
   updatedAt: string;
   cardCount: number;
+  guideCardImage: string | null;
+  guideIsVisible: boolean;
+  guideIsFreeForAll: boolean;
 };
 
 export type HubGuideDetail = {
@@ -519,6 +522,9 @@ export type HubGuideDetail = {
   lessonPreview: string | null;
   assignmentText: string | null;
   updatedAt: string;
+  guideCardImage: string | null;
+  guideIsVisible: boolean;
+  guideIsFreeForAll: boolean;
   learningSessionCards: {
     id: string;
     orderIndex: number;
@@ -540,6 +546,9 @@ export async function getHubGuides(): Promise<HubGuideSummary[]> {
         lesson_preview: true,
         difficulty: true,
         updatedAt: true,
+        guideCardImage: true,
+        guideIsVisible: true,
+        guideIsFreeForAll: true,
         learningSessionCards: {
           select: {
             id: true,
@@ -549,13 +558,16 @@ export async function getHubGuides(): Promise<HubGuideSummary[]> {
       orderBy: { updatedAt: 'desc' },
     });
 
-    return guides.map((guide) => ({
-      id: guide.id,
-      title: guide.title,
-      lessonPreview: guide.lesson_preview,
-      difficulty: guide.difficulty,
-      updatedAt: guide.updatedAt.toISOString(),
+      return guides.map((guide) => ({
+        id: guide.id,
+        title: guide.title,
+        lessonPreview: guide.lesson_preview,
+        difficulty: guide.difficulty,
+        updatedAt: guide.updatedAt.toISOString(),
       cardCount: guide.learningSessionCards.length,
+      guideCardImage: guide.guideCardImage ?? '/my-guides/defaultcard.png',
+        guideIsVisible: guide.guideIsVisible,
+        guideIsFreeForAll: guide.guideIsFreeForAll,
     }));
   } catch (error) {
     console.error("Failed to fetch hub guides:", error);
@@ -573,6 +585,9 @@ export async function getHubGuideById(lessonId: string): Promise<HubGuideDetail 
         lesson_preview: true,
         assignment_text: true,
         updatedAt: true,
+        guideCardImage: true,
+        guideIsVisible: true,
+        guideIsFreeForAll: true,
         learningSessionCards: {
           select: {
             id: true,
@@ -598,6 +613,9 @@ export async function getHubGuideById(lessonId: string): Promise<HubGuideDetail 
       lessonPreview: guide.lesson_preview,
       assignmentText: guide.assignment_text,
       updatedAt: guide.updatedAt.toISOString(),
+      guideCardImage: guide.guideCardImage ?? '/my-guides/defaultcard.png',
+      guideIsVisible: guide.guideIsVisible,
+      guideIsFreeForAll: guide.guideIsFreeForAll,
       learningSessionCards: guide.learningSessionCards.map((card) => ({
         ...card,
       })),

@@ -14,6 +14,7 @@ import WhatsNewDialog from "@/app/components/WhatsNewDialog";
 import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default async function MyLessonsPage() {
   const session = await auth();
@@ -39,9 +40,7 @@ export default async function MyLessonsPage() {
     );
   }
 
-  const guidesPromise: Promise<StudentGuideSummary[]> = session.user.isPaying
-    ? getHubGuides()
-    : Promise.resolve([]);
+  const guidesPromise = getHubGuides();
 
   const [assignments, stats, leaderboardData, settings, gamification, whatsNewUS, whatsNewIT, guides] = await Promise.all([
     getAssignmentsForStudent(session.user.id),
@@ -126,6 +125,9 @@ export default async function MyLessonsPage() {
       }
     : null;
 
+  const visibleGuides = guides.filter((guide) => guide.guideIsVisible);
+  const freeGuides = visibleGuides.filter((guide) => guide.guideIsFreeForAll);
+
   return (
     <div>
       <WhatsNewDialog notes={whatsNewNotes} defaultLocale="us" />
@@ -140,57 +142,88 @@ export default async function MyLessonsPage() {
         pastDue={pastDue}
         settings={settings}
       />
-      <section className="mt-10 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">My Lessons</h1>
-          <p className="text-sm text-gray-500">Assignments from your teachers land here first.</p>
-        </div>
-        <StudentLessonList assignments={serializableAssignments} />
-      </section>
-
-      <section className="mt-16 space-y-6">
-        <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-blue-500 p-6 text-white shadow-lg">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">
-                Hub Guides
-              </p>
-              <h2 className="text-3xl font-bold mt-1">Always-on practice hub</h2>
-              <p className="mt-2 text-indigo-100/80 max-w-xl">
-                Access interactive guides anytime. Memorize key phrases, rehearse conversations,
-                and build confidence between lessons.
-              </p>
-            </div>
-            {session.user.isPaying ? (
+      {session.user.isPaying ? (
+        <section className="mt-10 space-y-6">
+          <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-blue-500 p-6 text-white shadow-lg">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">
+                  Hub Guides
+                </p>
+                <h2 className="text-3xl font-bold mt-1">Always-on practice hub</h2>
+                <p className="mt-2 text-indigo-100/80 max-w-xl">
+                  Switch between your assigned lessons and on-demand guides anytime.
+                </p>
+              </div>
               <div className="text-right">
                 <p className="text-sm text-indigo-100">
-                  {guides.length > 0 ? `${guides.length} guide${guides.length === 1 ? '' : 's'} available` : 'New guides arriving soon'}
+                  {visibleGuides.length > 0
+                    ? `${visibleGuides.length} guide${visibleGuides.length === 1 ? '' : 's'} available`
+                    : 'New guides arriving soon'}
                 </p>
-                {guides.length > 0 && (
-                  <Button asChild variant="secondary" className="mt-3 bg-white/10 hover:bg-white/20 text-white border-white/30">
-                    <Link href={`/guides/${guides[0].id}`}>Resume latest guide</Link>
-                  </Button>
-                )}
               </div>
-            ) : (
-              <div className="text-right">
-                <p className="text-sm text-indigo-100">Exclusive to paying students</p>
-                <Button asChild variant="secondary" className="mt-3 bg-white text-indigo-700">
+            </div>
+          </div>
+          <Tabs defaultValue="lessons" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1 sm:max-w-md">
+              <TabsTrigger value="lessons">Lessons</TabsTrigger>
+              <TabsTrigger value="guides">Hub Guides</TabsTrigger>
+            </TabsList>
+            <TabsContent value="lessons">
+              <StudentLessonList assignments={serializableAssignments} />
+            </TabsContent>
+            <TabsContent value="guides">
+              {visibleGuides.length > 0 ? (
+                <StudentGuideList guides={visibleGuides} />
+              ) : (
+                <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
+                  New guides are on the way. Stay tuned!
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </section>
+      ) : (
+        <>
+          <section className="mt-10 space-y-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold">My Lessons</h1>
+              <p className="text-sm text-gray-500">Assignments from your teachers land here first.</p>
+            </div>
+            <StudentLessonList assignments={serializableAssignments} />
+          </section>
+          <section className="mt-16 space-y-4">
+            <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-blue-500 p-6 text-white shadow-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">
+                    Hub Guides
+                  </p>
+                  <h2 className="text-3xl font-bold mt-1">Always-on practice hub</h2>
+                  <p className="mt-2 text-indigo-100/80 max-w-xl">
+                    Upgrade to unlock interactive guides between lessons.
+                  </p>
+                </div>
+                <Button asChild variant="secondary" className="bg-white text-indigo-700">
                   <Link href="/profile">Unlock Hub Guides</Link>
                 </Button>
               </div>
+            </div>
+            {freeGuides.length > 0 ? (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Try these free guides—premium members unlock the entire catalog.
+                </p>
+                <StudentGuideList guides={freeGuides} />
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
+                No free guides are available right now. Upgrade to access the full library.
+              </div>
             )}
-          </div>
-        </div>
-
-        {session.user.isPaying ? (
-          <StudentGuideList guides={guides} />
-        ) : (
-          <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
-            Upgrade your plan to view Hub Guides anytime.
-          </div>
-        )}
-      </section>
+          </section>
+        </>
+      )}
       <StudentGamificationPanel data={gamificationSnapshot} />
       <Leaderboard leaderboardData={leaderboardData} />
     </div>

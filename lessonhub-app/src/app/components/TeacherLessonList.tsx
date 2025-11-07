@@ -27,6 +27,8 @@ type SerializableLessonWithAssignments = Omit<Lesson, 'price'> & {
   price: number;
   assignments: LessonAssignmentSummary[];
   averageRating?: number | null;
+  guideIsVisible?: boolean;
+  guideIsFreeForAll?: boolean;
 };
 
 interface TeacherLessonListProps {
@@ -208,6 +210,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
   const [copiedLessonId, setCopiedLessonId] = useState<string | null>(null);
   const [duplicatingLessonId, setDuplicatingLessonId] = useState<string | null>(null);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
+  const [guideActionLessonId, setGuideActionLessonId] = useState<string | null>(null);
   const router = useRouter();
   const hasHydratedState = useRef(false);
 
@@ -256,6 +259,30 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       }
     }
     setDateFilter(value);
+  };
+
+  const updateGuideSettings = async (
+    lessonId: string,
+    payload: Partial<{ guideIsVisible: boolean; guideIsFreeForAll: boolean }>
+  ) => {
+    setGuideActionLessonId(lessonId);
+    try {
+      const response = await fetch(`/api/guides/${lessonId}/settings`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to update guide settings.');
+      }
+      toast.success('Guide settings updated.');
+      router.refresh();
+    } catch (error) {
+      toast.error((error as Error).message || 'Failed to update guide settings.');
+    } finally {
+      setGuideActionLessonId(null);
+    }
   };
 
   const handleCustomStartChange = (value: string) => {
@@ -309,6 +336,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     const customStart = isValidDate(parsedCustomStart) ? getStartOfDay(parsedCustomStart) : null;
     const customEnd = isValidDate(parsedCustomEnd) ? getEndOfDay(parsedCustomEnd) : null;
     const lessonsWithMeta: LessonWithMeta[] = lessons.map((lesson) => {
+      const isGuide = lesson.type === LessonType.LEARNING_SESSION;
       const week = parseInt(getWeekAndDay(new Date(lesson.createdAt)).split('-')[0], 10);
       const scheduledDate = lesson.scheduled_assignment_date ? new Date(lesson.scheduled_assignment_date) : null;
       const scheduledDateValue = isValidDate(scheduledDate) ? scheduledDate : null;
@@ -375,6 +403,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         availableDate,
         classNames,
         filterDate,
+        isGuide,
       };
     });
 
@@ -560,6 +589,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
   );
 
   const renderLessonCard = (lesson: LessonWithMeta, index: number, key?: string) => {
+    const isGuide = lesson.type === LessonType.LEARNING_SESSION;
     const now = new Date();
     const totalAssignments = lesson.assignments.length;
     const graded = lesson.assignmentsWithDates.filter(a => a.status === AssignmentStatus.GRADED).length;
@@ -576,6 +606,96 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     const difficultyOption = DIFFICULTY_OPTIONS[normalizedDifficulty - 1];
     const chipBg = difficultyOption.color.replace('500', '100');
     const chipBorder = difficultyOption.color.replace('500', '200');
+
+    if (isGuide) {
+      const createdAtDate = new Date(lesson.createdAt);
+      const [weekLabel, dayLabel] = getWeekAndDay(createdAtDate).split('-');
+      const createdStamp = createdAtDate.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      const guideActionLoading = guideActionLessonId === lesson.id;
+
+      return (
+        <div
+          key={key ?? `guide-${lesson.id}`}
+          className="flex flex-col gap-4 rounded-md border border-green-200 bg-green-50 p-4"
+        >
+          <div className="flex flex-col gap-2">
+            <Link href={`/dashboard/edit/${lesson.id}`} className="text-lg font-bold hover:underline">
+              <span className="mr-2">{lessonTypeEmojis[lesson.type]}</span>
+              {lesson.title}
+            </Link>
+            <p className="text-xs text-green-900">
+              Guide {weekLabel}-{dayLabel} · Created {createdStamp}
+            </p>
+            <span
+              className={cn(
+                'w-fit inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide',
+                chipBg,
+                chipBorder,
+                difficultyOption.text
+              )}
+            >
+              <span className={cn('h-2 w-2 rounded-full', difficultyOption.color)} aria-hidden="true" />
+              {difficultyOption.label}
+            </span>
+            <div className="flex flex-wrap gap-2 text-xs font-semibold">
+              <span
+                className={cn(
+                  'rounded-full px-3 py-1',
+                  lesson.guideIsVisible ? 'bg-emerald-200 text-emerald-900' : 'bg-gray-300 text-gray-700'
+                )}
+              >
+                {lesson.guideIsVisible ? 'Visible in student catalog' : 'Hidden from students'}
+              </span>
+              <span
+                className={cn(
+                  'rounded-full px-3 py-1',
+                  lesson.guideIsFreeForAll ? 'bg-blue-200 text-blue-900' : 'bg-indigo-200 text-indigo-900'
+                )}
+              >
+                {lesson.guideIsFreeForAll ? 'Free for all plans' : 'Premium students only'}
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => updateGuideSettings(lesson.id, { guideIsVisible: !lesson.guideIsVisible })}
+                disabled={guideActionLoading}
+              >
+                {lesson.guideIsVisible ? 'Hide from catalog' : 'Show to students'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => updateGuideSettings(lesson.id, { guideIsFreeForAll: !lesson.guideIsFreeForAll })}
+                disabled={guideActionLoading}
+              >
+                {lesson.guideIsFreeForAll ? 'Restrict to paying students' : 'Make free for all'}
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="icon" onClick={() => handleDuplicateClick(lesson.id)} title="Duplicate Guide">
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" asChild title="Edit Guide">
+                <Link href={`/dashboard/edit/${lesson.id}`}>
+                  <Pencil className="h-4 w-4" />
+                </Link>
+              </Button>
+              <DeleteLessonButton lessonId={lesson.id} isIcon />
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div

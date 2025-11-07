@@ -6,6 +6,7 @@ import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { marked } from "marked";
+import Image from "next/image";
 
 export default async function GuidePage({ params }: { params: Promise<{ guideId: string }> }) {
   const session = await auth();
@@ -64,6 +65,18 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
         <h1 className="text-4xl font-bold text-gray-900">{guide.title}</h1>
         <p className="text-sm text-gray-500">Updated {updatedLabel}</p>
       </div>
+
+      {guide.guideCardImage && (
+        <div className="relative h-48 w-full overflow-hidden rounded-2xl border shadow-sm">
+          <Image
+            src={guide.guideCardImage}
+            alt={`${guide.title} card`}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 768px"
+          />
+        </div>
+      )}
 
       {previewHtml && (
         <div

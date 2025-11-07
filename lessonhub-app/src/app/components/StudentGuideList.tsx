@@ -11,6 +11,8 @@ export type StudentGuideSummary = {
   difficulty: number;
   updatedAt: string;
   cardCount: number;
+  guideCardImage: string | null;
+  guideIsFreeForAll: boolean;
 };
 
 interface StudentGuideListProps {
@@ -37,7 +39,7 @@ export default function StudentGuideList({ guides }: StudentGuideListProps) {
         placeholder="Search Hub Guides..."
         value={search}
         onChange={(event) => setSearch(event.target.value)}
-        className="max-w-md"
+        className="w-full sm:max-w-md"
       />
 
       {filtered.length === 0 ? (
@@ -45,7 +47,7 @@ export default function StudentGuideList({ guides }: StudentGuideListProps) {
           No Hub Guides available yet. New guides will appear here automatically.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {filtered.map((guide) => (
             <StudentGuideCard key={guide.id} guide={guide} />
           ))}

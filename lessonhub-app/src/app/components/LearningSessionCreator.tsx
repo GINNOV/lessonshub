@@ -18,6 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import Image from 'next/image';
+import { guideImageOptions } from '@/lib/guideImages';
 
 type TeacherPreferences = {
   defaultLessonPrice?: number | null;
@@ -34,6 +36,7 @@ interface InstructionBooklet {
 
 type LessonWithCards = Omit<Lesson, 'price'> & {
   price: number;
+  guideCardImage?: string | null;
   learningSessionCards: {
     id: string;
     orderIndex: number;
@@ -121,6 +124,9 @@ export default function LearningSessionCreator({
     lesson?.assignment_text ?? teacherPreferences?.defaultLessonInstructions ?? '👉🏼 INSTRUCTIONS:\n'
   );
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
+  const [guideCardImage, setGuideCardImage] = useState<string>(
+    lesson?.guideCardImage || guideImageOptions[0]?.value || '/my-guides/defaultcard.png'
+  );
   const [cards, setCards] = useState<LearningSessionCardState[]>(
     lesson?.learningSessionCards?.length
       ? [...lesson.learningSessionCards]
@@ -232,6 +238,7 @@ export default function LearningSessionCreator({
           assignment_text: assignmentText,
           difficulty,
           cards,
+          guideCardImage,
         }),
       });
 
@@ -292,6 +299,36 @@ export default function LearningSessionCreator({
           value={lessonPreview}
           onChange={(e) => setLessonPreview(e.target.value)}
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="guideCardImage">Guide Card Image</Label>
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <select
+            id="guideCardImage"
+            className="rounded-md border border-gray-300 p-2 shadow-sm"
+            value={guideCardImage}
+            onChange={(event) => setGuideCardImage(event.target.value)}
+          >
+            {guideImageOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <div className="relative h-32 w-full overflow-hidden rounded-lg border sm:w-48">
+            <Image
+              src={guideCardImage}
+              alt="Guide card preview"
+              fill
+              className="object-cover"
+              sizes="192px"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-gray-500">
+          Add more card backgrounds under <code>/public/my-guides</code> to expand this list.
+        </p>
       </div>
 
       <div className="space-y-2">

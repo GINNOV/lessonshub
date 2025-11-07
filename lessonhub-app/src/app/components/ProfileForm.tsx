@@ -15,6 +15,8 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from '@/components/ui/textarea';
 import { updateTeacherBio } from '@/actions/teacherActions';
+import { redeemCoupon } from '@/actions/billingActions';
+import { Badge } from '@/components/ui/badge';
 
 interface ProfileFormProps {
   userToEdit?: User | null;
@@ -56,6 +58,9 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
   const [teacherBio, setTeacherBio] = useState(user?.teacherBio ?? '');
   const [studentBio, setStudentBio] = useState(user?.studentBio ?? '');
   const [isSubmittingBio, setIsSubmittingBio] = useState(false);
+  const [isPaying, setIsPaying] = useState(user?.isPaying ?? false);
+  const [couponCode, setCouponCode] = useState('');
+  const [isRedeemingCoupon, setIsRedeemingCoupon] = useState(false);
 
   // All handlers from your original component are preserved
   const getInitials = (name: string | null | undefined): string => {
@@ -82,6 +87,33 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
       toast.error(result.error);
       setIsTakingBreak(!isChecked);
     }
+  };
+
+  const handleRedeemCoupon = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!couponCode.trim()) {
+      toast.error('Enter your coupon code first.');
+      return;
+    }
+    setIsRedeemingCoupon(true);
+    const result = await redeemCoupon(couponCode.trim());
+    if (result.success) {
+      toast.success(result.message || 'Coupon applied successfully!');
+      setCouponCode('');
+      setIsPaying(true);
+      if (!isAdmin && session) {
+        await update({
+          ...session,
+          user: {
+            ...session.user,
+            isPaying: true,
+          } as any,
+        });
+      }
+    } else {
+      toast.error(result.error || 'Unable to redeem coupon.');
+    }
+    setIsRedeemingCoupon(false);
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -349,7 +381,8 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
 
       {user?.role === Role.STUDENT && (
         <TabsContent value="status">
-            <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
+          <div className="mt-4 space-y-4">
+            <div className="rounded-lg border bg-white p-6 shadow-md">
                 <h2 className="text-xl font-semibold mb-4">Account Status</h2>
                 <div className="flex items-center justify-between">
                     <div>
@@ -367,6 +400,48 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
                     />
                 </div>
             </div>
+
+            <div className="rounded-lg border bg-white p-6 shadow-md space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold">Billing & Hub Guides</h2>
+                  <p className="text-sm text-gray-500">Hub Guides unlock when your plan is active.</p>
+                </div>
+                <Badge variant={isPaying ? 'default' : 'destructive'}>
+                  {isPaying ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+              <p className="text-sm text-gray-600">
+                {isPaying
+                  ? 'Your prepaid access is active. Hub Guides and premium lessons stay unlocked.'
+                  : 'Unlock Hub Guides by subscribing through your teacher or redeeming a prepaid coupon.'}
+              </p>
+              <div className="rounded-md border border-dashed p-4">
+                <form onSubmit={handleRedeemCoupon} className="flex flex-col gap-3 sm:flex-row">
+                  <Input
+                    type="text"
+                    placeholder="Enter coupon code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button type="submit" disabled={isRedeemingCoupon}>
+                    {isRedeemingCoupon ? 'Redeeming…' : 'Redeem'}
+                  </Button>
+                </form>
+                <p className="mt-2 text-xs text-gray-500">
+                  Received a code from your teacher or the billing team? Enter it above to activate your plan.
+                </p>
+              </div>
+              <p className="text-xs text-gray-500">
+                Need help with billing? Email{' '}
+                <a href="mailto:hi@lessonshub.com" className="underline">
+                  hi@lessonshub.com
+                </a>
+                .
+              </p>
+            </div>
+          </div>
         </TabsContent>
       )}
 

@@ -58,6 +58,7 @@ model User {
   studentBio                String?   @db.Text
   lyricLessonAttempts       LyricLessonAttempt[]
   instructionBooklets       InstructionBooklet[]
+  couponRedemptions         CouponRedemption[]
 
   // Customizable dashboard fields
   progressCardTitle         String?   @default("My Progress")
@@ -96,6 +97,7 @@ model Lesson {
   assignment_text           String?
   questions                 Json?
   assignment_image_url      String?
+  guideCardImage            String?
   soundcloud_url            String?
   context_text              String?
   attachment_url            String?
@@ -108,6 +110,8 @@ model Lesson {
   teacherId                 String?
   price                     Decimal                @default(0)
   public_share_id           String?
+  guideIsVisible            Boolean                @default(true)
+  guideIsFreeForAll         Boolean                @default(false)
   teacher                   User?                  @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   assignments               Assignment[]
   flashcards                Flashcard[]
@@ -141,6 +145,30 @@ model LearningSessionCard {
   updatedAt DateTime @updatedAt
 
   @@index([lessonId])
+}
+
+model CouponCode {
+  id              String             @id @default(cuid())
+  code            String             @unique
+  description     String?
+  maxRedemptions  Int                @default(1)
+  redemptionCount Int                @default(0)
+  isActive        Boolean            @default(true)
+  expiresAt       DateTime?
+  redemptions     CouponRedemption[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+model CouponRedemption {
+  id        String     @id @default(cuid())
+  couponId  String
+  coupon    CouponCode @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([couponId, userId])
 }
 
 model MultiChoiceQuestion {

@@ -87,6 +87,7 @@ export async function PATCH(
     assignment_text,
     difficulty,
     cards,
+    guideCardImage,
   } = body;
 
   if (!title || typeof title !== 'string') {
@@ -97,6 +98,10 @@ export async function PATCH(
   if (normalizedCards.length === 0) {
     return NextResponse.json({ error: 'At least one learning session card is required.' }, { status: 400 });
   }
+  const normalizedImage =
+    typeof guideCardImage === 'string' && guideCardImage.trim()
+      ? guideCardImage.trim()
+      : '/my-guides/defaultcard.png';
 
   const difficultyValue = Number(difficulty);
   if (!Number.isInteger(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
@@ -115,6 +120,7 @@ export async function PATCH(
           assignment_text,
           difficulty: difficultyValue,
           type: LessonType.LEARNING_SESSION,
+          guideCardImage: normalizedImage,
           learningSessionCards: {
             create: normalizedCards,
           },

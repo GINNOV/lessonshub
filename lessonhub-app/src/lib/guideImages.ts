@@ -1,0 +1,10 @@
+export const guideImageOptions = [
+  {
+    "label": "defaultcard",
+    "value": "/my-guides/defaultcard.png"
+  },
+  {
+    "label": "singer",
+    "value": "/my-guides/singer.jpg"
+  }
+] as const;

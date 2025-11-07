@@ -117,6 +117,7 @@ export const {
           email: impersonatedUser.email,
           image: impersonatedUser.image,
           role: impersonatedUser.role,
+          isPaying: (impersonatedUser as any).isPaying,
           isSuspended: (impersonatedUser as any).isSuspended,
           isTakingBreak: (impersonatedUser as any).isTakingBreak, // Pass through impersonated user's status
           impersonating: true,
@@ -128,6 +129,7 @@ export const {
         session.user.email = dbUser.email;
         session.user.image = dbUser.image;
         session.user.role = dbUser.role;
+        session.user.isPaying = dbUser.isPaying;
         session.user.isSuspended = dbUser.isSuspended;
         session.user.isTakingBreak = dbUser.isTakingBreak; // Assign to the direct user
       }

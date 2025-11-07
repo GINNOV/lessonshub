@@ -23,11 +23,13 @@ export default function StudentGuideCard({ guide }: StudentGuideCardProps) {
     year: 'numeric',
   });
 
+  const imageSrc = guide.guideCardImage || '/my-guides/defaultcard.png';
+
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-      <div className="relative h-40 w-full">
+      <div className="relative h-36 w-full sm:h-40">
         <Image
-          src="/my-guides/defaultcard.png"
+          src={imageSrc}
           alt=""
           fill
           className="object-cover"
@@ -53,7 +55,13 @@ export default function StudentGuideCard({ guide }: StudentGuideCardProps) {
         </div>
         <div className="text-xs text-gray-400">Updated {updated}</div>
 
-        <Button asChild className="mt-auto">
+        {guide.guideIsFreeForAll && (
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            Free access
+          </span>
+        )}
+
+        <Button asChild className="mt-auto w-full">
           <Link href={`/guides/${guide.id}`} aria-label={`Open ${guide.title}`}>
             Open Guide
             <ArrowRight className="ml-2 h-4 w-4" />

@@ -79,3 +79,9 @@
 - Role views: Admins see admin tiles at `/dashboard`; teachers see the teacher dashboard; students go to `/my-lessons`.
 - When editing assignments, preserve each row's `notifyOnStartDate` value unless the teacher explicitly switches to "notify on start date" or "don't notify". Accidentally clearing it prevents cron emails from being sent.
 - Use the admin cron test page to trigger start-date, deadline, payment, and weekly jobs; the date/time inputs feed the `/api/cron/test` route (`simulateTime`, `force`) for quick regression checks.
+- Prisma migrations:
+  - Never delete or rename existing folders inside `prisma/migrations`. Prisma compares those folders with `_prisma_migrations`; removing them forces a full DB reset.
+  - Always run Prisma CLI commands via the npm scripts (they call `dotenv -e .env.local -- prisma …`) so `DATABASE_URL` and Neon TLS options are loaded.
+  - If an older migration needs to alter a table that might not exist yet (e.g., shadow DB), wrap the `ALTER TABLE` in a `DO $$ BEGIN … EXCEPTION WHEN undefined_table THEN NULL; END $$;` block instead of removing the migration.
+  - When you must acknowledge a migration manually, use `npx dotenv -e .env.local -- prisma migrate resolve --applied <migration_name>` rather than editing the migrations table by hand.
+  - If you change a migration that has already run, recompute its SHA (`node -e "…"`) and update `_prisma_migrations.checksum` in the DB so Prisma no longer reports it as “modified after applied”.
