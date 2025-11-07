@@ -21,8 +21,30 @@ export default async function ProfilePage() {
   }
 
   const serializableUser = {
-    ...user,
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    image: user.image,
+    timeZone: user.timeZone,
+    weeklySummaryOptOut: user.weeklySummaryOptOut,
+    gender: user.gender,
+    role: user.role,
+    lastSeen: user.lastSeen?.toISOString() ?? null,
+    isPaying: user.isPaying,
+    isSuspended: user.isSuspended,
+    isTakingBreak: user.isTakingBreak,
+    totalPoints: user.totalPoints,
     defaultLessonPrice: user.defaultLessonPrice?.toNumber() ?? null,
+    defaultLessonPreview: user.defaultLessonPreview,
+    defaultLessonNotes: user.defaultLessonNotes,
+    defaultLessonInstructions: user.defaultLessonInstructions,
+    teacherBio: user.teacherBio,
+    studentBio: user.studentBio,
+    progressCardTitle: user.progressCardTitle,
+    progressCardBody: user.progressCardBody,
+    progressCardLinkText: user.progressCardLinkText,
+    progressCardLinkUrl: user.progressCardLinkUrl,
+    assignmentSummaryFooter: user.assignmentSummaryFooter,
   } as any;
 
   return (

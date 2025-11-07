@@ -450,10 +450,24 @@ export async function getDashboardSettings() {
     return null;
   }
 
+  const {
+    progressCardTitle,
+    progressCardBody,
+    progressCardLinkText,
+    progressCardLinkUrl,
+    assignmentSummaryFooter,
+    referralRewardPercent,
+    referralRewardMonthlyAmount,
+  } = userWithSettings;
+
   return {
-    ...userWithSettings,
-    referralRewardPercent: userWithSettings.referralRewardPercent.toNumber(),
-    referralRewardMonthlyAmount: userWithSettings.referralRewardMonthlyAmount.toNumber(),
+    progressCardTitle,
+    progressCardBody,
+    progressCardLinkText,
+    progressCardLinkUrl,
+    assignmentSummaryFooter,
+    referralRewardPercent: referralRewardPercent.toNumber(),
+    referralRewardMonthlyAmount: referralRewardMonthlyAmount.toNumber(),
   };
 }
 

@@ -85,6 +85,12 @@ export async function getStudentsWithStats(teacherId?: string) {
     const serializableStudent = {
       ...studentData,
       defaultLessonPrice: studentData.defaultLessonPrice?.toNumber?.() ?? null,
+      referralRewardPercent: studentData.referralRewardPercent
+        ? Number(studentData.referralRewardPercent.toString())
+        : 0,
+      referralRewardMonthlyAmount: studentData.referralRewardMonthlyAmount
+        ? Number(studentData.referralRewardMonthlyAmount.toString())
+        : 0,
       currentClassId,
       currentClassName,
       totalPoints,
@@ -121,6 +127,7 @@ export async function duplicateLesson(lessonId: string) {
         multiChoiceQuestions: {
           include: { options: true },
         },
+        learningSessionCards: true,
         lyricConfig: true,
       },
     });
@@ -159,6 +166,20 @@ export async function duplicateLesson(lessonId: string) {
                 termImageUrl: card.termImageUrl,
                 definitionImageUrl: card.definitionImageUrl,
               })),
+            }
+          : undefined,
+        learningSessionCards: lesson.learningSessionCards.length
+          ? {
+              create: lesson.learningSessionCards
+                .sort((a, b) => a.orderIndex - b.orderIndex)
+                .map((card) => ({
+                  orderIndex: card.orderIndex,
+                  content1: card.content1,
+                  content2: card.content2,
+                  content3: card.content3,
+                  content4: card.content4,
+                  extra: card.extra,
+                })),
             }
           : undefined,
         multiChoiceQuestions: lesson.multiChoiceQuestions.length
@@ -483,6 +504,110 @@ export async function getLessonsForTeacher(teacherId: string) {
   }
 }
 
+export type HubGuideSummary = {
+  id: string;
+  title: string;
+  lessonPreview: string | null;
+  difficulty: number;
+  updatedAt: string;
+  cardCount: number;
+};
+
+export type HubGuideDetail = {
+  id: string;
+  title: string;
+  lessonPreview: string | null;
+  assignmentText: string | null;
+  updatedAt: string;
+  learningSessionCards: {
+    id: string;
+    orderIndex: number;
+    content1: string | null;
+    content2: string | null;
+    content3: string | null;
+    content4: string | null;
+    extra: string | null;
+  }[];
+};
+
+export async function getHubGuides(): Promise<HubGuideSummary[]> {
+  try {
+    const guides = await prisma.lesson.findMany({
+      where: { type: LessonType.LEARNING_SESSION },
+      select: {
+        id: true,
+        title: true,
+        lesson_preview: true,
+        difficulty: true,
+        updatedAt: true,
+        learningSessionCards: {
+          select: {
+            id: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return guides.map((guide) => ({
+      id: guide.id,
+      title: guide.title,
+      lessonPreview: guide.lesson_preview,
+      difficulty: guide.difficulty,
+      updatedAt: guide.updatedAt.toISOString(),
+      cardCount: guide.learningSessionCards.length,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch hub guides:", error);
+    return [];
+  }
+}
+
+export async function getHubGuideById(lessonId: string): Promise<HubGuideDetail | null> {
+  try {
+    const guide = await prisma.lesson.findFirst({
+      where: { id: lessonId, type: LessonType.LEARNING_SESSION },
+      select: {
+        id: true,
+        title: true,
+        lesson_preview: true,
+        assignment_text: true,
+        updatedAt: true,
+        learningSessionCards: {
+          select: {
+            id: true,
+            orderIndex: true,
+            content1: true,
+            content2: true,
+            content3: true,
+            content4: true,
+            extra: true,
+          },
+          orderBy: { orderIndex: 'asc' },
+        },
+      },
+    });
+
+    if (!guide) {
+      return null;
+    }
+
+    return {
+      id: guide.id,
+      title: guide.title,
+      lessonPreview: guide.lesson_preview,
+      assignmentText: guide.assignment_text,
+      updatedAt: guide.updatedAt.toISOString(),
+      learningSessionCards: guide.learningSessionCards.map((card) => ({
+        ...card,
+      })),
+    };
+  } catch (error) {
+    console.error("Failed to fetch hub guide:", error);
+    return null;
+  }
+}
+
 export async function getAssignmentsForStudent(studentId: string) {
     try {
         const student = await prisma.user.findUnique({
@@ -584,6 +709,9 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
                 options: true,
               },
             },
+            learningSessionCards: {
+              orderBy: { orderIndex: 'asc' },
+            },
             lyricConfig: true,
             lyricAttempts: {
               where: { studentId },
@@ -616,6 +744,9 @@ export async function getLessonById(lessonId: string) {
                 lessonId: true,
             }
         },
+        learningSessionCards: {
+          orderBy: { orderIndex: 'asc' },
+        },
         multiChoiceQuestions: {
           include: {
             options: true,
@@ -645,6 +776,9 @@ export async function getLessonByShareId(shareId: string) {
             definitionImageUrl: true,
             lessonId: true,
           },
+        },
+        learningSessionCards: {
+          orderBy: { orderIndex: 'asc' },
         },
         multiChoiceQuestions: {
           include: {

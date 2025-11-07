@@ -7,6 +7,7 @@ import LessonForm from "@/app/components/LessonForm";
 import { Role, LessonType } from "@prisma/client";
 import FlashcardCreator from "@/app/components/FlashcardCreator";
 import MultiChoiceCreator from "@/app/components/MultiChoiceCreator";
+import LearningSessionCreator from "@/app/components/LearningSessionCreator";
 import { getTeacherPreferences } from "@/actions/teacherActions";
 import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletActions";
 
@@ -69,6 +70,13 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
         )}
         {lesson.type === LessonType.MULTI_CHOICE && (
           <MultiChoiceCreator
+            lesson={serializableLesson}
+            teacherPreferences={serializablePreferences}
+            instructionBooklets={serializableBooklets}
+          />
+        )}
+        {lesson.type === LessonType.LEARNING_SESSION && (
+          <LearningSessionCreator
             lesson={serializableLesson}
             teacherPreferences={serializablePreferences}
             instructionBooklets={serializableBooklets}

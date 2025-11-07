@@ -111,6 +111,7 @@ model Lesson {
   teacher                   User?                  @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   assignments               Assignment[]
   flashcards                Flashcard[]
+  learningSessionCards      LearningSessionCard[]
   multiChoiceQuestions      MultiChoiceQuestion[]
   lyricConfig               LyricLessonConfig?
   lyricAttempts             LyricLessonAttempt[]
@@ -124,6 +125,22 @@ model Flashcard {
   definitionImageUrl String? // New field for the back of the card
   lessonId           String
   lesson             Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model LearningSessionCard {
+  id        String   @id @default(cuid())
+  orderIndex Int
+  content1  String   @db.Text
+  content2  String   @db.Text
+  content3  String?  @db.Text
+  content4  String?  @db.Text
+  extra     String?  @db.Text
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lessonId])
 }
 
 model MultiChoiceQuestion {

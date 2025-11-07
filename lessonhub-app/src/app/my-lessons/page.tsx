@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Role, AssignmentStatus } from "@prisma/client";
-import { getAssignmentsForStudent, getStudentStats } from "@/actions/lessonActions";
+import { getAssignmentsForStudent, getStudentStats, getHubGuides } from "@/actions/lessonActions";
 import { getDashboardSettings } from "@/actions/adminActions";
 import StudentLessonList from "@/app/components/StudentLessonList";
+import StudentGuideList, { StudentGuideSummary } from "@/app/components/StudentGuideList";
 import StudentStatsHeader from "../components/StudentStatsHeader";
 import Leaderboard from "../components/Leaderboard";
 import { getLeaderboardData, getStudentGamification } from "@/actions/studentActions";
@@ -11,6 +12,8 @@ import React from "react";
 import StudentGamificationPanel from "../components/StudentGamificationPanel";
 import WhatsNewDialog from "@/app/components/WhatsNewDialog";
 import { loadLatestUpgradeNote } from "@/lib/whatsNew";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default async function MyLessonsPage() {
   const session = await auth();
@@ -36,7 +39,11 @@ export default async function MyLessonsPage() {
     );
   }
 
-  const [assignments, stats, leaderboardData, settings, gamification, whatsNewUS, whatsNewIT] = await Promise.all([
+  const guidesPromise: Promise<StudentGuideSummary[]> = session.user.isPaying
+    ? getHubGuides()
+    : Promise.resolve([]);
+
+  const [assignments, stats, leaderboardData, settings, gamification, whatsNewUS, whatsNewIT, guides] = await Promise.all([
     getAssignmentsForStudent(session.user.id),
     getStudentStats(session.user.id),
     getLeaderboardData(),
@@ -44,6 +51,7 @@ export default async function MyLessonsPage() {
     getStudentGamification(),
     loadLatestUpgradeNote("us"),
     loadLatestUpgradeNote("it"),
+    guidesPromise,
   ]);
   const whatsNewNotes = {
     us: whatsNewUS,
@@ -132,8 +140,57 @@ export default async function MyLessonsPage() {
         pastDue={pastDue}
         settings={settings}
       />
-      <h1 className="text-3xl font-bold mb-8 mt-8">My Lessons</h1>
-      <StudentLessonList assignments={serializableAssignments} />
+      <section className="mt-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">My Lessons</h1>
+          <p className="text-sm text-gray-500">Assignments from your teachers land here first.</p>
+        </div>
+        <StudentLessonList assignments={serializableAssignments} />
+      </section>
+
+      <section className="mt-16 space-y-6">
+        <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-blue-500 p-6 text-white shadow-lg">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">
+                Hub Guides
+              </p>
+              <h2 className="text-3xl font-bold mt-1">Always-on practice hub</h2>
+              <p className="mt-2 text-indigo-100/80 max-w-xl">
+                Access interactive guides anytime. Memorize key phrases, rehearse conversations,
+                and build confidence between lessons.
+              </p>
+            </div>
+            {session.user.isPaying ? (
+              <div className="text-right">
+                <p className="text-sm text-indigo-100">
+                  {guides.length > 0 ? `${guides.length} guide${guides.length === 1 ? '' : 's'} available` : 'New guides arriving soon'}
+                </p>
+                {guides.length > 0 && (
+                  <Button asChild variant="secondary" className="mt-3 bg-white/10 hover:bg-white/20 text-white border-white/30">
+                    <Link href={`/guides/${guides[0].id}`}>Resume latest guide</Link>
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="text-right">
+                <p className="text-sm text-indigo-100">Exclusive to paying students</p>
+                <Button asChild variant="secondary" className="mt-3 bg-white text-indigo-700">
+                  <Link href="/profile">Unlock Hub Guides</Link>
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {session.user.isPaying ? (
+          <StudentGuideList guides={guides} />
+        ) : (
+          <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
+            Upgrade your plan to view Hub Guides anytime.
+          </div>
+        )}
+      </section>
       <StudentGamificationPanel data={gamificationSnapshot} />
       <Leaderboard leaderboardData={leaderboardData} />
     </div>

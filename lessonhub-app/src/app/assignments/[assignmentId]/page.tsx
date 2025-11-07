@@ -9,6 +9,7 @@ import LessonContentView from "@/app/components/LessonContentView";
 import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
 import FlashcardPlayer from "@/app/components/FlashcardPlayer";
 import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
+import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
 import { marked } from "marked";
 import { AssignmentStatus, LessonType } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
@@ -149,6 +150,7 @@ export default async function AssignmentPage({
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
   const isLyric = lesson.type === LessonType.LYRIC;
+  const isLearningSession = lesson.type === LessonType.LEARNING_SESSION;
   const showConfetti = serializableAssignment.score === 10;
   const teacherAnswerCommentsMap: Record<number, string> = (() => {
     const src = (serializableAssignment as any).teacherAnswerComments;
@@ -275,7 +277,9 @@ export default async function AssignmentPage({
               <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: notesHtml }} />
             </div>
           )}
-          {!isFlashcard && <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>}
+          {!isFlashcard && !isLearningSession && (
+            <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>
+          )}
           {isFlashcard ? (
             <FlashcardPlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
           ) : isMultiChoice ? (
@@ -291,6 +295,11 @@ export default async function AssignmentPage({
               existingAttempt={lesson.lyricAttempts?.[0] ?? null}
               timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
               lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+            />
+          ) : isLearningSession ? (
+            <LearningSessionPlayer
+              cards={lesson.learningSessionCards ?? []}
+              lessonTitle={lesson.title}
             />
           ) : (
             <LessonResponseForm assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
@@ -387,6 +396,15 @@ export default async function AssignmentPage({
                   )
                 })}
               </div>
+              {teacherCommentsBlock}
+            </>
+          )}
+          {lesson.type === LessonType.LEARNING_SESSION && (
+            <>
+              <LearningSessionPlayer
+                cards={lesson.learningSessionCards ?? []}
+                lessonTitle={lesson.title}
+              />
               {teacherCommentsBlock}
             </>
           )}

@@ -1,0 +1,56 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import StudentGuideCard from '@/app/components/StudentGuideCard';
+
+export type StudentGuideSummary = {
+  id: string;
+  title: string;
+  lessonPreview: string | null;
+  difficulty: number;
+  updatedAt: string;
+  cardCount: number;
+};
+
+interface StudentGuideListProps {
+  guides: StudentGuideSummary[];
+}
+
+export default function StudentGuideList({ guides }: StudentGuideListProps) {
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase();
+    if (!term) return guides;
+    return guides.filter((guide) => {
+      const title = guide.title?.toLowerCase() ?? '';
+      const preview = guide.lessonPreview?.toLowerCase() ?? '';
+      return title.includes(term) || preview.includes(term);
+    });
+  }, [guides, search]);
+
+  return (
+    <div className="space-y-4">
+      <Input
+        type="search"
+        placeholder="Search Hub Guides..."
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        className="max-w-md"
+      />
+
+      {filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
+          No Hub Guides available yet. New guides will appear here automatically.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {filtered.map((guide) => (
+            <StudentGuideCard key={guide.id} guide={guide} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
