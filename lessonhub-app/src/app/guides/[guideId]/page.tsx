@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { marked } from "marked";
 import Image from "next/image";
+import prisma from "@/lib/prisma";
 
 export default async function GuidePage({ params }: { params: Promise<{ guideId: string }> }) {
   const session = await auth();
@@ -18,7 +19,14 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
 
   const { guideId } = await params;
 
-  if (!session.user.isPaying) {
+  const studentRecord = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isPaying: true },
+  });
+
+  const isPaying = studentRecord?.isPaying ?? session.user.isPaying ?? false;
+
+  if (!isPaying) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 p-6">
         <Button asChild variant="ghost">

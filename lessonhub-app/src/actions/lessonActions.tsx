@@ -558,16 +558,16 @@ export async function getHubGuides(): Promise<HubGuideSummary[]> {
       orderBy: { updatedAt: 'desc' },
     });
 
-      return guides.map((guide) => ({
-        id: guide.id,
-        title: guide.title,
-        lessonPreview: guide.lesson_preview,
-        difficulty: guide.difficulty,
-        updatedAt: guide.updatedAt.toISOString(),
+    return guides.map((guide) => ({
+      id: guide.id,
+      title: guide.title,
+      lessonPreview: guide.lesson_preview,
+      difficulty: guide.difficulty,
+      updatedAt: guide.updatedAt.toISOString(),
       cardCount: guide.learningSessionCards.length,
       guideCardImage: guide.guideCardImage ?? '/my-guides/defaultcard.png',
-        guideIsVisible: guide.guideIsVisible,
-        guideIsFreeForAll: guide.guideIsFreeForAll,
+      guideIsVisible: guide.guideIsVisible ?? true,
+      guideIsFreeForAll: guide.guideIsFreeForAll ?? false,
     }));
   } catch (error) {
     console.error("Failed to fetch hub guides:", error);
@@ -614,8 +614,8 @@ export async function getHubGuideById(lessonId: string): Promise<HubGuideDetail 
       assignmentText: guide.assignment_text,
       updatedAt: guide.updatedAt.toISOString(),
       guideCardImage: guide.guideCardImage ?? '/my-guides/defaultcard.png',
-      guideIsVisible: guide.guideIsVisible,
-      guideIsFreeForAll: guide.guideIsFreeForAll,
+      guideIsVisible: guide.guideIsVisible ?? true,
+      guideIsFreeForAll: guide.guideIsFreeForAll ?? false,
       learningSessionCards: guide.learningSessionCards.map((card) => ({
         ...card,
       })),

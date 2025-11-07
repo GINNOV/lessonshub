@@ -15,6 +15,7 @@ import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import prisma from "@/lib/prisma";
 
 export default async function MyLessonsPage() {
   const session = await auth();
@@ -24,9 +25,17 @@ export default async function MyLessonsPage() {
   } else if (session.user.role !== Role.STUDENT) {
     redirect("/dashboard");
   }
-  
+
+  const studentRecord = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isPaying: true, isTakingBreak: true },
+  });
+
+  const isPaying = studentRecord?.isPaying ?? session.user.isPaying ?? false;
+  const isTakingBreak = studentRecord?.isTakingBreak ?? session.user.isTakingBreak ?? false;
+
   // If the user is taking a break, show the message and stop further data fetching.
-  if (session.user.isTakingBreak) {
+  if (isTakingBreak) {
     return (
       <div className="text-center p-8 border rounded-lg bg-gray-50">
         <h2 className="text-2xl font-bold mb-4">Lessons Paused</h2>
@@ -125,8 +134,9 @@ export default async function MyLessonsPage() {
       }
     : null;
 
-  const visibleGuides = guides.filter((guide) => guide.guideIsVisible);
-  const freeGuides = visibleGuides.filter((guide) => guide.guideIsFreeForAll);
+  const hasExplicitlyVisibleGuides = guides.some((guide) => guide.guideIsVisible !== false);
+  const visibleGuides = hasExplicitlyVisibleGuides ? guides.filter((guide) => guide.guideIsVisible !== false) : guides;
+  const freeGuides = visibleGuides.filter((guide) => guide.guideIsFreeForAll === true);
 
   return (
     <div>
@@ -142,7 +152,7 @@ export default async function MyLessonsPage() {
         pastDue={pastDue}
         settings={settings}
       />
-      {session.user.isPaying ? (
+      {isPaying ? (
         <section className="mt-10 space-y-6">
           <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-blue-500 p-6 text-white shadow-lg">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

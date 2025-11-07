@@ -10,7 +10,9 @@ declare module "next-auth" {
     user: {
       id: string;
       role: Role;
+      isPaying: boolean;
       isSuspended: boolean; // Add isSuspended here
+      isTakingBreak: boolean;
       impersonating?: boolean;
       originalUserId?: string;
     } & DefaultSession["user"];
@@ -18,6 +20,8 @@ declare module "next-auth" {
 
   interface User extends PrismaUser {
     role: Role;
+    isPaying: boolean;
     isSuspended: boolean; // And also here
+    isTakingBreak: boolean;
   }
 }
