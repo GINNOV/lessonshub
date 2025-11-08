@@ -22,9 +22,13 @@ export default function LocaleDate({ date, options }: LocaleDateProps) {
       day: 'numeric',
       hour: 'numeric',
       minute: 'numeric',
+      hour12: false,
+      hourCycle: 'h23',
     };
 
-    setFormattedDate(new Intl.DateTimeFormat(userLocale, options || defaultOptions).format(dateObj));
+    const formatOptions = options ? { ...defaultOptions, ...options } : defaultOptions;
+
+    setFormattedDate(new Intl.DateTimeFormat(userLocale, formatOptions).format(dateObj));
   }, [date, options]);
 
   // Render the formatted date, or an empty fragment while waiting for client-side hydration.

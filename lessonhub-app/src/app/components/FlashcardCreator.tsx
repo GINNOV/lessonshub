@@ -15,6 +15,7 @@ import ImageBrowser from './ImageBrowser';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import { parseCsv } from '@/lib/csv';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
+import FileUploadButton from '@/components/FileUploadButton';
 
 type SerializableLesson = Omit<Lesson, 'price'>;
 
@@ -455,7 +456,13 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
             <Label htmlFor="assignmentImage">Assignment Image</Label><OptionalIndicator/>
         </div>
         <div className="flex items-center gap-2">
-            <Input id="assignmentImage" type="file" onChange={handleAssignmentImageUpload} disabled={isLoading || isUploading} className="flex-grow"/>
+            <FileUploadButton
+              id="assignmentImage"
+              onChange={handleAssignmentImageUpload}
+              disabled={isLoading || isUploading}
+              accept="image/*"
+              className="flex-grow"
+            />
             <ImageBrowser onSelectImage={setAssignmentImageUrl} />
         </div>
         {isUploading && <p className="text-sm text-gray-500">Uploading...</p>}
@@ -560,7 +567,13 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
             <Label htmlFor="flashcardCsv">Import flashcards from CSV</Label>
             <p className="text-xs text-gray-500">Expected columns: front, front_image, back, back_image.</p>
           </div>
-          <Input id="flashcardCsv" type="file" accept=".csv,text/csv" onChange={handleCsvUpload} disabled={isLoading || isImporting} className="md:w-72" />
+          <FileUploadButton
+            id="flashcardCsv"
+            accept=".csv,text/csv"
+            onChange={handleCsvUpload}
+            disabled={isLoading || isImporting}
+            className="md:w-72"
+          />
         </div>
         {isImporting && <p className="text-sm text-gray-500">Loading CSV…</p>}
         {flashcards.map((fc, index) => (

@@ -10,6 +10,7 @@ import Leaderboard from "../components/Leaderboard";
 import { getLeaderboardData, getStudentGamification } from "@/actions/studentActions";
 import React from "react";
 import StudentGamificationPanel from "../components/StudentGamificationPanel";
+import HubGuideBanner from "@/app/components/HubGuideBanner";
 import WhatsNewDialog from "@/app/components/WhatsNewDialog";
 import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 import Link from "next/link";
@@ -154,30 +155,21 @@ export default async function MyLessonsPage() {
       />
       {isPaying ? (
         <section className="mt-10 space-y-6">
-          <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-blue-500 p-6 text-white shadow-lg">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">
-                  Hub Guides
-                </p>
-                <h2 className="text-3xl font-bold mt-1">Always-on practice hub</h2>
-                <p className="mt-2 text-indigo-100/80 max-w-xl">
-                  Switch between your assigned lessons and on-demand guides anytime.
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-indigo-100">
-                  {visibleGuides.length > 0
-                    ? `${visibleGuides.length} guide${visibleGuides.length === 1 ? '' : 's'} available`
-                    : 'New guides arriving soon'}
-                </p>
-              </div>
-            </div>
-          </div>
+          <HubGuideBanner variant="paying" guideCount={visibleGuides.length} />
           <Tabs defaultValue="lessons" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1 sm:max-w-md">
-              <TabsTrigger value="lessons">Lessons</TabsTrigger>
-              <TabsTrigger value="guides">Hub Guides</TabsTrigger>
+            <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner">
+              <TabsTrigger
+                value="lessons"
+                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+              >
+                Lessons
+              </TabsTrigger>
+              <TabsTrigger
+                value="guides"
+                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+              >
+                Hub Guides
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="lessons">
               <StudentLessonList assignments={serializableAssignments} />
@@ -203,22 +195,7 @@ export default async function MyLessonsPage() {
             <StudentLessonList assignments={serializableAssignments} />
           </section>
           <section className="mt-16 space-y-4">
-            <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-blue-500 p-6 text-white shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">
-                    Hub Guides
-                  </p>
-                  <h2 className="text-3xl font-bold mt-1">Always-on practice hub</h2>
-                  <p className="mt-2 text-indigo-100/80 max-w-xl">
-                    Upgrade to unlock interactive guides between lessons.
-                  </p>
-                </div>
-                <Button asChild variant="secondary" className="bg-white text-indigo-700">
-                  <Link href="/profile">Unlock Hub Guides</Link>
-                </Button>
-              </div>
-            </div>
+            <HubGuideBanner variant="locked" guideCount={freeGuides.length} />
             {freeGuides.length > 0 ? (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">

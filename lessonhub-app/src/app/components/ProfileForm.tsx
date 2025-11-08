@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { updateTeacherBio } from '@/actions/teacherActions';
 import { redeemCoupon } from '@/actions/billingActions';
 import { Badge } from '@/components/ui/badge';
+import FileUploadButton from '@/components/FileUploadButton';
 
 interface ProfileFormProps {
   userToEdit?: User | null;
@@ -243,61 +244,59 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
   const tabOptions = [
     { value: 'profile', label: 'Profile', visible: true },
     { value: 'about', label: 'About me', visible: user?.role === Role.TEACHER },
-    { value: 'status', label: 'Status', visible: user?.role === Role.STUDENT },
+    { value: 'status', label: 'Billing', visible: user?.role === Role.STUDENT },
     { value: 'password', label: 'Password', visible: !isAdmin },
-    { value: 'delete', label: 'Delete Account', visible: !isAdmin },
+    { value: 'delete', label: 'Break(up) time', visible: !isAdmin },
   ] as const;
 
   const visibleTabs = tabOptions.filter((option) => option.visible);
-  const visibleCount = visibleTabs.length;
-  const mdCols =
-    visibleCount >= 4 ? 'md:grid-cols-4'
-    : visibleCount === 3 ? 'md:grid-cols-3'
-    : 'md:grid-cols-2';
-  const smCols = visibleCount > 1 ? 'grid-cols-2' : 'grid-cols-1';
 
   return (
     <Tabs defaultValue="profile" className="w-full">
-      <TabsList className={`grid w-full ${smCols} ${mdCols}`}>
+      <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner h-auto">
         {visibleTabs.map((tab) => (
-          <TabsTrigger key={tab.value} value={tab.value}>
+          <TabsTrigger
+            key={tab.value}
+            value={tab.value}
+            className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100 md:flex-none"
+          >
             {tab.label}
           </TabsTrigger>
         ))}
       </TabsList>
       
-      <TabsContent value="profile">
+      <TabsContent value="profile" className="mt-4">
         <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
             <h2 className="mb-4 text-2xl font-semibold">Update Profile</h2>
-            <form onSubmit={handleProfileSubmit} className="space-y-4">
-            <div className="space-y-2">
+            <form onSubmit={handleProfileSubmit} className="space-y-5">
+            <div className="space-y-4">
                 <Label>Profile Picture</Label>
                 <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
                     {image && <AvatarImage src={image} alt={name} />}
                     <AvatarFallback className="text-3xl">{getInitials(name)}</AvatarFallback>
                 </Avatar>
-                <Input 
-                    id="picture" 
-                    type="file" 
-                    onChange={handleImageUpload} 
-                    disabled={isSubmittingProfile || isUploading}
-                    accept="image/*"
+                <FileUploadButton
+                  id="picture"
+                  onChange={handleImageUpload}
+                  disabled={isSubmittingProfile || isUploading}
+                  accept="image/*"
+                  className="w-auto"
                 />
                 </div>
                 {isUploading && <p className="text-sm text-gray-500">Uploading...</p>}
             </div>
-            <div>
-                <Label htmlFor="name">Name</Label>
+            <div className="space-y-3">
+                <Label htmlFor="name" className="text-sm font-medium text-gray-700">Name</Label>
                 <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
-            <div>
-                <Label htmlFor="email">Email</Label>
+            <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
                 <Input id="email" type="email" value={user?.email || ''} disabled className="bg-gray-100" />
                 <p className="text-xs text-gray-500">Email addresses cannot be changed.</p>
             </div>
-            <div>
-                <Label htmlFor="gender">Gender</Label>
+            <div className="space-y-2">
+                <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Gender</Label>
                 <select
                   id="gender"
                   className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
@@ -316,8 +315,8 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
               </div>
               <Switch id="weekly-summary" checked={!weeklySummaryOptOut} onCheckedChange={(v) => setWeeklySummaryOptOut(!v)} />
             </div>
-            <div>
-                <Label htmlFor="timeZone">Timezone</Label>
+            <div className="space-y-2">
+                <Label htmlFor="timeZone" className="text-sm font-medium text-gray-700">Timezone</Label>
                 {tzList.length > 0 ? (
                   <select
                     id="timeZone"
@@ -335,8 +334,8 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
                 <p className="text-xs text-gray-500 mt-1">Used to format deadlines in emails and reminders.</p>
             </div>
             {user?.role === Role.STUDENT && (
-              <div>
-                <Label htmlFor="student-bio">Bio</Label>
+              <div className="space-y-2">
+                <Label htmlFor="student-bio" className="text-sm font-medium text-gray-700">Bio</Label>
                 <Textarea
                   id="student-bio"
                   value={studentBio}
@@ -354,7 +353,7 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
         </div>
       </TabsContent>
       {user?.role === Role.TEACHER && (
-        <TabsContent value="about">
+        <TabsContent value="about" className="mt-4">
           <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
             <h2 className="mb-4 text-2xl font-semibold">About Me</h2>
             <form onSubmit={handleTeacherBioSubmit} className="space-y-4">
@@ -380,40 +379,21 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
       )}
 
       {user?.role === Role.STUDENT && (
-        <TabsContent value="status">
+        <TabsContent value="status" className="mt-4">
           <div className="mt-4 space-y-4">
-            <div className="rounded-lg border bg-white p-6 shadow-md">
-                <h2 className="text-xl font-semibold mb-4">Account Status</h2>
-                <div className="flex items-center justify-between">
-                    <div>
-                    <Label htmlFor="taking-a-break" className="font-medium">
-                        Taking a Break
-                    </Label>
-                    <p className="text-sm text-gray-500">
-                        Pause all lesson assignments on your dashboard.
-                    </p>
-                    </div>
-                    <Switch
-                    id="taking-a-break"
-                    checked={isTakingBreak}
-                    onCheckedChange={handleToggleBreak}
-                    />
-                </div>
-            </div>
-
             <div className="rounded-lg border bg-white p-6 shadow-md space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold">Billing & Hub Guides</h2>
-                  <p className="text-sm text-gray-500">Hub Guides unlock when your plan is active.</p>
+                  <h2 className="text-xl font-semibold">Current Plan</h2>
+                  <p className="text-sm text-gray-500">Your plan includes HUB Guides.</p>
                 </div>
-                <Badge variant={isPaying ? 'default' : 'destructive'}>
+                <Badge variant={isPaying ? 'success' : 'destructive'}>
                   {isPaying ? 'Active' : 'Inactive'}
                 </Badge>
               </div>
               <p className="text-sm text-gray-600">
                 {isPaying
-                  ? 'Your prepaid access is active. Hub Guides and premium lessons stay unlocked.'
+                  ? 'Your plan has premium content sponsored by your assigned teacher.'
                   : 'Unlock Hub Guides by subscribing through your teacher or redeeming a prepaid coupon.'}
               </p>
               <div className="rounded-md border border-dashed p-4">
@@ -435,8 +415,8 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
               </div>
               <p className="text-xs text-gray-500">
                 Need help with billing? Email{' '}
-                <a href="mailto:hi@lessonshub.com" className="underline">
-                  hi@lessonshub.com
+                <a href="mailto:billing@quantifythis.com" className="underline">
+                  billing@quantifythis.com
                 </a>
                 .
               </p>
@@ -447,7 +427,7 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
 
       {!isAdmin && (
         <>
-          <TabsContent value="password">
+          <TabsContent value="password" className="mt-4">
             <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
                 <h2 className="mb-4 text-2xl font-semibold">Change Password</h2>
                 <form onSubmit={handlePasswordSubmit} className="space-y-4">
@@ -466,8 +446,23 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
             </div>
           </TabsContent>
           
-          <TabsContent value="delete">
-            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-6 shadow-md">
+          <TabsContent value="delete" className="mt-4">
+            <div className="rounded-lg border bg-white p-6 shadow-md mb-4">
+                <h2 className="text-xl font-semibold mb-4">Take a break</h2>
+                <div className="flex items-center justify-between">
+                    <div>
+                    <p className="text-sm text-gray-500">
+                        Pause all lesson assignments on your dashboard. While on a break you charged only 20% of the current assigned plan. We have cost to run the show too.
+                    </p>
+                    </div>
+                    <Switch
+                    id="taking-a-break"
+                    checked={isTakingBreak}
+                    onCheckedChange={handleToggleBreak}
+                    />
+                </div>
+            </div>
+            <div className="rounded-lg border border-red-200 bg-red-50 p-6 shadow-md">
                 <h2 className="text-2xl font-semibold text-red-800 mb-4">Delete Account</h2>
                 <p className="text-red-700 mb-4">
                 This action is irreversible. All your lessons, assignments, and personal data will be permanently deleted.

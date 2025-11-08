@@ -12,13 +12,13 @@ export default function Footer() {
 
   return (
     <footer className="bg-gray-100 border-t mt-auto">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center text-sm text-gray-500">
-        <div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-2 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           <span>© {currentYear} Garage Innovation LLC</span>
-          <span className="mx-2">|</span>
+          <span>|</span>
           <span>Build: {buildVersion}</span>
         </div>
-        <nav className="flex items-center space-x-4">
+        <nav className="flex flex-wrap items-center gap-4">
           <Link href="/about" className="hover:text-gray-900">About Us</Link>
           <Link href="/contact" className="hover:text-gray-900">Contact Us</Link>
           <Link href="/privacy" className="hover:text-gray-900">Privacy</Link>

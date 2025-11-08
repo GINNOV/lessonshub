@@ -98,9 +98,11 @@ export default async function ReferralDashboardPage() {
             Track the students who joined through your invite link and see how your referrals are helping the community grow.
           </p>
         </div>
-        <Badge variant="secondary" className="w-fit">
-          {data.viewer.role === Role.STUDENT ? "Student view" : "Teacher view"}
-        </Badge>
+        {data.viewer.role !== Role.STUDENT && (
+          <Badge variant="secondary" className="w-fit">
+            Teacher view
+          </Badge>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

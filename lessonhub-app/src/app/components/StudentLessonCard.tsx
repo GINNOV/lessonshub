@@ -136,17 +136,39 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
         setShareId(currentShareId);
       }
 
-      const origin = window?.location?.origin || '';
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const shareUrl = `${origin}/share/lesson/${currentShareId}`;
-      await copyToClipboard(shareUrl);
-      toast.success('Lesson link copied to clipboard.');
+
+      let wasShared = false;
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        try {
+          await navigator.share({
+            title: lesson.title,
+            text: lesson.lesson_preview ?? 'Check out this LessonHub assignment.',
+            url: shareUrl,
+          });
+          wasShared = true;
+        } catch (error) {
+          // If the user cancels the share sheet, fall through to copy.
+          if ((error as DOMException)?.name !== 'AbortError') {
+            console.warn('System share failed, falling back to copy.', error);
+          }
+        }
+      }
+
+      if (!wasShared) {
+        await copyToClipboard(shareUrl);
+        toast.success('Lesson link copied to clipboard.');
+      } else {
+        toast.success('Lesson link ready to share.');
+      }
     } catch (error) {
       console.error('Failed to copy share link', error);
       toast.error('Unable to copy share link.');
     } finally {
       setIsCopying(false);
     }
-  }, [shareId, lesson.id, isCopying]);
+  }, [shareId, lesson.id, lesson.lesson_preview, lesson.title, isCopying]);
 
   return (
     <Card 
@@ -184,8 +206,8 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
             <p className="text-sm text-gray-500 line-clamp-2">{lesson.lesson_preview}</p>
             <LessonDifficultyIndicator value={lesson.difficulty} size="sm" className="mt-3" />
         </CardContent>
-        <CardFooter className="p-4 border-t flex justify-between items-center text-sm">
-            <div className="flex items-center gap-4">
+        <CardFooter className="p-4 border-t flex flex-col gap-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2 text-gray-600" title={lesson.teacher?.name ? `View ${lesson.teacher.name}'s profile` : 'Unassigned'}>
                     {lesson.teacher ? (
                       <Link href={`/teachers#${lesson.teacher.id}`} className="inline-flex" prefetch={false}>
@@ -206,13 +228,11 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                     <span>{`${lesson.submittedCount} of ${lesson.completionCount}`}</span>
                 </div>
             </div>
-            <div className="flex items-center gap-2">
-                {status === AssignmentStatus.GRADED ? (
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                {status === AssignmentStatus.GRADED && (
                   <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
                     +{pointsEarned} pts
                   </Badge>
-                ) : (
-                  <span className="text-xs text-gray-400">Points pending</span>
                 )}
                 <Button
                   type="button"
@@ -249,7 +269,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                     </Button>
                   </div>
                 ) : (
-                  <div className={cn("font-semibold", isPastDeadline ? "text-red-500" : "text-gray-600")}>
+                  <div className={cn("font-semibold text-xs sm:text-sm", isPastDeadline ? "text-red-500" : "text-gray-600")}>
                     <LocaleDate date={deadline} />
                   </div>
                 )}

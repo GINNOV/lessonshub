@@ -6,6 +6,7 @@ import StudentLessonCard from '@/app/components/StudentLessonCard';
 import WeekDivider from '@/app/components/WeekDivider';
 import { getWeekAndDay } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 type SerializableUser = {
   id: string;
@@ -69,13 +70,16 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center gap-3">
-        <Input
-          type="search"
-          placeholder="Search by title or teacher..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="md:max-w-sm"
-        />
+        <div className="relative w-full md:max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+          <Input
+            type="search"
+            placeholder="Search by title or teacher..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9"
+          />
+        </div>
         <div className="flex flex-wrap gap-2">
           {([
             { key: 'all', label: 'ALL' },

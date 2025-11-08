@@ -1,10 +1,13 @@
 'use client';
 
+import { useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Layers } from 'lucide-react';
+import { marked } from 'marked';
 import type { StudentGuideSummary } from '@/app/components/StudentGuideList';
+import { LessonDifficultyIndicator } from '@/app/components/LessonDifficultySelector';
 
 interface StudentGuideCardProps {
   guide: StudentGuideSummary;
@@ -15,6 +18,12 @@ const removeInstructionPrefix = (value: string | null) => {
   return value.replace(/👉🏼\s*INSTRUCTIONS:\s*/i, '').trim();
 };
 
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 2,
+});
+
 export default function StudentGuideCard({ guide }: StudentGuideCardProps) {
   const preview = removeInstructionPrefix(guide.lessonPreview) || 'Interactive flashcards you can revisit anytime.';
   const updated = new Date(guide.updatedAt).toLocaleDateString(undefined, {
@@ -24,6 +33,8 @@ export default function StudentGuideCard({ guide }: StudentGuideCardProps) {
   });
 
   const imageSrc = guide.guideCardImage || '/my-guides/defaultcard.png';
+  const previewHtml = useMemo(() => (preview ? (marked.parseInline(preview) as string) : ''), [preview]);
+  const priceLabel = currencyFormatter.format(Math.max(guide.price, 0));
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
@@ -44,16 +55,23 @@ export default function StudentGuideCard({ guide }: StudentGuideCardProps) {
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="space-y-1">
+        <div className="space-y-2">
           <h3 className="text-lg font-semibold text-gray-900">{guide.title}</h3>
-          <p className="text-sm text-gray-500 max-h-16 overflow-hidden">{preview}</p>
+          {previewHtml ? (
+            <div
+              className="prose prose-sm max-w-none text-gray-600 line-clamp-4 [&_*]:text-gray-600 [&_*]:text-sm [&>p]:my-1"
+              dangerouslySetInnerHTML={{ __html: previewHtml }}
+            />
+          ) : (
+            <p className="text-sm text-gray-500 line-clamp-3">{preview}</p>
+          )}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>{guide.cardCount} cards</span>
-          <span>Difficulty {guide.difficulty}</span>
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-semibold text-gray-900">{priceLabel}</span>
+          <span className="text-gray-400">Updated {updated}</span>
         </div>
-        <div className="text-xs text-gray-400">Updated {updated}</div>
+        <LessonDifficultyIndicator value={guide.difficulty} size="sm" className="mt-2" />
 
         {guide.guideIsFreeForAll && (
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">

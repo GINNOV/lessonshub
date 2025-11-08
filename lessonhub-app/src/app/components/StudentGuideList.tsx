@@ -9,6 +9,7 @@ export type StudentGuideSummary = {
   title: string;
   lessonPreview: string | null;
   difficulty: number;
+  price: number;
   updatedAt: string;
   cardCount: number;
   guideCardImage: string | null;

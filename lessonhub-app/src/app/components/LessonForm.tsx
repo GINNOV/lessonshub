@@ -14,6 +14,7 @@ import { getWeekAndDay } from '@/lib/utils';
 import { Info } from 'lucide-react';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
+import FileUploadButton from '@/components/FileUploadButton';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -329,7 +330,14 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
             <OptionalIndicator />
         </div>
         <div className="flex items-center gap-2">
-            <Input id="assignmentImage" type="file" ref={inputFileRef} onChange={handleImageUpload} disabled={isLoading || isUploading} className="flex-grow"/>
+            <FileUploadButton
+              id="assignmentImage"
+              ref={inputFileRef}
+              onChange={handleImageUpload}
+              disabled={isLoading || isUploading}
+              accept="image/*"
+              className="flex-grow"
+            />
             <ImageBrowser onSelectImage={setAssignmentImageUrl} />
         </div>
         {isUploading && <p className="text-sm text-gray-500">Uploading...</p>}

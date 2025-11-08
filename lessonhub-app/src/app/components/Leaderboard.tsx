@@ -61,6 +61,16 @@ const getInitials = (name: string | null | undefined) => {
     return name.substring(0, 2).toUpperCase();
 };
 
+const getSavingsMeta = (value: number | undefined) => {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return { label: '—', className: 'text-gray-500' };
+    }
+    const label = `€${value.toFixed(2)}`;
+    if (value < 0) return { label, className: 'text-red-600' };
+    if (value > 0) return { label, className: 'text-emerald-600' };
+    return { label, className: 'text-gray-700' };
+};
+
 export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
     return (
         <div className="mt-12">
@@ -81,8 +91,10 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {leaderboardData.map((student, index) => (
-                                <tr key={student.id}>
+                            {leaderboardData.map((student, index) => {
+                                const { label: savingsLabel, className: savingsClass } = getSavingsMeta(student.savings);
+                                return (
+                                  <tr key={student.id}>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
                                         <div className="flex items-center gap-2">
@@ -108,8 +120,8 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                                         <span className="text-2xl mr-1">{getSpeedEmoji(student.speedTier, index + 1)}</span>
                                         {formatDuration(student.averageCompletionTime)}
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-700">
-                                        {typeof student.savings === 'number' ? `€${student.savings.toFixed(2)}` : '—'}
+                                    <td className={`px-4 py-3 whitespace-nowrap text-sm font-semibold ${savingsClass}`}>
+                                        {savingsLabel}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                         <div className="flex items-center gap-2">
@@ -124,8 +136,9 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                                             )}
                                         </div>
                                     </td>
-                                </tr>
-                            ))}
+                                  </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -136,8 +149,10 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
 
             {/* Mobile compact list */}
             <div className="md:hidden space-y-3">
-                {leaderboardData.map((student) => (
-                    <div key={student.id} className="flex items-center justify-between rounded-lg border bg-white p-3 shadow-sm">
+                {leaderboardData.map((student) => {
+                    const { label: savingsLabel, className: savingsClass } = getSavingsMeta(student.savings);
+                    return (
+                      <div key={student.id} className="flex items-center justify-between rounded-lg border bg-white p-3 shadow-sm">
                         <div className="flex items-center gap-3 min-w-0">
                             <Avatar className="h-10 w-10 flex-shrink-0">
                                 <AvatarImage src={student.image || ''} alt={student.name || ''} />
@@ -157,12 +172,11 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                         </div>
                         <div className="text-right">
                             <div className="text-xs uppercase tracking-wide text-gray-400">Savings</div>
-                            <div className="text-base font-semibold text-emerald-600">
-                                {typeof student.savings === 'number' ? `€${student.savings.toFixed(2)}` : '—'}
-                            </div>
+                            <div className={`text-base font-semibold ${savingsClass}`}>{savingsLabel}</div>
                         </div>
-                    </div>
-                ))}
+                      </div>
+                    );
+                })}
                 {leaderboardData.length === 0 && (
                     <p className="p-4 text-center text-gray-500">No leaderboard activity yet.</p>
                 )}

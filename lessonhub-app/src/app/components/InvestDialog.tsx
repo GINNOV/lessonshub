@@ -38,9 +38,19 @@ export default function InvestDialog({ linkText, videoUrl }: InvestDialogProps) 
             ></iframe>
           </div>
           <Tabs defaultValue="benefits" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="benefits">🇺🇸 Benefits</TabsTrigger>
-              <TabsTrigger value="benefici">🇮🇹 Benefici</TabsTrigger>
+            <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner">
+              <TabsTrigger
+                value="benefits"
+                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+              >
+                🇺🇸 Benefits
+              </TabsTrigger>
+              <TabsTrigger
+                value="benefici"
+                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+              >
+                🇮🇹 Benefici
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="benefits">
               <div className="space-y-2 rounded-lg border p-4 text-sm max-h-[200px] overflow-y-auto">

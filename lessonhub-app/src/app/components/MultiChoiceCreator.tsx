@@ -15,6 +15,7 @@ import ImageBrowser from './ImageBrowser';
 import { Info } from 'lucide-react';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
+import FileUploadButton from '@/components/FileUploadButton';
 
 type SerializableLesson = Omit<Lesson, 'price'>;
 
@@ -527,7 +528,13 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
             <OptionalIndicator />
         </div>
         <div className="flex items-center gap-2">
-            <Input id="assignmentImage" type="file" onChange={handleAssignmentImageUpload} disabled={isLoading || isUploading} className="flex-grow"/>
+            <FileUploadButton
+              id="assignmentImage"
+              onChange={handleAssignmentImageUpload}
+              disabled={isLoading || isUploading}
+              accept="image/*"
+              className="flex-grow"
+            />
             <ImageBrowser onSelectImage={setAssignmentImageUrl} />
         </div>
         {isUploading && <p className="text-sm text-gray-500">Uploading...</p>}
@@ -609,7 +616,13 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
             <Label htmlFor="questionsCsv">Import questions from CSV</Label>
             <p className="text-xs text-gray-500">Columns: question, right_answer_id, answer1, answer2, answer3.</p>
           </div>
-          <Input id="questionsCsv" type="file" accept=".csv,text/csv" onChange={handleCsvUpload} disabled={isLoading || isImporting} className="md:w-72" />
+          <FileUploadButton
+            id="questionsCsv"
+            accept=".csv,text/csv"
+            onChange={handleCsvUpload}
+            disabled={isLoading || isImporting}
+            className="md:w-72"
+          />
         </div>
         {isImporting && <p className="text-sm text-gray-500">Loading CSV…</p>}
       </div>

@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import Image from 'next/image';
 import { guideImageOptions } from '@/lib/guideImages';
+import FileUploadButton from '@/components/FileUploadButton';
 
 type TeacherPreferences = {
   defaultLessonPrice?: number | null;
@@ -393,9 +394,8 @@ export default function LearningSessionCreator({
               Columns: content1, content2, content3, content4, extra (optional).
             </p>
           </div>
-          <Input
+          <FileUploadButton
             id="learningSessionCsv"
-            type="file"
             accept=".csv,text/csv"
             onChange={handleCsvUpload}
             disabled={isLoading || isImporting}

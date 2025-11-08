@@ -130,9 +130,11 @@ export function LessonDifficultyIndicator({
             <span
               key={option.value}
               className={cn(
-                'flex-1 border-2 border-dashed transition-all duration-200',
+                'flex-1 rounded-full transition-all duration-200',
                 sizeClass,
-                isFilled ? `${option.border} ${option.color}/25` : 'border-gray-200 bg-transparent'
+                isFilled
+                  ? `${option.color} shadow-[0_1px_6px_rgba(0,0,0,0.12)]`
+                  : 'bg-gray-200'
               )}
               aria-hidden="true"
             />

@@ -14,10 +14,20 @@ interface UserProfileTabsProps {
 
 export default function UserProfileTabs({ user }: UserProfileTabsProps) {
   return (
-    <Tabs defaultValue="overview">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="assignments">Assignments ({user.assignments.length})</TabsTrigger>
+    <Tabs defaultValue="overview" className="w-full">
+      <TabsList className="mb-4 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner">
+        <TabsTrigger
+          value="overview"
+          className="flex-1 min-w-[160px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100 md:flex-none"
+        >
+          Overview
+        </TabsTrigger>
+        <TabsTrigger
+          value="assignments"
+          className="flex-1 min-w-[160px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100 md:flex-none"
+        >
+          Assignments ({user.assignments.length})
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="overview">
         <Card>

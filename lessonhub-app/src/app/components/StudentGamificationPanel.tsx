@@ -62,6 +62,7 @@ function formatDate(value: string) {
 }
 
 export default function StudentGamificationPanel({ data }: StudentGamificationPanelProps) {
+  const [achievementsExpanded, setAchievementsExpanded] = useState(false);
   const [nextUpExpanded, setNextUpExpanded] = useState(false);
 
   if (!data) {
@@ -73,45 +74,80 @@ export default function StudentGamificationPanel({ data }: StudentGamificationPa
   return (
     <div className="mb-10 grid gap-6 lg:grid-cols-[2fr_1fr]">
       <Card className="shadow-sm">
-        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <CardHeader className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
             <CardTitle>Achievements</CardTitle>
-            <p className="text-sm text-gray-500">Track the points and badges you&apos;ve earned so far.</p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setAchievementsExpanded((value) => !value)}
+              aria-label={achievementsExpanded ? 'Hide achievements' : 'Show achievements'}
+              aria-expanded={achievementsExpanded}
+              className={`h-10 w-10 rounded-full border transition ${
+                achievementsExpanded
+                  ? 'border-purple-200 bg-purple-50 text-purple-800'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-purple-200 hover:text-purple-700'
+              }`}
+            >
+              {achievementsExpanded ? (
+                <ChevronDown className="h-5 w-5" strokeWidth={2.5} />
+              ) : (
+                <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
+              )}
+            </Button>
           </div>
-          <div className="flex gap-6 text-sm">
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{totalPoints.toLocaleString()} pts</p>
-              <p className="text-xs uppercase tracking-wide text-gray-500">Lifetime points</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{badges.length}</p>
-              <p className="text-xs uppercase tracking-wide text-gray-500">Badges unlocked</p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {badges.length === 0 ? (
-            <p className="rounded-lg border border-dashed bg-gray-50 p-4 text-sm text-gray-500">
-              Your first badge is just a lesson away. Submit a graded lesson to start collecting rewards.
-            </p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {badges.map((badge) => (
-                <div
-                  key={badge.id}
-                  className="flex items-center gap-3 rounded-lg border bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="text-2xl">{badge.icon ?? '🎖️'}</div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-gray-900">{badge.name}</p>
-                    <p className="truncate text-xs text-gray-500">{categoryLabels[badge.category]}</p>
-                    <p className="truncate text-xs text-gray-400">Earned {formatDate(badge.awardedAt)}</p>
-                  </div>
+          {!achievementsExpanded && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500">Track the points and badges you&apos;ve earned so far.</p>
+              <div className="flex flex-wrap gap-6 text-sm">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{totalPoints.toLocaleString()} pts</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Lifetime points</p>
                 </div>
-              ))}
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{badges.length}</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Badges unlocked</p>
+                </div>
+              </div>
             </div>
           )}
-        </CardContent>
+        </CardHeader>
+        {achievementsExpanded && (
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-6 text-sm">
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{totalPoints.toLocaleString()} pts</p>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Lifetime points</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{badges.length}</p>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Badges unlocked</p>
+              </div>
+            </div>
+            {badges.length === 0 ? (
+              <p className="rounded-lg border border-dashed bg-gray-50 p-4 text-sm text-gray-500">
+                Your first badge is just a lesson away. Submit a graded lesson to start collecting rewards.
+              </p>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {badges.map((badge) => (
+                  <div
+                    key={badge.id}
+                    className="flex items-center gap-3 rounded-lg border bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="text-2xl">{badge.icon ?? '🎖️'}</div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-gray-900">{badge.name}</p>
+                      <p className="truncate text-xs text-gray-500">{categoryLabels[badge.category]}</p>
+                      <p className="truncate text-xs text-gray-400">Earned {formatDate(badge.awardedAt)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        )}
       </Card>
 
       <Card className="shadow-sm">

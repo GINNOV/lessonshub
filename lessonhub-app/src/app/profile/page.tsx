@@ -49,7 +49,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
+      <h1 className="text-3xl font-bold mb-6">Control Center</h1>
       <ProfileForm userToEdit={serializableUser} />
     </div>
   );

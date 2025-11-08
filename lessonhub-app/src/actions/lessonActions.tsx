@@ -509,6 +509,7 @@ export type HubGuideSummary = {
   title: string;
   lessonPreview: string | null;
   difficulty: number;
+  price: number;
   updatedAt: string;
   cardCount: number;
   guideCardImage: string | null;
@@ -545,6 +546,7 @@ export async function getHubGuides(): Promise<HubGuideSummary[]> {
         title: true,
         lesson_preview: true,
         difficulty: true,
+        price: true,
         updatedAt: true,
         guideCardImage: true,
         guideIsVisible: true,
@@ -563,6 +565,7 @@ export async function getHubGuides(): Promise<HubGuideSummary[]> {
       title: guide.title,
       lessonPreview: guide.lesson_preview,
       difficulty: guide.difficulty,
+      price: guide.price ? Number(guide.price) : 0,
       updatedAt: guide.updatedAt.toISOString(),
       cardCount: guide.learningSessionCards.length,
       guideCardImage: guide.guideCardImage ?? '/my-guides/defaultcard.png',
