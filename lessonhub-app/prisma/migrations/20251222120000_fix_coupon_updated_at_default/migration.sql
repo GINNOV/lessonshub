@@ -1,0 +1,9 @@
+DO $$
+BEGIN
+  ALTER TABLE "CouponCode"
+    ALTER COLUMN "updatedAt" SET DEFAULT CURRENT_TIMESTAMP;
+EXCEPTION
+  WHEN undefined_table THEN
+    NULL;
+END
+$$;
