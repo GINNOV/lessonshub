@@ -13,7 +13,8 @@ export default async function UserProfilePage({
   params: { userId: string };
 }) {
   const session = await auth();
-  if (!session || session.user.role !== Role.ADMIN) {
+  const hasAdminAccess = session && (session.user.role === Role.ADMIN || session.user.hasAdminPortalAccess);
+  if (!hasAdminAccess) {
     redirect("/");
   }
 

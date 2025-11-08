@@ -15,7 +15,8 @@ async function getTeacher(teacherId: string) {
 
 export default async function AssignStudentsPage({ params }: { params: { teacherId: string } }) {
     const session = await auth();
-    if (!session || session.user.role !== Role.ADMIN) {
+    const hasAdminAccess = session && (session.user.role === Role.ADMIN || session.user.hasAdminPortalAccess);
+    if (!hasAdminAccess) {
         redirect("/");
     }
 

@@ -11,7 +11,8 @@ export default async function LessonManagementPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
-  if (!session || session.user.role !== Role.ADMIN) {
+  const hasAdminAccess = session && (session.user.role === Role.ADMIN || session.user.hasAdminPortalAccess);
+  if (!hasAdminAccess) {
     redirect("/");
   }
 

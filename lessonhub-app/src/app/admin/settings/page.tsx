@@ -7,8 +7,8 @@ import SettingsForm from "@/app/components/SettingsForm";
 
 export default async function SettingsPage() {
   const session = await auth();
-
-  if (!session || session.user.role !== Role.ADMIN) {
+  const hasAdminAccess = session && (session.user.role === Role.ADMIN || session.user.hasAdminPortalAccess);
+  if (!hasAdminAccess) {
     redirect("/");
   }
 

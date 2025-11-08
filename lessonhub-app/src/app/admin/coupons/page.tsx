@@ -15,7 +15,8 @@ import { formatDistanceToNow } from "date-fns";
 export default async function CouponManagementPage() {
   const session = await auth();
   if (!session) redirect("/signin");
-  if (session.user.role !== Role.ADMIN) redirect("/dashboard");
+  const hasAdminAccess = session.user.role === Role.ADMIN || session.user.hasAdminPortalAccess;
+  if (!hasAdminAccess) redirect("/dashboard");
 
   const { coupons, totals } = await getCouponDashboardData();
 

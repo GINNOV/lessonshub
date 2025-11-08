@@ -161,6 +161,26 @@ export async function stopImpersonating() {
 }
 export { stopImpersonating as stopImpersonation };
 
+export async function setAdminPortalAccess(userId: string, enabled: boolean) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== Role.ADMIN) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { hasAdminPortalAccess: enabled },
+    });
+    revalidatePath("/admin/users");
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update admin portal access:", error);
+    return { success: false, error: "Unable to update admin portal access." };
+  }
+}
+
 
 /**
  * Fetches all email templates.

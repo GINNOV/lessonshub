@@ -1,5 +1,11 @@
--- AlterTable
-ALTER TABLE "CouponCode" ALTER COLUMN "updatedAt" DROP DEFAULT;
+DO $$
+BEGIN
+  ALTER TABLE "CouponCode" ALTER COLUMN "updatedAt" DROP DEFAULT;
+EXCEPTION
+  WHEN undefined_table THEN
+    NULL;
+END
+$$;
 
 -- CreateTable
 CREATE TABLE "TeacherRating" (

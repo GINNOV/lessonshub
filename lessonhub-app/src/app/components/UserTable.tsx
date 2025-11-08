@@ -10,6 +10,7 @@ import {
   updateUserPayingStatus,
   toggleUserSuspension,
   deleteUserByAdmin,
+  setAdminPortalAccess,
 } from '@/actions/adminActions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,12 +19,14 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { User as UserIcon, ShieldCheck, UserCog, Edit, Ban, Trash2, Users } from 'lucide-react';
+import { User as UserIcon, ShieldCheck, UserCog, Edit, Ban, Trash2, Users, KeySquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 
-type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
+type SerializableUser = Omit<User, 'defaultLessonPrice' | 'referralRewardPercent' | 'referralRewardMonthlyAmount'> & {
     defaultLessonPrice: number | null;
+    referralRewardPercent: number | null;
+    referralRewardMonthlyAmount: number | null;
 };
 
 interface UserTableProps {
@@ -84,6 +87,15 @@ export default function UserTable({
       toast.success('User suspension status updated.');
     } else {
       toast.error(result.error || 'An unknown error occurred.');
+    }
+  };
+
+  const handleAdminPortalAccess = async (userId: string, nextState: boolean) => {
+    const result = await setAdminPortalAccess(userId, nextState);
+    if (result.success) {
+      toast.success(nextState ? 'Teacher now has admin portal access.' : 'Admin portal access removed.');
+    } else {
+      toast.error(result.error || 'Unable to update admin access.');
     }
   };
 
@@ -154,6 +166,11 @@ export default function UserTable({
                         {user.isPaying ? 'Paying' : 'Not Paying'}
                       </Label>
                     </div>
+                    {user.hasAdminPortalAccess && user.role === Role.TEACHER && (
+                      <span className="mt-2 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+                        Admin Portal
+                      </span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
                     <div className="flex flex-wrap items-center gap-2">
@@ -173,6 +190,24 @@ export default function UserTable({
                         <Tooltip>
                             <TooltipTrigger asChild><Button variant="outline" size="icon" asChild><Link href={`/admin/teachers/${user.id}`}><Users className="h-4 w-4" /></Link></Button></TooltipTrigger>
                             <TooltipContent><p>Assign Students</p></TooltipContent>
+                        </Tooltip>
+                      )}
+                      {user.role === Role.TEACHER && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={user.hasAdminPortalAccess ? "secondary" : "outline"}
+                              size="icon"
+                              onClick={() => handleAdminPortalAccess(user.id, !user.hasAdminPortalAccess)}
+                            >
+                              <KeySquare className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {user.hasAdminPortalAccess ? 'Remove admin portal access' : 'Grant admin portal access'}
+                            </p>
+                          </TooltipContent>
                         </Tooltip>
                       )}
                       {user.role !== Role.ADMIN && (

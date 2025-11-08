@@ -3,17 +3,21 @@
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { Role } from "@prisma/client";
 
-async function requireAdmin() {
+async function requireAdminAccess() {
   const session = await auth();
-  if (!session || session.user.role !== "ADMIN") {
+  if (
+    !session ||
+    (session.user.role !== Role.ADMIN && !session.user.hasAdminPortalAccess)
+  ) {
     throw new Error("Unauthorized");
   }
   return session;
 }
 
 export async function getCouponDashboardData() {
-  await requireAdmin();
+  await requireAdminAccess();
 
   const coupons = await prisma.couponCode.findMany({
     orderBy: { createdAt: "desc" },
@@ -51,7 +55,7 @@ export async function getCouponDashboardData() {
 }
 
 export async function createCouponAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdminAccess();
 
   const code = String(formData.get("code") || "").trim().toUpperCase();
   const description = String(formData.get("description") || "").trim() || null;
@@ -77,7 +81,7 @@ export async function createCouponAction(formData: FormData) {
 }
 
 export async function toggleCouponStatusAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdminAccess();
   const couponId = String(formData.get("couponId") || "");
   const nextStatus = formData.get("nextStatus") === "true";
 
@@ -94,7 +98,7 @@ export async function toggleCouponStatusAction(formData: FormData) {
 }
 
 export async function deleteCouponAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdminAccess();
   const couponId = String(formData.get("couponId") || "");
   if (!couponId) {
     throw new Error("Coupon id missing.");

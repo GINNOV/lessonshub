@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 
 export default async function EmailTemplatesPage() {
     const session = await auth();
-    if (!session || session.user.role !== Role.ADMIN) {
+    const hasAdminAccess = session && (session.user.role === Role.ADMIN || session.user.hasAdminPortalAccess);
+    if (!hasAdminAccess) {
         redirect("/");
     }
 

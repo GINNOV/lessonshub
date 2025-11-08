@@ -80,7 +80,8 @@ const scoreFromRating = (rating: {
 export default async function FeedbackAnalyticsPage() {
   const session = await auth();
   if (!session) redirect("/signin");
-  if (session.user.role !== Role.ADMIN) redirect("/dashboard");
+  const hasAdminAccess = session.user.role === Role.ADMIN || session.user.hasAdminPortalAccess;
+  if (!hasAdminAccess) redirect("/dashboard");
 
   const ratings = await prisma.teacherRating.findMany({
     include: {

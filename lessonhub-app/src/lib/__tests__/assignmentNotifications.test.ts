@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { getImmediateStartStudentIds } from '../assignmentNotifications';
+import { getImmediateStartStudentIds } from '../assignmentNotifications.js';
 
 describe('getImmediateStartStudentIds', () => {
   it('includes students whose start date is in the past or now', () => {

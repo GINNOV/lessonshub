@@ -13,6 +13,7 @@ declare module "next-auth" {
       isPaying: boolean;
       isSuspended: boolean; // Add isSuspended here
       isTakingBreak: boolean;
+      hasAdminPortalAccess: boolean;
       impersonating?: boolean;
       originalUserId?: string;
     } & DefaultSession["user"];
@@ -23,5 +24,6 @@ declare module "next-auth" {
     isPaying: boolean;
     isSuspended: boolean; // And also here
     isTakingBreak: boolean;
+    hasAdminPortalAccess: boolean;
   }
 }

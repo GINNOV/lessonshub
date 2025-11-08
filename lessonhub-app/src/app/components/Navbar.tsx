@@ -30,6 +30,7 @@ export default function Navbar() {
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [isClassNotesDialogOpen, setIsClassNotesDialogOpen] = useState(false);
   const [isRateTeacherDialogOpen, setIsRateTeacherDialogOpen] = useState(false);
+  const hasAdminAccess = user && (user.role === Role.ADMIN || user.hasAdminPortalAccess);
 
   const homeHref =
     status === 'authenticated'
@@ -124,6 +125,11 @@ export default function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link href="/profile">Profile</Link>
                     </DropdownMenuItem>
+                    {hasAdminAccess && user?.role !== Role.ADMIN && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin">Admin dashboard</Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                       onSelect={() => {
                         requestWhatsNewDialog();

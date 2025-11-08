@@ -12,7 +12,8 @@ export default async function UserManagementPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
-  if (!session || session.user.role !== Role.ADMIN) {
+  const hasAdminAccess = session && (session.user.role === Role.ADMIN || session.user.hasAdminPortalAccess);
+  if (!hasAdminAccess) {
     redirect("/");
   }
 
@@ -21,6 +22,8 @@ export default async function UserManagementPage({
   const serializableUsers = users.map(user => ({
     ...user,
     defaultLessonPrice: user.defaultLessonPrice?.toNumber() ?? null,
+    referralRewardPercent: user.referralRewardPercent?.toNumber() ?? null,
+    referralRewardMonthlyAmount: user.referralRewardMonthlyAmount?.toNumber() ?? null,
   }));
 
   const params = await searchParams;
