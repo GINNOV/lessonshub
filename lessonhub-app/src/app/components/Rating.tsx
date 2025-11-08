@@ -1,7 +1,7 @@
 // file: src/app/components/Rating.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +24,10 @@ export default function Rating({
 }: RatingProps) {
   const [rating, setRating] = useState(initialRating);
   const [hoverValue, setHoverValue] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    setRating(initialRating);
+  }, [initialRating]);
 
   const handleClick = (value: number) => {
     if (readOnly) return;

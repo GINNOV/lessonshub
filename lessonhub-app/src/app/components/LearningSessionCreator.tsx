@@ -268,7 +268,7 @@ export default function LearningSessionCreator({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
+      <div className="form-field">
         <Label htmlFor="title">Lesson Title</Label>
         <Input
           id="title"
@@ -278,7 +278,7 @@ export default function LearningSessionCreator({
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
         <Label htmlFor="price">Price (€)</Label>
         <Input
           id="price"
@@ -292,7 +292,7 @@ export default function LearningSessionCreator({
 
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />
 
-      <div className="space-y-2">
+      <div className="form-field">
         <Label htmlFor="lessonPreview">Lesson Preview</Label>
         <Textarea
           id="lessonPreview"
@@ -302,7 +302,7 @@ export default function LearningSessionCreator({
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
         <Label htmlFor="guideCardImage">Guide Card Image</Label>
         <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
           <select
@@ -332,7 +332,7 @@ export default function LearningSessionCreator({
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <Label htmlFor="assignmentText" className="text-base font-semibold">
             Instructions
@@ -421,7 +421,7 @@ export default function LearningSessionCreator({
               </Button>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
+              <div className="form-field">
                 <Label>Content 1</Label>
                 <Textarea
                   placeholder="Primary text (shown first)"
@@ -429,7 +429,7 @@ export default function LearningSessionCreator({
                   onChange={(e) => handleCardChange(index, 'content1', e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="form-field">
                 <Label>Content 2</Label>
                 <Textarea
                   placeholder="Secondary text (first flip)"
@@ -437,7 +437,7 @@ export default function LearningSessionCreator({
                   onChange={(e) => handleCardChange(index, 'content2', e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="form-field">
                 <Label>Content 3</Label>
                 <Textarea
                   placeholder="Optional blended step (shows with content 2 + TTS)"
@@ -445,7 +445,7 @@ export default function LearningSessionCreator({
                   onChange={(e) => handleCardChange(index, 'content3', e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="form-field">
                 <Label>Content 4</Label>
                 <Textarea
                   placeholder="Final flip content"
@@ -454,7 +454,7 @@ export default function LearningSessionCreator({
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="form-field">
               <Label>Extra (unused)</Label>
               <Textarea
                 placeholder="Store future notes or metadata."

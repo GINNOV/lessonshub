@@ -50,6 +50,97 @@ export async function sendFeedbackToTeachers(feedbackMessage: string) {
   }
 }
 
+export async function getTeachersForCurrentStudent() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return [];
+  }
+
+  try {
+    const teacherLinks = await prisma.teachersForStudent.findMany({
+      where: { studentId: session.user.id },
+      include: {
+        teacher: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            isSuspended: true,
+          },
+        },
+      },
+    });
+
+    return teacherLinks
+      .filter((link) => link.teacher && !link.teacher.isSuspended)
+      .map((link) => ({
+        id: link.teacher!.id,
+        name: link.teacher!.name ?? 'Teacher',
+        image: link.teacher!.image ?? null,
+      }));
+  } catch (error) {
+    console.error('Failed to fetch student teachers:', error);
+    return [];
+  }
+}
+
+type RatingPayload = {
+  teacherId: string;
+  contentQuality: number;
+  helpfulness: number;
+  communication: number;
+  valueForMoney: number;
+  overall?: number;
+  comments?: string;
+};
+
+const clampRating = (value: number) => {
+  if (Number.isNaN(value)) return 0;
+  return Math.min(5, Math.max(0, value));
+};
+
+export async function submitTeacherRating(payload: RatingPayload) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  if (!payload.teacherId) {
+    return { success: false, error: 'Select a teacher to continue.' };
+  }
+
+  try {
+    const link = await prisma.teachersForStudent.findFirst({
+      where: {
+        studentId: session.user.id,
+        teacherId: payload.teacherId,
+      },
+    });
+
+    if (!link) {
+      return { success: false, error: "You can only rate teachers you're assigned to." };
+    }
+
+    await prisma.teacherRating.create({
+      data: {
+        studentId: session.user.id,
+        teacherId: payload.teacherId,
+        contentQuality: clampRating(payload.contentQuality),
+        helpfulness: clampRating(payload.helpfulness),
+        communication: clampRating(payload.communication),
+        valueForMoney: clampRating(payload.valueForMoney),
+        overall: payload.overall ? clampRating(payload.overall) : null,
+        comments: payload.comments?.trim() || null,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to submit teacher rating:', error);
+    return { success: false, error: 'Something went wrong while saving your rating.' };
+  }
+}
+
 /**
  * Checks if a student has reached a 10-lesson milestone and sends a notification.
  */

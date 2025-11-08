@@ -430,12 +430,12 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
           <TabsContent value="password" className="mt-4">
             <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
                 <h2 className="mb-4 text-2xl font-semibold">Change Password</h2>
-                <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                <div>
+                <form onSubmit={handlePasswordSubmit} className="space-y-5">
+                <div className="form-field">
                     <Label htmlFor="newPassword">New Password</Label>
                     <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
                 </div>
-                <div>
+                <div className="form-field">
                     <Label htmlFor="confirmPassword">Confirm New Password</Label>
                     <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
                 </div>

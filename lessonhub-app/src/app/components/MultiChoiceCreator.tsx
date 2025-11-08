@@ -444,23 +444,23 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-       <div className="space-y-2">
+       <div className="form-field">
         <Label htmlFor="title">Lesson Title</Label>
         <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., English Prepositions Quiz" />
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
          <Label htmlFor="price">Price (€)</Label>
          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
      </div>
 
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />
-       <div className="space-y-2">
+       <div className="form-field">
         <Label htmlFor="lessonPreview">Lesson Preview</Label>
         <Textarea id="lessonPreview" placeholder="A brief preview of the lesson for students." value={lessonPreview} onChange={(e) => setLessonPreview(e.target.value)} />
       </div>
 
-       <div className="space-y-2">
+       <div className="form-field">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <Label htmlFor="assignmentText" className="text-base font-semibold">Instructions</Label>
           {instructionBooklets.length > 0 && (
@@ -522,7 +522,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         </p>
       </div>
 
-       <div className="space-y-2">
+       <div className="form-field">
         <div className="flex items-center">
             <Label htmlFor="assignmentImage">Assignment Image</Label>
             <OptionalIndicator />
@@ -541,7 +541,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         {assignmentImageUrl && <Image src={assignmentImageUrl} alt="Uploaded preview" width={500} height={300} className="mt-4 w-full h-auto rounded-md border" />}
       </div>
       
-       <div className="space-y-2">
+       <div className="form-field">
         <div className="flex items-center gap-2">
             <Label htmlFor="soundcloudUrl">Audio Material</Label>
             <OptionalIndicator />
@@ -578,7 +578,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         )}
       </div>
       
-       <div className="space-y-2">
+       <div className="form-field">
         <div className="flex items-center">
             <Label htmlFor="attachmentUrl">Reading Material</Label>
             <OptionalIndicator />
@@ -602,7 +602,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         )}
       </div>
       
-      <div className="space-y-2">
+      <div className="form-field">
         <div className="flex items-center">
             <Label htmlFor="notes">Notes for student</Label>
             <OptionalIndicator />

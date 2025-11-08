@@ -21,6 +21,7 @@ import { useState } from "react";
 import TeacherClassNotesDialog from "./TeacherClassNotesDialog";
 import FeedbackDialog from "./FeedbackDialog";
 import { requestWhatsNewDialog } from "./WhatsNewDialog";
+import RateTeacherDialog from "./RateTeacherDialog";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -28,6 +29,7 @@ export default function Navbar() {
   const user = session?.user as any;
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [isClassNotesDialogOpen, setIsClassNotesDialogOpen] = useState(false);
+  const [isRateTeacherDialogOpen, setIsRateTeacherDialogOpen] = useState(false);
 
   const homeHref =
     status === 'authenticated'
@@ -132,6 +134,11 @@ export default function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link href="/referrals">Referral dashboard</Link>
                     </DropdownMenuItem>
+                    {user?.role === Role.STUDENT && (
+                      <DropdownMenuItem onSelect={() => setIsRateTeacherDialogOpen(true)}>
+                        Rate your teacher
+                      </DropdownMenuItem>
+                    )}
                     {user?.role !== Role.TEACHER && (
                       <DropdownMenuItem onSelect={() => setIsFeedbackDialogOpen(true)}>
                         Send Feedback
@@ -144,6 +151,9 @@ export default function Navbar() {
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
+                {user?.role === Role.STUDENT && (
+                  <RateTeacherDialog open={isRateTeacherDialogOpen} onOpenChange={setIsRateTeacherDialogOpen} />
+                )}
                 {user?.role === Role.TEACHER && (
                   <TeacherClassNotesDialog open={isClassNotesDialogOpen} onOpenChange={setIsClassNotesDialogOpen} />
                 )}

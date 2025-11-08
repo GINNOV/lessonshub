@@ -304,7 +304,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
     <form onSubmit={handleSubmit} className="w-full max-w-lg space-y-6">
       {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
       
-      <div className="space-y-2">
+      <div className="form-field">
         <Label htmlFor="title">
             Lesson Title 
             {isEditMode && lesson && <span className="text-gray-400 font-normal ml-2">({getWeekAndDay(new Date(lesson.createdAt))})</span>}
@@ -312,19 +312,19 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         <Input type="text" id="title" placeholder="e.g., Introduction to Algebra" value={title} onChange={(e) => setTitle(e.target.value)} required disabled={isLoading} />
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
         <Label htmlFor="lessonPreview">Lesson Preview</Label>
         <Textarea id="lessonPreview" placeholder="A brief preview of the lesson for students." value={lessonPreview} onChange={(e) => setLessonPreview(e.target.value)} required disabled={isLoading} />
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
           <Label htmlFor="price">Price (€)</Label>
           <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
       </div>
 
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />
 
-      <div className="space-y-2">
+      <div className="form-field">
         <div className="flex items-center">
             <Label htmlFor="assignmentImage">Assignment Image</Label>
             <OptionalIndicator />
@@ -344,7 +344,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         {assignmentImageUrl && <Image src={assignmentImageUrl} alt="Uploaded preview" width={500} height={300} className="mt-4 w-full h-auto rounded-md border" />}
       </div>
       
-      <div className="space-y-2">
+      <div className="form-field">
         <div className="flex items-center gap-2">
           <div className="flex items-center">
             <Label htmlFor="soundcloudUrl">Audio material</Label>
@@ -416,7 +416,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <Label htmlFor="assignmentText" className="text-base font-semibold">Instructions</Label>
           {instructionBooklets.length > 0 && (
@@ -473,7 +473,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         </p>
       </div>
       
-      <div className="space-y-2">
+      <div className="form-field">
         {questions.map((question, index) => (
           <div key={index} className="flex items-center gap-2">
             <Label htmlFor={`question-${index}`} className="whitespace-nowrap">Question {index + 1}</Label>
@@ -484,7 +484,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         ))}
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
         <div className="flex items-center">
             <Label htmlFor="contextText">Additional Information</Label>
             <OptionalIndicator />
@@ -492,7 +492,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         <Textarea id="contextText" placeholder="Add any extra context or instructions here." value={contextText} onChange={(e) => setContextText(e.target.value)} disabled={isLoading} className="min-h-[100px]" />
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
         <div className="flex items-center">
             <Label htmlFor="attachmentUrl">Reading Material</Label>
             <OptionalIndicator />
@@ -516,7 +516,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
         <div className="flex items-center">
             <Label htmlFor="notes">Notes for student</Label>
             <OptionalIndicator />
@@ -524,7 +524,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} disabled={isLoading} rows={3} />
       </div>
 
-      <div className="space-y-2">
+      <div className="form-field">
         <Label htmlFor="assignmentNotification">Assignment Status</Label>
         <select
           id="assignmentNotification"
@@ -541,7 +541,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
       </div>
 
       {assignmentNotification === "ASSIGN_ON_DATE" && (
-        <div className="space-y-2 animate-fade-in-up">
+        <div className="form-field animate-fade-in-up">
           <Label htmlFor="scheduledDate">Scheduled Assignment Date & Time</Label>
           <Input
             type="datetime-local"

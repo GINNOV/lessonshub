@@ -373,23 +373,23 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
+      <div className="form-field">
         <Label htmlFor="title">Lesson Title</Label>
         <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Common English Idioms" />
       </div>
-      <div className="space-y-2">
+      <div className="form-field">
          <Label htmlFor="price">Price (€)</Label>
          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
       </div>
 
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />
 
-       <div className="space-y-2">
+       <div className="form-field">
         <Label htmlFor="lessonPreview">Lesson Preview</Label>
         <Textarea id="lessonPreview" placeholder="A brief preview of the lesson for students." value={lessonPreview} onChange={(e) => setLessonPreview(e.target.value)} />
       </div>
 
-       <div className="space-y-2">
+       <div className="form-field">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <Label htmlFor="assignmentText" className="text-base font-semibold">Instructions</Label>
           {instructionBooklets.length > 0 && (
@@ -451,9 +451,10 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
         </p>
       </div>
       
-      <div className="space-y-2">
+      <div className="form-field">
         <div className="flex items-center">
-            <Label htmlFor="assignmentImage">Assignment Image</Label><OptionalIndicator/>
+            <Label htmlFor="assignmentImage">Assignment Image</Label>
+            <OptionalIndicator />
         </div>
         <div className="flex items-center gap-2">
             <FileUploadButton
@@ -469,9 +470,10 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
         {assignmentImageUrl && <Image src={assignmentImageUrl} alt="Uploaded preview" width={500} height={300} className="mt-4 w-full h-auto rounded-md border" />}
       </div>
       
-       <div className="space-y-2">
+       <div className="form-field">
         <div className="flex items-center gap-2">
-            <Label htmlFor="soundcloudUrl">Audio Material</Label><OptionalIndicator/>
+            <Label htmlFor="soundcloudUrl">Audio Material</Label>
+            <OptionalIndicator />
             <Button type="button" variant="outline" size="sm" onClick={loadSoundCloudFeed} disabled={feedLoading}>
               {feedLoading ? 'Loading…' : 'Load SoundCloud feed'}
             </Button>
@@ -531,9 +533,10 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
         )}
       </div>
 
-       <div className="space-y-2">
+       <div className="form-field">
         <div className="flex items-center">
-            <Label htmlFor="attachmentUrl">Reading Material</Label><OptionalIndicator/>
+            <Label htmlFor="attachmentUrl">Reading Material</Label>
+            <OptionalIndicator />
         </div>
         <div className="flex items-center gap-2">
           <Input type="url" id="attachmentUrl" placeholder="https://example.com" value={attachmentUrl} onChange={(e) => setAttachmentUrl(e.target.value)} disabled={isLoading} />
@@ -554,9 +557,10 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
         )}
       </div>
       
-      <div className="space-y-2">
+      <div className="form-field">
         <div className="flex items-center">
-          <Label htmlFor="notes">Notes for student</Label><OptionalIndicator/>
+          <Label htmlFor="notes">Notes for student</Label>
+          <OptionalIndicator />
         </div>
         <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </div>
@@ -584,7 +588,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Term Side */}
-                <div className="space-y-2">
+                <div className="form-field">
                     <Label>Term (Front)</Label>
                     <Input placeholder="e.g., Break a leg" value={fc.term} onChange={(e) => handleFlashcardChange(index, 'term', e.target.value)} />
                     <Label htmlFor={`term-image-${index}`} className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer"><Upload size={16} /> Upload Image</Label>
@@ -601,7 +605,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
                     )}
                 </div>
                 {/* Definition Side */}
-                <div className="space-y-2">
+                <div className="form-field">
                     <Label>Definition (Back)</Label>
                     <Input placeholder="e.g., Good luck!" value={fc.definition} onChange={(e) => handleFlashcardChange(index, 'definition', e.target.value)} />
                     <Label htmlFor={`def-image-${index}`} className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer"><Upload size={16} /> Upload Image</Label>

@@ -59,6 +59,8 @@ model User {
   lyricLessonAttempts       LyricLessonAttempt[]
   instructionBooklets       InstructionBooklet[]
   couponRedemptions         CouponRedemption[]
+  teacherRatingsGiven       TeacherRating[] @relation("StudentRatings")
+  teacherRatingsReceived    TeacherRating[] @relation("TeacherRatings")
 
   // Customizable dashboard fields
   progressCardTitle         String?   @default("My Progress")
@@ -185,6 +187,24 @@ model MultiChoiceOption {
   isCorrect  Boolean             @default(false)
   questionId String
   question   MultiChoiceQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model TeacherRating {
+  id              String   @id @default(cuid())
+  studentId       String
+  student         User     @relation("StudentRatings", fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId       String
+  teacher         User     @relation("TeacherRatings", fields: [teacherId], references: [id], onDelete: Cascade)
+  contentQuality  Int      @default(0)
+  helpfulness     Int      @default(0)
+  communication   Int      @default(0)
+  valueForMoney   Int      @default(0)
+  overall         Int?
+  comments        String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([teacherId])
+  @@index([studentId])
 }
 
 model LyricLessonConfig {

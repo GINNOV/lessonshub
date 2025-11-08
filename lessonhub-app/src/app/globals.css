@@ -59,3 +59,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .form-field {
+    @apply space-y-2;
+  }
+
+  .form-field label[data-slot="label"] {
+    @apply text-sm font-semibold text-gray-700;
+  }
+}
