@@ -890,11 +890,33 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
                                 options: true,
                             },
                         },
+                        lyricConfig: true,
                     },
                 },
             },
         });
-        return submission;
+        if (!submission) {
+            return null;
+        }
+
+        const lyricAttempts = submission.lesson.type === LessonType.LYRIC
+            ? await prisma.lyricLessonAttempt.findMany({
+                where: {
+                    lessonId: submission.lessonId,
+                    studentId: submission.studentId,
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+            })
+            : [];
+
+        return {
+            ...submission,
+            lesson: {
+                ...submission.lesson,
+                lyricAttempts,
+            },
+        };
     } catch (error) {
         console.error("Failed to fetch submission for grading:", error);
         return null;

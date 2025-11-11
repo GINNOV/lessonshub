@@ -1,4 +1,5 @@
 // file: src/app/dashboard/grade/[assignmentId]/page.tsx
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
@@ -6,6 +7,8 @@ import { getSubmissionForGrading } from "@/actions/lessonActions";
 import { LessonType, Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
 import LessonContentView from "@/app/components/LessonContentView";
+import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
+import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +19,44 @@ type MultiChoiceAnswer = {
   questionId: string;
   selectedAnswerId: string | null;
   isCorrect: boolean | null;
+};
+
+const normalizeLyricLines = (value: unknown): LyricLine[] => {
+  if (!Array.isArray(value)) return [];
+  const normalized: LyricLine[] = [];
+  value.forEach((item) => {
+    if (!item || typeof item !== "object") return;
+    const record = item as Record<string, unknown>;
+    const text = typeof record.text === "string" ? record.text : "";
+    if (!text.trim()) return;
+    const id = typeof record.id === "string" ? record.id : randomUUID();
+    const startTimeValue =
+      typeof record.startTime === "number"
+        ? record.startTime
+        : typeof record.startTime === "string" && record.startTime.trim()
+        ? Number(record.startTime)
+        : null;
+    const endTimeValue =
+      typeof record.endTime === "number"
+        ? record.endTime
+        : typeof record.endTime === "string" && record.endTime.trim()
+        ? Number(record.endTime)
+        : null;
+    const hiddenWords =
+      Array.isArray(record.hiddenWords)
+        ? record.hiddenWords.filter((word): word is string => typeof word === "string" && word.trim().length > 0)
+        : undefined;
+    const startTime = Number.isFinite(startTimeValue) ? Number(startTimeValue) : null;
+    const endTime = Number.isFinite(endTimeValue) ? Number(endTimeValue) : null;
+    normalized.push({
+      id,
+      text,
+      startTime,
+      endTime,
+      hiddenWords,
+    });
+  });
+  return normalized;
 };
 
 export default async function GradeSubmissionPage({
@@ -47,16 +88,50 @@ export default async function GradeSubmissionPage({
     );
   }
 
+  const lyricConfig = submission.lesson.lyricConfig
+    ? {
+        ...submission.lesson.lyricConfig,
+        lines: normalizeLyricLines(submission.lesson.lyricConfig.lines),
+        settings: (submission.lesson.lyricConfig.settings as LyricLessonSettings | null) ?? null,
+      }
+    : null;
+
+  const lessonWithAttempts = submission.lesson as typeof submission.lesson & {
+    lyricAttempts?: Array<{
+      scorePercent: { toString(): string } | number | null;
+      timeTakenSeconds: number | null;
+      answers: unknown;
+      createdAt: Date | string;
+    }>;
+  };
+  const rawLyricAttempts = Array.isArray(lessonWithAttempts.lyricAttempts)
+    ? lessonWithAttempts.lyricAttempts
+    : [];
+
+  const lyricAttempts = rawLyricAttempts.map(attempt => ({
+    scorePercent: attempt.scorePercent ? Number(attempt.scorePercent.toString()) : null,
+    timeTakenSeconds: attempt.timeTakenSeconds ?? null,
+    answers: (attempt.answers as Record<string, string[]> | null) ?? null,
+    createdAt:
+      attempt.createdAt instanceof Date
+        ? attempt.createdAt.toISOString()
+        : new Date(attempt.createdAt).toISOString(),
+  }));
+
   const serializableSubmission = {
     ...submission,
     lesson: {
-        ...submission.lesson,
-        price: submission.lesson.price.toNumber(),
+      ...submission.lesson,
+      price: submission.lesson.price.toNumber(),
+      lyricConfig,
+      lyricAttempts,
     }
   };
 
   const flashcards = submission.lesson.flashcards ?? [];
   const multiChoiceQuestions = submission.lesson.multiChoiceQuestions ?? [];
+  const lyricLessonConfig = serializableSubmission.lesson.lyricConfig;
+  const lyricExistingAttempt = serializableSubmission.lesson.lyricAttempts?.[0] ?? null;
 
   const parseFlashcardAnswers = (): Record<string, 'correct' | 'incorrect'> | null => {
     if (submission.lesson.type !== LessonType.FLASHCARD) return null;
@@ -692,6 +767,29 @@ export default async function GradeSubmissionPage({
                   }
                 )}
               </div>
+            )}
+            {submission.lesson.type === LessonType.LYRIC && lyricLessonConfig && (
+              <>
+                {lyricExistingAttempt ? (
+                  <div className="mt-4 rounded-lg border bg-slate-50 p-4">
+                    <LyricLessonPlayer
+                      assignmentId={serializableSubmission.id}
+                      lessonId={serializableSubmission.lesson.id}
+                      audioUrl={lyricLessonConfig.audioUrl}
+                      lines={lyricLessonConfig.lines as LyricLine[]}
+                      settings={lyricLessonConfig.settings as LyricLessonSettings | null}
+                      status={serializableSubmission.status}
+                      existingAttempt={lyricExistingAttempt}
+                      timingSourceUrl={lyricLessonConfig.timingSourceUrl ?? null}
+                      lrcUrl={lyricLessonConfig.lrcUrl ?? null}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                    The student hasn&apos;t submitted any lyric attempts yet.
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
