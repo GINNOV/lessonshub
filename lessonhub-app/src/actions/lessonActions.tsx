@@ -10,6 +10,7 @@ import { auth } from "@/auth";
 import { nanoid } from 'nanoid';
 import { checkAndSendMilestoneEmail } from "./studentActions";
 import { awardBadgesForStudent, calculateAssignmentPoints } from "@/lib/gamification";
+import { hasAdminPrivileges } from "@/lib/authz";
 
 export async function getUploadedImages() {
   try {
@@ -990,7 +991,7 @@ export async function ensureLessonShareLink(lessonId: string) {
       return { success: false, error: 'Lesson not found.' };
     }
 
-    const isAdmin = session.user.role === Role.ADMIN;
+    const isAdmin = hasAdminPrivileges(session.user);
     const isLessonTeacher =
       session.user.role === Role.TEACHER && lesson.teacherId === session.user.id;
 

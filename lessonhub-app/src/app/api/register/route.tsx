@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { getEmailTemplateByName } from "@/actions/adminActions";
 import { createButton, sendEmail } from "@/lib/email-templates";
 import { Role } from '@prisma/client';
+import { verifyRegisterChallenge } from '@/lib/registerChallenge';
 
 async function sendAdminNotifications(newUser: { name: string | null; email: string }) {
     const admins = await prisma.user.findMany({ where: { role: Role.ADMIN } });
@@ -37,10 +38,35 @@ async function sendAdminNotifications(newUser: { name: string | null; email: str
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, email, password, referralCode } = body;
+    const {
+      name,
+      email,
+      password,
+      referralCode,
+      honeypot,
+      challengeAnswer,
+      challengeToken,
+      challengeSignature,
+    } = body;
 
     if (!email || !password || !name) {
       return NextResponse.json({ error: "Missing name, email, or password" }, { status: 400 });
+    }
+
+    if (typeof honeypot === 'string' && honeypot.trim().length > 0) {
+      console.warn("[register:api] Honeypot field detected. Blocking potential bot submission.");
+      return NextResponse.json({ error: "Unable to process request" }, { status: 400 });
+    }
+
+    const challengeValidation = verifyRegisterChallenge({
+      answer: Number(challengeAnswer),
+      token: challengeToken,
+      signature: challengeSignature,
+    });
+
+    if (!challengeValidation.isValid) {
+      console.warn("[register:api] Math challenge failed:", challengeValidation.reason);
+      return NextResponse.json({ error: "Anti-spam check failed" }, { status: 400 });
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });

@@ -2,10 +2,11 @@
 'use server';
 
 import prisma from "@/lib/prisma";
-import { Role, User } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { sendEmail, createButton } from "@/lib/email-templates";
 import { auth } from "@/auth";
+import { hasAdminPrivileges } from "@/lib/authz";
 
 /**
  * Fetches all users from the database.
@@ -73,7 +74,7 @@ export async function updateUserRole(userId: string, newRole: Role) {
  */
 export async function impersonateUser(userId: string) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== Role.ADMIN || session.user.id === userId) {
+  if (!session?.user?.id || !hasAdminPrivileges(session.user) || session.user.id === userId) {
     return { success: false, error: "Unauthorized or invalid operation." };
   }
 
@@ -95,7 +96,7 @@ export async function impersonateUser(userId: string) {
  */
 export async function toggleUserSuspension(userId: string) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
     return { success: false, error: "Unauthorized" };
   }
   try {
@@ -121,7 +122,7 @@ export async function toggleUserSuspension(userId: string) {
  */
 export async function deleteUserByAdmin(userId: string) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
     return { success: false, error: "Unauthorized" };
   }
   try {
@@ -163,7 +164,7 @@ export { stopImpersonating as stopImpersonation };
 
 export async function setAdminPortalAccess(userId: string, enabled: boolean) {
   const session = await auth();
-  if (!session?.user || session.user.role !== Role.ADMIN) {
+  if (!session?.user || !hasAdminPrivileges(session.user)) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -332,7 +333,7 @@ export async function sendTestEmail(templateName: string, testEmail: string) {
  */
 export async function updateLessonPrice(lessonId: string, newPrice: number) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -357,7 +358,7 @@ export async function updateLessonPrice(lessonId: string, newPrice: number) {
  */
 export async function updateUserPayingStatus(userId: string, isPaying: boolean) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
     return { success: false, error: "Unauthorized" };
   }
   try {
@@ -425,7 +426,7 @@ export async function assignStudentsToTeacher(teacherId: string, studentIds: str
 
 export async function assignTeachersToStudent(studentId: string, teacherIds: string[]) {
     const session = await auth();
-    if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+    if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
         return { success: false, error: "Unauthorized" };
     }
     try {
@@ -503,7 +504,7 @@ interface DashboardSettings {
 
 export async function toggleTakingABreakForUser(userId: string) {
     const session = await auth();
-    if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+    if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
         return { success: false, error: "Unauthorized" };
     }
 
@@ -533,7 +534,7 @@ export async function toggleTakingABreakForUser(userId: string) {
 
 export async function updateDashboardSettings(data: DashboardSettings) {
     const session = await auth();
-    if (!session?.user?.id || session.user.role !== Role.ADMIN) {
+    if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
         return { success: false, error: "Unauthorized" };
     }
 

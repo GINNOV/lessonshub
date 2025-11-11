@@ -6,6 +6,7 @@ import { AssignmentStatus, Role } from "@prisma/client";
 import { getEmailTemplateByName } from '@/actions/adminActions';
 import { createButton, sendEmail } from '@/lib/email-templates';
 import { auth } from "@/auth";
+import { hasAdminPrivileges } from "@/lib/authz";
 
 export async function sendDeadlineReminders() {
   const now = new Date();
@@ -138,7 +139,7 @@ export async function sendStartDateNotifications(referenceDate?: Date) {
 
 export async function sendCronTestEmail() {
     const session = await auth();
-    if (session?.user?.email && session.user.role === Role.ADMIN) {
+    if (session?.user?.email && hasAdminPrivileges(session.user)) {
         try {
             await sendEmail({
                 to: session.user.email,

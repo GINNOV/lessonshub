@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendCronTestEmail, sendDeadlineReminders, sendPaymentReminders, sendStartDateNotifications, sendWeeklySummaries } from '@/actions/cronActions';
 import { auth } from '@/auth';
-import { Role } from '@prisma/client';
+import { hasAdminPrivileges } from '@/lib/authz';
 
 type CronTestAction =
   | 'test-email'
@@ -13,7 +13,7 @@ type CronTestAction =
 
 export async function POST(request: NextRequest) {
  const session = await auth();
- if (!session?.user || session.user.role !== Role.ADMIN) {
+ if (!session?.user || !hasAdminPrivileges(session.user)) {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
  }
 

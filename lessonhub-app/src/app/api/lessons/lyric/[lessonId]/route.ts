@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { LessonType, Prisma, Role } from "@prisma/client";
+import { hasAdminPrivileges } from "@/lib/authz";
 
 type LyricLineInput = {
   id: string;
@@ -101,7 +102,7 @@ export async function GET(
       return NextResponse.json({ error: "Lesson not found." }, { status: 404 });
     }
 
-    if (lesson.teacherId !== session.user.id && session.user.role !== Role.ADMIN) {
+    if (lesson.teacherId !== session.user.id && !hasAdminPrivileges(session.user)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

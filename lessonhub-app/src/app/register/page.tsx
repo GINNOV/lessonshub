@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,6 +20,13 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+type ChallengeState = {
+  a: number;
+  b: number;
+  token: string;
+  signature: string;
+};
+
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,6 +38,32 @@ function RegisterForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [honeypotValue, setHoneypotValue] = useState('');
+  const [challenge, setChallenge] = useState<ChallengeState | null>(null);
+  const [challengeAnswer, setChallengeAnswer] = useState('');
+  const [isChallengeLoading, setIsChallengeLoading] = useState(true);
+
+  const loadChallenge = useCallback(async () => {
+    setIsChallengeLoading(true);
+    try {
+      const res = await fetch('/api/register/challenge');
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to load anti-spam check');
+      }
+      setChallenge(data);
+      setChallengeAnswer('');
+    } catch (err) {
+      console.error('[register] Failed to load challenge', err);
+      setError('Unable to load the anti-spam check. Please refresh and try again.');
+    } finally {
+      setIsChallengeLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadChallenge();
+  }, [loadChallenge]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +71,28 @@ function RegisterForm() {
     setIsLoading(true);
 
     try {
+      if (!challenge || challengeAnswer.trim() === '') {
+        throw new Error('Please solve the anti-spam check.');
+      }
+
+      const parsedAnswer = Number(challengeAnswer);
+      if (!Number.isFinite(parsedAnswer)) {
+        throw new Error('Please enter a valid answer to the anti-spam check.');
+      }
+
       const registerResponse = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, referralCode: refCode }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          referralCode: refCode,
+          honeypot: honeypotValue,
+          challengeAnswer: parsedAnswer,
+          challengeToken: challenge?.token,
+          challengeSignature: challenge?.signature,
+        }),
       });
 
       const data = await registerResponse.json();
@@ -117,6 +168,45 @@ function RegisterForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
             />
+          </div>
+          {/* Simple honeypot field to discourage basic bots */}
+          <div className="hidden" aria-hidden="true">
+            <Label htmlFor="website">Website</Label>
+            <Input
+              id="website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              value={honeypotValue}
+              onChange={(e) => setHoneypotValue(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="challengeAnswer">Anti-spam check</Label>
+            <div className="flex gap-2 items-center">
+              <span className="text-sm font-medium whitespace-nowrap">
+                {challenge ? `${challenge.a} + ${challenge.b} =` : 'Loading...'}
+              </span>
+              <Input
+                id="challengeAnswer"
+                type="number"
+                min="0"
+                inputMode="numeric"
+                pattern="\\d*"
+                placeholder="Your answer"
+                value={challengeAnswer}
+                onChange={(e) => setChallengeAnswer(e.target.value)}
+                disabled={isLoading || isChallengeLoading || !challenge}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void loadChallenge()}
+                disabled={isChallengeLoading || isLoading}
+              >
+                New question
+              </Button>
+            </div>
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Creating Account...' : 'Sign Up'}
