@@ -1180,6 +1180,10 @@ export async function gradeAssignment(
     return { success: false, error: "Unauthorized" };
   }
 
+  if (typeof data.score !== 'number' || Number.isNaN(data.score) || !Number.isFinite(data.score)) {
+    return { success: false, error: "Score is required to grade this assignment." };
+  }
+
   try {
     const assignment = await prisma.assignment.findFirst({
       where: {

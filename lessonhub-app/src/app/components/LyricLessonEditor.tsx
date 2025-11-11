@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
+import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import { Music, Play, Pause, Scissors, Clock, RefreshCw, Upload, HelpCircle, Download, BookOpenText } from 'lucide-react';
 import {
   Dialog,
@@ -36,6 +37,12 @@ type TeacherPreferences = {
   defaultLessonNotes?: string | null;
 };
 
+interface InstructionBooklet {
+  id: string;
+  title: string;
+  body: string;
+}
+
 export type LyricLine = {
   id: string;
   text: string;
@@ -53,6 +60,7 @@ export type LyricLessonSettings = {
 interface LyricLessonEditorProps {
   lesson?: SerializableLesson | null;
   teacherPreferences?: TeacherPreferences | null;
+  instructionBooklets?: InstructionBooklet[];
 }
 
 type UploadState = 'idle' | 'uploading' | 'testing';
@@ -184,7 +192,11 @@ const formatSeconds = (value: number | null) => {
     .padStart(3, '0')}`;
 };
 
-export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricLessonEditorProps) {
+export default function LyricLessonEditor({
+  lesson,
+  teacherPreferences,
+  instructionBooklets = [],
+}: LyricLessonEditorProps) {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -197,6 +209,7 @@ export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricL
   const [attachmentLinkStatus, setAttachmentLinkStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
+  const [selectedBookletId, setSelectedBookletId] = useState<string>('');
 
   const [audioUrl, setAudioUrl] = useState('');
   const [audioStorageKey, setAudioStorageKey] = useState<string | null>(null);
@@ -271,6 +284,12 @@ export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricL
   }, [lesson]);
 
   useEffect(() => {
+    if (selectedBookletId && !instructionBooklets.some(booklet => booklet.id === selectedBookletId)) {
+      setSelectedBookletId('');
+    }
+  }, [instructionBooklets, selectedBookletId]);
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem('recentAttachmentUrls');
       if (saved) {
@@ -308,6 +327,25 @@ export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricL
         console.error('Failed to persist recent attachment URLs', error);
       }
       return next;
+    });
+  };
+
+  const applyInstructionBooklet = (mode: 'replace' | 'append') => {
+    if (!selectedBookletId) return;
+    const booklet = instructionBooklets.find((item) => item.id === selectedBookletId);
+    if (!booklet) return;
+
+    if (mode === 'replace') {
+      setAssignmentText(booklet.body);
+      return;
+    }
+
+    setAssignmentText((prev) => {
+      const existing = (prev ?? '').trim();
+      if (!existing) {
+        return booklet.body;
+      }
+      return `${existing}\n\n${booklet.body}`.trim();
     });
   };
 
@@ -857,7 +895,45 @@ export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricL
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="assignmentText">Instructions</Label>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <Label htmlFor="assignmentText">Instructions</Label>
+          {instructionBooklets.length > 0 && (
+            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <select
+                value={selectedBookletId}
+                onChange={(event) => setSelectedBookletId(event.target.value)}
+                className="rounded-md border border-gray-300 p-2 text-sm shadow-sm"
+              >
+                <option value="">Insert from booklet…</option>
+                {instructionBooklets.map((booklet) => (
+                  <option key={booklet.id} value={booklet.id}>
+                    {booklet.title}
+                  </option>
+                ))}
+              </select>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!selectedBookletId}
+                  onClick={() => applyInstructionBooklet('replace')}
+                >
+                  Replace
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!selectedBookletId}
+                  onClick={() => applyInstructionBooklet('append')}
+                >
+                  Append
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
         <Textarea
           id="assignmentText"
           rows={4}
@@ -865,6 +941,9 @@ export default function LyricLessonEditor({ lesson, teacherPreferences }: LyricL
           value={assignmentText}
           onChange={(e) => setAssignmentText(e.target.value)}
         />
+        <p className="text-xs text-gray-500">
+          Need reusable sets? <ManageInstructionBookletsLink />
+        </p>
       </div>
 
       <div className="space-y-2">

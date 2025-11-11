@@ -29,8 +29,8 @@ const scoreOptions = [
 
 export default function GradingForm({ assignment }: GradingFormProps) {
   const router = useRouter();
-  const [scoreValue, setScoreValue] = useState(
-    assignment.score?.toString() ?? ''
+  const [scoreValue, setScoreValue] = useState<string | null>(
+    typeof assignment.score === 'number' ? assignment.score.toString() : null
   );
   const [teacherComments, setTeacherComments] = useState(
     assignment.teacherComments || ''
@@ -66,9 +66,16 @@ export default function GradingForm({ assignment }: GradingFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (scoreValue === '') {
+    if (scoreValue === null) {
       setScoreError('Please select a score.');
       toast.error('Please select a score.');
+      setIsLoading(false);
+      return;
+    }
+    const numericScore = Number(scoreValue);
+    if (!Number.isFinite(numericScore)) {
+      setScoreError('Please select a valid score.');
+      toast.error('Please select a valid score.');
       setIsLoading(false);
       return;
     }
@@ -86,7 +93,7 @@ export default function GradingForm({ assignment }: GradingFormProps) {
       }, {} as Record<number, string>);
 
       const result = await gradeAssignment(assignment.id, {
-        score: Number(scoreValue),
+        score: numericScore,
         teacherComments,
         answerComments: isStandard && Object.keys(cleaned).length > 0 ? cleaned : undefined,
       });
@@ -111,8 +118,15 @@ export default function GradingForm({ assignment }: GradingFormProps) {
       <div>
         <Label className="text-base font-medium text-gray-900">Score</Label>
         <RadioGroup
-          value={scoreValue}
-          onValueChange={(v) => { setScoreValue(v); if (v !== '') setScoreError(null); }}
+          value={scoreValue ?? ''}
+          onValueChange={(value) => {
+            if (value) {
+              setScoreValue(value);
+              setScoreError(null);
+            } else {
+              setScoreValue(null);
+            }
+          }}
           className="mt-2"
         >
           {scoreOptions.map((option) => (
@@ -130,8 +144,16 @@ export default function GradingForm({ assignment }: GradingFormProps) {
         <Label htmlFor="custom-score">Custom Score (Overrides Above)</Label>
         <select
           id="custom-score"
-          value={scoreValue}
-          onChange={(e) => { setScoreValue(e.target.value); if (e.target.value !== '') setScoreError(null); }}
+          value={scoreValue ?? ''}
+          onChange={(event) => {
+            const { value } = event.target;
+            if (value === '') {
+              setScoreValue(null);
+            } else {
+              setScoreValue(value);
+              setScoreError(null);
+            }
+          }}
           className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
         >
           <option value="">Select a score</option>
@@ -197,7 +219,7 @@ export default function GradingForm({ assignment }: GradingFormProps) {
           </div>
         </div>
       )}
-      <Button type="submit" disabled={isLoading} className="w-full">
+      <Button type="submit" disabled={isLoading || scoreValue === null} className="w-full">
         {isLoading ? 'Submitting...' : 'Submit Grade'}
       </Button>
     </form>

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import LyricLessonEditor, { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
 import { getLessonById } from "@/actions/lessonActions";
 import { getTeacherPreferences } from "@/actions/teacherActions";
+import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletActions";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { LessonType, Role } from "@prisma/client";
@@ -50,7 +51,11 @@ export default async function EditLyricLessonPage({ params }: { params: Promise<
   }
 
   const { lessonId } = await params;
-  const lesson = await getLessonById(lessonId);
+  const [lesson, preferences, instructionBooklets] = await Promise.all([
+    getLessonById(lessonId),
+    getTeacherPreferences(),
+    getInstructionBookletsForTeacher(),
+  ]);
 
   if (!lesson || lesson.type !== LessonType.LYRIC) {
     redirect("/dashboard");
@@ -60,7 +65,6 @@ export default async function EditLyricLessonPage({ params }: { params: Promise<
     redirect("/dashboard");
   }
 
-  const preferences = await getTeacherPreferences();
   const serializablePreferences = preferences
     ? {
         ...preferences,
@@ -84,7 +88,15 @@ export default async function EditLyricLessonPage({ params }: { params: Promise<
     <div className="flex min-h-screen flex-col items-center p-8 sm:p-16">
       <div className="w-full max-w-4xl space-y-6">
         <h1 className="text-3xl font-bold">Edit Lyric Lesson</h1>
-        <LyricLessonEditor lesson={serializableLesson} teacherPreferences={serializablePreferences} />
+        <LyricLessonEditor
+          lesson={serializableLesson}
+          teacherPreferences={serializablePreferences}
+          instructionBooklets={instructionBooklets.map(booklet => ({
+            id: booklet.id,
+            title: booklet.title,
+            body: booklet.body,
+          }))}
+        />
       </div>
     </div>
   );
