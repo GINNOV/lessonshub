@@ -29,8 +29,9 @@ const scoreOptions = [
 
 export default function GradingForm({ assignment }: GradingFormProps) {
   const router = useRouter();
+  const existingScore = typeof assignment.score === 'number' ? assignment.score : null;
   const [scoreValue, setScoreValue] = useState<string | null>(
-    typeof assignment.score === 'number' ? assignment.score.toString() : null
+    existingScore !== null ? existingScore.toString() : null
   );
   const [teacherComments, setTeacherComments] = useState(
     assignment.teacherComments || ''
@@ -116,7 +117,14 @@ export default function GradingForm({ assignment }: GradingFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <Label className="text-base font-medium text-gray-900">Score</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-base font-medium text-gray-900">Score</Label>
+          {existingScore !== null && (
+            <span className="text-sm text-gray-600">
+              Current grade: <span className="font-semibold">{existingScore}</span>/10
+            </span>
+          )}
+        </div>
         <RadioGroup
           value={scoreValue ?? ''}
           onValueChange={(value) => {
