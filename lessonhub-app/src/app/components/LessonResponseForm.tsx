@@ -6,11 +6,12 @@ import { Assignment, Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { submitStandardAssignment } from '@/actions/lessonActions';
+import { submitStandardAssignment, saveStandardAssignmentDraft } from '@/actions/lessonActions';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Rating from './Rating';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { formatDistanceToNow } from 'date-fns';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -19,6 +20,10 @@ type SerializableLesson = Omit<Lesson, 'price'> & {
 type StandardAssignment = Omit<Assignment, 'lesson'> & {
   lesson: SerializableLesson;
   answers: string[];
+  draftAnswers?: unknown;
+  draftStudentNotes?: string | null;
+  draftRating?: number | null;
+  draftUpdatedAt?: string | Date | null;
 };
 
 interface LessonResponseFormProps {
@@ -34,6 +39,23 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
   const [isLoading, setIsLoading] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(() => {
+    if (!assignment.draftUpdatedAt) return null;
+    return new Date(assignment.draftUpdatedAt);
+  });
+
+  const questions = (assignment.lesson.questions as string[]) || [];
+
+  const parseStringArray = (value: unknown, length: number): string[] | null => {
+    if (!Array.isArray(value) || length <= 0) return null;
+    return Array.from({ length }, (_, index) => {
+      const entry = value[index];
+      if (typeof entry === 'string') return entry;
+      if (entry === null || entry === undefined) return '';
+      return String(entry);
+    });
+  };
 
   useEffect(() => {
     if (assignment.status !== 'PENDING') {
@@ -43,10 +65,14 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
       setRating(assignment.rating || 0);
       setIsReadOnly(true);
     } else {
-      const questions = (assignment.lesson.questions as string[]) || [];
-      setAnswers(Array(questions.length).fill(''));
+      const draft = parseStringArray(assignment.draftAnswers, questions.length);
+      setAnswers(draft ?? Array(questions.length).fill(''));
+      setStudentNotes(assignment.draftStudentNotes ?? '');
+      setRating(typeof assignment.draftRating === 'number' ? assignment.draftRating : 0);
+      setIsReadOnly(false);
+      setLastSavedAt(assignment.draftUpdatedAt ? new Date(assignment.draftUpdatedAt) : null);
     }
-  }, [assignment]);
+  }, [assignment, questions.length]);
   
   const handleAnswerChange = (index: number, value: string) => {
     const newAnswers = [...answers];
@@ -86,7 +112,24 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
     setIsLoading(false);
   };
   
-  const questions = (assignment.lesson.questions as string[]) || [];
+  const handleSaveDraft = async () => {
+    if (isReadOnly || isSubmissionLocked) return;
+    setIsSavingDraft(true);
+    const result = await saveStandardAssignmentDraft(assignment.id, assignment.studentId, {
+      answers,
+      studentNotes,
+      rating: rating > 0 ? rating : undefined,
+    });
+    setIsSavingDraft(false);
+    if (result.success) {
+      const now = new Date();
+      setLastSavedAt(now);
+      toast.success('Draft saved. You can finish later.');
+      router.refresh();
+    } else {
+      toast.error(result.error || 'Unable to save draft right now.');
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -129,9 +172,25 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
 
       {!isReadOnly && (
         <>
-          <Button type="submit" disabled={isLoading || isSubmissionLocked} className="w-full">
-            {isLoading ? 'Submitting...' : 'Submit Assignment'}
-          </Button>
+          <div className="flex flex-col gap-3 md:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSaveDraft}
+              disabled={isSavingDraft || isSubmissionLocked}
+              className="w-full md:w-48"
+            >
+              {isSavingDraft ? 'Saving draft...' : 'Save Draft'}
+            </Button>
+            <Button type="submit" disabled={isLoading || isSubmissionLocked} className="w-full md:flex-1">
+              {isLoading ? 'Submitting...' : 'Submit Assignment'}
+            </Button>
+          </div>
+          <p className="text-sm text-gray-500">
+            {lastSavedAt
+              ? `Last saved ${formatDistanceToNow(lastSavedAt, { addSuffix: true })}`
+              : 'Draft not saved yet'}
+          </p>
           <ConfirmDialog
             open={isDialogOpen}
             onOpenChange={setIsDialogOpen}

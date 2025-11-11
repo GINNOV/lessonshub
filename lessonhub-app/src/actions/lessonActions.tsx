@@ -438,6 +438,10 @@ export async function submitStandardAssignment(
         studentNotes: data.studentNotes,
         rating: data.rating,
         status: AssignmentStatus.COMPLETED,
+        draftAnswers: null,
+        draftStudentNotes: null,
+        draftRating: null,
+        draftUpdatedAt: null,
       },
     });
     const { student, lesson } = assignment;
@@ -460,6 +464,41 @@ export async function submitStandardAssignment(
   } catch (error) {
     console.error("Failed to submit standard assignment:", error);
     return { success: false, error: "An internal error occurred." };
+  }
+}
+
+export async function saveStandardAssignmentDraft(
+  assignmentId: string,
+  studentId: string,
+  data: { answers: string[]; studentNotes: string; rating?: number }
+) {
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: { id: assignmentId, studentId },
+      select: { id: true, status: true },
+    });
+    if (!assignment) {
+      return { success: false, error: "Assignment not found or unauthorized." };
+    }
+    if (assignment.status !== AssignmentStatus.PENDING) {
+      return { success: false, error: "Assignment can no longer be edited." };
+    }
+
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: {
+        draftAnswers: data.answers,
+        draftStudentNotes: data.studentNotes || null,
+        draftRating: typeof data.rating === "number" ? data.rating : null,
+        draftUpdatedAt: new Date(),
+      },
+    });
+
+    revalidatePath(`/assignments/${assignmentId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to save draft:", error);
+    return { success: false, error: "Unable to save draft right now." };
   }
 }
 

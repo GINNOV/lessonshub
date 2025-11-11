@@ -251,6 +251,10 @@ model Assignment {
   studentNotes        String?
   rating              Int?
   answers             Json?
+  draftAnswers        Json?
+  draftStudentNotes   String?
+  draftRating         Int?
+  draftUpdatedAt      DateTime?
   teacherComments     String?
   teacherAnswerComments Json?
   pointsAwarded        Int       @default(0)
