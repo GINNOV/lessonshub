@@ -106,6 +106,7 @@ export default async function AssignmentPage({
     scorePercent: attempt.scorePercent ? Number(attempt.scorePercent.toString()) : null,
     timeTakenSeconds: attempt.timeTakenSeconds ?? null,
     answers: attempt.answers as Record<string, string[]> | null,
+    readModeSwitchesUsed: typeof attempt.readModeSwitchesUsed === "number" ? attempt.readModeSwitchesUsed : null,
     createdAt: attempt.createdAt.toISOString(),
   }));
 

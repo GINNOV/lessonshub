@@ -14,6 +14,20 @@ const isNumberLike = (value: unknown): value is number => {
   return false;
 };
 
+const parseNonNegativeInt = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.max(0, Math.floor(value));
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, Math.floor(parsed));
+    }
+  }
+  return null;
+};
+
 export async function POST(request: Request) {
   const session = await auth();
 
@@ -23,7 +37,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { lessonId, answers, scorePercent, timeTakenSeconds } = body ?? {};
+    const { lessonId, answers, scorePercent, timeTakenSeconds, readModeSwitchesUsed } = body ?? {};
 
     if (!lessonId || typeof lessonId !== 'string') {
       return NextResponse.json({ error: "Lesson ID is required." }, { status: 400 });
@@ -49,6 +63,7 @@ export async function POST(request: Request) {
 
     const scoreValue = isNumberLike(scorePercent) ? Math.round(Number(scorePercent)) : null;
     const timeValue = isNumberLike(timeTakenSeconds) ? Math.max(0, Math.round(Number(timeTakenSeconds))) : null;
+    const readSwitchValue = parseNonNegativeInt(readModeSwitchesUsed);
 
     const attempt = await prisma.lyricLessonAttempt.create({
       data: {
@@ -57,6 +72,7 @@ export async function POST(request: Request) {
         scorePercent: scoreValue,
         timeTakenSeconds: timeValue,
         answers: answers as Prisma.InputJsonValue | undefined,
+        readModeSwitchesUsed: readSwitchValue,
       },
     });
 

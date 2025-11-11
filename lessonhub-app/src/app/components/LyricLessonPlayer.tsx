@@ -39,6 +39,7 @@ type LyricLessonPlayerProps = {
     scorePercent: number | null;
     timeTakenSeconds: number | null;
     answers: LyricAttemptAnswers | null;
+    readModeSwitchesUsed: number | null;
     createdAt: string;
   } | null;
   timingSourceUrl?: string | null;
@@ -50,6 +51,7 @@ type SubmissionState = {
   correct: number;
   total: number;
   timeTakenSeconds: number;
+  readModeSwitchesUsed: number | null;
 };
 
 const sanitizeWord = (value: string) => value.replace(/[^a-z0-9']/gi, '').toLowerCase();
@@ -184,6 +186,7 @@ export default function LyricLessonPlayer({
   const [submission, setSubmission] = useState<SubmissionState | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [playStartedAt, setPlayStartedAt] = useState<number | null>(null);
+  const [readModeSwitchCount, setReadModeSwitchCount] = useState(0);
 
   const difficulty = settings?.fillBlankDifficulty ?? 0.2;
   const preparedLines = useMemo(() => prepareLines(lines, difficulty), [lines, difficulty]);
@@ -194,6 +197,10 @@ export default function LyricLessonPlayer({
   }, [settings?.maxReadModeSwitches, lessonId]);
 
   useEffect(() => {
+    setReadModeSwitchCount(0);
+  }, [assignmentId]);
+
+  useEffect(() => {
     if (!existingAttempt) return;
     if (existingAttempt.scorePercent !== null) {
       setSubmission({
@@ -201,6 +208,10 @@ export default function LyricLessonPlayer({
         correct: 0,
         total: 0,
         timeTakenSeconds: existingAttempt.timeTakenSeconds ?? 0,
+        readModeSwitchesUsed:
+          typeof existingAttempt.readModeSwitchesUsed === 'number'
+            ? existingAttempt.readModeSwitchesUsed
+            : null,
       });
     }
   }, [existingAttempt]);
@@ -321,6 +332,7 @@ export default function LyricLessonPlayer({
           }
           setRemainingReadToggles((prev) => (prev === null ? prev : prev - 1));
         }
+        setReadModeSwitchCount((prev) => prev + 1);
       }
       setMode(targetMode);
     },
@@ -345,6 +357,7 @@ export default function LyricLessonPlayer({
           scorePercent,
           timeTakenSeconds,
           answers,
+          readModeSwitchesUsed: readModeSwitchCount,
         }),
       });
 
@@ -359,6 +372,7 @@ export default function LyricLessonPlayer({
         correct,
         total,
         timeTakenSeconds,
+        readModeSwitchesUsed: readModeSwitchCount,
       });
       toast.success('Answers submitted!');
     } catch (error) {
@@ -439,6 +453,11 @@ export default function LyricLessonPlayer({
             {submission && (
               <Badge variant="outline">
                 Time: {formatDuration(submission.timeTakenSeconds)}
+              </Badge>
+            )}
+            {submission && submission.readModeSwitchesUsed !== null && (
+              <Badge variant="outline" className="border-indigo-200 text-indigo-700">
+                Read along: {submission.readModeSwitchesUsed}
               </Badge>
             )}
           </div>
@@ -588,6 +607,11 @@ export default function LyricLessonPlayer({
               <p className="text-sm">
                 {submission.correct} of {submission.total} blanks · {formatDuration(submission.timeTakenSeconds)} total time
               </p>
+              {submission.readModeSwitchesUsed !== null && (
+                <p className="text-xs">
+                  Read-along switches used: {submission.readModeSwitchesUsed}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -598,6 +622,9 @@ export default function LyricLessonPlayer({
           <p className="text-sm text-slate-600">
             Previous attempt: {existingAttempt.scorePercent.toFixed(1)}% ·{' '}
             {formatDuration(existingAttempt.timeTakenSeconds ?? null)}
+            {typeof existingAttempt.readModeSwitchesUsed === 'number' && (
+              <> · Read-along switches used: {existingAttempt.readModeSwitchesUsed}</>
+            )}
           </p>
         </div>
       )}

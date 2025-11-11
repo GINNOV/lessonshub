@@ -233,6 +233,7 @@ model LyricLessonAttempt {
   scorePercent     Decimal?
   timeTakenSeconds Int?
   answers          Json?
+  readModeSwitchesUsed Int?
   createdAt        DateTime @default(now())
 
   @@index([lessonId])

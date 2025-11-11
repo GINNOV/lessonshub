@@ -112,6 +112,8 @@ export default async function GradeSubmissionPage({
     scorePercent: attempt.scorePercent ? Number(attempt.scorePercent.toString()) : null,
     timeTakenSeconds: attempt.timeTakenSeconds ?? null,
     answers: (attempt.answers as Record<string, string[]> | null) ?? null,
+    readModeSwitchesUsed:
+      typeof attempt.readModeSwitchesUsed === 'number' ? attempt.readModeSwitchesUsed : null,
     createdAt:
       attempt.createdAt instanceof Date
         ? attempt.createdAt.toISOString()
@@ -783,6 +785,11 @@ export default async function GradeSubmissionPage({
                       timingSourceUrl={lyricLessonConfig.timingSourceUrl ?? null}
                       lrcUrl={lyricLessonConfig.lrcUrl ?? null}
                     />
+                    {typeof lyricExistingAttempt?.readModeSwitchesUsed === 'number' && (
+                      <p className="mt-3 text-sm text-slate-600">
+                        Read-along switches used: {lyricExistingAttempt.readModeSwitchesUsed}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <p className="mt-4 rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
