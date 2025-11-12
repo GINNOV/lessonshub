@@ -63,7 +63,12 @@ type SubmissionState = {
   readModeSwitchesUsed: number | null;
 };
 
-const sanitizeWord = (value: string) => value.replace(/[^a-z0-9']/gi, '').toLowerCase();
+const sanitizeWord = (value: string) =>
+  value
+    .normalize('NFKD')
+    .replace(/['’‘‛‵`´]/g, '')
+    .replace(/[^a-z0-9]/gi, '')
+    .toLowerCase();
 
 const tokenizeLine = (text: string): { value: string; isWord: boolean }[] => {
   if (!text) return [];
