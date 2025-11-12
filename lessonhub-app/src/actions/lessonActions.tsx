@@ -438,7 +438,7 @@ export async function submitStandardAssignment(
         studentNotes: data.studentNotes,
         rating: data.rating,
         status: AssignmentStatus.COMPLETED,
-        draftAnswers: null,
+        draftAnswers: Prisma.JsonNull,
         draftStudentNotes: null,
         draftRating: null,
         draftUpdatedAt: null,
@@ -487,7 +487,7 @@ export async function saveStandardAssignmentDraft(
     await prisma.assignment.update({
       where: { id: assignmentId },
       data: {
-        draftAnswers: data.answers,
+        draftAnswers: data.answers as Prisma.InputJsonValue,
         draftStudentNotes: data.studentNotes || null,
         draftRating: typeof data.rating === "number" ? data.rating : null,
         draftUpdatedAt: new Date(),
