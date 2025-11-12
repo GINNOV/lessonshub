@@ -129,6 +129,11 @@ export default async function GradeSubmissionPage({
       lyricAttempts,
     }
   };
+  (serializableSubmission as any).lyricDraftAnswers = parseDraftAnswers(submission.lyricDraftAnswers);
+  serializableSubmission.lyricDraftMode = (submission.lyricDraftMode as 'read' | 'fill' | null) ?? null;
+  serializableSubmission.lyricDraftReadSwitches =
+    typeof submission.lyricDraftReadSwitches === 'number' ? submission.lyricDraftReadSwitches : null;
+  serializableSubmission.lyricDraftUpdatedAt = submission.lyricDraftUpdatedAt;
 
   const flashcards = submission.lesson.flashcards ?? [];
   const multiChoiceQuestions = submission.lesson.multiChoiceQuestions ?? [];
@@ -784,6 +789,18 @@ export default async function GradeSubmissionPage({
                       existingAttempt={lyricExistingAttempt}
                       timingSourceUrl={lyricLessonConfig.timingSourceUrl ?? null}
                       lrcUrl={lyricLessonConfig.lrcUrl ?? null}
+                      draftState={{
+                        answers: (serializableSubmission as any).lyricDraftAnswers ?? null,
+                        mode:
+                          serializableSubmission.lyricDraftMode === 'read' ||
+                          serializableSubmission.lyricDraftMode === 'fill'
+                            ? serializableSubmission.lyricDraftMode
+                            : null,
+                        readModeSwitches: serializableSubmission.lyricDraftReadSwitches ?? null,
+                        updatedAt: serializableSubmission.lyricDraftUpdatedAt
+                          ? serializableSubmission.lyricDraftUpdatedAt.toISOString()
+                          : null,
+                      }}
                     />
                     {typeof lyricExistingAttempt?.readModeSwitchesUsed === 'number' && (
                       <p className="mt-3 text-sm text-slate-600">
@@ -858,3 +875,18 @@ export default async function GradeSubmissionPage({
     </div>
   );
 }
+  const parseDraftAnswers = (value: unknown): Record<string, string[]> | null => {
+    if (!value || typeof value !== 'object') return null;
+    const result: Record<string, string[]> = {};
+    const entries = Object.entries(value as Record<string, unknown>);
+    let hasEntries = false;
+    entries.forEach(([key, raw]) => {
+      if (!Array.isArray(raw)) return;
+      const arr = raw.every(item => typeof item === 'string')
+        ? (raw as string[])
+        : raw.map(item => (item === null || item === undefined ? '' : String(item)));
+      result[key] = arr;
+      hasEntries = true;
+    });
+    return hasEntries ? result : null;
+  };

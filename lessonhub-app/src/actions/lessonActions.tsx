@@ -478,6 +478,10 @@ export async function submitStandardAssignment(
         draftStudentNotes: null,
         draftRating: null,
         draftUpdatedAt: null,
+        lyricDraftAnswers: Prisma.JsonNull,
+        lyricDraftMode: null,
+        lyricDraftReadSwitches: null,
+        lyricDraftUpdatedAt: null,
       },
     });
     const { student, lesson } = assignment;
@@ -1436,5 +1440,40 @@ export async function getLessonAverageRating(lessonId: string) {
   } catch (error) {
     console.error(`Failed to get average rating for lesson ${lessonId}:`, error);
     return null;
+  }
+}
+export async function saveLyricAssignmentDraft(
+  assignmentId: string,
+  studentId: string,
+  data: {
+    answers: Record<string, string[]>;
+    mode: 'read' | 'fill';
+    readModeSwitches: number;
+  }
+) {
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: { id: assignmentId, studentId },
+      select: { id: true, status: true },
+    });
+    if (!assignment) return { success: false, error: 'Assignment not found or unauthorized.' };
+    if (assignment.status !== AssignmentStatus.PENDING) {
+      return { success: false, error: 'Assignment can no longer be edited.' };
+    }
+
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: {
+        lyricDraftAnswers: data.answers as Prisma.InputJsonValue,
+        lyricDraftMode: data.mode,
+        lyricDraftReadSwitches: Math.max(0, data.readModeSwitches),
+        lyricDraftUpdatedAt: new Date(),
+      },
+    });
+    revalidatePath(`/assignments/${assignmentId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save lyric draft:', error);
+    return { success: false, error: 'Unable to save draft right now.' };
   }
 }

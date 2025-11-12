@@ -125,6 +125,27 @@ export default async function AssignmentPage({
       lyricAttempts,
     },
     answers: assignment.answers as any,
+    lyricDraftAnswers: ((): Record<string, string[]> | null => {
+      if (!assignment.lyricDraftAnswers || typeof assignment.lyricDraftAnswers !== 'object') return null;
+      const result: Record<string, string[]> = {};
+      let hasEntries = false;
+      Object.entries(assignment.lyricDraftAnswers as Record<string, unknown>).forEach(([key, raw]) => {
+        if (!Array.isArray(raw)) return;
+        const arr = raw.every(item => typeof item === 'string')
+          ? (raw as string[])
+          : raw.map(item => (item === null || item === undefined ? '' : String(item)));
+        result[key] = arr;
+        hasEntries = true;
+      });
+      return hasEntries ? result : null;
+    })(),
+    lyricDraftMode:
+      assignment.lyricDraftMode === 'read' || assignment.lyricDraftMode === 'fill'
+        ? assignment.lyricDraftMode
+        : null,
+    lyricDraftReadSwitches:
+      typeof assignment.lyricDraftReadSwitches === 'number' ? assignment.lyricDraftReadSwitches : null,
+    lyricDraftUpdatedAt: assignment.lyricDraftUpdatedAt,
   };
 
   const { lesson } = serializableAssignment;
@@ -296,6 +317,12 @@ export default async function AssignmentPage({
               existingAttempt={lesson.lyricAttempts?.[0] ?? null}
               timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
               lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+              draftState={{
+                answers: (serializableAssignment as any).lyricDraftAnswers ?? null,
+                mode: (serializableAssignment as any).lyricDraftMode ?? null,
+                readModeSwitches: (serializableAssignment as any).lyricDraftReadSwitches ?? null,
+                updatedAt: (serializableAssignment as any).lyricDraftUpdatedAt ?? null,
+              }}
             />
           ) : isLearningSession ? (
             <LearningSessionPlayer

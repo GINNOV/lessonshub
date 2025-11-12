@@ -267,6 +267,10 @@ model Assignment {
   student             User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
   pointTransactions   PointTransaction[]
   badgeAwards         UserBadge[]
+  lyricDraftAnswers   Json?
+  lyricDraftMode      String?
+  lyricDraftReadSwitches Int?
+  lyricDraftUpdatedAt DateTime?
 
   @@unique([lessonId, studentId])
 }

@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { ExternalLink, Pause, Play, RefreshCw, Sparkles, Volume2 } from 'lucide-react';
+import { ExternalLink, Pause, Play, RefreshCw, Save, Sparkles, Volume2 } from 'lucide-react';
 import type { LyricLine, LyricLessonSettings } from './LyricLessonEditor';
+import { saveLyricAssignmentDraft } from '@/actions/lessonActions';
+import { formatDistanceToNow } from 'date-fns';
 
 type LyricAttemptAnswers = Record<string, string[]>;
 
@@ -44,6 +46,12 @@ type LyricLessonPlayerProps = {
   } | null;
   timingSourceUrl?: string | null;
   lrcUrl?: string | null;
+  draftState?: {
+    answers: LyricAttemptAnswers | null;
+    mode: 'read' | 'fill' | null;
+    readModeSwitches: number | null;
+    updatedAt: string | null;
+  } | null;
 };
 
 type SubmissionState = {
@@ -170,23 +178,30 @@ export default function LyricLessonPlayer({
   existingAttempt,
   timingSourceUrl,
   lrcUrl,
+  draftState,
 }: LyricLessonPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lineStopAtRef = useRef<number | null>(null);
   const pendingLinePlayRef = useRef(false);
-  const [mode, setMode] = useState<'read' | 'fill'>(() => settings?.defaultMode === 'fill' ? 'fill' : 'read');
+  const [mode, setMode] = useState<'read' | 'fill'>(() =>
+    draftState?.mode ?? (settings?.defaultMode === 'fill' ? 'fill' : 'read')
+  );
   const [remainingReadToggles, setRemainingReadToggles] = useState<number | null>(() => {
     const allowance = settings?.maxReadModeSwitches;
     return typeof allowance === 'number' && allowance >= 0 ? allowance : null;
   });
   const [activeLineId, setActiveLineId] = useState<string | null>(lines[0]?.id ?? null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [answers, setAnswers] = useState<LyricAttemptAnswers>(() => existingAttempt?.answers ?? {});
+  const [answers, setAnswers] = useState<LyricAttemptAnswers>(() => draftState?.answers ?? existingAttempt?.answers ?? {});
   const [submission, setSubmission] = useState<SubmissionState | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [playStartedAt, setPlayStartedAt] = useState<number | null>(null);
-  const [readModeSwitchCount, setReadModeSwitchCount] = useState(0);
+  const [readModeSwitchCount, setReadModeSwitchCount] = useState(draftState?.readModeSwitches ?? 0);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(() =>
+    draftState?.updatedAt ? new Date(draftState.updatedAt) : null
+  );
 
   const difficulty = settings?.fillBlankDifficulty ?? 0.2;
   const preparedLines = useMemo(() => prepareLines(lines, difficulty), [lines, difficulty]);
@@ -197,8 +212,10 @@ export default function LyricLessonPlayer({
   }, [settings?.maxReadModeSwitches, lessonId]);
 
   useEffect(() => {
-    setReadModeSwitchCount(0);
-  }, [assignmentId]);
+    if (!draftState) {
+      setReadModeSwitchCount(0);
+    }
+  }, [assignmentId, draftState]);
 
   useEffect(() => {
     if (!existingAttempt) return;
@@ -382,6 +399,24 @@ export default function LyricLessonPlayer({
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (status !== AssignmentStatus.PENDING || isSubmitting || isSavingDraft) return;
+    setIsSavingDraft(true);
+    const result = await saveLyricAssignmentDraft(assignmentId, lessonId, {
+      answers,
+      mode,
+      readModeSwitches: readModeSwitchCount,
+    });
+    setIsSavingDraft(false);
+    if (result.success) {
+      const now = new Date();
+      setLastSavedAt(now);
+      toast.success('Draft saved.');
+    } else {
+      toast.error(result.error || 'Unable to save draft right now.');
+    }
+  };
+
   const playFromLine = useCallback((line: PreparedLine) => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
@@ -480,6 +515,18 @@ export default function LyricLessonPlayer({
             >
               Fill the Blanks
             </Button>
+            {status === AssignmentStatus.PENDING && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || isSubmitting}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {isSavingDraft ? 'Saving…' : 'Save Draft'}
+              </Button>
+            )}
             {timingSourceUrl && (
               <Button asChild type="button" size="sm" variant="outline">
                 <a href={timingSourceUrl} target="_blank" rel="noopener noreferrer">
@@ -593,6 +640,11 @@ export default function LyricLessonPlayer({
             <RefreshCw className="mr-2 h-4 w-4" />
             Reset
           </Button>
+          <p className="text-xs text-gray-500">
+            {lastSavedAt
+              ? `Draft saved ${formatDistanceToNow(lastSavedAt, { addSuffix: true })}`
+              : 'Draft not saved yet'}
+          </p>
         </div>
       )}
 
