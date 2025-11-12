@@ -800,7 +800,17 @@ export async function getAssignmentsForStudent(studentId: string) {
 export async function getAssignmentById(assignmentId: string, studentId: string) {
   try {
     const assignment = await prisma.assignment.findFirst({
-      where: { id: assignmentId, studentId: studentId },
+      where: {
+        id: assignmentId,
+        OR: [
+          { studentId },
+          {
+            lesson: {
+              teacherId: studentId,
+            },
+          },
+        ],
+      },
       include: {
         lesson: {
           include: {
