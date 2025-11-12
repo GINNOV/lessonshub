@@ -1,16 +1,17 @@
 // file: src/app/components/MultiChoicePlayer.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Assignment, Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { submitMultiChoiceAssignment } from '@/actions/lessonActions';
+import { saveMultiChoiceAssignmentDraft, submitMultiChoiceAssignment } from '@/actions/lessonActions';
 import { toast } from 'sonner';
 import { RotateCw, Check } from 'lucide-react';
 import Rating from './Rating';
 import { useRouter } from 'next/navigation';
+import { formatDistanceToNow } from 'date-fns';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -19,6 +20,9 @@ type SerializableLesson = Omit<Lesson, 'price'> & {
 
 type MultiChoiceAssignment = Omit<Assignment, 'lesson'> & {
   lesson: SerializableLesson;
+  draftAnswers?: unknown;
+  draftRating?: number | null;
+  draftUpdatedAt?: string | Date | null;
 };
 
 interface MultiChoicePlayerProps {
@@ -38,9 +42,33 @@ export default function MultiChoicePlayer({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [rating, setRating] = useState<number | undefined>(undefined);
+  const [rating, setRating] = useState<number>(assignment.draftRating ?? 0);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(() => {
+    if (!assignment.draftUpdatedAt) return null;
+    return new Date(assignment.draftUpdatedAt);
+  });
   const { multiChoiceQuestions } = assignment.lesson;
   const isPractice = mode === 'practice';
+  const isPending = assignment.status === 'PENDING';
+
+  const draftAnswers = useMemo(() => {
+    if (!assignment.draftAnswers || typeof assignment.draftAnswers !== 'object') return null;
+    try {
+      return assignment.draftAnswers as Record<string, string>;
+    } catch {
+      return null;
+    }
+  }, [assignment.draftAnswers]);
+
+  useEffect(() => {
+    if (!isPractice && isPending) {
+      if (draftAnswers) {
+        setAnswers({ ...draftAnswers });
+      }
+      setRating(assignment.draftRating ?? 0);
+    }
+  }, [assignment.draftRating, draftAnswers, isPending, isPractice]);
 
   const handleValueChange = (questionId: string, value: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
@@ -64,7 +92,12 @@ export default function MultiChoicePlayer({
       return;
     }
     setIsSubmitting(true);
-    const result = await submitMultiChoiceAssignment(assignment.id, assignment.studentId, answers, rating);
+    const result = await submitMultiChoiceAssignment(
+      assignment.id,
+      assignment.studentId,
+      answers,
+      rating > 0 ? rating : undefined
+    );
 
     if (result.success) {
       toast.success('Your assignment has been submitted and graded!');
@@ -75,11 +108,29 @@ export default function MultiChoicePlayer({
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (isPractice || !isPending || isSubmissionLocked) return;
+    setIsSavingDraft(true);
+    const result = await saveMultiChoiceAssignmentDraft(assignment.id, assignment.studentId, {
+      answers,
+      rating: rating > 0 ? rating : undefined,
+    });
+    setIsSavingDraft(false);
+    if (result.success) {
+      const now = new Date();
+      setLastSavedAt(now);
+      toast.success('Draft saved. Finish whenever you’re ready.');
+      router.refresh();
+    } else {
+      toast.error(result.error || 'Unable to save draft right now.');
+    }
+  };
+
   const handleRestart = () => {
     setAnswers({});
     setShowResults(false);
     setIsSubmitting(false);
-    setRating(undefined);
+    setRating(0);
   };
 
   const handlePracticeFinish = () => {
@@ -142,21 +193,54 @@ export default function MultiChoicePlayer({
           </RadioGroup>
         </div>
       ))}
-       {!isPractice && (
+      {!isPractice && (
         <div className="mt-6 border-t pt-6">
           <h3 className="text-lg font-semibold mb-2 text-center">Rate this lesson</h3>
           <div className="flex justify-center">
-            <Rating onRatingChange={setRating} disabled={isSubmissionLocked} />
+            <Rating
+              initialRating={rating}
+              onRatingChange={setRating}
+              disabled={isSubmissionLocked}
+            />
           </div>
         </div>
       )}
-      <Button
-        onClick={handleSubmit}
-        disabled={!isPractice ? (isSubmitting || isSubmissionLocked) : false}
-        className="w-full"
-      >
-        {isPractice ? 'Check results' : isSubmitting ? 'Submitting...' : 'Submit Answers'}
-      </Button>
+      {!isPractice && isPending && (
+        <div className="flex flex-col gap-3 md:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSaveDraft}
+            disabled={isSavingDraft || isSubmissionLocked}
+            className="w-full md:w-48"
+          >
+            {isSavingDraft ? 'Saving draft...' : 'Save Draft'}
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || isSubmissionLocked}
+            className="w-full md:flex-1"
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Answers'}
+          </Button>
+        </div>
+      )}
+      {(!isPractice && isPending) && (
+        <p className="text-sm text-gray-500">
+          {lastSavedAt
+            ? `Last saved ${formatDistanceToNow(lastSavedAt, { addSuffix: true })}`
+            : 'Draft not saved yet'}
+        </p>
+      )}
+      {(isPractice || !isPending) && (
+        <Button
+          onClick={handleSubmit}
+          disabled={!isPractice ? (isSubmitting || isSubmissionLocked) : false}
+          className="w-full"
+        >
+          {isPractice ? 'Check results' : isSubmitting ? 'Submitting...' : 'Submit Answers'}
+        </Button>
+      )}
     </div>
   );
 }

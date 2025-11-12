@@ -396,6 +396,9 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
                 score: score,
                 gradedAt: new Date(),
                 rating: rating,
+                draftAnswers: Prisma.JsonNull,
+                draftRating: null,
+                draftUpdatedAt: null,
             }
         });
         revalidatePath('/my-lessons');
@@ -407,6 +410,39 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
         console.error("Failed to submit multi-choice assignment:", error);
         return { success: false, error: 'Failed to submit assignment.' };
     }
+}
+
+export async function saveMultiChoiceAssignmentDraft(
+  assignmentId: string,
+  studentId: string,
+  data: { answers: Record<string, string>; rating?: number | undefined }
+) {
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: { id: assignmentId, studentId },
+      select: { id: true, status: true },
+    });
+    if (!assignment) {
+      return { success: false, error: 'Assignment not found or unauthorized.' };
+    }
+    if (assignment.status !== AssignmentStatus.PENDING) {
+      return { success: false, error: 'Assignment can no longer be edited.' };
+    }
+
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: {
+        draftAnswers: data.answers as Prisma.InputJsonValue,
+        draftRating: typeof data.rating === 'number' ? data.rating : null,
+        draftUpdatedAt: new Date(),
+      },
+    });
+    revalidatePath(`/assignments/${assignmentId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save multi-choice draft:', error);
+    return { success: false, error: 'Unable to save draft right now.' };
+  }
 }
 
 export async function submitStandardAssignment(
