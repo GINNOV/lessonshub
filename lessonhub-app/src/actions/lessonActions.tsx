@@ -1487,3 +1487,22 @@ export async function saveLyricAssignmentDraft(
     return { success: false, error: 'Unable to save draft right now.' };
   }
 }
+
+export async function recordLessonUsageForLatestLogin(userId: string, lessonId: string) {
+  if (!userId || !lessonId) return;
+  try {
+    const latest = await prisma.loginEvent.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!latest || latest.lessonId === lessonId) {
+      return;
+    }
+    await prisma.loginEvent.update({
+      where: { id: latest.id },
+      data: { lessonId },
+    });
+  } catch (error) {
+    console.error('LOGIN_EVENT_LESSON_UPDATE_ERROR', error);
+  }
+}

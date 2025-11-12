@@ -143,4 +143,20 @@ export const {
       return session;
     },
   },
+  events: {
+    async signIn({ user, account }) {
+      if (!user?.id) return;
+      try {
+        await prisma.loginEvent.create({
+          data: {
+            userId: user.id,
+            ipAddress: null,
+            userAgent: account?.provider ?? null,
+          },
+        });
+      } catch (error) {
+        console.error("LOGIN_EVENT_CREATE_ERROR", error);
+      }
+    },
+  },
 });

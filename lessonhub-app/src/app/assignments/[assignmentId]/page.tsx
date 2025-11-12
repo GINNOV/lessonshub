@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getAssignmentById } from "@/actions/lessonActions";
+import { getAssignmentById, recordLessonUsageForLatestLogin } from "@/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
 import LessonContentView from "@/app/components/LessonContentView";
 import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
@@ -61,6 +61,9 @@ export default async function AssignmentPage({
         <p>This assignment may not exist or you may not have permission to view it.</p>
       </div>
     );
+  }
+  if (session.user.id === assignment.studentId) {
+    await recordLessonUsageForLatestLogin(assignment.studentId, assignment.lessonId);
   }
   
   const normalizeLyricLines = (value: unknown): LyricLine[] => {

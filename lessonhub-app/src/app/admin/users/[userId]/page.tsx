@@ -43,6 +43,21 @@ export default async function UserProfilePage({
     );
   }
 
+  const loginEvents = await prisma.loginEvent.findMany({
+    where: { userId: params.userId },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    include: {
+      lesson: { select: { id: true, title: true } },
+    },
+  });
+  const loginHistory = loginEvents.map(event => ({
+    id: event.id,
+    timestamp: event.createdAt.toISOString(),
+    lessonId: event.lessonId,
+    lessonTitle: event.lesson?.title ?? null,
+  }));
+
   return (
     <div>
         <div className="mb-6 flex items-center justify-between">
@@ -56,7 +71,7 @@ export default async function UserProfilePage({
                 <Link href="/admin/users">&larr; Back to User Management</Link>
             </Button>
         </div>
-        <UserProfileTabs user={user} />
+        <UserProfileTabs user={user} loginHistory={loginHistory} />
     </div>
   );
 }

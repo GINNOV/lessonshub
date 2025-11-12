@@ -2,6 +2,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import ProfileForm from "@/app/components/ProfileForm";
+import LoginHistoryCard from "@/app/components/LoginHistoryCard";
 import prisma from "@/lib/prisma";
 
 export default async function ProfilePage() {
@@ -47,9 +48,33 @@ export default async function ProfilePage() {
     assignmentSummaryFooter: user.assignmentSummaryFooter,
   } as any;
 
+  const loginEvents = await prisma.loginEvent.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    include: {
+      lesson: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
+  });
+  const loginHistory = loginEvents.map(event => ({
+    id: event.id,
+    timestamp: event.createdAt.toISOString(),
+    lessonId: event.lessonId,
+    lessonTitle: event.lesson?.title ?? null,
+  }));
+
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="text-3xl font-bold mb-6">Control Center</h1>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Control Center</h1>
+        <p className="text-sm text-slate-500">Update your profile and review recent activity.</p>
+      </div>
+      <LoginHistoryCard entries={loginHistory} emptyMessage="No logins recorded yet." />
       <ProfileForm userToEdit={serializableUser} />
     </div>
   );

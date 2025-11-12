@@ -50,6 +50,7 @@ model User {
   pointTransactions         PointTransaction[]
   badges                    UserBadge[]
   classes                   Class[]
+  loginEvents               LoginEvent[]
   defaultLessonPrice        Decimal?
   defaultLessonPreview      String?   @db.Text
   defaultLessonNotes        String?   @db.Text
@@ -118,6 +119,7 @@ model Lesson {
   teacher                   User?                  @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   assignments               Assignment[]
   flashcards                Flashcard[]
+  loginEvents               LoginEvent[]
   learningSessionCards      LearningSessionCard[]
   multiChoiceQuestions      MultiChoiceQuestion[]
   lyricConfig               LyricLessonConfig?
@@ -319,6 +321,20 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LoginEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId   String?
+  lesson     Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([lessonId])
 }
 
 model VerificationToken {
