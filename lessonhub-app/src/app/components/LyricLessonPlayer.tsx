@@ -482,8 +482,8 @@ export default function LyricLessonPlayer({
   return (
     <div className="space-y-6">
       <div className="rounded-lg border bg-slate-50 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
             <Volume2 className="h-5 w-5 text-indigo-500" />
             <span className="font-semibold text-slate-700">Lyric Lesson Player</span>
             {scoreBadge}
@@ -498,7 +498,7 @@ export default function LyricLessonPlayer({
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
             <Button
               type="button"
               size="sm"
@@ -522,6 +522,7 @@ export default function LyricLessonPlayer({
                 type="button"
                 size="sm"
                 variant="outline"
+                className="flex-1 whitespace-nowrap sm:flex-none"
                 onClick={handleSaveDraft}
                 disabled={isSavingDraft || isSubmitting}
               >
