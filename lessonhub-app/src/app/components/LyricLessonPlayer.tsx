@@ -32,6 +32,7 @@ type PreparedLine = {
 
 type LyricLessonPlayerProps = {
   assignmentId: string;
+  studentId: string;
   lessonId: string;
   audioUrl: string;
   lines: LyricLine[];
@@ -170,6 +171,7 @@ const formatDuration = (seconds: number | null) => {
 
 export default function LyricLessonPlayer({
   assignmentId,
+  studentId,
   lessonId,
   audioUrl,
   lines,
@@ -402,7 +404,7 @@ export default function LyricLessonPlayer({
   const handleSaveDraft = async () => {
     if (status !== AssignmentStatus.PENDING || isSubmitting || isSavingDraft) return;
     setIsSavingDraft(true);
-    const result = await saveLyricAssignmentDraft(assignmentId, lessonId, {
+    const result = await saveLyricAssignmentDraft(assignmentId, studentId, {
       answers,
       mode,
       readModeSwitches: readModeSwitchCount,

@@ -781,6 +781,7 @@ export default async function GradeSubmissionPage({
                   <div className="mt-4 rounded-lg border bg-slate-50 p-4">
                     <LyricLessonPlayer
                       assignmentId={serializableSubmission.id}
+                      studentId={serializableSubmission.studentId}
                       lessonId={serializableSubmission.lesson.id}
                       audioUrl={lyricLessonConfig.audioUrl}
                       lines={lyricLessonConfig.lines as LyricLine[]}
