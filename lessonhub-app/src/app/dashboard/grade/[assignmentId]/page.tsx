@@ -138,6 +138,7 @@ export default async function GradeSubmissionPage({
   const flashcards = submission.lesson.flashcards ?? [];
   const multiChoiceQuestions = submission.lesson.multiChoiceQuestions ?? [];
   const lyricLessonConfig = serializableSubmission.lesson.lyricConfig;
+  const lyricAudioUrl = lyricLessonConfig?.audioUrl?.trim() ?? '';
   const lyricExistingAttempt = serializableSubmission.lesson.lyricAttempts?.[0] ?? null;
 
   const parseFlashcardAnswers = (): Record<string, 'correct' | 'incorrect'> | null => {
@@ -777,41 +778,47 @@ export default async function GradeSubmissionPage({
             )}
             {submission.lesson.type === LessonType.LYRIC && lyricLessonConfig && (
               <>
-                {lyricExistingAttempt ? (
-                  <div className="mt-4 rounded-lg border bg-slate-50 p-4">
-                    <LyricLessonPlayer
-                      assignmentId={serializableSubmission.id}
-                      studentId={serializableSubmission.studentId}
-                      lessonId={serializableSubmission.lesson.id}
-                      audioUrl={lyricLessonConfig.audioUrl}
-                      lines={lyricLessonConfig.lines as LyricLine[]}
-                      settings={lyricLessonConfig.settings as LyricLessonSettings | null}
-                      status={serializableSubmission.status}
-                      existingAttempt={lyricExistingAttempt}
-                      timingSourceUrl={lyricLessonConfig.timingSourceUrl ?? null}
-                      lrcUrl={lyricLessonConfig.lrcUrl ?? null}
-                      draftState={{
-                        answers: (serializableSubmission as any).lyricDraftAnswers ?? null,
-                        mode:
-                          serializableSubmission.lyricDraftMode === 'read' ||
-                          serializableSubmission.lyricDraftMode === 'fill'
-                            ? serializableSubmission.lyricDraftMode
+                {lyricAudioUrl ? (
+                  lyricExistingAttempt ? (
+                    <div className="mt-4 rounded-lg border bg-slate-50 p-4">
+                      <LyricLessonPlayer
+                        assignmentId={serializableSubmission.id}
+                        studentId={serializableSubmission.studentId}
+                        lessonId={serializableSubmission.lesson.id}
+                        audioUrl={lyricAudioUrl}
+                        lines={lyricLessonConfig.lines as LyricLine[]}
+                        settings={lyricLessonConfig.settings as LyricLessonSettings | null}
+                        status={serializableSubmission.status}
+                        existingAttempt={lyricExistingAttempt}
+                        timingSourceUrl={lyricLessonConfig.timingSourceUrl ?? null}
+                        lrcUrl={lyricLessonConfig.lrcUrl ?? null}
+                        draftState={{
+                          answers: (serializableSubmission as any).lyricDraftAnswers ?? null,
+                          mode:
+                            serializableSubmission.lyricDraftMode === 'read' ||
+                            serializableSubmission.lyricDraftMode === 'fill'
+                              ? serializableSubmission.lyricDraftMode
+                              : null,
+                          readModeSwitches: serializableSubmission.lyricDraftReadSwitches ?? null,
+                          updatedAt: serializableSubmission.lyricDraftUpdatedAt
+                            ? serializableSubmission.lyricDraftUpdatedAt.toISOString()
                             : null,
-                        readModeSwitches: serializableSubmission.lyricDraftReadSwitches ?? null,
-                        updatedAt: serializableSubmission.lyricDraftUpdatedAt
-                          ? serializableSubmission.lyricDraftUpdatedAt.toISOString()
-                          : null,
-                      }}
-                    />
-                    {typeof lyricExistingAttempt?.readModeSwitchesUsed === 'number' && (
-                      <p className="mt-3 text-sm text-slate-600">
-                        Read-along switches used: {lyricExistingAttempt.readModeSwitchesUsed}
-                      </p>
-                    )}
-                  </div>
+                        }}
+                      />
+                      {typeof lyricExistingAttempt?.readModeSwitchesUsed === 'number' && (
+                        <p className="mt-3 text-sm text-slate-600">
+                          Read-along switches used: {lyricExistingAttempt.readModeSwitchesUsed}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="mt-4 rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                      The student hasn&apos;t submitted any lyric attempts yet.
+                    </p>
+                  )
                 ) : (
                   <p className="mt-4 rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-                    The student hasn&apos;t submitted any lyric attempts yet.
+                    The lyric lesson audio isn&apos;t available yet. Upload an audio track to enable playback.
                   </p>
                 )}
               </>

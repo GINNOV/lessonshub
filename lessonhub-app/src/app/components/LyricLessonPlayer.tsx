@@ -34,7 +34,7 @@ type LyricLessonPlayerProps = {
   assignmentId: string;
   studentId: string;
   lessonId: string;
-  audioUrl: string;
+  audioUrl: string | null;
   lines: LyricLine[];
   settings: LyricLessonSettings | null;
   status: AssignmentStatus;
@@ -187,6 +187,7 @@ export default function LyricLessonPlayer({
   lrcUrl,
   draftState,
 }: LyricLessonPlayerProps) {
+  const safeAudioUrl = typeof audioUrl === 'string' ? audioUrl.trim() : '';
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lineStopAtRef = useRef<number | null>(null);
@@ -484,6 +485,10 @@ export default function LyricLessonPlayer({
     </Badge>
   );
 
+  if (!safeAudioUrl) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-lg border bg-slate-50 p-4">
@@ -546,7 +551,7 @@ export default function LyricLessonPlayer({
 
           </div>
         </div>
-        <audio ref={audioRef} className="mt-4 w-full" src={audioUrl} controls preload="metadata" />
+        <audio ref={audioRef} className="mt-4 w-full" src={safeAudioUrl} controls preload="metadata" />
       </div>
 
       <div
