@@ -3,7 +3,7 @@
 
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
-import { Role, AssignmentStatus } from "@prisma/client";
+import { Role, AssignmentStatus, LessonType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { sendEmail, createButton } from "@/lib/email-templates";
 
@@ -220,6 +220,7 @@ export async function getTeacherDashboardStats(teacherId: string) {
       pastDueLessons,
       completedLessons,
       emptyLessons,
+      visibleGuides,
     ] = await Promise.all([
       // Count only students assigned to this teacher
       prisma.teachersForStudent.count({ where: { teacherId } }),
@@ -273,6 +274,16 @@ export async function getTeacherDashboardStats(teacherId: string) {
           assignments: {
             none: {},
           },
+          type: {
+            not: LessonType.LEARNING_SESSION,
+          },
+        },
+      }),
+      prisma.lesson.count({
+        where: {
+          teacherId,
+          type: LessonType.LEARNING_SESSION,
+          guideIsVisible: true,
         },
       }),
     ]);
@@ -287,6 +298,7 @@ export async function getTeacherDashboardStats(teacherId: string) {
       pastDueLessons,
       completedLessons,
       emptyLessons,
+      visibleGuides,
     };
   } catch (error) {
     console.error("Failed to fetch teacher dashboard stats:", error);
@@ -298,6 +310,7 @@ export async function getTeacherDashboardStats(teacherId: string) {
       pastDueLessons: 0,
       completedLessons: 0,
       emptyLessons: 0,
+      visibleGuides: 0,
     };
   }
 }

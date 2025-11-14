@@ -1,7 +1,7 @@
 // file: src/app/components/TeacherStatsHeader.tsx
 'use client';
 
-import { BookUser, Coffee, BookOpen, AlertTriangle, CheckCircle2, FolderOpen } from 'lucide-react';
+import { BookUser, Coffee, BookOpen, AlertTriangle, CheckCircle2, FolderOpen, BookMarked } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getWeekdays } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ interface TeacherStatsHeaderProps {
     pastDueLessons: number;
     completedLessons: number;
     emptyLessons: number;
+    visibleGuides: number;
   };
 }
 
@@ -114,7 +115,7 @@ export default function TeacherStatsHeader({ stats }: TeacherStatsHeaderProps) {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
           <StatCard
             icon={AlertTriangle}
             value={stats.pastDueLessons}
@@ -132,6 +133,12 @@ export default function TeacherStatsHeader({ stats }: TeacherStatsHeaderProps) {
             value={stats.emptyLessons}
             label="Empty Lessons"
             colorClassName="bg-slate-500"
+          />
+          <StatCard
+            icon={BookMarked}
+            value={stats.visibleGuides}
+            label="Guides Available"
+            colorClassName="bg-purple-500"
           />
         </div>
       </CardContent>
