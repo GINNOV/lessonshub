@@ -188,6 +188,7 @@ export default function LyricLessonPlayer({
   draftState,
 }: LyricLessonPlayerProps) {
   const safeAudioUrl = typeof audioUrl === 'string' ? audioUrl.trim() : '';
+  const hasAudio = Boolean(safeAudioUrl);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lineStopAtRef = useRef<number | null>(null);
@@ -242,6 +243,7 @@ export default function LyricLessonPlayer({
   }, [existingAttempt]);
 
   useEffect(() => {
+    if (!hasAudio) return;
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
@@ -274,10 +276,10 @@ export default function LyricLessonPlayer({
       audioEl.removeEventListener('pause', handlePause);
       audioEl.removeEventListener('ended', handleEnded);
     };
-  }, [playStartedAt]);
+  }, [playStartedAt, hasAudio]);
 
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!hasAudio || !isPlaying) return;
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
@@ -327,7 +329,7 @@ export default function LyricLessonPlayer({
 
     animationFrame = requestAnimationFrame(updateActiveLine);
     return () => cancelAnimationFrame(animationFrame);
-  }, [isPlaying, preparedLines, activeLineId]);
+  }, [isPlaying, preparedLines, activeLineId, hasAudio]);
 
   useEffect(() => {
     if (!activeLineId) return;
@@ -426,6 +428,7 @@ export default function LyricLessonPlayer({
   };
 
   const playFromLine = useCallback((line: PreparedLine) => {
+    if (!hasAudio) return;
     const audioEl = audioRef.current;
     if (!audioEl) return;
     if (line.startTime !== null) {
@@ -463,15 +466,16 @@ export default function LyricLessonPlayer({
       .play()
       .then(() => setActiveLineId(line.id))
       .catch(() => toast.error('Unable to start playback. Please check the audio source.'));
-  }, [preparedLines]);
+  }, [preparedLines, hasAudio]);
 
   const stopPlayback = useCallback(() => {
+    if (!hasAudio) return;
     const audioEl = audioRef.current;
     if (!audioEl) return;
     lineStopAtRef.current = null;
     pendingLinePlayRef.current = false;
     audioEl.pause();
-  }, []);
+  }, [hasAudio]);
 
   const readSwitchesRemaining = remainingReadToggles;
   const readModeDisabled = mode !== 'read' && readSwitchesRemaining !== null && readSwitchesRemaining <= 0;
@@ -548,10 +552,20 @@ export default function LyricLessonPlayer({
                 </a>
               </Button>
             )}
-
+            {!hasAudio && (
+              <Badge variant="outline" className="border-amber-300 text-amber-700">
+                Audio not uploaded yet
+              </Badge>
+            )}
           </div>
         </div>
-        <audio ref={audioRef} className="mt-4 w-full" src={safeAudioUrl} controls preload="metadata" />
+        {hasAudio ? (
+          <audio ref={audioRef} className="mt-4 w-full" src={safeAudioUrl} controls preload="metadata" />
+        ) : (
+          <p className="mt-4 rounded-md border border-dashed border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            Waiting on your teacher to upload the audio track. You can still review the lyrics below.
+          </p>
+        )}
       </div>
 
       <div
@@ -581,16 +595,18 @@ export default function LyricLessonPlayer({
                     {formatDuration(line.startTime ?? null)} → {formatDuration(line.endTime ?? null)}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="ghost" size="sm" onClick={() => playFromLine(line)}>
-                    <Play className="mr-2 h-4 w-4" />
-                    Play line
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" onClick={stopPlayback}>
-                    <Pause className="mr-2 h-4 w-4" />
-                    Pause
-                  </Button>
-                </div>
+                {hasAudio && (
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => playFromLine(line)}>
+                      <Play className="mr-2 h-4 w-4" />
+                      Play line
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={stopPlayback}>
+                      <Pause className="mr-2 h-4 w-4" />
+                      Pause
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="mt-3 text-lg leading-relaxed text-slate-800">
                 {mode === 'fill'

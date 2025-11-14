@@ -175,7 +175,7 @@ export default async function AssignmentPage({
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
   const isLyric = lesson.type === LessonType.LYRIC;
-  const lyricAudioUrl = lesson.lyricConfig?.audioUrl?.trim() ?? '';
+  const lyricAudioUrl = lesson.lyricConfig?.audioUrl ?? null;
   const isLearningSession = lesson.type === LessonType.LEARNING_SESSION;
   const showConfetti = serializableAssignment.score === 10;
   const teacherAnswerCommentsMap: Record<number, string> = (() => {
@@ -311,30 +311,24 @@ export default async function AssignmentPage({
           ) : isMultiChoice ? (
             <MultiChoicePlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
           ) : isLyric && lesson.lyricConfig ? (
-            lyricAudioUrl ? (
-              <LyricLessonPlayer
-                assignmentId={serializableAssignment.id}
-                studentId={serializableAssignment.studentId}
-                lessonId={lesson.id}
-                audioUrl={lyricAudioUrl}
-                lines={lesson.lyricConfig.lines}
-                settings={lesson.lyricConfig.settings}
-                status={serializableAssignment.status}
-                existingAttempt={lesson.lyricAttempts?.[0] ?? null}
-                timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
-                lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
-                draftState={{
-                  answers: (serializableAssignment as any).lyricDraftAnswers ?? null,
-                  mode: (serializableAssignment as any).lyricDraftMode ?? null,
-                  readModeSwitches: (serializableAssignment as any).lyricDraftReadSwitches ?? null,
-                  updatedAt: (serializableAssignment as any).lyricDraftUpdatedAt ?? null,
-                }}
-              />
-            ) : (
-              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-                The lyric lesson audio isn&apos;t available yet. Please check back after your teacher uploads it.
-              </div>
-            )
+            <LyricLessonPlayer
+              assignmentId={serializableAssignment.id}
+              studentId={serializableAssignment.studentId}
+              lessonId={lesson.id}
+              audioUrl={lyricAudioUrl}
+              lines={lesson.lyricConfig.lines}
+              settings={lesson.lyricConfig.settings}
+              status={serializableAssignment.status}
+              existingAttempt={lesson.lyricAttempts?.[0] ?? null}
+              timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
+              lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+              draftState={{
+                answers: (serializableAssignment as any).lyricDraftAnswers ?? null,
+                mode: (serializableAssignment as any).lyricDraftMode ?? null,
+                readModeSwitches: (serializableAssignment as any).lyricDraftReadSwitches ?? null,
+                updatedAt: (serializableAssignment as any).lyricDraftUpdatedAt ?? null,
+              }}
+            />
           ) : isLearningSession ? (
             <LearningSessionPlayer
               cards={lesson.learningSessionCards ?? []}
@@ -448,24 +442,18 @@ export default async function AssignmentPage({
             </>
           )}
           {lesson.type === LessonType.LYRIC && lesson.lyricConfig && (
-            lyricAudioUrl ? (
-              <LyricLessonPlayer
-                assignmentId={serializableAssignment.id}
-                studentId={serializableAssignment.studentId}
-                lessonId={lesson.id}
-                audioUrl={lyricAudioUrl}
-                lines={lesson.lyricConfig.lines}
-                settings={lesson.lyricConfig.settings}
-                status={serializableAssignment.status}
-                existingAttempt={lesson.lyricAttempts?.[0] ?? null}
-                timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
-                lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
-              />
-            ) : (
-              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-                The lyric lesson audio isn&apos;t available yet. Please check back after your teacher uploads it.
-              </div>
-            )
+            <LyricLessonPlayer
+              assignmentId={serializableAssignment.id}
+              studentId={serializableAssignment.studentId}
+              lessonId={lesson.id}
+              audioUrl={lyricAudioUrl}
+              lines={lesson.lyricConfig.lines}
+              settings={lesson.lyricConfig.settings}
+              status={serializableAssignment.status}
+              existingAttempt={lesson.lyricAttempts?.[0] ?? null}
+              timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
+              lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+            />
           )}
         </div>
       )}
