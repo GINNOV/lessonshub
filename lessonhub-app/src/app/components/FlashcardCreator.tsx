@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Upload, Info } from 'lucide-react';
+import { Upload, Info, Download } from 'lucide-react';
 import ImageBrowser from './ImageBrowser';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import { parseCsv } from '@/lib/csv';
@@ -567,8 +567,14 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
 
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="flashcardCsv">Import flashcards from CSV</Label>
+          <div className="space-y-1 w-full">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="flashcardCsv">Import flashcards from CSV</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={downloadFlashcardTemplate} className="text-xs font-semibold">
+                <Download className="mr-2 h-4 w-4" />
+                Download template
+              </Button>
+            </div>
             <p className="text-xs text-gray-500">Expected columns: front, front_image, back, back_image.</p>
           </div>
           <FileUploadButton
@@ -632,3 +638,39 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
     </form>
   );
 }
+  const downloadFlashcardTemplate = () => {
+    const headers = ['front', 'front_image', 'back', 'back_image'];
+    const sampleRows: FlashcardState[] = [
+      {
+        term: 'Call and response',
+        definition: 'Student repeats the teacher immediately.',
+        termImageUrl: '',
+        definitionImageUrl: '',
+      },
+      {
+        term: 'Dynamics drill',
+        definition: 'Student alternates loud/soft every bar.',
+        termImageUrl: '',
+        definitionImageUrl: '',
+      },
+    ];
+    const dataRows = (flashcards.length ? flashcards : sampleRows).map((fc) => [
+      fc.term ?? '',
+      fc.termImageUrl ?? '',
+      fc.definition ?? '',
+      fc.definitionImageUrl ?? '',
+    ]);
+    const rows = [headers, ...dataRows];
+    const csv = rows
+      .map((row) => row.map((value) => `"${(value ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'flashcard-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };

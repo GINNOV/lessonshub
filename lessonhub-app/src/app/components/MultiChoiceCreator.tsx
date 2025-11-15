@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import ImageBrowser from './ImageBrowser';
-import { Info } from 'lucide-react';
+import { Info, Download } from 'lucide-react';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import FileUploadButton from '@/components/FileUploadButton';
@@ -612,9 +612,15 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
 
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="questionsCsv">Import questions from CSV</Label>
-            <p className="text-xs text-gray-500">Columns: question, right_answer_id, answer1, answer2, answer3.</p>
+          <div className="space-y-1 w-full">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="questionsCsv">Import questions from CSV</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={downloadQuestionTemplate} className="text-xs font-semibold">
+                <Download className="mr-2 h-4 w-4" />
+                Download template
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500">Columns: question, right_answer_id, answer1, answer2, answer3 (answer4 optional).</p>
           </div>
           <FileUploadButton
             id="questionsCsv"
@@ -651,3 +657,45 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
     </form>
   );
 }
+  const downloadQuestionTemplate = () => {
+    const headers = ['question', 'right_answer_id', 'answer1', 'answer2', 'answer3', 'answer4'];
+    const sampleRows = [
+      {
+        question: 'Which vowel shape starts the warmup?',
+        options: ['AH', 'OO', 'EE'],
+        correctIndex: 0,
+      },
+      {
+        question: 'Where should the student breathe?',
+        options: ['After every bar', 'Only at the rest symbol', 'Never'],
+        correctIndex: 1,
+      },
+    ];
+    const source = questions.length ? questions : sampleRows.map((row) => ({
+      question: row.question,
+      options: row.options.map((text, idx) => ({ text, isCorrect: idx === row.correctIndex })),
+    }));
+    const dataRows = source.map((question) => {
+      const answerColumns = question.options.slice(0, 4).map((opt) => opt.text);
+      while (answerColumns.length < 4) {
+        answerColumns.push('');
+      }
+      const correctIndex = question.options.findIndex((opt) => opt.isCorrect);
+      const correctId =
+        correctIndex >= 0 ? `answer${correctIndex + 1}` : 'answer1';
+      return [question.question ?? '', correctId, ...answerColumns];
+    });
+    const rows = [headers, ...dataRows];
+    const csv = rows
+      .map((row) => row.map((value) => `"${(value ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'multi-choice-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };

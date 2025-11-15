@@ -156,7 +156,7 @@ export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSe
   if (!orderedCards.length) {
     return (
       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-600">
-        No learning session cards have been added yet.
+        No guide cards have been added yet.
       </div>
     );
   }

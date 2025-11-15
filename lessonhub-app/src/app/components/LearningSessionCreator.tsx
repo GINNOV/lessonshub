@@ -21,6 +21,7 @@ import {
 import Image from 'next/image';
 import { guideImageOptions } from '@/lib/guideImages';
 import FileUploadButton from '@/components/FileUploadButton';
+import { Download } from 'lucide-react';
 
 type TeacherPreferences = {
   defaultLessonPrice?: number | null;
@@ -146,6 +147,46 @@ export default function LearningSessionCreator({
   const [selectedBookletId, setSelectedBookletId] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+  const downloadLearningSessionTemplate = () => {
+    const headers = ['content1', 'content2', 'content3', 'content4', 'extra'];
+    const sampleRows: LearningSessionCardState[] = [
+      {
+        content1: 'Introduce vowel cascade warm-up.',
+        content2: 'Student mirrors immediately.',
+        content3: 'Add metronome at 80bpm.',
+        content4: 'Coach tall vowels and soft palate.',
+        extra: 'Link: https://example.com/demo',
+      },
+      {
+        content1: 'Chord progression call-and-response.',
+        content2: 'Student sings roman numerals.',
+        content3: 'Transpose up a whole step.',
+        content4: 'Sustain tonic for 4 beats.',
+        extra: 'Reminder: breathe every two bars.',
+      },
+    ];
+    const dataRows = (cards.length ? cards : sampleRows).map((card) => [
+      card.content1 ?? '',
+      card.content2 ?? '',
+      card.content3 ?? '',
+      card.content4 ?? '',
+      card.extra ?? '',
+    ]);
+    const rows = [headers, ...dataRows];
+    const csv = rows
+      .map((row) => row.map((value) => `"${(value ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'learning-session-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const totalCards = cards.length;
   const validCards = useMemo(
     () => cards.filter((card) => card.content1.trim() && card.content2.trim()),
@@ -245,10 +286,10 @@ export default function LearningSessionCreator({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to save learning session.');
+        throw new Error(errorData.error || 'Failed to save guide.');
       }
 
-      toast.success(`Learning session ${isEditMode ? 'updated' : 'created'} successfully.`);
+      toast.success(`Guide ${isEditMode ? 'updated' : 'created'} successfully.`);
       router.push('/dashboard');
       router.refresh();
     } catch (error) {
@@ -388,8 +429,14 @@ export default function LearningSessionCreator({
 
       <div className="space-y-4">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div>
-            <Label htmlFor="learningSessionCsv">Import learning session CSV</Label>
+          <div className="w-full space-y-1">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="learningSessionCsv">Import guide CSV</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={downloadLearningSessionTemplate} className="text-xs font-semibold">
+                <Download className="mr-2 h-4 w-4" />
+                Download template
+              </Button>
+            </div>
             <p className="text-xs text-gray-500">
               Columns: content1, content2, content3, content4, extra (optional).
             </p>
@@ -488,14 +535,14 @@ export default function LearningSessionCreator({
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Saving…' : isEditMode ? 'Update Learning Session' : 'Create Learning Session'}
+          {isLoading ? 'Saving…' : isEditMode ? 'Update Guide' : 'Create Guide'}
         </Button>
       </div>
 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Preview learning session</DialogTitle>
+            <DialogTitle>Preview guide</DialogTitle>
           </DialogHeader>
           {previewableCards.length > 0 ? (
             <LearningSessionPlayer cards={previewableCards} lessonTitle={title || 'Preview'} />

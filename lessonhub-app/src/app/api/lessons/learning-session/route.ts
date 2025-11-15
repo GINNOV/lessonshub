@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
   const normalizedCards = normalizeCards(cards);
   if (normalizedCards.length === 0) {
-    return NextResponse.json({ error: 'At least one learning session card is required.' }, { status: 400 });
+    return NextResponse.json({ error: 'At least one guide card is required.' }, { status: 400 });
   }
   const normalizedImage =
     typeof guideCardImage === 'string' && guideCardImage.trim()
@@ -125,6 +125,6 @@ export async function POST(request: Request) {
     return NextResponse.json(lesson, { status: 201 });
   } catch (error) {
     console.error('LEARNING_SESSION_CREATE_ERROR', error);
-    return NextResponse.json({ error: 'Failed to create learning session.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create guide.' }, { status: 500 });
   }
 }

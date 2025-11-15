@@ -28,7 +28,7 @@ export default async function CreateLearningSessionPage() {
   return (
     <div className="flex min-h-screen flex-col items-center p-8 sm:p-16">
       <div className="w-full max-w-3xl">
-        <h1 className="text-3xl font-bold mb-6">Create a Learning Session</h1>
+        <h1 className="text-3xl font-bold mb-6">Create a Guide</h1>
         <LearningSessionCreator
           teacherPreferences={serializablePreferences}
           instructionBooklets={instructionBooklets.map((booklet) => ({

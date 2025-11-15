@@ -83,7 +83,7 @@ const lessonTypeLabels: Record<LessonType, string> = {
   [LessonType.STANDARD]: 'Standard',
   [LessonType.FLASHCARD]: 'Flashcard',
   [LessonType.MULTI_CHOICE]: 'Multi-choice',
-  [LessonType.LEARNING_SESSION]: 'Learning session',
+  [LessonType.LEARNING_SESSION]: 'Guide',
   [LessonType.LYRIC]: 'Lyric',
 };
 
@@ -213,7 +213,7 @@ const FILTER_LEGEND = [
   },
   {
     label: 'Lesson Type Filter',
-    description: 'Narrow the list down to a specific lesson format like standard, flashcard, lyric, or learning sessions.',
+    description: 'Narrow the list down to a specific lesson format like standard, flashcard, lyric, or guides.',
   },
   {
     label: 'Order',
@@ -919,7 +919,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             className="border-gray-300 rounded-md shadow-sm"
           >
             <option value="all">All lesson types</option>
-            <option value="guides">Guides (learning sessions)</option>
+            <option value="guides">Guides</option>
             {LESSON_TYPE_FILTER_VALUES.filter((value): value is LessonType => value !== 'all' && value !== 'guides').map((type) => (
               <option key={type} value={type}>
                 {lessonTypeEmojis[type]} {lessonTypeLabels[type]}

@@ -96,7 +96,7 @@ export async function PATCH(
 
   const normalizedCards = normalizeCards(cards);
   if (normalizedCards.length === 0) {
-    return NextResponse.json({ error: 'At least one learning session card is required.' }, { status: 400 });
+    return NextResponse.json({ error: 'At least one guide card is required.' }, { status: 400 });
   }
   const normalizedImage =
     typeof guideCardImage === 'string' && guideCardImage.trim()
@@ -134,6 +134,6 @@ export async function PATCH(
     return NextResponse.json(updatedLesson, { status: 200 });
   } catch (error) {
     console.error('LEARNING_SESSION_UPDATE_ERROR', error);
-    return NextResponse.json({ error: 'Failed to update learning session.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update guide.' }, { status: 500 });
   }
 }
