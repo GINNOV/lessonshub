@@ -139,6 +139,7 @@ export default async function GradeSubmissionPage({
   const multiChoiceQuestions = submission.lesson.multiChoiceQuestions ?? [];
   const lyricLessonConfig = serializableSubmission.lesson.lyricConfig;
   const lyricAudioUrl = lyricLessonConfig?.audioUrl ?? null;
+  const lyricAudioStorageKey = lyricLessonConfig?.audioStorageKey ?? null;
   const lyricExistingAttempt = serializableSubmission.lesson.lyricAttempts?.[0] ?? null;
 
   const parseFlashcardAnswers = (): Record<string, 'correct' | 'incorrect'> | null => {
@@ -785,6 +786,7 @@ export default async function GradeSubmissionPage({
                       studentId={serializableSubmission.studentId}
                       lessonId={serializableSubmission.lesson.id}
                       audioUrl={lyricAudioUrl}
+                      audioStorageKey={lyricAudioStorageKey}
                       lines={lyricLessonConfig.lines as LyricLine[]}
                       settings={lyricLessonConfig.settings as LyricLessonSettings | null}
                       status={serializableSubmission.status}

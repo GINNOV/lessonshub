@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getAssignmentById, recordLessonUsageForLatestLogin } from "@/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
 import LessonContentView from "@/app/components/LessonContentView";
+import LessonInstructionsGate from "@/app/components/LessonInstructionsGate";
 import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
 import FlashcardPlayer from "@/app/components/FlashcardPlayer";
 import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
@@ -165,6 +166,7 @@ export default async function AssignmentPage({
   const lessonPreviewHtml = lesson.lesson_preview ? await marked.parse(lesson.lesson_preview) : null;
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : null;
   const notesHtml = lesson.notes ? ((await marked.parse(lesson.notes)) as string) : null;
+  const instructionsHtml = lesson.assignment_text ? ((await marked.parse(lesson.assignment_text)) as string) : null;
 
   const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
   const showResultsArea = serializableAssignment.status === AssignmentStatus.GRADED || serializableAssignment.status === AssignmentStatus.FAILED;
@@ -176,8 +178,12 @@ export default async function AssignmentPage({
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
   const isLyric = lesson.type === LessonType.LYRIC;
   const lyricAudioUrl = lesson.lyricConfig?.audioUrl ?? null;
+  const lyricAudioStorageKey = lesson.lyricConfig?.audioStorageKey ?? null;
   const isLearningSession = lesson.type === LessonType.LEARNING_SESSION;
   const showConfetti = serializableAssignment.score === 10;
+  const hasExtendedDeadline =
+    serializableAssignment.originalDeadline &&
+    new Date(serializableAssignment.originalDeadline).getTime() !== new Date(serializableAssignment.deadline).getTime();
   const teacherAnswerCommentsMap: Record<number, string> = (() => {
     const src = (serializableAssignment as any).teacherAnswerComments;
     if (!src) return {};
@@ -227,9 +233,22 @@ export default async function AssignmentPage({
       {showConfetti && <Confetti />}
 
       <h1 className="mb-2 text-3xl font-bold">{lesson.title}</h1>
-      <p className="mb-6 text-sm font-bold text-red-600">
-        Deadline: <LocaleDate date={serializableAssignment.deadline} />
-      </p>
+      <div className="mb-6 text-sm text-gray-600">
+        <p className="font-bold text-red-600">
+          Deadline: <LocaleDate date={serializableAssignment.deadline} />
+        </p>
+        {hasExtendedDeadline && serializableAssignment.originalDeadline && (
+          <div className="mt-1 space-y-1 text-xs text-gray-500">
+            <p>
+              Original:&nbsp;
+              <span className="line-through">
+                <LocaleDate date={serializableAssignment.originalDeadline} />
+              </span>
+            </p>
+            <p className="font-semibold text-blue-600">Deadline extended by your teacher.</p>
+          </div>
+        )}
+      </div>
       {isPastDue && (
         <div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           <p className="font-semibold">Deadline missed</p>
@@ -289,198 +308,202 @@ export default async function AssignmentPage({
         </div>
       )}
 
-      {!isFlashcard && (
-        <div className="my-6">
-          <LessonContentView lesson={serializableAssignment.lesson} />
-        </div>
-      )}
+      <LessonInstructionsGate instructionsHtml={instructionsHtml}>
+        {!isFlashcard && (
+          <div className="my-6">
+            <LessonContentView lesson={serializableAssignment.lesson} showInstructions={false} />
+          </div>
+        )}
 
-      {showResponseArea ? (
-        <div className="mt-8 border-t border-gray-200 pt-6">
-          {!isFlashcard && notesHtml && (
-            <div className="mb-4 rounded-lg border bg-gray-50 p-4 text-gray-800">
-              <h3 className="text-lg font-semibold mb-1">Notes</h3>
-              <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: notesHtml }} />
-            </div>
-          )}
-          {!isFlashcard && !isLearningSession && (
-            <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>
-          )}
-          {isFlashcard ? (
-            <FlashcardPlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
-          ) : isMultiChoice ? (
-            <MultiChoicePlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
-          ) : isLyric && lesson.lyricConfig ? (
-            <LyricLessonPlayer
-              assignmentId={serializableAssignment.id}
-              studentId={serializableAssignment.studentId}
-              lessonId={lesson.id}
-              audioUrl={lyricAudioUrl}
-              lines={lesson.lyricConfig.lines}
-              settings={lesson.lyricConfig.settings}
-              status={serializableAssignment.status}
-              existingAttempt={lesson.lyricAttempts?.[0] ?? null}
-              timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
-              lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
-              draftState={{
-                answers: (serializableAssignment as any).lyricDraftAnswers ?? null,
-                mode: (serializableAssignment as any).lyricDraftMode ?? null,
-                readModeSwitches: (serializableAssignment as any).lyricDraftReadSwitches ?? null,
-                updatedAt: (serializableAssignment as any).lyricDraftUpdatedAt ?? null,
-              }}
-            />
-          ) : isLearningSession ? (
-            <LearningSessionPlayer
-              cards={lesson.learningSessionCards ?? []}
-              lessonTitle={lesson.title}
-            />
-          ) : (
-            <LessonResponseForm assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
-          )}
-        </div>
-      ) : (
-        <div className="mt-8 border-t pt-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Review Your Submission</h2>
-          {lesson.type === LessonType.STANDARD && (
-             <div className="mt-2 space-y-4 rounded-lg border bg-gray-50 p-4">
-                {Array.isArray(serializableAssignment.answers) && lessonQuestions.map((question, i) => {
-                    const teacherComment = teacherAnswerCommentsMap[i];
-                    return (
-                      <div key={i} className="space-y-2">
-                        <p className="text-sm font-semibold text-gray-600">Question {i + 1}: {question}</p>
-                        <p className="prose prose-sm mt-1 border-l-2 pl-4 text-gray-800">{serializableAssignment.answers[i] || 'No answer provided.'}</p>
-                        {teacherComment && (
-                          <div className="mt-1 flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
-                            <GraduationCap className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
-                            <p className="whitespace-pre-wrap">{teacherComment}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                })}
-                {teacherCommentsBlock}
-                {serializableAssignment.rating && (
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600">Your Rating</p>
-                    <div className="mt-1">
-                       <Rating initialRating={serializableAssignment.rating} readOnly={true} starSize={20} />
-                    </div>
-                  </div>
-                )}
-            </div>
-          )}
-          {lesson.type === LessonType.MULTI_CHOICE && Array.isArray(serializableAssignment.answers) && (
-            <>
-              <div className="space-y-6">
-                {lesson.multiChoiceQuestions.map((q, i) => {
-                  const studentAnswer = serializableAssignment.answers.find((a: any) => a.questionId === q.id);
-                  return (
-                    <div key={q.id} className="rounded-lg border p-4">
-                      <p className="font-semibold">{i + 1}. {q.question}</p>
-                      <div className="mt-2 space-y-2">
-                        {q.options.map(opt => {
-                          const isSelected = studentAnswer?.selectedAnswerId === opt.id;
-                          const isCorrect = opt.isCorrect;
-                          return (
-                            <div key={opt.id} className={cn(
-                              "flex items-center gap-2 rounded-md p-2",
-                              isSelected && !isCorrect && "bg-red-100",
-                              isCorrect && "bg-green-100"
-                            )}>
-                              {isSelected ? (isCorrect ? <Check className="h-5 w-5 text-green-600"/> : <X className="h-5 w-5 text-red-600"/>) : (isCorrect ? <Check className="h-5 w-5 text-green-600"/> : <div className="h-5 w-5"/>)}
-                              <span className={cn(isSelected && "font-bold")}>{opt.text}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
+        {showResponseArea ? (
+          <div className="mt-8 border-t border-gray-200 pt-6">
+            {!isFlashcard && notesHtml && (
+              <div className="mb-4 rounded-lg border bg-gray-50 p-4 text-gray-800">
+                <h3 className="text-lg font-semibold mb-1">Notes</h3>
+                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: notesHtml }} />
               </div>
-              {teacherCommentsBlock}
-            </>
-          )}
-          {lesson.type === LessonType.FLASHCARD && typeof serializableAssignment.answers === 'object' && serializableAssignment.answers !== null && (
-            <>
-              <div className="space-y-4">
-                {lesson.flashcards.map((fc) => {
-                  const studentPerformance = serializableAssignment.answers[fc.id];
-                  return (
-                    <div key={fc.id} className={cn("flex items-center justify-between rounded-lg border p-4",
-                        studentPerformance === 'correct' ? 'bg-green-100' : 'bg-red-100'
-                    )}>
-                        <div>
-                            <p className="font-semibold">{fc.term}</p>
-                            <p className="text-sm text-gray-600">{fc.definition}</p>
-                        </div>
-                        {studentPerformance === 'correct' && (
-                            <div className="flex items-center gap-1 text-green-600 font-semibold">
-                                <CheckCircle2 className="h-5 w-5" />
-                                <span>Right</span>
-                            </div>
-                        )}
-                        {studentPerformance === 'incorrect' && (
-                            <div className="flex items-center gap-1 text-red-600 font-semibold">
-                                <XCircle className="h-5 w-5" />
-                                <span>Wrong</span>
-                            </div>
-                        )}
-                    </div>
-                  )
-                })}
-              </div>
-              {teacherCommentsBlock}
-            </>
-          )}
-          {lesson.type === LessonType.LEARNING_SESSION && (
-            <>
+            )}
+            {!isFlashcard && !isLearningSession && (
+              <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>
+            )}
+            {isFlashcard ? (
+              <FlashcardPlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
+            ) : isMultiChoice ? (
+              <MultiChoicePlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
+            ) : isLyric && lesson.lyricConfig ? (
+              <LyricLessonPlayer
+                assignmentId={serializableAssignment.id}
+                studentId={serializableAssignment.studentId}
+                lessonId={lesson.id}
+                audioUrl={lyricAudioUrl}
+                audioStorageKey={lyricAudioStorageKey}
+                lines={lesson.lyricConfig.lines}
+                settings={lesson.lyricConfig.settings}
+                status={serializableAssignment.status}
+                existingAttempt={lesson.lyricAttempts?.[0] ?? null}
+                timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
+                lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+                draftState={{
+                  answers: (serializableAssignment as any).lyricDraftAnswers ?? null,
+                  mode: (serializableAssignment as any).lyricDraftMode ?? null,
+                  readModeSwitches: (serializableAssignment as any).lyricDraftReadSwitches ?? null,
+                  updatedAt: (serializableAssignment as any).lyricDraftUpdatedAt ?? null,
+                }}
+              />
+            ) : isLearningSession ? (
               <LearningSessionPlayer
                 cards={lesson.learningSessionCards ?? []}
                 lessonTitle={lesson.title}
               />
-              {teacherCommentsBlock}
-            </>
-          )}
-          {lesson.type === LessonType.LYRIC && lesson.lyricConfig && (
-            <LyricLessonPlayer
-              assignmentId={serializableAssignment.id}
-              studentId={serializableAssignment.studentId}
-              lessonId={lesson.id}
-              audioUrl={lyricAudioUrl}
-              lines={lesson.lyricConfig.lines}
-              settings={lesson.lyricConfig.settings}
-              status={serializableAssignment.status}
-              existingAttempt={lesson.lyricAttempts?.[0] ?? null}
-              timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
-              lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
-            />
-          )}
-        </div>
-      )}
-      {practiceMode && practiceEligible && (
-        <div className="mt-10 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800">Practice Mode</h2>
-              <p className="text-sm text-gray-600">
-                Revisit the questions for extra practice. Your original grade stays the same.
-              </p>
-            </div>
-            <Button asChild variant="ghost" size="sm">
-              <Link href={practiceExitHref}>Done practicing</Link>
-            </Button>
+            ) : (
+              <LessonResponseForm assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
+            )}
           </div>
-          {lesson.type === LessonType.FLASHCARD ? (
-            <FlashcardPlayer assignment={serializableAssignment as any} mode="practice" practiceExitHref={practiceExitHref} />
-          ) : (
-            <MultiChoicePlayer
-              assignment={serializableAssignment as any}
-              mode="practice"
-              practiceExitHref={practiceExitHref}
-            />
-          )}
-        </div>
-      )}
+        ) : (
+          <div className="mt-8 border-t pt-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Review Your Submission</h2>
+            {lesson.type === LessonType.STANDARD && (
+               <div className="mt-2 space-y-4 rounded-lg border bg-gray-50 p-4">
+                  {Array.isArray(serializableAssignment.answers) && lessonQuestions.map((question, i) => {
+                      const teacherComment = teacherAnswerCommentsMap[i];
+                      return (
+                        <div key={i} className="space-y-2">
+                          <p className="text-sm font-semibold text-gray-600">Question {i + 1}: {question}</p>
+                          <p className="prose prose-sm mt-1 border-l-2 pl-4 text-gray-800">{serializableAssignment.answers[i] || 'No answer provided.'}</p>
+                          {teacherComment && (
+                            <div className="mt-1 flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+                              <GraduationCap className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+                              <p className="whitespace-pre-wrap">{teacherComment}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                  })}
+                  {teacherCommentsBlock}
+                  {serializableAssignment.rating && (
+                    <div>
+                      <p className="text-sm font-semibold text-gray-600">Your Rating</p>
+                      <div className="mt-1">
+                         <Rating initialRating={serializableAssignment.rating} readOnly={true} starSize={20} />
+                      </div>
+                    </div>
+                  )}
+              </div>
+            )}
+            {lesson.type === LessonType.MULTI_CHOICE && Array.isArray(serializableAssignment.answers) && (
+              <>
+                <div className="space-y-6">
+                  {lesson.multiChoiceQuestions.map((q, i) => {
+                    const studentAnswer = serializableAssignment.answers.find((a: any) => a.questionId === q.id);
+                    return (
+                      <div key={q.id} className="rounded-lg border p-4">
+                        <p className="font-semibold">{i + 1}. {q.question}</p>
+                        <div className="mt-2 space-y-2">
+                          {q.options.map(opt => {
+                            const isSelected = studentAnswer?.selectedAnswerId === opt.id;
+                            const isCorrect = opt.isCorrect;
+                            return (
+                              <div key={opt.id} className={cn(
+                                "flex items-center gap-2 rounded-md p-2",
+                                isSelected && !isCorrect && "bg-red-100",
+                                isCorrect && "bg-green-100"
+                              )}>
+                                {isSelected ? (isCorrect ? <Check className="h-5 w-5 text-green-600"/> : <X className="h-5 w-5 text-red-600"/>) : (isCorrect ? <Check className="h-5 w-5 text-green-600"/> : <div className="h-5 w-5"/>)}
+                                <span className={cn(isSelected && "font-bold")}>{opt.text}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                {teacherCommentsBlock}
+              </>
+            )}
+            {lesson.type === LessonType.FLASHCARD && typeof serializableAssignment.answers === 'object' && serializableAssignment.answers !== null && (
+              <>
+                <div className="space-y-4">
+                  {lesson.flashcards.map((fc) => {
+                    const studentPerformance = serializableAssignment.answers[fc.id];
+                    return (
+                      <div key={fc.id} className={cn("flex items-center justify-between rounded-lg border p-4",
+                          studentPerformance === 'correct' ? 'bg-green-100' : 'bg-red-100'
+                      )}>
+                          <div>
+                              <p className="font-semibold">{fc.term}</p>
+                              <p className="text-sm text-gray-600">{fc.definition}</p>
+                          </div>
+                          {studentPerformance === 'correct' && (
+                              <div className="flex items-center gap-1 text-green-600 font-semibold">
+                                  <CheckCircle2 className="h-5 w-5" />
+                                  <span>Right</span>
+                              </div>
+                          )}
+                          {studentPerformance === 'incorrect' && (
+                              <div className="flex items-center gap-1 text-red-600 font-semibold">
+                                  <XCircle className="h-5 w-5" />
+                                  <span>Wrong</span>
+                              </div>
+                          )}
+                      </div>
+                    )
+                  })}
+                </div>
+                {teacherCommentsBlock}
+              </>
+            )}
+            {lesson.type === LessonType.LEARNING_SESSION && (
+              <>
+                <LearningSessionPlayer
+                  cards={lesson.learningSessionCards ?? []}
+                  lessonTitle={lesson.title}
+                />
+                {teacherCommentsBlock}
+              </>
+            )}
+            {lesson.type === LessonType.LYRIC && lesson.lyricConfig && (
+              <LyricLessonPlayer
+                assignmentId={serializableAssignment.id}
+                studentId={serializableAssignment.studentId}
+                lessonId={lesson.id}
+                audioUrl={lyricAudioUrl}
+                audioStorageKey={lyricAudioStorageKey}
+                lines={lesson.lyricConfig.lines}
+                settings={lesson.lyricConfig.settings}
+                status={serializableAssignment.status}
+                existingAttempt={lesson.lyricAttempts?.[0] ?? null}
+                timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
+                lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+              />
+            )}
+          </div>
+        )}
+        {practiceMode && practiceEligible && (
+          <div className="mt-10 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Practice Mode</h2>
+                <p className="text-sm text-gray-600">
+                  Revisit the questions for extra practice. Your original grade stays the same.
+                </p>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link href={practiceExitHref}>Done practicing</Link>
+              </Button>
+            </div>
+            {lesson.type === LessonType.FLASHCARD ? (
+              <FlashcardPlayer assignment={serializableAssignment as any} mode="practice" practiceExitHref={practiceExitHref} />
+            ) : (
+              <MultiChoicePlayer
+                assignment={serializableAssignment as any}
+                mode="practice"
+                practiceExitHref={practiceExitHref}
+              />
+            )}
+          </div>
+        )}
+      </LessonInstructionsGate>
     </div>
   );
 }

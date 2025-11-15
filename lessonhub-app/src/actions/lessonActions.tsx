@@ -268,11 +268,13 @@ export async function assignLessonByShareId(shareId: string, studentId: string) 
             return { success: true, assignment: existingAssignment };
         }
 
+        const initialDeadline = new Date(Date.now() + 36 * 60 * 60 * 1000);
         const newAssignment = await prisma.assignment.create({
             data: {
                 studentId: studentId,
                 lessonId: lesson.id,
-                deadline: new Date(Date.now() + 36 * 60 * 60 * 1000),
+                deadline: initialDeadline,
+                originalDeadline: initialDeadline,
             }
         });
 
@@ -735,6 +737,7 @@ export async function getAssignmentsForStudent(studentId: string) {
                 assignedAt: true,
                 startDate: true,
                 deadline: true,
+                originalDeadline: true,
                 status: true,
                 score: true,
                 pointsAwarded: true,
@@ -1174,6 +1177,7 @@ export async function sendManualReminder(assignmentId: string) {
     });
     
     revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);
+    revalidatePath('/my-lessons');
     return { success: true };
   } catch (error) {
     console.error("Failed to send reminder:", error);
@@ -1249,7 +1253,11 @@ export async function extendDeadline(assignmentId: string) {
 
     await prisma.assignment.update({
       where: { id: assignmentId },
-      data: { deadline: newDeadline, status: AssignmentStatus.PENDING },
+      data: {
+        deadline: newDeadline,
+        status: AssignmentStatus.PENDING,
+        originalDeadline: assignment.originalDeadline ?? assignment.deadline,
+      },
     });
 
     revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);

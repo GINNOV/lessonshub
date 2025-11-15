@@ -33,6 +33,7 @@ type SerializableAssignment = {
   id: string;
   status: AssignmentStatus;
   deadline: Date | string;
+  originalDeadline: Date | string | null;
   score: number | null;
   pointsAwarded: number;
   answers: any;

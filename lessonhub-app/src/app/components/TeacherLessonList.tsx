@@ -91,7 +91,7 @@ const STORAGE_KEY = 'teacher-dashboard-filters';
 
 type StatusFilterValue = AssignmentStatus | 'all' | 'past_due' | 'empty_class';
 type OrderViewValue = 'deadline' | 'week' | 'available';
-type LessonTypeFilterValue = 'all' | LessonType;
+type LessonTypeFilterValue = 'all' | 'guides' | LessonType;
 const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   'all',
   'past_due',
@@ -103,6 +103,7 @@ const STATUS_FILTER_VALUES: StatusFilterValue[] = [
 ];
 const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = [
   'all',
+  'guides',
   LessonType.STANDARD,
   LessonType.FLASHCARD,
   LessonType.MULTI_CHOICE,
@@ -433,6 +434,9 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       .filter(lesson => lesson.title.toLowerCase().includes(searchTerm.toLowerCase()))
       .filter(lesson => {
         if (lessonTypeFilter === 'all') return true;
+        if (lessonTypeFilter === 'guides') {
+          return lesson.type === LessonType.LEARNING_SESSION;
+        }
         return lesson.type === lessonTypeFilter;
       })
       .filter(lesson => {
@@ -915,7 +919,8 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             className="border-gray-300 rounded-md shadow-sm"
           >
             <option value="all">All lesson types</option>
-            {LESSON_TYPE_FILTER_VALUES.filter((value): value is LessonType => value !== 'all').map((type) => (
+            <option value="guides">Guides (learning sessions)</option>
+            {LESSON_TYPE_FILTER_VALUES.filter((value): value is LessonType => value !== 'all' && value !== 'guides').map((type) => (
               <option key={type} value={type}>
                 {lessonTypeEmojis[type]} {lessonTypeLabels[type]}
               </option>

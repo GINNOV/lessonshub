@@ -66,6 +66,7 @@ export async function POST(request: Request) {
             lessonId: newLesson.id,
             studentId: student.id,
             deadline: defaultDeadline, // Default deadline 36 hours from now
+            originalDeadline: defaultDeadline,
         }));
         
         await prisma.assignment.createMany({

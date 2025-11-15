@@ -21,9 +21,10 @@ type LessonWithOptionalLyric = Omit<Lesson, 'price'> & {
 
 interface LessonContentViewProps {
   lesson: LessonWithOptionalLyric; // Expects a serialized lesson
+  showInstructions?: boolean;
 }
 
-export default async function LessonContentView({ lesson }: LessonContentViewProps) {
+export default async function LessonContentView({ lesson, showInstructions = true }: LessonContentViewProps) {
   const assignmentHtml = lesson.assignment_text ? ((await marked.parse(lesson.assignment_text)) as string) : "";
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : "";
 
@@ -145,10 +146,12 @@ export default async function LessonContentView({ lesson }: LessonContentViewPro
         </div>
       )}
 
-      <div className="mb-6 rounded-lg border bg-gray-50 p-4">
-        <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
-        <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
-      </div>
+      {showInstructions && (
+        <div className="mb-6 rounded-lg border bg-gray-50 p-4">
+          <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
+          <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
+        </div>
+      )}
 
       {contextHtml && (
         <>

@@ -96,6 +96,7 @@ export default async function MyLessonsPage() {
 
       return {
         ...assignment,
+        originalDeadline: assignment.originalDeadline ?? null,
         pointsAwarded: assignment.pointsAwarded ?? 0,
         // Ensure optional columns missing in some DBs are present for typing
         teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,

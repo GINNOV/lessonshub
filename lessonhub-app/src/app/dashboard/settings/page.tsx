@@ -6,7 +6,9 @@ import Link from "next/link";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import TeacherPreferences from "@/app/components/TeacherPreferences";
+import WhatsNewDialog from "@/app/components/WhatsNewDialog";
 import { Button } from "@/components/ui/button";
+import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 
 export default async function TeacherSettingsPage() {
   const session = await auth();
@@ -19,9 +21,22 @@ export default async function TeacherSettingsPage() {
     redirect("/dashboard");
   }
 
-  const teacher = await prisma.user.findUnique({
-    where: { id: session.user.id },
-  });
+  const [teacher, instructionBooklets, whatsNewUS, whatsNewIT] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+    }),
+    prisma.instructionBooklet.findMany({
+      where: { teacherId: session.user.id },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        body: true,
+      },
+    }),
+    loadLatestUpgradeNote('us'),
+    loadLatestUpgradeNote('it'),
+  ]);
 
   if (!teacher) {
     return (
@@ -32,22 +47,34 @@ export default async function TeacherSettingsPage() {
     );
   }
 
-  const serializableTeacher = {
-    ...teacher,
-    defaultLessonPrice: teacher.defaultLessonPrice
-      ? Number(teacher.defaultLessonPrice.toString())
-      : null,
+const serializableTeacher = {
+  ...teacher,
+  defaultLessonPrice: teacher.defaultLessonPrice
+    ? Number(teacher.defaultLessonPrice.toString())
+    : null,
+  referralRewardPercent: teacher.referralRewardPercent
+    ? Number(teacher.referralRewardPercent.toString())
+    : null,
+  referralRewardMonthlyAmount: teacher.referralRewardMonthlyAmount
+    ? Number(teacher.referralRewardMonthlyAmount.toString())
+    : null,
+};
+
+  const whatsNewNotes = {
+    us: whatsNewUS,
+    it: whatsNewIT,
   };
 
   return (
     <div className="p-6 space-y-4">
+      <WhatsNewDialog notes={whatsNewNotes} defaultLocale="us" />
       <div>
         <h1 className="text-3xl font-bold">Lesson Defaults</h1>
         <p className="mt-1 text-gray-600">
           Set the values that pre-fill when you create new lessons across every lesson type.
         </p>
       </div>
-      <TeacherPreferences teacher={serializableTeacher as any} />
+      <TeacherPreferences teacher={serializableTeacher as any} instructionBooklets={instructionBooklets} />
       <div className="rounded-lg border bg-white p-6 shadow-sm">
         <h2 className="text-2xl font-semibold">Instruction Booklets</h2>
         <p className="mt-2 text-gray-600">

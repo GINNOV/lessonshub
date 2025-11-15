@@ -247,6 +247,7 @@ model Assignment {
   assignedAt          DateTime         @default(now())
   startDate           DateTime         @default(now())
   deadline            DateTime
+  originalDeadline    DateTime?
   status              AssignmentStatus @default(PENDING)
   score               Int?
   gradedAt            DateTime?

@@ -1,7 +1,7 @@
 // file: src/app/components/TeacherPreferences.tsx
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { User } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { updateTeacherPreferences } from '@/actions/teacherActions';
+import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 
 type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
   defaultLessonPrice: number | null;
@@ -16,9 +17,10 @@ type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
 
 interface TeacherPreferencesProps {
   teacher: SerializableUser;
+  instructionBooklets?: Array<{ id: string; title: string; body: string }>;
 }
 
-export default function TeacherPreferences({ teacher }: TeacherPreferencesProps) {
+export default function TeacherPreferences({ teacher, instructionBooklets = [] }: TeacherPreferencesProps) {
   const [defaultLessonPrice, setDefaultLessonPrice] = useState(
     teacher.defaultLessonPrice?.toString() || '10'
   );
@@ -32,6 +34,14 @@ export default function TeacherPreferences({ teacher }: TeacherPreferencesProps)
     teacher.defaultLessonInstructions || ''
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedBookletId, setSelectedBookletId] = useState('');
+
+  const hasBooklets = instructionBooklets.length > 0;
+
+  const selectedBooklet = useMemo(
+    () => instructionBooklets.find((booklet) => booklet.id === selectedBookletId),
+    [instructionBooklets, selectedBookletId]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,13 +89,64 @@ export default function TeacherPreferences({ teacher }: TeacherPreferencesProps)
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="defaultInstructions">Default Lesson Instructions</Label>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <Label htmlFor="defaultInstructions">Default Lesson Instructions</Label>
+            {hasBooklets && (
+              <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                <select
+                  value={selectedBookletId}
+                  onChange={(e) => setSelectedBookletId(e.target.value)}
+                  className="rounded-md border border-gray-300 p-2 text-sm shadow-sm"
+                >
+                  <option value="">Insert from booklet…</option>
+                  {instructionBooklets.map((booklet) => (
+                    <option key={booklet.id} value={booklet.id}>
+                      {booklet.title}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!selectedBooklet}
+                    onClick={() => {
+                      if (selectedBooklet) {
+                        setDefaultLessonInstructions(selectedBooklet.body);
+                      }
+                    }}
+                  >
+                    Replace
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!selectedBooklet}
+                    onClick={() => {
+                      if (selectedBooklet) {
+                        setDefaultLessonInstructions((prev) => `${prev.trim()}\n\n${selectedBooklet.body}`.trim());
+                      }
+                    }}
+                  >
+                    Append
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
           <Textarea
             id="defaultInstructions"
             value={defaultLessonInstructions}
             onChange={(e) => setDefaultLessonInstructions(e.target.value)}
             placeholder="e.g., Instructions for the student..."
           />
+          {hasBooklets && (
+            <p className="text-xs text-gray-500">
+              Need to edit or add more templates? <ManageInstructionBookletsLink />
+            </p>
+          )}
         </div>
         <div className="space-y-1">
           <Label htmlFor="defaultNotes">Default Lesson Notes (for teacher)</Label>

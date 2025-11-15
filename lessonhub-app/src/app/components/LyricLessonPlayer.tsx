@@ -35,6 +35,7 @@ type LyricLessonPlayerProps = {
   studentId: string;
   lessonId: string;
   audioUrl: string | null;
+  audioStorageKey?: string | null;
   lines: LyricLine[];
   settings: LyricLessonSettings | null;
   status: AssignmentStatus;
@@ -179,6 +180,7 @@ export default function LyricLessonPlayer({
   studentId,
   lessonId,
   audioUrl,
+  audioStorageKey,
   lines,
   settings,
   status,
@@ -188,7 +190,8 @@ export default function LyricLessonPlayer({
   draftState,
 }: LyricLessonPlayerProps) {
   const safeAudioUrl = typeof audioUrl === 'string' ? audioUrl.trim() : '';
-  const hasAudio = Boolean(safeAudioUrl);
+  const safeStorageKey = typeof audioStorageKey === 'string' ? audioStorageKey.trim() : '';
+  const hasAudio = Boolean(safeAudioUrl && safeStorageKey);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lineStopAtRef = useRef<number | null>(null);
@@ -489,10 +492,6 @@ export default function LyricLessonPlayer({
     </Badge>
   );
 
-  if (!safeAudioUrl) {
-    return null;
-  }
-
   return (
     <div className="space-y-6">
       <div className="rounded-lg border bg-slate-50 p-4">
@@ -509,6 +508,11 @@ export default function LyricLessonPlayer({
             {submission && submission.readModeSwitchesUsed !== null && (
               <Badge variant="outline" className="border-indigo-200 text-indigo-700">
                 Read along: {submission.readModeSwitchesUsed}
+              </Badge>
+            )}
+            {!hasAudio && (
+              <Badge variant="outline" className="border-amber-300 text-amber-700">
+                Use material link for the audio.
               </Badge>
             )}
           </div>
@@ -552,19 +556,10 @@ export default function LyricLessonPlayer({
                 </a>
               </Button>
             )}
-            {!hasAudio && (
-              <Badge variant="outline" className="border-amber-300 text-amber-700">
-                Audio not uploaded yet
-              </Badge>
-            )}
           </div>
         </div>
-        {hasAudio ? (
+        {hasAudio && (
           <audio ref={audioRef} className="mt-4 w-full" src={safeAudioUrl} controls preload="metadata" />
-        ) : (
-          <p className="mt-4 rounded-md border border-dashed border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            Waiting on your teacher to upload the audio track. You can still review the lyrics below.
-          </p>
         )}
       </div>
 
