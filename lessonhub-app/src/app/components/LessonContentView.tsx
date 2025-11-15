@@ -4,7 +4,7 @@ import Link from "next/link";
 import { marked } from "marked";
 import { Lesson } from "@prisma/client";
 import { Button } from "@/components/ui/button";
-import { Paperclip, Eye } from "lucide-react";
+import { Paperclip, Eye, Volume2 } from "lucide-react";
 marked.setOptions({
   gfm: true,
   breaks: true,
@@ -29,6 +29,7 @@ export default async function LessonContentView({ lesson, showInstructions = tru
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : "";
 
   const audioUrl = lesson.soundcloud_url || lesson.lyricConfig?.audioUrl || "";
+  const isSpotifyMaterialLink = typeof lesson.attachment_url === 'string' && /open\.spotify\.com/i.test(lesson.attachment_url);
 
   const isYouTubeUrl = (url: string) => /(?:youtube\.com|youtu\.be)\//i.test(url);
   const getYouTubeId = (url: string): string | null => {
@@ -167,7 +168,15 @@ export default async function LessonContentView({ lesson, showInstructions = tru
           </h3>
           <Button asChild variant="outline">
             <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
-              <Eye className="mr-2 h-4 w-4" /> View Attachment
+              {isSpotifyMaterialLink ? (
+                <>
+                  <Volume2 className="mr-2 h-4 w-4" /> Listen on Spotify
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-2 h-4 w-4" /> View Attachment
+                </>
+              )}
             </Link>
           </Button>
         </div>

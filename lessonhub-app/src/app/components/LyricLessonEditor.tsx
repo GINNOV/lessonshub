@@ -622,7 +622,13 @@ export default function LyricLessonEditor({
       return false;
     }
 
-    if (!audioUrl.trim()) {
+    const hasUploadedAudio = Boolean(audioUrl.trim());
+    const isAttachmentAudio =
+      typeof attachmentUrl === 'string' &&
+      /\.(mp3|wav|ogg|m4a|aac)$/i.test(attachmentUrl.trim());
+    const isSpotifyLink =
+      typeof attachmentUrl === 'string' && /open\.spotify\.com/i.test(attachmentUrl.trim());
+    if (!hasUploadedAudio && !isAttachmentAudio && !isSpotifyLink) {
       toast.error('Attach or upload an audio source before saving.', { id: 'lyric-audio-missing' });
       document.getElementById('audioUrl')?.focus();
       return false;

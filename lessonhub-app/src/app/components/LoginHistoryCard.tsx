@@ -5,6 +5,7 @@ type LoginHistoryEntry = {
   timestamp: string;
   lessonId: string | null;
   lessonTitle: string | null;
+  studentName?: string | null;
 };
 
 interface LoginHistoryCardProps {
@@ -57,6 +58,9 @@ export default function LoginHistoryCard({
                   <p className="font-medium text-slate-900">
                     {formattedDate} · {formattedTime}
                   </p>
+                  {entry.studentName && (
+                    <p className="text-xs text-slate-600">Student: {entry.studentName}</p>
+                  )}
                   <p className="text-xs text-slate-500">
                     Lesson used: {entry.lessonTitle ? entry.lessonTitle : "Not recorded"}
                   </p>

@@ -111,9 +111,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Lesson title is required." }, { status: 400 });
     }
 
-    if (!audioUrl || typeof audioUrl !== 'string') {
+    const cleanedAudioUrl = typeof audioUrl === 'string' ? audioUrl.trim() : '';
+    const attachmentTrimmed = typeof attachment_url === 'string' ? attachment_url.trim() : '';
+    const attachmentIsAudioFile = Boolean(
+      attachmentTrimmed && /\.(mp3|wav|ogg|m4a|aac)$/i.test(attachmentTrimmed)
+    );
+    const attachmentIsSpotify = Boolean(
+      attachmentTrimmed && /open\.spotify\.com/i.test(attachmentTrimmed)
+    );
+    const attachmentAllowsAudioBypass = attachmentIsAudioFile || attachmentIsSpotify;
+
+    if (!cleanedAudioUrl && !attachmentAllowsAudioBypass) {
       return NextResponse.json({ error: "Audio URL is required." }, { status: 400 });
     }
+
+    const derivedAudioUrl = cleanedAudioUrl || (attachmentIsAudioFile ? attachmentTrimmed : '');
 
     if (!rawLyrics || typeof rawLyrics !== 'string' || rawLyrics.trim().length === 0) {
       return NextResponse.json({ error: "Raw lyrics are required." }, { status: 400 });
@@ -146,8 +158,10 @@ export async function POST(request: Request) {
         type: LessonType.LYRIC,
         lyricConfig: {
           create: {
-            audioUrl,
-            audioStorageKey: typeof audioStorageKey === 'string' ? audioStorageKey : null,
+            audioUrl: derivedAudioUrl,
+            audioStorageKey: cleanedAudioUrl
+              ? (typeof audioStorageKey === 'string' ? audioStorageKey : null)
+              : null,
             timingSourceUrl:
               typeof timingSourceUrl === 'string' && timingSourceUrl.trim().length > 0
                 ? timingSourceUrl.trim()
