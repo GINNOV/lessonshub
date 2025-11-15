@@ -54,6 +54,7 @@ type LyricLessonPlayerProps = {
     readModeSwitches: number | null;
     updatedAt: string | null;
   } | null;
+  bonusReadSwitches?: number;
 };
 
 type SubmissionState = {
@@ -188,6 +189,7 @@ export default function LyricLessonPlayer({
   timingSourceUrl,
   lrcUrl,
   draftState,
+  bonusReadSwitches = 0,
 }: LyricLessonPlayerProps) {
   const safeAudioUrl = typeof audioUrl === 'string' ? audioUrl.trim() : '';
   const safeStorageKey = typeof audioStorageKey === 'string' ? audioStorageKey.trim() : '';
@@ -199,10 +201,14 @@ export default function LyricLessonPlayer({
   const [mode, setMode] = useState<'read' | 'fill'>(() =>
     draftState?.mode ?? (settings?.defaultMode === 'fill' ? 'fill' : 'read')
   );
-  const [remainingReadToggles, setRemainingReadToggles] = useState<number | null>(() => {
-    const allowance = settings?.maxReadModeSwitches;
-    return typeof allowance === 'number' && allowance >= 0 ? allowance : null;
-  });
+  const baseAllowance =
+    typeof settings?.maxReadModeSwitches === 'number' && settings.maxReadModeSwitches >= 0
+      ? settings.maxReadModeSwitches
+      : null;
+  const [baseReadRemaining, setBaseReadRemaining] = useState<number | null>(baseAllowance);
+  const [bonusReadRemaining, setBonusReadRemaining] = useState<number>(
+    Math.max(0, Math.floor(bonusReadSwitches ?? 0))
+  );
   const [activeLineId, setActiveLineId] = useState<string | null>(lines[0]?.id ?? null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [answers, setAnswers] = useState<LyricAttemptAnswers>(() => draftState?.answers ?? existingAttempt?.answers ?? {});
@@ -219,9 +225,16 @@ export default function LyricLessonPlayer({
   const preparedLines = useMemo(() => prepareLines(lines, difficulty), [lines, difficulty]);
 
   useEffect(() => {
-    const allowance = settings?.maxReadModeSwitches;
-    setRemainingReadToggles(typeof allowance === 'number' && allowance >= 0 ? allowance : null);
+    const allowance =
+      typeof settings?.maxReadModeSwitches === 'number' && settings.maxReadModeSwitches >= 0
+        ? settings.maxReadModeSwitches
+        : null;
+    setBaseReadRemaining(allowance);
   }, [settings?.maxReadModeSwitches, lessonId]);
+
+  useEffect(() => {
+    setBonusReadRemaining(Math.max(0, Math.floor(bonusReadSwitches ?? 0)));
+  }, [bonusReadSwitches, assignmentId]);
 
   useEffect(() => {
     if (!draftState) {
@@ -351,22 +364,49 @@ export default function LyricLessonPlayer({
     });
   };
 
+  const spendBonusSwitch = useCallback((count: number) => {
+    if (count <= 0) return;
+    fetch('/api/read-along/use', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('Failed request');
+        }
+        const data = await response.json().catch(() => null);
+        if (!data?.success) {
+          throw new Error(data?.error || 'Unable to use read-along boost');
+        }
+      })
+      .catch(() => {
+        setBonusReadRemaining((prev) => prev + count);
+        toast.error('Unable to use read-along boost right now. Please try again.');
+      });
+  }, []);
+
   const handleModeChange = useCallback(
     (targetMode: 'read' | 'fill') => {
       if (targetMode === mode) return;
       if (targetMode === 'read') {
-        if (remainingReadToggles !== null) {
-          if (remainingReadToggles <= 0) {
+        if (baseReadRemaining !== null) {
+          if (baseReadRemaining <= 0 && bonusReadRemaining <= 0) {
             toast.error('No read-along switches remaining.');
             return;
           }
-          setRemainingReadToggles((prev) => (prev === null ? prev : prev - 1));
+          if (baseReadRemaining > 0) {
+            setBaseReadRemaining((prev) => (prev === null ? prev : Math.max(prev - 1, 0)));
+          } else if (bonusReadRemaining > 0) {
+            setBonusReadRemaining((prev) => Math.max(prev - 1, 0));
+            spendBonusSwitch(1);
+          }
         }
         setReadModeSwitchCount((prev) => prev + 1);
       }
       setMode(targetMode);
     },
-    [mode, remainingReadToggles]
+    [mode, baseReadRemaining, bonusReadRemaining, spendBonusSwitch]
   );
 
   const handleSubmit = async () => {
@@ -480,11 +520,14 @@ export default function LyricLessonPlayer({
     audioEl.pause();
   }, [hasAudio]);
 
-  const readSwitchesRemaining = remainingReadToggles;
-  const readModeDisabled = mode !== 'read' && readSwitchesRemaining !== null && readSwitchesRemaining <= 0;
-  const readModeLabel = readSwitchesRemaining !== null
-    ? `Read Along (${Math.max(readSwitchesRemaining, 0)} left)`
-    : 'Read Along';
+  const totalReadSwitchesRemaining =
+    baseReadRemaining === null ? null : baseReadRemaining + bonusReadRemaining;
+  const readModeDisabled =
+    totalReadSwitchesRemaining !== null && totalReadSwitchesRemaining <= 0;
+  const readModeLabel =
+    totalReadSwitchesRemaining !== null
+      ? `Read Along (${Math.max(totalReadSwitchesRemaining, 0)} left)`
+      : 'Read Along';
 
   const scoreBadge = submission && (
     <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
@@ -526,6 +569,11 @@ export default function LyricLessonPlayer({
             >
               {readModeLabel}
             </Button>
+            {bonusReadRemaining > 0 && baseReadRemaining !== null && (
+              <p className="text-[11px] text-emerald-700">
+                Includes +{bonusReadRemaining} guide boost{bonusReadRemaining === 1 ? '' : 's'}.
+              </p>
+            )}
             <Button
               type="button"
               size="sm"
@@ -542,11 +590,11 @@ export default function LyricLessonPlayer({
                 variant="outline"
                 className="flex-1 whitespace-nowrap sm:flex-none"
                 onClick={handleSaveDraft}
-                disabled={isSavingDraft || isSubmitting}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                {isSavingDraft ? 'Saving…' : 'Save Draft'}
-              </Button>
+              disabled={isSavingDraft || isSubmitting}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {isSavingDraft ? 'Saving…' : 'Save Draft'}
+            </Button>
             )}
             {timingSourceUrl && (
               <Button asChild type="button" size="sm" variant="outline">

@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, CheckCircle2, XCircle, GraduationCap } from "lucide-react";
 import Rating from "@/app/components/Rating";
 import { Button } from "@/components/ui/button";
+import prisma from "@/lib/prisma";
 import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
 
 marked.setOptions({
@@ -66,6 +67,12 @@ export default async function AssignmentPage({
   if (session.user.id === assignment.studentId) {
     await recordLessonUsageForLatestLogin(assignment.studentId, assignment.lessonId);
   }
+
+  const studentReadBoostRecord = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { readAlongPoints: true },
+  });
+  const availableReadBoosts = studentReadBoostRecord?.readAlongPoints ?? 0;
   
   const normalizeLyricLines = (value: unknown): LyricLine[] => {
     if (!Array.isArray(value)) return [];
@@ -349,6 +356,7 @@ export default async function AssignmentPage({
                   readModeSwitches: (serializableAssignment as any).lyricDraftReadSwitches ?? null,
                   updatedAt: (serializableAssignment as any).lyricDraftUpdatedAt ?? null,
                 }}
+                bonusReadSwitches={availableReadBoosts}
               />
             ) : isLearningSession ? (
               <LearningSessionPlayer
@@ -475,6 +483,7 @@ export default async function AssignmentPage({
                 existingAttempt={lesson.lyricAttempts?.[0] ?? null}
                 timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
                 lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+                bonusReadSwitches={availableReadBoosts}
               />
             )}
           </div>

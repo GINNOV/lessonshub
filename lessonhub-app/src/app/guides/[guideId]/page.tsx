@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 import { getHubGuideById } from "@/actions/lessonActions";
 import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
+import GuideCompletionCTA from "@/app/components/GuideCompletionCTA";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { marked } from "marked";
@@ -45,7 +46,17 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
     );
   }
 
-  const guide = await getHubGuideById(guideId);
+  const guidePromise = getHubGuideById(guideId);
+  const completionPromise = prisma.guideCompletion.findUnique({
+    where: {
+      studentId_guideId: {
+        studentId: session.user.id,
+        guideId,
+      },
+    },
+  });
+
+  const [guide, completion] = await Promise.all([guidePromise, completionPromise]);
   if (!guide) {
     notFound();
   }
@@ -103,6 +114,8 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
         <LearningSessionPlayer cards={guide.learningSessionCards} lessonTitle={guide.title} />
       </div>
+
+      <GuideCompletionCTA guideId={guide.id} defaultCompleted={Boolean(completion)} pointsPerGuide={3} />
     </div>
   );
 }
