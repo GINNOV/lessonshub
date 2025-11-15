@@ -54,6 +54,43 @@ const normalizeUrl = (value?: string): string | null => {
   return trimmed ? trimmed : null;
 };
 
+const downloadFlashcardTemplate = (flashcards: FlashcardState[]) => {
+  const headers = ['front', 'front_image', 'back', 'back_image'];
+  const sampleRows: FlashcardState[] = [
+    {
+      term: 'Call and response',
+      definition: 'Student repeats the teacher immediately.',
+      termImageUrl: '',
+      definitionImageUrl: '',
+    },
+    {
+      term: 'Dynamics drill',
+      definition: 'Student alternates loud/soft every bar.',
+      termImageUrl: '',
+      definitionImageUrl: '',
+    },
+  ];
+  const dataRows = (flashcards.length ? flashcards : sampleRows).map((fc) => [
+    fc.term ?? '',
+    fc.termImageUrl ?? '',
+    fc.definition ?? '',
+    fc.definitionImageUrl ?? '',
+  ]);
+  const rows = [headers, ...dataRows];
+  const csv = rows
+    .map((row) => row.map((value) => `"${(value ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'flashcard-template.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 const parseFlashcardCsv = (content: string): FlashcardState[] => {
   const rows = parseCsv(content);
   if (rows.length === 0) return [];
@@ -570,7 +607,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
           <div className="space-y-1 w-full">
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="flashcardCsv">Import flashcards from CSV</Label>
-              <Button type="button" variant="ghost" size="sm" onClick={downloadFlashcardTemplate} className="text-xs font-semibold">
+              <Button type="button" variant="ghost" size="sm" onClick={() => downloadFlashcardTemplate(flashcards)} className="text-xs font-semibold">
                 <Download className="mr-2 h-4 w-4" />
                 Download template
               </Button>
@@ -638,39 +675,3 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
     </form>
   );
 }
-  const downloadFlashcardTemplate = () => {
-    const headers = ['front', 'front_image', 'back', 'back_image'];
-    const sampleRows: FlashcardState[] = [
-      {
-        term: 'Call and response',
-        definition: 'Student repeats the teacher immediately.',
-        termImageUrl: '',
-        definitionImageUrl: '',
-      },
-      {
-        term: 'Dynamics drill',
-        definition: 'Student alternates loud/soft every bar.',
-        termImageUrl: '',
-        definitionImageUrl: '',
-      },
-    ];
-    const dataRows = (flashcards.length ? flashcards : sampleRows).map((fc) => [
-      fc.term ?? '',
-      fc.termImageUrl ?? '',
-      fc.definition ?? '',
-      fc.definitionImageUrl ?? '',
-    ]);
-    const rows = [headers, ...dataRows];
-    const csv = rows
-      .map((row) => row.map((value) => `"${(value ?? '').replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'flashcard-template.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };

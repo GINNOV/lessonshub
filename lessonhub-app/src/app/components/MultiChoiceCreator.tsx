@@ -442,6 +442,49 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
     }
   };
 
+  const downloadQuestionTemplate = () => {
+    const headers = ['question', 'right_answer_id', 'answer1', 'answer2', 'answer3', 'answer4'];
+    const sampleRows = [
+      {
+        question: 'Which vowel shape starts the warmup?',
+        options: ['AH', 'OO', 'EE'],
+        correctIndex: 0,
+      },
+      {
+        question: 'Where should the student breathe?',
+        options: ['After every bar', 'Only at the rest symbol', 'Never'],
+        correctIndex: 1,
+      },
+    ];
+    const source = questions.length ? questions : sampleRows.map((row) => ({
+      question: row.question,
+      options: row.options.map((text, idx) => ({ text, isCorrect: idx === row.correctIndex })),
+    }));
+    const dataRows = source.map((question) => {
+      const answerColumns = question.options.slice(0, 4).map((opt) => opt.text);
+      while (answerColumns.length < 4) {
+        answerColumns.push('');
+      }
+      const correctIndex = question.options.findIndex((opt) => opt.isCorrect);
+      const correctId =
+        correctIndex >= 0 ? `answer${correctIndex + 1}` : 'answer1';
+      return [question.question ?? '', correctId, ...answerColumns];
+    });
+    const rows = [headers, ...dataRows];
+    const csv = rows
+      .map((row) => row.map((value) => `"${(value ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'multi-choice-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
        <div className="form-field">
@@ -657,45 +700,3 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
     </form>
   );
 }
-  const downloadQuestionTemplate = () => {
-    const headers = ['question', 'right_answer_id', 'answer1', 'answer2', 'answer3', 'answer4'];
-    const sampleRows = [
-      {
-        question: 'Which vowel shape starts the warmup?',
-        options: ['AH', 'OO', 'EE'],
-        correctIndex: 0,
-      },
-      {
-        question: 'Where should the student breathe?',
-        options: ['After every bar', 'Only at the rest symbol', 'Never'],
-        correctIndex: 1,
-      },
-    ];
-    const source = questions.length ? questions : sampleRows.map((row) => ({
-      question: row.question,
-      options: row.options.map((text, idx) => ({ text, isCorrect: idx === row.correctIndex })),
-    }));
-    const dataRows = source.map((question) => {
-      const answerColumns = question.options.slice(0, 4).map((opt) => opt.text);
-      while (answerColumns.length < 4) {
-        answerColumns.push('');
-      }
-      const correctIndex = question.options.findIndex((opt) => opt.isCorrect);
-      const correctId =
-        correctIndex >= 0 ? `answer${correctIndex + 1}` : 'answer1';
-      return [question.question ?? '', correctId, ...answerColumns];
-    });
-    const rows = [headers, ...dataRows];
-    const csv = rows
-      .map((row) => row.map((value) => `"${(value ?? '').replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'multi-choice-template.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
