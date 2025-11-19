@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { getStudentStats } from "@/actions/lessonActions";
 
 export async function GET() {
   const session = await auth();
@@ -32,6 +33,10 @@ export async function GET() {
         isTakingBreak: true,
         totalPoints: true,
         studentBio: true,
+        progressCardTitle: true,
+        progressCardBody: true,
+        progressCardLinkText: true,
+        progressCardLinkUrl: true,
       },
     });
 
@@ -41,7 +46,8 @@ export async function GET() {
       });
     }
 
-    const loginEvents = await prisma.loginEvent.findMany({
+    const statsPromise = getStudentStats(session.user.id);
+    const loginEventsPromise = prisma.loginEvent.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
       take: 5,
@@ -55,6 +61,8 @@ export async function GET() {
       },
     });
 
+    const [loginEvents, stats] = await Promise.all([loginEventsPromise, statsPromise]);
+
     const loginHistory = loginEvents.map((event) => ({
       id: event.id,
       timestamp: event.createdAt.toISOString(),
@@ -67,6 +75,11 @@ export async function GET() {
         user: {
           ...user,
           lastSeen: user.lastSeen?.toISOString() ?? null,
+          progressCardTitle: user.progressCardTitle ?? null,
+          progressCardBody: user.progressCardBody ?? null,
+          progressCardLinkText: user.progressCardLinkText ?? null,
+          progressCardLinkUrl: user.progressCardLinkUrl ?? null,
+          progressTotalValue: stats.totalValue,
         },
         loginHistory,
       },

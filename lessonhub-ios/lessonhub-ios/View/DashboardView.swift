@@ -93,20 +93,26 @@ struct DashboardView: View {
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                Text(totalValue, format: .currency(code: "EUR"))
+                Text(progressAmountText)
                     .font(.system(size: 40, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
-                Text("\(totalPoints) pts earned")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.8))
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .foregroundColor(.yellow.opacity(0.9))
+                    Text(progressSubtitle)
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.9))
+                }
             }
             
             VStack(alignment: .leading, spacing: 6) {
-                Text("Invest in your future – 🚀")
+                Text(progressBody)
                     .foregroundColor(.white)
-                Text("Click the links on the web to explore LessonHUB benefits.")
-                    .font(.footnote)
-                    .foregroundColor(.white.opacity(0.7))
+                if let linkText = progressLinkText, let linkURL = progressLinkURL {
+                    Link(linkText, destination: linkURL)
+                        .font(.footnote)
+                        .foregroundColor(.white.opacity(0.9))
+                }
             }
         }
         .padding()
@@ -289,12 +295,41 @@ struct DashboardView: View {
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
     
-    private var totalPoints: Int {
-        viewModel.assignments.reduce(0) { $0 + $1.pointsAwarded }
+    private var progressAmountText: String {
+        if let value = viewModel.profileDetails?.progressTotalValue {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .currency
+            formatter.currencyCode = "EUR"
+            if let formatted = formatter.string(from: NSNumber(value: value)) {
+                return formatted
+            }
+        }
+        if let custom = viewModel.profileDetails?.progressCardTitle, custom.contains("€") {
+            return custom
+        }
+        let total = viewModel.assignments.reduce(0) { $0 + $1.lesson.price }
+        return total.formatted(.currency(code: "EUR"))
     }
     
-    private var totalValue: Double {
-        viewModel.assignments.reduce(0) { $0 + $1.lesson.price }
+    private var progressSubtitle: String {
+        if let pts = viewModel.profileDetails?.totalPoints {
+            return "\(pts) pts earned"
+        }
+        return "\(viewModel.assignments.reduce(0) { $0 + $1.pointsAwarded }) pts earned"
+    }
+    
+    private var progressBody: String {
+        viewModel.profileDetails?.progressCardBody ?? "Invest in your future – 🚀"
+    }
+    
+    private var progressLinkText: String? {
+        viewModel.profileDetails?.progressCardLinkText
+    }
+    
+    private var progressLinkURL: URL? {
+        guard let path = viewModel.profileDetails?.progressCardLinkUrl,
+              let url = URL(string: path, relativeTo: URL(string: Configuration.baseURL)) else { return nil }
+        return url
     }
     
     private var summaryItems: [SummaryItem] {
@@ -416,47 +451,98 @@ private struct AssignmentCard: View {
     let assignment: Assignment
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                LessonPreviewImage(urlString: assignment.lesson.assignment_image_url)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(assignment.lessonSubtitle)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+        VStack(spacing: 0) {
+            ZStack(alignment: .topTrailing) {
+                LessonPreviewImage(urlString: assignment.lessonHeroImageURL)
+                    .frame(height: 160)
+                    .clipped()
+                StatusBadge(status: assignment.normalizedStatus)
+                    .padding(12)
+            }
+            
+            VStack(alignment: .leading, spacing: 12) {
+                Text(assignment.lessonSubtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                VStack(alignment: .leading, spacing: 6) {
                     Text(assignment.lesson.title)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    Text(assignment.lesson.assignment_text)
-                        .font(.subheadline)
+                        .font(.title3.bold())
+                    Text(assignment.formattedPreview)
+                        .font(.callout)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
-                Spacer()
-                StatusBadge(status: assignment.normalizedStatus)
+                
+                LessonProgressIndicator(progress: assignment.lessonProgress, difficultyLabel: assignment.difficultyLabel, difficultyColor: assignment.difficultyColor)
+                
+                HStack {
+                    Label {
+                        Text(assignment.lesson.teacher?.name ?? "Unassigned")
+                    } icon: {
+                        Image(systemName: "person.fill")
+                    }
+                    .foregroundColor(.secondary)
+                    Spacer()
+                    Label("Due \(assignment.dueDateDescription)", systemImage: "calendar")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
+            .padding()
             
             Divider()
+                .padding(.horizontal)
             
-            HStack {
-                Label(assignment.lesson.teacher?.name ?? "Unknown", systemImage: "person.fill")
-                    .foregroundColor(.secondary)
+            HStack(alignment: .center) {
+                Label {
+                    Text("\(assignment.lesson.submittedCount) of \(assignment.lesson.completionCount)")
+                } icon: {
+                    Image(systemName: "person.2.fill")
+                }
                 Spacer()
-                Label("\(assignment.lesson.submittedCount) of \(assignment.lesson.completionCount)", systemImage: "person.2.fill")
-                    .foregroundColor(.secondary)
+                Label {
+                    Text("Share")
+                } icon: {
+                    Image(systemName: "square.and.arrow.up")
+                }
             }
-            .font(.footnote)
-            
-            HStack {
-                LevelBadge(price: assignment.lesson.price)
-                Spacer()
-                Label("Due \(assignment.dueDateDescription)", systemImage: "calendar")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-            }
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
-        .padding()
-        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 6)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(.systemBackground))
+        )
+        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
+    }
+}
+
+private struct LessonProgressIndicator: View {
+    let progress: Double
+    let difficultyLabel: String
+    let difficultyColor: Color
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color(.systemGray5))
+                        .frame(height: 10)
+                    Capsule()
+                        .fill(Color.green)
+                        .frame(width: max(0, min(1, progress)) * geometry.size.width, height: 10)
+                }
+            }
+            .frame(height: 10)
+            
+            Text(difficultyLabel.uppercased())
+                .font(.caption.weight(.semibold))
+                .foregroundColor(difficultyColor)
+        }
     }
 }
 
@@ -482,7 +568,7 @@ private struct LessonPreviewImage: View {
                 placeholder
             }
         }
-        .frame(width: 90, height: 70)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGray5))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
@@ -515,30 +601,6 @@ private struct StatusBadge: View {
         case .graded: return .green
         case .failed: return .red
         case .submitted: return .blue
-        }
-    }
-}
-
-private struct LevelBadge: View {
-    let price: Double
-    
-    var body: some View {
-        Text(label)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color.green.opacity(0.1))
-            .foregroundColor(.green)
-            .clipShape(Capsule())
-    }
-    
-    private var label: String {
-        if price < 30 {
-            return "SUPER SIMPLE"
-        } else if price < 60 {
-            return "INTERMEDIATE"
-        } else {
-            return "CHALLENGING"
         }
     }
 }

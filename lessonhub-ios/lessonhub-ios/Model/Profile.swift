@@ -27,6 +27,11 @@ struct ProfileUser: Codable, Identifiable {
     let isTakingBreak: Bool?
     let totalPoints: Int?
     let studentBio: String?
+    let progressCardTitle: String?
+    let progressCardBody: String?
+    let progressCardLinkText: String?
+    let progressCardLinkUrl: String?
+    let progressTotalValue: Double?
 }
 
 struct LoginHistoryEntry: Codable, Identifiable {

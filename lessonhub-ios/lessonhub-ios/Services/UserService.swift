@@ -22,10 +22,11 @@ struct SessionData: Codable {
 
 class UserService {
     
-    private let baseURL = URL(string: "\(Configuration.baseURL)/api/auth")!
+    private let authBaseURL = URL(string: "\(Configuration.baseURL)/api/auth")!
+    private let profileURL = URL(string: "\(Configuration.baseURL)/api/profile")!
 
     func getProfile() async throws -> UserProfile {
-        let url = baseURL.appendingPathComponent("session")
+        let url = authBaseURL.appendingPathComponent("session")
         let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -38,7 +39,7 @@ class UserService {
     }
     
     func logout() async throws {
-        let url = baseURL.appendingPathComponent("signout")
+        let url = authBaseURL.appendingPathComponent("signout")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -54,5 +55,17 @@ class UserService {
               (200...299).contains(httpResponse.statusCode) else {
             throw URLError(.badServerResponse)
         }
+    }
+    
+    func getDetailedProfile() async throws -> ProfileUser {
+        let (data, response) = try await URLSession.shared.data(from: profileURL)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        
+        let details = try JSONDecoder().decode(ProfileDetailsResponse.self, from: data)
+        return details.user
     }
 }

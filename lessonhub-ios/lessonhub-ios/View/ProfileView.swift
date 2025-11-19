@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
@@ -309,7 +310,7 @@ struct ProfileView: View {
         .shadow(color: Color.black.opacity(0.04), radius: 12, x: 0, y: 6)
     }
     
-    private func placeholderCard(title: String, message: String) -> some View {
+private func placeholderCard(title: String, message: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.title3.bold())

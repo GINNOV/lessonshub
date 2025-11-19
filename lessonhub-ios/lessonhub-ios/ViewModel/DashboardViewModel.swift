@@ -13,9 +13,11 @@ class DashboardViewModel: ObservableObject {
     @Published var welcomeMessage = "Welcome!"
     @Published var assignments: [Assignment] = []
     @Published var userProfile: UserProfile?
+    @Published var profileDetails: ProfileUser?
     
     private let userService = UserService()
     private let assignmentService = AssignmentService()
+    private let profileService = ProfileService()
     
     func onAppear() {
         Task {
@@ -26,9 +28,13 @@ class DashboardViewModel: ObservableObject {
 
     private func fetchProfile() async {
         do {
-            let user = try await userService.getProfile()
+            async let basicProfile = userService.getProfile()
+            async let detailedProfile = profileService.fetchProfileDetails()
+            
+            let (user, details) = try await (basicProfile, detailedProfile)
             welcomeMessage = "Welcome, \(user.name ?? "User")!"
             userProfile = user
+            profileDetails = details.user
         } catch {
             print("Error fetching profile: \(error)")
             // Handle error, maybe show a default welcome message
