@@ -1,10 +1,3 @@
-//
-//  DashboardView.swift
-//  lessonhub-ios
-//
-//  Created by Gemini on 11/8/25.
-//
-
 import SwiftUI
 
 struct DashboardView: View {
@@ -15,8 +8,17 @@ struct DashboardView: View {
         VStack {
             Text(viewModel.welcomeMessage)
                 .font(.title)
-            
-            // More UI will be added here
+                .padding()
+
+            List(viewModel.assignments) { assignment in
+                VStack(alignment: .leading) {
+                    Text(assignment.lesson.title)
+                        .font(.headline)
+                    Text("with \(assignment.lesson.teacher?.name ?? "N/A")")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
             
             Spacer()
             
@@ -26,6 +28,9 @@ struct DashboardView: View {
             .padding()
         }
         .navigationTitle("Dashboard")
+        .onAppear {
+            viewModel.onAppear()
+        }
     }
 }
 

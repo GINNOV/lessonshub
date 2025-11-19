@@ -9,24 +9,17 @@ import Foundation
 
 // MARK: - Data Models
 
-struct LoginRequest: Codable {
+struct LoginRequest: Encodable {
     let email: String
     let password: String
     let csrfToken: String
     let callbackUrl: String = "/"
     let json: Bool = true
+    let redirect: Bool = false
 }
 
-struct SessionResponse: Codable {
-    let user: User?
-    let expires: String
+struct CsrfResponse: Codable {
     let csrfToken: String
-}
-
-struct User: Codable {
-    let name: String?
-    let email: String?
-    let image: String?
 }
 
 
@@ -34,10 +27,10 @@ struct User: Codable {
 
 class AuthService {
     
-    private let baseURL = URL(string: "http://localhost:3000/api/auth")!
+    private let baseURL = URL(string: "\(Configuration.baseURL)/api/auth")!
 
     func getCsrfToken() async throws -> String {
-        let url = baseURL.appendingPathComponent("session")
+        let url = baseURL.appendingPathComponent("csrf")
         let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -45,8 +38,8 @@ class AuthService {
             throw URLError(.badServerResponse)
         }
 
-        let session = try JSONDecoder().decode(SessionResponse.self, from: data)
-        return session.csrfToken
+        let csrf = try JSONDecoder().decode(CsrfResponse.self, from: data)
+        return csrf.csrfToken
     }
 
     func login(email: String, password: String) async throws {
@@ -60,7 +53,7 @@ class AuthService {
         let loginRequest = LoginRequest(email: email, password: password, csrfToken: csrfToken)
         request.httpBody = try JSONEncoder().encode(loginRequest)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
