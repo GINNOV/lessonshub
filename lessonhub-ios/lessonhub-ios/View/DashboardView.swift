@@ -3,10 +3,12 @@ import SwiftUI
 struct DashboardView: View {
     @StateObject private var viewModel = DashboardViewModel()
     @EnvironmentObject var authManager: AuthenticationManager
+    @Environment(\.openURL) private var openURL
     
     @State private var selectedTab: DashboardTab = .lessons
     @State private var selectedFilter: AssignmentFilter = .all
     @State private var searchText = ""
+    @State private var isProfilePresented = false
     
     var body: some View {
         NavigationStack {
@@ -23,6 +25,9 @@ struct DashboardView: View {
             }
             .background(Color(.systemGroupedBackground))
             .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $isProfilePresented) {
+                ProfileView()
+            }
             .onAppear {
                 viewModel.onAppear()
             }
@@ -30,24 +35,35 @@ struct DashboardView: View {
     }
     
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("👋 \(viewModel.welcomeMessage)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("LessonHUB")
                     .font(.system(.largeTitle, design: .rounded))
                     .fontWeight(.bold)
+                Text("👋 \(viewModel.welcomeMessage)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
             }
             Spacer()
             Menu {
-                Button("Log Out", role: .destructive) {
-                    authManager.logout()
+                if let email = viewModel.userProfile?.email {
+                    Text(email)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Button("Profile") { isProfilePresented = true }
+                Button("What's new") { openWebPath("/changelog") }
+                Button("Referral dashboard") { openWebPath("/referrals") }
+                Button("Rate your teacher") { openWebPath("/rate-teacher") }
+                Button("Send Feedback") { sendFeedbackEmail() }
+                Divider()
+                Button(role: .destructive) {
+                    Task { await logoutAndReset() }
+                } label: {
+                    Text("Sign Out")
                 }
             } label: {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.largeTitle)
-                    .foregroundColor(.blue)
+                AvatarButton(imageURL: viewModel.userProfile?.image)
             }
         }
     }
@@ -108,27 +124,29 @@ struct DashboardView: View {
             Text("Assignment Summary")
                 .font(.headline)
             
-            HStack {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(summaryItems) { item in
-                        HStack {
-                            Circle()
-                                .fill(item.color.opacity(0.16))
-                                .frame(width: 40, height: 40)
-                                .overlay(
-                                    Image(systemName: item.icon)
-                                        .foregroundColor(item.color)
-                                )
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("\(item.value)")
-                                    .font(.headline)
-                                Text(item.title)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
+            LazyVGrid(columns: summaryGridColumns, spacing: 16) {
+                ForEach(summaryItems) { item in
+                    VStack(spacing: 8) {
+                        Circle()
+                            .fill(item.color.opacity(0.16))
+                            .frame(width: 56, height: 56)
+                            .overlay(
+                                Image(systemName: item.icon)
+                                    .font(.title3)
+                                    .foregroundColor(item.color)
+                            )
+                        
+                        VStack(spacing: 2) {
+                            Text("\(item.value)")
+                                .font(.headline)
+                            Text(item.title)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
             }
             
@@ -141,6 +159,10 @@ struct DashboardView: View {
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: Color.black.opacity(0.06), radius: 16, x: 0, y: 8)
+    }
+
+    private var summaryGridColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 16), count: 3)
     }
     
     private var tabs: some View {
@@ -292,6 +314,28 @@ struct DashboardView: View {
     
     private func count(for status: AssignmentStatusCategory) -> Int {
         viewModel.assignments.filter { $0.normalizedStatus == status }.count
+    }
+    
+    private func logoutAndReset() async {
+        do {
+            try await UserService().logout()
+        } catch {
+            print("Logout failed: \(error)")
+        }
+        await MainActor.run {
+            authManager.logout()
+        }
+    }
+    
+    private func openWebPath(_ path: String) {
+        guard let url = URL(string: "\(Configuration.baseURL)\(path)") else { return }
+        openURL(url)
+    }
+    
+    private func sendFeedbackEmail() {
+        if let url = URL(string: "mailto:hello@lessonhub.school") {
+            openURL(url)
+        }
     }
     
     private var filteredAssignments: [Assignment] {
@@ -530,4 +574,28 @@ private enum AssignmentFilter: String, CaseIterable, Identifiable {
 #Preview {
     DashboardView()
         .environmentObject(AuthenticationManager())
+}
+private struct ProfileMenuButton: View {
+    let profile: UserProfile?
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(profile?.name ?? "Student")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                Text((profile?.role ?? "student").capitalized)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            AvatarButton(imageURL: profile?.image, name: profile?.name)
+        }
+        .padding(6)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(0.95))
+        )
+        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+    }
 }

@@ -36,4 +36,23 @@ class UserService {
         let sessionData = try JSONDecoder().decode(SessionData.self, from: data)
         return sessionData.user
     }
+    
+    func logout() async throws {
+        let url = baseURL.appendingPathComponent("signout")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = [
+            "csrfToken": try await AuthService().getCsrfToken(),
+            "json": true
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+    }
 }

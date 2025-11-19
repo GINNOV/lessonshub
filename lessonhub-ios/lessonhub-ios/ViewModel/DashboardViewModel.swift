@@ -12,6 +12,7 @@ import Combine
 class DashboardViewModel: ObservableObject {
     @Published var welcomeMessage = "Welcome!"
     @Published var assignments: [Assignment] = []
+    @Published var userProfile: UserProfile?
     
     private let userService = UserService()
     private let assignmentService = AssignmentService()
@@ -27,6 +28,7 @@ class DashboardViewModel: ObservableObject {
         do {
             let user = try await userService.getProfile()
             welcomeMessage = "Welcome, \(user.name ?? "User")!"
+            userProfile = user
         } catch {
             print("Error fetching profile: \(error)")
             // Handle error, maybe show a default welcome message
