@@ -5,7 +5,6 @@
 //  Created by Gemini on 11/8/25.
 //
 
-import Foundation
 
 struct UpdateProfileRequest: Encodable {
     let name: String
@@ -35,6 +34,7 @@ class ProfileService {
         }
         
         let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(ProfileDetailsResponse.self, from: data)
     }
     
@@ -51,7 +51,9 @@ class ProfileService {
             throw URLError(.badServerResponse)
         }
         
-        return try JSONDecoder().decode(ProfileUser.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(ProfileUser.self, from: data)
     }
     
     func updateBreakStatus(isTakingBreak: Bool) async throws -> ProfileUser {
@@ -65,7 +67,9 @@ class ProfileService {
               (200...299).contains(httpResponse.statusCode) else {
             throw URLError(.badServerResponse)
         }
-        return try JSONDecoder().decode(ProfileUser.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(ProfileUser.self, from: data)
     }
     
     func updatePassword(newPassword: String) async throws {

@@ -235,16 +235,25 @@ struct DashboardView: View {
                 }
             }
         case .hubGuides:
-            VStack(spacing: 12) {
-                Text("Hub Guides")
-                    .font(.title2.bold())
-                Text("Le guide saranno presto disponibili nell'app.")
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
+            if viewModel.hubGuides.isEmpty {
+                hubGuidesEmptyState
+            } else {
+                VStack(spacing: 20) {
+                    Text("Hub Guides")
+                        .font(.title2.bold())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    VStack(spacing: 16) {
+                        ForEach(viewModel.hubGuides) { guide in
+                            HubGuideCard(guide: guide) {
+                                if let url = guide.destinationURL {
+                                    openURL(url)
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         }
     }
     
@@ -258,6 +267,23 @@ struct DashboardView: View {
             Text("Try adjusting your filters or check back later.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(32)
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+    
+    private var hubGuidesEmptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "book")
+                .font(.system(size: 44))
+                .foregroundColor(.secondary)
+            Text("Non ci sono guide disponibili")
+                .font(.headline)
+            Text("Quando il tuo coach pubblicherà nuove Hub Guides le vedrai qui.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(32)
@@ -635,6 +661,110 @@ private struct SummaryGrid: View {
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
         }
+    }
+}
+
+private struct HubGuideCard: View {
+    let guide: HubGuide
+    let onOpen: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if guide.coverImageURL != nil {
+                HubGuideCoverImage(url: guide.coverImageURL)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text(guide.title)
+                    .font(.title3.bold())
+                
+                if let summary = guide.displaySummary, !summary.isEmpty {
+                    Text(summary)
+                        .foregroundColor(.secondary)
+                        .font(.subheadline)
+                        .lineLimit(3)
+                }
+                
+                HStack(spacing: 12) {
+                    if let estimated = guide.displayEstimatedTime, !estimated.isEmpty {
+                        Label(estimated, systemImage: "clock")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    if let difficulty = guide.normalizedDifficulty, !difficulty.isEmpty {
+                        Label(difficulty, systemImage: "bolt.horizontal.circle")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
+            let tags = guide.displayTags
+            if !tags.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(tags.prefix(4)), id: \.self) { tag in
+                            Text(tag.uppercased())
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color(.systemGray6), in: Capsule())
+                        }
+                    }
+                }
+            }
+            
+            Button(action: onOpen) {
+                HStack {
+                    Text("Apri guida")
+                        .fontWeight(.semibold)
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                }
+                .padding()
+                .background(Color.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: Color.black.opacity(0.05), radius: 12, x: 0, y: 8)
+    }
+}
+
+private struct HubGuideCoverImage: View {
+    let url: URL?
+    
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [.blue.opacity(0.35), .purple.opacity(0.35)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            if let url {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        Image(systemName: "book")
+                            .font(.largeTitle)
+                            .foregroundColor(.white.opacity(0.8))
+                    case .empty:
+                        ProgressView()
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+            } else {
+                Image(systemName: "book")
+                    .font(.largeTitle)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 160)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 

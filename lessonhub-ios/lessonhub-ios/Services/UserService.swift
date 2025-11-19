@@ -65,7 +65,9 @@ class UserService {
             throw URLError(.badServerResponse)
         }
         
-        let details = try JSONDecoder().decode(ProfileDetailsResponse.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let details = try decoder.decode(ProfileDetailsResponse.self, from: data)
         return details.user
     }
 }

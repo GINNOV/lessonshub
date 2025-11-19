@@ -14,6 +14,7 @@ class DashboardViewModel: ObservableObject {
     @Published var assignments: [Assignment] = []
     @Published var userProfile: UserProfile?
     @Published var profileDetails: ProfileUser?
+    @Published var hubGuides: [HubGuide] = []
     
     private let userService = UserService()
     private let assignmentService = AssignmentService()
@@ -35,6 +36,7 @@ class DashboardViewModel: ObservableObject {
             welcomeMessage = "Welcome, \(user.name ?? "User")!"
             userProfile = user
             profileDetails = details.user
+            hubGuides = details.hubGuides ?? []
         } catch {
             print("Error fetching profile: \(error)")
             // Handle error, maybe show a default welcome message
