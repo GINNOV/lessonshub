@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct DashboardView: View {
     @StateObject private var viewModel = DashboardViewModel()
@@ -417,6 +418,7 @@ private struct AssignmentSection: Identifiable {
 
 private struct AssignmentCard: View {
     let assignment: Assignment
+    @State private var isShareSheetPresented = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -467,11 +469,17 @@ private struct AssignmentCard: View {
                     Image(systemName: "person.2.fill")
                 }
                 Spacer()
-                Label {
-                    Text("Share")
-                } icon: {
-                    Image(systemName: "square.and.arrow.up")
+                Button {
+                    isShareSheetPresented = true
+                } label: {
+                    Label {
+                        Text("Share")
+                    } icon: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .foregroundColor(.secondary)
                 }
+                .buttonStyle(.plain)
             }
             .font(.caption)
             .foregroundColor(.secondary)
@@ -484,6 +492,9 @@ private struct AssignmentCard: View {
                 .fill(Color(.systemBackground))
         )
         .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
+        .sheet(isPresented: $isShareSheetPresented) {
+            ShareSheet(activityItems: assignment.shareActivityItems)
+        }
     }
 }
 
@@ -529,31 +540,38 @@ private struct LessonPreviewImage: View {
     let url: URL?
     
     var body: some View {
-        ZStack {
-            Color(.systemGray5)
-            if let url {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .clipped()
-                    case .failure:
-                        placeholder
-                    case .empty:
-                        ProgressView()
-                    @unknown default:
-                        placeholder
+        GeometryReader { proxy in
+            ZStack {
+                Color(.systemGray5)
+                if let url {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: proxy.size.width, height: proxy.size.height)
+                                .clipped()
+                        case .failure:
+                            placeholder
+                                .frame(width: proxy.size.width, height: proxy.size.height)
+                        case .empty:
+                            ProgressView()
+                                .frame(width: proxy.size.width, height: proxy.size.height)
+                        @unknown default:
+                            placeholder
+                                .frame(width: proxy.size.width, height: proxy.size.height)
+                        }
                     }
+                } else {
+                    placeholder
+                        .frame(width: proxy.size.width, height: proxy.size.height)
                 }
-            } else {
-                placeholder
             }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .frame(maxWidth: .infinity, minHeight: 160, maxHeight: 160)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(height: 160)
     }
     
     private var placeholder: some View {
@@ -618,6 +636,18 @@ private struct SummaryGrid: View {
             }
         }
     }
+}
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    var applicationActivities: [UIActivity]? = nil
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems,
+                                 applicationActivities: applicationActivities)
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 private enum DashboardTab: String, CaseIterable, Identifiable {

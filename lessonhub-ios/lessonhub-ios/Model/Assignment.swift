@@ -105,6 +105,23 @@ extension Assignment {
         return nil
     }
     
+    var shareURL: URL? {
+        guard let base = Assignment.baseURL else { return nil }
+        return URL(string: "/my-lessons/\(lesson.id)", relativeTo: base)
+    }
+    
+    var shareMessage: String {
+        "I'm working on \"\(lesson.title)\" due \(dueDateDescription) via LessonHUB."
+    }
+    
+    var shareActivityItems: [Any] {
+        var items: [Any] = [shareMessage]
+        if let url = shareURL {
+            items.append(url)
+        }
+        return items
+    }
+    
     var formattedPreview: String {
         let source = lesson.lesson_preview ?? lesson.assignment_text
         return Assignment.cleanMarkdown(from: source)

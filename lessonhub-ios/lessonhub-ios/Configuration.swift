@@ -8,8 +8,9 @@
 import Foundation
 
 struct Configuration {
-    // IMPORTANT: Replace "localhost" with your computer's local IP address.
-    // You can find this in System Settings > Wi-Fi > Details... > IP Address,
-    // or by running `ifconfig | grep "inet " | grep -v 127.0.0.1` in the terminal.
+#if DEBUG && targetEnvironment(simulator)
     static let baseURL = "http://localhost:3000"
+#else
+    static let baseURL = "https://lessonshub.vercel.app"
+#endif
 }
