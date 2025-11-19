@@ -130,45 +130,13 @@ struct DashboardView: View {
             Text("Assignment Summary")
                 .font(.headline)
             
-            LazyVGrid(columns: summaryGridColumns, spacing: 16) {
-                ForEach(summaryItems) { item in
-                    VStack(spacing: 8) {
-                        Circle()
-                            .fill(item.color.opacity(0.16))
-                            .frame(width: 56, height: 56)
-                            .overlay(
-                                Image(systemName: item.icon)
-                                    .font(.title3)
-                                    .foregroundColor(item.color)
-                            )
-                        
-                        VStack(spacing: 2) {
-                            Text("\(item.value)")
-                                .font(.headline)
-                            Text(item.title)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                }
-            }
-            
-            Text("Aggiorna il tuo profilo con una bio per farti conoscere dagli altri studenti.")
-                .font(.footnote)
-                .foregroundColor(.secondary)
+            SummaryGrid(items: summaryItems)
         }
         .padding()
         .frame(maxWidth: .infinity)
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: Color.black.opacity(0.06), radius: 16, x: 0, y: 8)
-    }
-
-    private var summaryGridColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 16), count: 3)
     }
     
     private var tabs: some View {
@@ -453,9 +421,7 @@ private struct AssignmentCard: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .topTrailing) {
-                LessonPreviewImage(urlString: assignment.lessonHeroImageURL)
-                    .frame(height: 160)
-                    .clipped()
+                LessonPreviewImage(url: assignment.lessonHeroImageURL)
                 StatusBadge(status: assignment.normalizedStatus)
                     .padding(12)
             }
@@ -474,7 +440,7 @@ private struct AssignmentCard: View {
                         .lineLimit(2)
                 }
                 
-                LessonProgressIndicator(progress: assignment.lessonProgress, difficultyLabel: assignment.difficultyLabel, difficultyColor: assignment.difficultyColor)
+                LessonProgressIndicator(level: assignment.difficultyLevel)
                 
                 HStack {
                     Label {
@@ -512,6 +478,7 @@ private struct AssignmentCard: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color(.systemBackground))
@@ -521,42 +488,59 @@ private struct AssignmentCard: View {
 }
 
 private struct LessonProgressIndicator: View {
-    let progress: Double
-    let difficultyLabel: String
-    let difficultyColor: Color
+    let level: AssignmentDifficultyLevel
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                ForEach(AssignmentDifficultyLevel.allCases, id: \.self) { item in
                     Capsule()
-                        .fill(Color(.systemGray5))
-                        .frame(height: 10)
-                    Capsule()
-                        .fill(Color.green)
-                        .frame(width: max(0, min(1, progress)) * geometry.size.width, height: 10)
+                        .fill(item == level ? color(for: level) : Color(.systemGray5))
+                        .frame(height: 12)
+                        .frame(maxWidth: .infinity)
+                        .overlay(
+                            Capsule()
+                                .stroke(Color(.systemGray4))
+                                .opacity(item == level ? 0 : 1)
+                        )
+                        .shadow(color: item == level ? color(for: level).opacity(0.25) : .clear,
+                                radius: item == level ? 8 : 0, x: 0, y: 2)
                 }
             }
-            .frame(height: 10)
             
-            Text(difficultyLabel.uppercased())
+            Text(level.label.uppercased())
                 .font(.caption.weight(.semibold))
-                .foregroundColor(difficultyColor)
+                .foregroundColor(color(for: level))
+        }
+    }
+    
+    private func color(for level: AssignmentDifficultyLevel) -> Color {
+        switch level {
+        case .superSimple: return Color(red: 0.0, green: 0.6, blue: 0.3)
+        case .approachable: return Color(red: 0.47, green: 0.73, blue: 0.2)
+        case .intermediate: return .orange
+        case .challenging: return Color(red: 0.9, green: 0.4, blue: 0.0)
+        case .advanced: return .red
         }
     }
 }
 
 private struct LessonPreviewImage: View {
-    let urlString: String?
+    let url: URL?
     
     var body: some View {
-        Group {
-            if let urlString, let url = URL(string: urlString) {
+        ZStack {
+            Color(.systemGray5)
+            if let url {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .failure(_):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .clipped()
+                    case .failure:
                         placeholder
                     case .empty:
                         ProgressView()
@@ -568,8 +552,7 @@ private struct LessonPreviewImage: View {
                 placeholder
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGray5))
+        .frame(maxWidth: .infinity, minHeight: 160, maxHeight: 160)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
     
@@ -605,6 +588,38 @@ private struct StatusBadge: View {
     }
 }
 
+private struct SummaryGrid: View {
+    let items: [SummaryItem]
+    
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 16, alignment: .top)], spacing: 16) {
+            ForEach(items) { item in
+                VStack(spacing: 8) {
+                    Circle()
+                        .fill(item.color.opacity(0.16))
+                        .frame(width: 56, height: 56)
+                        .overlay(
+                            Image(systemName: item.icon)
+                                .font(.title3)
+                                .foregroundColor(item.color)
+                        )
+                    
+                    VStack(spacing: 2) {
+                        Text("\(item.value)")
+                            .font(.headline)
+                        Text(item.title)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+    }
+}
+
 private enum DashboardTab: String, CaseIterable, Identifiable {
     case lessons
     case hubGuides
@@ -636,28 +651,4 @@ private enum AssignmentFilter: String, CaseIterable, Identifiable {
 #Preview {
     DashboardView()
         .environmentObject(AuthenticationManager())
-}
-private struct ProfileMenuButton: View {
-    let profile: UserProfile?
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(profile?.name ?? "Student")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                Text((profile?.role ?? "student").capitalized)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            AvatarButton(imageURL: profile?.image, name: profile?.name)
-        }
-        .padding(6)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white.opacity(0.95))
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
-    }
 }

@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import SwiftUI
 
 struct Assignment: Codable, Identifiable {
     let id: String
@@ -80,23 +79,30 @@ extension Assignment {
         return Double(lesson.submittedCount) / Double(lesson.completionCount)
     }
     
-    var lessonHeroImageURL: String {
-        if let url = lesson.assignment_image_url, !url.isEmpty {
-            return url
-        }
-        if let type = lesson.type {
-            switch type.uppercased() {
-            case "FLASHCARD":
-                return "/my-lessons/flashcard.png"
-            case "MULTI_CHOICE":
-                return "/my-lessons/multiquestions.png"
-            case "LEARNING_SESSION", "LYRIC":
-                return "/my-lessons/learning.png"
-            default:
-                return "/my-lessons/standard.png"
+    var lessonHeroImageURL: URL? {
+        if let raw = lesson.assignment_image_url {
+            if let absolute = URL(string: raw) {
+                return absolute
+            } else if let base = Assignment.baseURL {
+                return URL(string: raw, relativeTo: base)
             }
         }
-        return "/my-lessons/standard.png"
+        if let type = lesson.type,
+           let base = Assignment.baseURL {
+            let path: String
+            switch type.uppercased() {
+            case "FLASHCARD":
+                path = "/my-lessons/flashcard.png"
+            case "MULTI_CHOICE":
+                path = "/my-lessons/multiquestions.png"
+            case "LEARNING_SESSION", "LYRIC":
+                path = "/my-lessons/learning.png"
+            default:
+                path = "/my-lessons/standard.png"
+            }
+            return URL(string: path, relativeTo: base)
+        }
+        return nil
     }
     
     var formattedPreview: String {
@@ -104,30 +110,9 @@ extension Assignment {
         return Assignment.cleanMarkdown(from: source)
     }
     
-    var difficultyLabel: String {
-        switch clampedDifficulty {
-        case 1: return "Super Simple"
-        case 2: return "Approachable"
-        case 3: return "Intermediate"
-        case 4: return "Challenging"
-        case 5: return "Advanced"
-        default: return "Intermediate"
-        }
-    }
-    
-    var difficultyColor: Color {
-        switch clampedDifficulty {
-        case 1: return Color(red: 0.0, green: 0.6, blue: 0.3)
-        case 2: return Color(red: 0.47, green: 0.73, blue: 0.2)
-        case 3: return Color.orange
-        case 4: return Color(red: 0.9, green: 0.4, blue: 0.0)
-        case 5: return Color.red
-        default: return Color.green
-        }
-    }
-    
-    private var clampedDifficulty: Int {
-        min(max(lesson.difficulty ?? 3, 1), 5)
+    var difficultyLevel: AssignmentDifficultyLevel {
+        let value = min(max(lesson.difficulty ?? 3, 1), 5)
+        return AssignmentDifficultyLevel(rawValue: value) ?? .intermediate
     }
     
     private static func cleanMarkdown(from text: String) -> String {
@@ -142,6 +127,7 @@ extension Assignment {
         return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
+    private static let baseURL = URL(string: Configuration.baseURL)
     private static let isoFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -167,6 +153,24 @@ extension Assignment {
         formatter.dateFormat = "E"
         return formatter
     }()
+}
+
+enum AssignmentDifficultyLevel: Int, CaseIterable {
+    case superSimple = 1
+    case approachable
+    case intermediate
+    case challenging
+    case advanced
+    
+    var label: String {
+        switch self {
+        case .superSimple: return "Super Simple"
+        case .approachable: return "Approachable"
+        case .intermediate: return "Intermediate"
+        case .challenging: return "Challenging"
+        case .advanced: return "Advanced"
+        }
+    }
 }
 
 enum AssignmentStatusCategory: String, CaseIterable {
