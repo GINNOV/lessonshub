@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { LessonType, Prisma, Role } from "@prisma/client";
+import { AssignmentNotification, LessonType, Prisma, Role } from "@prisma/client";
 import { hasAdminPrivileges } from "@/lib/authz";
 
 type LyricLineInput = {
