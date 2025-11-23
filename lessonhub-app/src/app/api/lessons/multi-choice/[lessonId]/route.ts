@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { Role, LessonType } from "@prisma/client";
+import { Role, LessonType, AssignmentNotification } from "@prisma/client";
 
 export async function PATCH(
   request: NextRequest,
@@ -32,7 +32,17 @@ export async function PATCH(
       soundcloud_url,
       attachment_url,
       notes,
+      assignment_notification,
+      scheduled_assignment_date,
     } = body;
+    const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
+    const rawScheduledAssignmentDate = scheduled_assignment_date
+      ? new Date(scheduled_assignment_date)
+      : null;
+    const scheduledAssignmentDate =
+      rawScheduledAssignmentDate && !Number.isNaN(rawScheduledAssignmentDate.getTime())
+        ? rawScheduledAssignmentDate
+        : null;
 
     if (
       !title ||
@@ -69,6 +79,16 @@ export async function PATCH(
       );
     }
 
+    if (
+      assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE &&
+      (!scheduledAssignmentDate || Number.isNaN(scheduledAssignmentDate.getTime()))
+    ) {
+      return new NextResponse(
+        JSON.stringify({ error: "A valid scheduled assignment date is required." }),
+        { status: 400 }
+      );
+    }
+
     const [, updatedLesson] = await prisma.$transaction([
       prisma.multiChoiceQuestion.deleteMany({
         where: { lessonId: lessonId },
@@ -86,6 +106,8 @@ export async function PATCH(
           attachment_url,
           notes,
           difficulty: difficultyValue,
+          assignment_notification: assignmentNotification,
+          scheduled_assignment_date: scheduledAssignmentDate,
           multiChoiceQuestions: {
             create: questions.map((q: any) => ({
               question: q.question,

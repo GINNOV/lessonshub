@@ -3,7 +3,8 @@ export const runtime = 'nodejs';
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { LessonType, Role, Prisma } from "@prisma/client";
+import { AssignmentNotification, LessonType, Prisma, Role } from "@prisma/client";
+import { autoAssignLessonToAllStudents } from "@/lib/lessonAssignments";
 
 type LyricLineInput = {
   id: string;
@@ -105,7 +106,17 @@ export async function POST(request: Request) {
       rawLyrics,
       lines,
       settings,
+      assignment_notification,
+      scheduled_assignment_date,
     } = body ?? {};
+    const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
+    const rawScheduledAssignmentDate = scheduled_assignment_date
+      ? new Date(scheduled_assignment_date)
+      : null;
+    const scheduledAssignmentDate =
+      rawScheduledAssignmentDate && !Number.isNaN(rawScheduledAssignmentDate.getTime())
+        ? rawScheduledAssignmentDate
+        : null;
 
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return NextResponse.json({ error: "Lesson title is required." }, { status: 400 });
@@ -141,6 +152,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Difficulty must be an integer between 1 and 5." }, { status: 400 });
     }
 
+    if (
+      assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE &&
+      (!scheduledAssignmentDate || Number.isNaN(scheduledAssignmentDate.getTime()))
+    ) {
+      return NextResponse.json(
+        { error: "A valid scheduled assignment date is required." },
+        { status: 400 }
+      );
+    }
+
     const numericPrice = isNumberLike(price) ? Number(price) : 0;
 
     const newLesson = await prisma.lesson.create({
@@ -156,6 +177,8 @@ export async function POST(request: Request) {
         notes,
         teacherId: session.user.id,
         type: LessonType.LYRIC,
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: scheduledAssignmentDate,
         lyricConfig: {
           create: {
             audioUrl: derivedAudioUrl,
@@ -182,6 +205,13 @@ export async function POST(request: Request) {
       },
     });
 
+    await autoAssignLessonToAllStudents({
+      lessonId: newLesson.id,
+      lessonTitle: newLesson.title,
+      assignmentNotification,
+      scheduledAssignmentDate,
+      teacherName: session.user.name,
+    });
     return NextResponse.json(newLesson, { status: 201 });
   } catch (error) {
     console.error("LYRIC_LESSON_CREATE_ERROR", error);

@@ -4,7 +4,8 @@ export const runtime = 'nodejs';
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { Role, LessonType } from "@prisma/client";
+import { Role, LessonType, AssignmentNotification } from "@prisma/client";
+import { autoAssignLessonToAllStudents } from "@/lib/lessonAssignments";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -16,7 +17,28 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, questions, price, difficulty, lesson_preview, assignment_text, attachment_url, notes, assignment_image_url, soundcloud_url } = body;
+    const {
+      title,
+      questions,
+      price,
+      difficulty,
+      lesson_preview,
+      assignment_text,
+      attachment_url,
+      notes,
+      assignment_image_url,
+      soundcloud_url,
+      assignment_notification,
+      scheduled_assignment_date,
+    } = body;
+    const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
+    const rawScheduledAssignmentDate = scheduled_assignment_date
+      ? new Date(scheduled_assignment_date)
+      : null;
+    const scheduledAssignmentDate =
+      rawScheduledAssignmentDate && !Number.isNaN(rawScheduledAssignmentDate.getTime())
+        ? rawScheduledAssignmentDate
+        : null;
 
     if (
       !title ||
@@ -42,6 +64,16 @@ export async function POST(request: Request) {
       );
     }
 
+    if (
+      assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE &&
+      (!scheduledAssignmentDate || Number.isNaN(scheduledAssignmentDate.getTime()))
+    ) {
+      return new NextResponse(
+        JSON.stringify({ error: "A valid scheduled assignment date is required." }),
+        { status: 400 }
+      );
+    }
+
     // Use a nested write to create the lesson and its related questions/options
     // in a single, transactionally-safe operation.
     const newLesson = await prisma.lesson.create({
@@ -55,6 +87,8 @@ export async function POST(request: Request) {
         soundcloud_url,
         attachment_url,
         notes,
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: scheduledAssignmentDate,
         type: LessonType.MULTI_CHOICE, // Use the enum for type safety
         teacherId: session.user.id,
         multiChoiceQuestions: {
@@ -71,6 +105,13 @@ export async function POST(request: Request) {
       },
     });
 
+    await autoAssignLessonToAllStudents({
+      lessonId: newLesson.id,
+      lessonTitle: newLesson.title,
+      assignmentNotification,
+      scheduledAssignmentDate,
+      teacherName: session.user.name,
+    });
     return NextResponse.json(newLesson, { status: 201 });
   } catch (error) {
     console.error("MULTI_CHOICE_LESSON_CREATE_ERROR", error);

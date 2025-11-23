@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { LessonType, Role } from "@prisma/client";
+import { AssignmentNotification, LessonType, Role } from "@prisma/client";
 
 type CardPayload = {
   content1?: string;
@@ -88,7 +88,17 @@ export async function PATCH(
     difficulty,
     cards,
     guideCardImage,
+    assignment_notification,
+    scheduled_assignment_date,
   } = body;
+  const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
+  const rawScheduledAssignmentDate = scheduled_assignment_date
+    ? new Date(scheduled_assignment_date)
+    : null;
+  const scheduledAssignmentDate =
+    rawScheduledAssignmentDate && !Number.isNaN(rawScheduledAssignmentDate.getTime())
+      ? rawScheduledAssignmentDate
+      : null;
 
   if (!title || typeof title !== 'string') {
     return NextResponse.json({ error: 'Title is required.' }, { status: 400 });
@@ -108,6 +118,16 @@ export async function PATCH(
     return NextResponse.json({ error: 'Difficulty must be an integer between 1 and 5.' }, { status: 400 });
   }
 
+  if (
+    assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE &&
+    (!scheduledAssignmentDate || Number.isNaN(scheduledAssignmentDate.getTime()))
+  ) {
+    return NextResponse.json(
+      { error: 'A valid scheduled assignment date is required.' },
+      { status: 400 }
+    );
+  }
+
   try {
     const [, updatedLesson] = await prisma.$transaction([
       prisma.learningSessionCard.deleteMany({ where: { lessonId } }),
@@ -119,6 +139,8 @@ export async function PATCH(
           lesson_preview,
           assignment_text,
           difficulty: difficultyValue,
+          assignment_notification: assignmentNotification,
+          scheduled_assignment_date: scheduledAssignmentDate,
           type: LessonType.LEARNING_SESSION,
           guideCardImage: normalizedImage,
           learningSessionCards: {
