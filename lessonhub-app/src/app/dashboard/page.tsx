@@ -123,12 +123,13 @@ export default async function DashboardPage({
   const classId = typeof resolvedSearchParams.classId === 'string' ? resolvedSearchParams.classId : undefined;
   const weekNumber = getWeekNumber(new Date(), teacher.timeZone);
 
-  const [lessons, leaderboardData, stats, classes, recentLogins] = await Promise.all([
+  const [lessons, leaderboardData, stats, classes, latestLoginGroups] = await Promise.all([
     getLessonsForTeacher(session.user.id),
     getLeaderboardDataForTeacher(session.user.id, classId),
     getTeacherDashboardStats(session.user.id),
     getClassesForTeacher(),
-    prisma.loginEvent.findMany({
+    prisma.loginEvent.groupBy({
+      by: ['userId'],
       where: {
         user: {
           teachers: {
@@ -136,23 +137,38 @@ export default async function DashboardPage({
           },
         },
       },
-      include: {
-        user: {
-          select: {
-            name: true,
-          },
-        },
-        lesson: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
+      _max: { createdAt: true },
+      orderBy: {
+        _max: { createdAt: 'desc' },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
     }),
   ]);
+
+  const latestLoginFilters = latestLoginGroups
+    .filter((group) => group._max.createdAt)
+    .map((group) => ({ userId: group.userId, createdAt: group._max.createdAt as Date }));
+
+  const recentLogins = latestLoginFilters.length
+    ? await prisma.loginEvent.findMany({
+        where: {
+          OR: latestLoginFilters.map(({ userId, createdAt }) => ({ userId, createdAt })),
+        },
+        include: {
+          user: {
+            select: {
+              name: true,
+            },
+          },
+          lesson: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+    : [];
 
   const lessonsWithRatings = await Promise.all(
     lessons.map(async (lesson) => {
