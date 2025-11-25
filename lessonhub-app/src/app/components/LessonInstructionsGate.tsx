@@ -28,7 +28,7 @@ export default function LessonInstructionsGate({ instructionsHtml, children }: L
             __html: hasInstructions ? (instructionsHtml as string) : '<p>No instructions provided.</p>',
           }}
         />
-        {hasInstructions && (
+        {hasInstructions && !acknowledged && (
           <div className="mt-4 flex flex-col gap-3 rounded-lg border border-amber-200 bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between">
             <label htmlFor="acknowledge-instructions" className="flex items-start gap-3 text-sm text-amber-900">
               <Checkbox
