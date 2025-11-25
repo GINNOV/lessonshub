@@ -221,7 +221,7 @@ export default async function GradeSubmissionPage({
   const serializableSubmission = {
     ...submission,
     student: normalizeUserDecimals(submission.student),
-    teacher: normalizeUserDecimals(submission.teacher),
+    teacher: normalizeUserDecimals((submission as any).teacher ?? null),
     lesson: {
       ...submission.lesson,
       price: submission.lesson.price.toNumber(),

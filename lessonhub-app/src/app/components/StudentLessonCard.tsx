@@ -85,8 +85,8 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
     return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Pending</Badge>;
   };
 
-  // Always use the curated images under public/my-lessons per type
-  const imageSrc = lessonTypeImages[lesson.type];
+  // Prefer lesson-specific cover when available, otherwise fall back to curated type image
+  const coverImage = lesson.assignment_image_url?.trim() || lessonTypeImages[lesson.type];
 
   const lessonIdDisplay = `Lesson ${getWeekAndDay(currentDeadline)}`;
 
@@ -184,7 +184,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
         <CardHeader className="p-0">
             <Link href={`/assignments/${assignment.id}`} className="block relative h-40 w-full overflow-hidden rounded-t-lg">
                 <Image 
-                    src={imageSrc}
+                    src={coverImage}
                     alt={lesson.title}
                     fill
                     priority={index < 3}
