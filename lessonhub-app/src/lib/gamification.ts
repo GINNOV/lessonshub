@@ -66,6 +66,15 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     bonusPoints: 50,
     check: (ctx) => ctx.totalPoints >= 500,
   },
+  {
+    slug: 'gold-star',
+    name: 'Gold Star',
+    description: 'Earned a gold star from your teacher.',
+    icon: '⭐️',
+    category: BadgeCategory.PARTICIPATION,
+    bonusPoints: 0,
+    check: () => false, // awarded manually via gold star action
+  },
 ];
 
 export function calculateAssignmentPoints(args: {

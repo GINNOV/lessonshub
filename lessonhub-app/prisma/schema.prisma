@@ -1,6 +1,7 @@
 // file: prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
@@ -49,6 +50,8 @@ model User {
   assignments               Assignment[]
   pointTransactions         PointTransaction[]
   badges                    UserBadge[]
+  goldStarsReceived         GoldStar[]         @relation("GoldStarsReceived")
+  goldStarsSent             GoldStar[]         @relation("GoldStarsSent")
   classes                   Class[]
   loginEvents               LoginEvent[]
   defaultLessonPrice        Decimal?
@@ -399,6 +402,22 @@ model PointTransaction {
 
   @@index([userId])
   @@index([assignmentId])
+}
+
+model GoldStar {
+  id         String   @id @default(cuid())
+  studentId  String
+  teacherId  String
+  message    String?  @db.Text
+  amountEuro Int      @default(200)
+  points     Int      @default(11)
+  createdAt  DateTime @default(now())
+
+  student User @relation("GoldStarsReceived", fields: [studentId], references: [id], onDelete: Cascade)
+  teacher User @relation("GoldStarsSent", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([teacherId])
 }
 
 enum Role {

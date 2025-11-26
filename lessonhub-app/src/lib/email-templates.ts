@@ -207,7 +207,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
 <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Thank you!</p>`,
         buttonColor: '#00BCD4',
     },
-    deadline_extended: {
+  deadline_extended: {
     subject: "Good News! Your deadline has been extended",
     body: `
       <p>Hi {{studentName}},</p>
@@ -217,6 +217,30 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
       <p>Keep up the great work!</p>
     `,
     buttonColor: '#17a2b8',
+  },
+  gold_star: {
+    subject: '⭐ You earned a Gold Star!',
+    body: `
+        🇺🇸
+        <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">You're on a Roll!</h1>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{studentName}},</p>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Congratulations on doing a fantastic job! Your dedication and hard work are paying off. Keep up the fantastic progress! You are now officially a <b>GOLD STAR member</b>!</p>
+
+        <!-- Trophy in the center -->
+        <div style="text-align: center; font-size: 80px; margin: 20px 0;">⭐️</div>
+
+        🇮🇹
+        <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Stai andando alla grande!</h1>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Ciao {{studentName}},</p>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Complimenti per continuare ad essere un campione di esempio per gli altri studenti! La tua dedizione e il tuo impegno stanno dando i loro frutti. Continua così! Sei ufficialmente un possesore sano del badge di <b>STELLA D'ORO</b>. Fallo sapere agli altri studenti e falli schiattare di invidia!</p>
+
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">
+          Personal note: <em>{{message}}</em><br/>
+          Reward: <strong>{{amount}}</strong> · Points: <strong>{{points}}</strong>
+        </p>
+        {{button}}
+    `,
+    buttonColor: '#f59e0b',
   },
   weekly_summary: {
     subject: '🌟 Your Week on LessonHUB ({{weekRange}})',

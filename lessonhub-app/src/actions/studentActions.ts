@@ -245,6 +245,14 @@ export async function getLeaderboardData() {
       },
     });
 
+    const studentIds = students.map((s) => s.id);
+    const goldStarSums = await prisma.goldStar.groupBy({
+      by: ['studentId'],
+      where: { studentId: { in: studentIds } },
+      _sum: { amountEuro: true },
+    });
+    const goldStarByStudent = new Map(goldStarSums.map((row) => [row.studentId, row._sum.amountEuro ?? 0]));
+
     const studentStats = students.map(student => {
       const completedAssignments = student.assignments.filter(a => a.status === AssignmentStatus.COMPLETED || a.status === AssignmentStatus.GRADED);
       const completedCount = completedAssignments.length;
@@ -272,6 +280,7 @@ export async function getLeaderboardData() {
       });
 
       savings -= extensionSpend;
+      savings += goldStarByStudent.get(student.id) ?? 0;
 
       const derivedPoints = student.assignments.reduce(
         (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),
@@ -379,6 +388,11 @@ export async function getStudentLeaderboardProfile(studentId: string) {
       },
     });
 
+    const goldStarSum = await prisma.goldStar.aggregate({
+      where: { studentId },
+      _sum: { amountEuro: true },
+    });
+
     if (!student) return null;
 
     const isSelf = viewerId === studentId;
@@ -439,6 +453,7 @@ export async function getStudentLeaderboardProfile(studentId: string) {
     });
 
     savings -= extensionSpend;
+    savings += goldStarSum._sum.amountEuro ?? 0;
 
     const derivedPoints = student.assignments.reduce(
       (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),

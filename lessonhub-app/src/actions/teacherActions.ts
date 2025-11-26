@@ -3,10 +3,12 @@
 
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
-import { Role, AssignmentStatus, LessonType } from "@prisma/client";
+import { Role, AssignmentStatus, LessonType, PointReason } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { sendEmail, createButton } from "@/lib/email-templates";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
+import { ensureBadgeCatalog } from "@/lib/gamification";
+import { getEmailTemplateByName } from "@/actions/adminActions";
 
 /**
  * Fetches the preferences for the currently logged-in teacher.
@@ -72,6 +74,120 @@ export async function updateTeacherPreferences(data: TeacherPreferences) {
         console.error("Failed to update teacher preferences:", error);
         return { success: false, error: "An error occurred." };
     }
+}
+
+export async function sendGoldStar(studentId: string, message: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const trimmedMessage = message?.trim().slice(0, 500) || "";
+
+  const teacher = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, name: true },
+  });
+
+  if (!teacher) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const link = await prisma.teachersForStudent.findFirst({
+    where: { teacherId: teacher.id, studentId },
+  });
+
+  if (!link) {
+    return { success: false, error: "You can only send stars to your assigned students." };
+  }
+
+  const student = await prisma.user.findUnique({
+    where: { id: studentId },
+    select: { id: true, email: true, name: true, totalPoints: true },
+  });
+
+  if (!student) {
+    return { success: false, error: "Student not found." };
+  }
+
+  await ensureBadgeCatalog();
+
+  const GOLD_STAR_POINTS = 11;
+  const GOLD_STAR_VALUE = 200;
+  const goldStarBadge = await prisma.badge.findUnique({ where: { slug: 'gold-star' } });
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.goldStar.create({
+        data: {
+          studentId,
+          teacherId: teacher.id,
+          message: trimmedMessage || null,
+          amountEuro: GOLD_STAR_VALUE,
+          points: GOLD_STAR_POINTS,
+        },
+      });
+
+      const updatedPoints = (student.totalPoints ?? 0) + GOLD_STAR_POINTS;
+      await tx.user.update({
+        where: { id: studentId },
+        data: { totalPoints: updatedPoints },
+      });
+
+      await tx.pointTransaction.create({
+        data: {
+          userId: studentId,
+          points: GOLD_STAR_POINTS,
+          reason: PointReason.MANUAL_ADJUSTMENT,
+          note: `Gold star from ${teacher.name || "Teacher"}${trimmedMessage ? `: ${trimmedMessage}` : ""}`,
+        },
+      });
+
+      if (goldStarBadge) {
+        await tx.userBadge.upsert({
+          where: {
+            userId_badgeId: {
+              userId: studentId,
+              badgeId: goldStarBadge.id,
+            },
+          },
+          update: {},
+          create: {
+            userId: studentId,
+            badgeId: goldStarBadge.id,
+            assignmentId: null,
+            metadata: { awardedBy: teacher.id },
+          },
+        });
+      }
+    });
+
+    const template = await getEmailTemplateByName('gold_star');
+    if (template && student.email) {
+      const profileUrl = `${process.env.AUTH_URL}/profile/${studentId}`;
+      await sendEmail({
+        to: student.email,
+        templateName: 'gold_star',
+        data: {
+          studentName: student.name || 'Student',
+          teacherName: teacher.name || 'Your teacher',
+          message: trimmedMessage,
+          amount: `€${GOLD_STAR_VALUE}`,
+          points: GOLD_STAR_POINTS.toString(),
+          button: createButton('View your profile', profileUrl, template.buttonColor || undefined),
+        },
+      });
+    }
+
+    revalidatePath(`/profile/${studentId}`);
+    revalidatePath('/dashboard');
+    revalidatePath('/my-lessons');
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send gold star:", error);
+    return { success: false, error: "Unable to send gold star right now." };
+  }
 }
 
 export async function updateTeacherBio(teacherBio: string) {
@@ -149,6 +265,13 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
       },
     });
 
+    const goldStarSums = await prisma.goldStar.groupBy({
+      by: ['studentId'],
+      where: { studentId: { in: assignedStudentIds } },
+      _sum: { amountEuro: true },
+    });
+    const goldStarByStudent = new Map(goldStarSums.map((row) => [row.studentId, row._sum.amountEuro ?? 0]));
+
     const studentStats = students
       .map(student => {
         const completedCount = student.assignments.filter(a => a.status === AssignmentStatus.COMPLETED || a.status === AssignmentStatus.GRADED).length;
@@ -165,6 +288,7 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
         }
 
         savings -= extensionSpend;
+        savings += goldStarByStudent.get(student.id) ?? 0;
 
         const derivedPoints = student.assignments.reduce(
           (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),
