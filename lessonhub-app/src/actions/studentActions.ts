@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { Role, AssignmentStatus } from "@prisma/client";
 import { sendEmail, createButton } from "@/lib/email-templates";
 import { getStudentGamificationSnapshot } from "@/lib/gamification";
+import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 
 /**
  * Sends a feedback message from the current student to all teachers.
@@ -227,7 +228,7 @@ export async function getLeaderboardData() {
         },
         assignments: {
           where: {
-            status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
+            status: { in: [AssignmentStatus.PENDING, AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
           },
           select: {
             id: true,
@@ -236,6 +237,8 @@ export async function getLeaderboardData() {
             pointsAwarded: true,
             gradedAt: true,
             assignedAt: true,
+            deadline: true,
+            originalDeadline: true,
             lesson: { select: { price: true } },
           },
         },
@@ -257,18 +260,25 @@ export async function getLeaderboardData() {
 
       // Savings logic: match My Progress: +price for GRADED, -price for FAILED
       let savings = 0;
+      let extensionSpend = 0;
       student.assignments.forEach(a => {
         const price = a.lesson?.price ? Number(a.lesson.price.toString()) : 0;
         if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score >= 0) savings += price;
         if (a.status === AssignmentStatus.FAILED) savings -= price;
+
+        if (isExtendedDeadline(a.deadline, a.originalDeadline)) {
+          extensionSpend += EXTENSION_POINT_COST;
+        }
       });
+
+      savings -= extensionSpend;
 
       const derivedPoints = student.assignments.reduce(
         (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),
         0
       );
 
-      const totalPoints = Math.max(student.totalPoints ?? 0, derivedPoints);
+      const totalPoints = student.totalPoints ?? derivedPoints;
 
       return {
         id: student.id,
@@ -338,7 +348,7 @@ export async function getStudentLeaderboardProfile(studentId: string) {
         teachers: { select: { teacherId: true } },
         assignments: {
           where: {
-            status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
+            status: { in: [AssignmentStatus.PENDING, AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
           },
           select: {
             id: true,
@@ -347,6 +357,8 @@ export async function getStudentLeaderboardProfile(studentId: string) {
             pointsAwarded: true,
             gradedAt: true,
             assignedAt: true,
+            deadline: true,
+            originalDeadline: true,
             lesson: { select: { price: true } },
           },
           orderBy: { assignedAt: 'desc' },
@@ -411,6 +423,7 @@ export async function getStudentLeaderboardProfile(studentId: string) {
     const averageCompletionTime = completedCount > 0 ? totalCompletionTime / completedCount : 0;
 
     let savings = 0;
+    let extensionSpend = 0;
     student.assignments.forEach((assignment) => {
       const price = assignment.lesson?.price ? Number(assignment.lesson.price.toString()) : 0;
       if (assignment.status === AssignmentStatus.GRADED && assignment.score !== null && assignment.score >= 0) {
@@ -419,14 +432,20 @@ export async function getStudentLeaderboardProfile(studentId: string) {
       if (assignment.status === AssignmentStatus.FAILED) {
         savings -= price;
       }
+
+      if (isExtendedDeadline(assignment.deadline, assignment.originalDeadline)) {
+        extensionSpend += EXTENSION_POINT_COST;
+      }
     });
+
+    savings -= extensionSpend;
 
     const derivedPoints = student.assignments.reduce(
       (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),
       0
     );
 
-    const totalPoints = Math.max(student.totalPoints ?? 0, derivedPoints);
+    const totalPoints = student.totalPoints ?? derivedPoints;
     const completionRate = testsTaken > 0 ? completedCount / testsTaken : 0;
 
     return {

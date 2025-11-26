@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { Role, AssignmentStatus, LessonType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { sendEmail, createButton } from "@/lib/email-templates";
+import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 
 /**
  * Fetches the preferences for the currently logged-in teacher.
@@ -132,7 +133,7 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
         },
         assignments: {
           where: {
-            status: { in: [AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
+            status: { in: [AssignmentStatus.PENDING, AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
             lesson: { teacherId: teacherId },
           },
           select: {
@@ -140,6 +141,8 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
             status: true,
             score: true,
             pointsAwarded: true,
+            deadline: true,
+            originalDeadline: true,
             lesson: { select: { price: true } },
           },
         },
@@ -150,18 +153,25 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
       .map(student => {
         const completedCount = student.assignments.filter(a => a.status === AssignmentStatus.COMPLETED || a.status === AssignmentStatus.GRADED).length;
         let savings = 0;
+        let extensionSpend = 0;
         for (const a of student.assignments) {
           const price = a.lesson?.price ? Number(a.lesson.price.toString()) : 0;
           if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score >= 0) savings += price;
           if (a.status === AssignmentStatus.FAILED) savings -= price;
+
+          if (isExtendedDeadline(a.deadline, a.originalDeadline)) {
+            extensionSpend += EXTENSION_POINT_COST;
+          }
         }
+
+        savings -= extensionSpend;
 
         const derivedPoints = student.assignments.reduce(
           (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),
           0
         );
 
-        const totalPoints = Math.max(student.totalPoints ?? 0, derivedPoints);
+        const totalPoints = student.totalPoints ?? derivedPoints;
 
         return {
           id: student.id,

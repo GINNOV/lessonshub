@@ -4,7 +4,7 @@ import Link from "next/link";
 import { marked } from "marked";
 import { Lesson } from "@prisma/client";
 import { Button } from "@/components/ui/button";
-import { Paperclip, Eye, Volume2 } from "lucide-react";
+import { Paperclip, Eye, Volume2, ExternalLink } from "lucide-react";
 marked.setOptions({
   gfm: true,
   breaks: true,
@@ -29,6 +29,7 @@ export default async function LessonContentView({ lesson, showInstructions = tru
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : "";
 
   const audioUrl = lesson.soundcloud_url || lesson.lyricConfig?.audioUrl || "";
+  const isSpotifyAudio = typeof audioUrl === 'string' && /open\.spotify\.com/i.test(audioUrl);
   const isSpotifyMaterialLink = typeof lesson.attachment_url === 'string' && /open\.spotify\.com/i.test(lesson.attachment_url);
 
   const isYouTubeUrl = (url: string) => /(?:youtube\.com|youtu\.be)\//i.test(url);
@@ -91,7 +92,13 @@ export default async function LessonContentView({ lesson, showInstructions = tru
 
       {audioUrl && (
         <div className="my-4">
-          {isYouTubeUrl(audioUrl) ? (
+          {isSpotifyAudio ? (
+            <Button asChild variant="outline">
+              <Link href={audioUrl} target="_blank" rel="noopener noreferrer">
+                <Volume2 className="mr-2 h-4 w-4" /> Listen on Spotify <ExternalLink className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          ) : isYouTubeUrl(audioUrl) ? (
             (() => {
               const vid = getYouTubeId(audioUrl);
               if (!vid) return null as any;

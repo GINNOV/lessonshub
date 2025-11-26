@@ -11,6 +11,7 @@ import { nanoid } from 'nanoid';
 import { checkAndSendMilestoneEmail } from "./studentActions";
 import { awardBadgesForStudent, calculateAssignmentPoints } from "@/lib/gamification";
 import { hasAdminPrivileges } from "@/lib/authz";
+import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 
 export async function getUploadedImages() {
   try {
@@ -1032,27 +1033,40 @@ export async function getStudentStats(studentId: string) {
     const assignments = await prisma.assignment.findMany({
       where: {
         studentId: studentId,
-        OR: [{ status: AssignmentStatus.GRADED }, { status: AssignmentStatus.FAILED }],
       },
       select: {
         id: true,
         status: true,
         score: true,
         pointsAwarded: true,
+        deadline: true,
+        originalDeadline: true,
         lesson: { select: { price: true } },
       },
     });
+
     let totalValue = 0;
-    assignments.forEach(a => {
+    let extensionSpend = 0;
+
+    assignments.forEach((a) => {
       const price = a.lesson.price.toNumber();
+      const isExtended = isExtendedDeadline(a.deadline, a.originalDeadline);
+
       if (a.status === AssignmentStatus.FAILED) {
         totalValue -= price;
       } else if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score >= 0) {
         totalValue += price;
       }
+
+      if (isExtended) {
+        extensionSpend += EXTENSION_POINT_COST;
+      }
     });
+
+    totalValue -= extensionSpend;
+
     const derivedPoints = assignments.reduce((sum, assignment) => sum + (assignment.pointsAwarded ?? 0), 0);
-    const totalPoints = Math.max(student.totalPoints ?? 0, derivedPoints);
+    const totalPoints = student.totalPoints ?? derivedPoints;
     return { totalValue, totalPoints };
   } catch (error) {
     console.error("Failed to calculate student stats:", error);
@@ -1233,39 +1247,129 @@ export async function failAssignment(assignmentId: string) {
   }
 }
 
-export async function extendDeadline(assignmentId: string) {
+type ExtensionActor = "teacher" | "student";
+
+async function applyDeadlineExtension(assignmentId: string, actor: ExtensionActor) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+  const isTeacher = session?.user?.role === Role.TEACHER;
+  const isStudent = session?.user?.role === Role.STUDENT;
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  if ((actor === "teacher" && !isTeacher) || (actor === "student" && !isStudent)) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const assignment = await prisma.assignment.findUnique({
-      where: { id: assignmentId },
-    });
-
-    if (!assignment) {
-      return { success: false, error: "Assignment not found." };
-    }
-
-    const newDeadline = new Date();
-    newDeadline.setHours(newDeadline.getHours() + 48);
-
-    await prisma.assignment.update({
-      where: { id: assignmentId },
-      data: {
-        deadline: newDeadline,
-        status: AssignmentStatus.PENDING,
-        originalDeadline: assignment.originalDeadline ?? assignment.deadline,
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        ...(actor === "teacher"
+          ? { lesson: { teacherId: session.user.id } }
+          : { studentId: session.user.id }),
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            totalPoints: true,
+          },
+        },
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
       },
     });
 
+    if (!assignment) {
+      const notFoundMessage =
+        actor === "student"
+          ? "Assignment not found."
+          : "Assignment not found or you do not have access to it.";
+      return { success: false, error: notFoundMessage };
+    }
+
+    const alreadyExtended =
+      assignment.originalDeadline &&
+      assignment.originalDeadline.getTime() !== assignment.deadline.getTime();
+    if (alreadyExtended) {
+      return {
+        success: false,
+        error: "This lesson has already been extended.",
+      };
+    }
+
+    const availablePoints = assignment.student?.totalPoints ?? 0;
+    if (availablePoints < EXTENSION_POINT_COST) {
+      const insufficientMessage =
+        actor === "student"
+          ? `You need at least ${EXTENSION_POINT_COST} points to request an extension.`
+          : `This student needs at least ${EXTENSION_POINT_COST} points available to extend this lesson.`;
+      return {
+        success: false,
+        error: insufficientMessage,
+      };
+    }
+
+    const now = new Date();
+    const baseDeadline =
+      assignment.deadline && assignment.deadline > now ? assignment.deadline : now;
+    const newDeadline = new Date(baseDeadline.getTime() + 48 * 60 * 60 * 1000);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedAssignment = await tx.assignment.update({
+        where: { id: assignmentId },
+        data: {
+          deadline: newDeadline,
+          status: AssignmentStatus.PENDING,
+          originalDeadline: assignment.originalDeadline ?? assignment.deadline,
+        },
+      });
+
+      const remainingPoints = availablePoints - EXTENSION_POINT_COST;
+      await tx.user.update({
+        where: { id: assignment.studentId },
+        data: { totalPoints: remainingPoints },
+      });
+
+      await tx.pointTransaction.create({
+        data: {
+          userId: assignment.studentId,
+          assignmentId,
+          points: -EXTENSION_POINT_COST,
+          reason: PointReason.MANUAL_ADJUSTMENT,
+          note: `Lesson extension for ${assignment.lesson?.title ?? "lesson"}`,
+        },
+      });
+
+      return { updatedAssignment, remainingPoints };
+    });
+
+    revalidatePath(`/assignments/${assignmentId}`);
+    revalidatePath("/my-lessons");
     revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);
-    return { success: true };
+
+    return {
+      success: true,
+      newDeadline: result.updatedAssignment.deadline,
+      remainingPoints: result.remainingPoints,
+    };
   } catch (error) {
     console.error("Failed to extend deadline:", error);
     return { success: false, error: "An error occurred." };
   }
+}
+
+export async function extendDeadline(assignmentId: string) {
+  return applyDeadlineExtension(assignmentId, "teacher");
+}
+
+export async function requestStudentExtension(assignmentId: string) {
+  return applyDeadlineExtension(assignmentId, "student");
 }
 
 export async function gradeAssignment(

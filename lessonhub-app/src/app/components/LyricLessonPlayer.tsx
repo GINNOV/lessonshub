@@ -193,7 +193,9 @@ export default function LyricLessonPlayer({
 }: LyricLessonPlayerProps) {
   const safeAudioUrl = typeof audioUrl === 'string' ? audioUrl.trim() : '';
   const safeStorageKey = typeof audioStorageKey === 'string' ? audioStorageKey.trim() : '';
-  const hasAudio = Boolean(safeAudioUrl && safeStorageKey);
+  const isSpotifyLink = safeAudioUrl.includes('open.spotify.com');
+  const referenceTrackUrl = timingSourceUrl || (isSpotifyLink ? safeAudioUrl : null);
+  const hasAudio = Boolean(!referenceTrackUrl && safeAudioUrl && safeStorageKey);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lineStopAtRef = useRef<number | null>(null);
@@ -530,90 +532,99 @@ export default function LyricLessonPlayer({
       : 'Read Along';
 
   const scoreBadge = submission && (
-    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-      Score: {submission.scorePercent.toFixed(1)}%
+    <Badge className="border-green-200 bg-green-50 text-green-800">
+      Score {submission.scorePercent.toFixed(1)}%
+    </Badge>
+  );
+
+  const attemptBadge = !submission && existingAttempt && existingAttempt.scorePercent !== null && (
+    <Badge className="border-slate-200 bg-slate-50 text-slate-700">
+      Prev {existingAttempt.scorePercent.toFixed(1)}% · {formatDuration(existingAttempt.timeTakenSeconds ?? null)}
     </Badge>
   );
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border bg-slate-50 p-4">
+      <div className="rounded-2xl border bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <Volume2 className="h-5 w-5 text-indigo-500" />
-            <span className="font-semibold text-slate-700">Lyric Lesson Player</span>
-            {scoreBadge}
-            {submission && (
-              <Badge variant="outline">
-                Time: {formatDuration(submission.timeTakenSeconds)}
-              </Badge>
-            )}
-            {submission && submission.readModeSwitchesUsed !== null && (
-              <Badge variant="outline" className="border-indigo-200 text-indigo-700">
-                Read along: {submission.readModeSwitchesUsed}
-              </Badge>
-            )}
-            {!hasAudio && (
-              <Badge variant="outline" className="border-amber-300 text-amber-700">
-                Use material link for the audio.
-              </Badge>
-            )}
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-700">
+              <Volume2 className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Lyric lesson</p>
+              <p className="text-lg font-semibold text-slate-900">Read &amp; fill</p>
+              <div className="flex flex-wrap gap-2">
+                {scoreBadge}
+                {attemptBadge}
+                {submission && (
+                  <Badge variant="outline">
+                    Time {formatDuration(submission.timeTakenSeconds)}
+                  </Badge>
+                )}
+                {submission && submission.readModeSwitchesUsed !== null && (
+                  <Badge variant="outline" className="border-indigo-200 text-indigo-700">
+                    Read-along {submission.readModeSwitchesUsed}
+                  </Badge>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
-            <Button
-              type="button"
-              size="sm"
-              variant={mode === 'read' ? 'default' : 'outline'}
-              disabled={readModeDisabled}
-              onClick={() => handleModeChange('read')}
-            >
-              {readModeLabel}
-            </Button>
+
+          <div className="flex flex-1 flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-end">
+            <div className="grid w-full grid-cols-1 gap-2 text-sm sm:flex sm:min-w-[240px] sm:overflow-hidden sm:rounded-full sm:border sm:border-slate-200 sm:bg-slate-50 md:w-auto">
+              <Button
+                type="button"
+                variant={mode === 'read' ? 'default' : 'ghost'}
+                className="w-full sm:flex-1 sm:rounded-full"
+                disabled={readModeDisabled}
+                onClick={() => handleModeChange('read')}
+              >
+                {readModeLabel}
+              </Button>
+              <Button
+                type="button"
+                variant={mode === 'fill' ? 'default' : 'ghost'}
+                className="w-full sm:flex-1 sm:rounded-full"
+                onClick={() => handleModeChange('fill')}
+                disabled={status !== AssignmentStatus.PENDING && !existingAttempt}
+              >
+                Fill the Blanks
+              </Button>
+            </div>
             {bonusReadRemaining > 0 && baseReadRemaining !== null && (
               <p className="text-[11px] text-emerald-700">
                 Includes +{bonusReadRemaining} guide boost{bonusReadRemaining === 1 ? '' : 's'}.
               </p>
             )}
-            <Button
-              type="button"
-              size="sm"
-              variant={mode === 'fill' ? 'default' : 'outline'}
-              onClick={() => handleModeChange('fill')}
-              disabled={status !== AssignmentStatus.PENDING && !existingAttempt}
-            >
-              Fill the Blanks
-            </Button>
             {status === AssignmentStatus.PENDING && (
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="flex-1 whitespace-nowrap sm:flex-none"
+                className="flex-1 whitespace-nowrap md:flex-none"
                 onClick={handleSaveDraft}
-              disabled={isSavingDraft || isSubmitting}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {isSavingDraft ? 'Saving…' : 'Save Draft'}
-            </Button>
-            )}
-            {timingSourceUrl && (
-              <Button asChild type="button" size="sm" variant="outline">
-                <a href={timingSourceUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Reference Track
-                </a>
+                disabled={isSavingDraft || isSubmitting}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {isSavingDraft ? 'Saving…' : 'Save Draft'}
               </Button>
             )}
           </div>
         </div>
         {hasAudio && (
-          <audio ref={audioRef} className="mt-4 w-full" src={safeAudioUrl} controls preload="metadata" />
+          <audio ref={audioRef} className="mt-4 w-full rounded-lg border bg-slate-100" src={safeAudioUrl} controls preload="metadata" />
+        )}
+        {referenceTrackUrl && (
+          <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm text-indigo-900">
+            Use the reference track for playback.
+          </div>
         )}
       </div>
 
       <div
         ref={containerRef}
-        className="max-h-[480px] space-y-4 overflow-y-auto rounded-lg border bg-white p-4"
+        className="max-h-[520px] space-y-4 overflow-y-auto rounded-2xl border bg-white p-4 shadow-sm"
       >
         {preparedLines.map((line, index) => {
           const isActive = line.id === activeLineId;
@@ -625,11 +636,11 @@ export default function LyricLessonPlayer({
               key={line.id}
               data-line-id={line.id}
               className={cn(
-                'rounded-md border p-4 transition-all',
+                'rounded-xl border p-4 transition-all',
                 isActive ? 'border-indigo-400 bg-indigo-50 shadow-sm' : 'border-slate-200'
               )}
             >
-              <div className="flex items-center justify-between text-xs text-slate-500">
+              <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-600">
                     {displayIndex}
@@ -639,12 +650,12 @@ export default function LyricLessonPlayer({
                   </span>
                 </div>
                 {hasAudio && (
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => playFromLine(line)}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => playFromLine(line)} className="h-8">
                       <Play className="mr-2 h-4 w-4" />
-                      Play line
+                      Play
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={stopPlayback}>
+                    <Button type="button" variant="ghost" size="sm" onClick={stopPlayback} className="h-8">
                       <Pause className="mr-2 h-4 w-4" />
                       Pause
                     </Button>
@@ -695,7 +706,7 @@ export default function LyricLessonPlayer({
       </div>
 
       {mode === 'fill' && status === AssignmentStatus.PENDING && (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <Button
             type="button"
             onClick={handleSubmit}
