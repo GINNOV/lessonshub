@@ -6,6 +6,7 @@ import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletAc
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { LessonType, Role } from "@prisma/client";
+import { hasAdminPrivileges } from "@/lib/authz";
 
 const normalizeLines = (value: unknown): LyricLine[] => {
   if (!Array.isArray(value)) return [];
@@ -46,7 +47,13 @@ const normalizeLines = (value: unknown): LyricLine[] => {
 export default async function EditLyricLessonPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
 
-  if (!session || (session.user.role !== Role.TEACHER && session.user.role !== Role.ADMIN)) {
+  const isAdminLike = hasAdminPrivileges(session?.user);
+
+  if (!session) {
+    redirect("/");
+  }
+
+  if (session.user.role === Role.STUDENT || (session.user.role !== Role.TEACHER && !isAdminLike)) {
     redirect("/");
   }
 
@@ -61,7 +68,7 @@ export default async function EditLyricLessonPage({ params }: { params: Promise<
     redirect("/dashboard");
   }
 
-  if (lesson.teacherId && lesson.teacherId !== session.user.id && session.user.role !== Role.ADMIN) {
+  if (lesson.teacherId && lesson.teacherId !== session.user.id && !isAdminLike) {
     redirect("/dashboard");
   }
 
