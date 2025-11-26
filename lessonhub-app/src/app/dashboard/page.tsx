@@ -22,6 +22,7 @@ import WhatsNewDialog from "@/app/components/WhatsNewDialog";
 import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 import { ADMIN_TILES } from "@/lib/adminTiles";
 import LoginHistoryCard from "@/app/components/LoginHistoryCard";
+import CollapsibleSection from "@/app/components/CollapsibleSection";
 
 export const dynamic = "force-dynamic";
 
@@ -236,21 +237,25 @@ export default async function DashboardPage({
       </div>
 
       <TeacherStatsHeader stats={stats} />
-      <TeacherLessonList
-        lessons={filteredLessons}
-        classes={classFilterOptions}
-      />
-
       <div className="mt-8">
-        {classes.length > 0 && (
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <a href="/dashboard" className={`px-3 py-1.5 rounded-md text-sm border ${!classId ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>All</a>
-            {classes.filter((c: any) => c.isActive).map((c: any) => (
-              <a key={c.id} href={`/dashboard?classId=${c.id}`} className={`px-3 py-1.5 rounded-md text-sm border ${classId === c.id ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>{c.name}</a>
-            ))}
+        <CollapsibleSection title="Your lessons" helperText="Teacher view" defaultOpen>
+          <TeacherLessonList
+            lessons={filteredLessons}
+            classes={classFilterOptions}
+          />
+
+          <div className="mt-6">
+            {classes.length > 0 && (
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <a href="/dashboard" className={`px-3 py-1.5 rounded-md text-sm border ${!classId ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>All</a>
+                {classes.filter((c: any) => c.isActive).map((c: any) => (
+                  <a key={c.id} href={`/dashboard?classId=${c.id}`} className={`px-3 py-1.5 rounded-md text-sm border ${classId === c.id ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>{c.name}</a>
+                ))}
+              </div>
+            )}
+            <TeacherClassLeaderboard leaderboardData={leaderboardData} />
           </div>
-        )}
-        <TeacherClassLeaderboard leaderboardData={leaderboardData} />
+        </CollapsibleSection>
       </div>
       <div className="mt-8">
         <LoginHistoryCard
