@@ -96,6 +96,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
   };
   const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
   const [questions, setQuestions] = useState<string[]>(['']);
+  const [expectedAnswers, setExpectedAnswers] = useState<string[]>(['']);
   const [contextText, setContextText] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
@@ -127,7 +128,20 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
       setLessonPreview(lesson.lesson_preview || '');
       setPrice(lesson.price.toString());
       setAssignmentText(lesson.assignment_text || '👉🏼 INSTRUCTIONS:\n');
-      setQuestions((lesson.questions as string[])?.length > 0 ? (lesson.questions as string[]) : ['']);
+      const normalizedQuestions = Array.isArray(lesson.questions)
+        ? (lesson.questions as any[]).map((item) => {
+            if (typeof item === 'string') return { question: item, expectedAnswer: '' };
+            if (item && typeof item === 'object') {
+              return {
+                question: typeof (item as any).question === 'string' ? (item as any).question : '',
+                expectedAnswer: typeof (item as any).expectedAnswer === 'string' ? (item as any).expectedAnswer : '',
+              };
+            }
+            return { question: String(item ?? ''), expectedAnswer: '' };
+          })
+        : [{ question: '', expectedAnswer: '' }];
+      setQuestions(normalizedQuestions.map((q) => q.question || ''));
+      setExpectedAnswers(normalizedQuestions.map((q) => q.expectedAnswer || ''));
       setContextText(lesson.context_text || '');
       setAssignmentImageUrl(lesson.assignment_image_url || null);
       setSoundcloudUrl(lesson.soundcloud_url || '');
@@ -222,6 +236,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
 
   const handleAddQuestion = () => {
     setQuestions([...questions, '']);
+    setExpectedAnswers([...expectedAnswers, '']);
   };
 
   const handleQuestionChange = (index: number, value: string) => {
@@ -230,10 +245,49 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
     setQuestions(newQuestions);
   };
 
+  const handleExpectedChange = (index: number, value: string) => {
+    const next = [...expectedAnswers];
+    next[index] = value;
+    setExpectedAnswers(next);
+  };
+
   const handleRemoveQuestion = (index: number) => {
     const newQuestions = [...questions];
     newQuestions.splice(index, 1);
+    const newExpected = [...expectedAnswers];
+    newExpected.splice(index, 1);
     setQuestions(newQuestions);
+    setExpectedAnswers(newExpected);
+  };
+
+  const handleQuestionsCsv = async (file?: File | null) => {
+    if (!file) return;
+    const text = await file.text();
+    const rows = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    if (rows.length === 0) {
+      setError('CSV appears to be empty.');
+      return;
+    }
+    const nextQuestions: string[] = [];
+    const nextExpected: string[] = [];
+    for (const row of rows) {
+      const parts = row.split(',').map((part) => part.trim().replace(/^"|"$/g, ''));
+      const question = parts[0] || '';
+      const expected = parts[1] || '';
+      if (question) {
+        nextQuestions.push(question);
+        nextExpected.push(expected);
+      }
+    }
+    if (nextQuestions.length === 0) {
+      setError('No questions found in the CSV (expected columns: question, expected answer).');
+      return;
+    }
+    setQuestions(nextQuestions);
+    setExpectedAnswers(nextExpected);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -248,8 +302,14 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
       setError('Lesson preview cannot be empty.');
       return;
     }
-    const validQuestions = questions.filter(q => q.trim() !== '');
-    if (validQuestions.length === 0) {
+    const normalizedQa = questions
+      .map((q, idx) => ({
+        question: q.trim(),
+        expectedAnswer: (expectedAnswers[idx] || '').trim(),
+      }))
+      .filter((entry) => entry.question);
+
+    if (normalizedQa.length === 0) {
       setError('You must include at least one question.');
       return;
     }
@@ -276,7 +336,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
           lesson_preview: lessonPreview,
           assignmentText, 
           difficulty,
-          questions: validQuestions,
+          questions: normalizedQa,
           contextText,
           assignment_image_url: assignmentImageUrl,
           soundcloud_url: soundcloudUrl,
@@ -473,15 +533,52 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         </p>
       </div>
       
-      <div className="form-field">
-        {questions.map((question, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <Label htmlFor={`question-${index}`} className="whitespace-nowrap">Question {index + 1}</Label>
-            <Input type="text" id={`question-${index}`} value={question} onChange={(e) => handleQuestionChange(index, e.target.value)} disabled={isLoading} />
-            <Button type="button" size="icon" onClick={handleAddQuestion} disabled={isLoading}>+</Button>
-            <Button type="button" size="icon" onClick={() => handleRemoveQuestion(index)} disabled={isLoading || questions.length <= 1} variant="destructive">-</Button>
+      <div className="form-field space-y-3">
+        <div className="flex items-center justify-between">
+          <Label>Questions</Label>
+          <Button type="button" size="sm" variant="outline" onClick={handleAddQuestion} disabled={isLoading}>
+            Add Question
+          </Button>
+        </div>
+        <div className="rounded-lg border bg-gray-50 p-3 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Label htmlFor="questionsCsv" className="text-sm">Import CSV (question, expected answer)</Label>
+            <Input
+              id="questionsCsv"
+              type="file"
+              accept=".csv,text/csv"
+              disabled={isLoading}
+              onChange={(e) => handleQuestionsCsv(e.target.files?.[0] ?? null)}
+              className="w-full sm:w-auto"
+            />
           </div>
-        ))}
+          {questions.map((question, index) => (
+            <div key={index} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-slate-500">Item {index + 1}</span>
+                <div className="flex gap-1">
+                  <Button type="button" size="icon" onClick={handleAddQuestion} disabled={isLoading}>+</Button>
+                  <Button type="button" size="icon" onClick={() => handleRemoveQuestion(index)} disabled={isLoading || questions.length <= 1} variant="destructive">-</Button>
+                </div>
+              </div>
+              <Input
+                type="text"
+                id={`question-${index}`}
+                placeholder={`Question ${index + 1}`}
+                value={question}
+                onChange={(e) => handleQuestionChange(index, e.target.value)}
+                disabled={isLoading}
+              />
+              <Input
+                type="text"
+                placeholder="Expected answer (shown after grading)"
+                value={expectedAnswers[index] || ''}
+                onChange={(e) => handleExpectedChange(index, e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="form-field">

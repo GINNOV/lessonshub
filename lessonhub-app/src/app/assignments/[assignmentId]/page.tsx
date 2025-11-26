@@ -222,12 +222,17 @@ export default async function AssignmentPage({
     }
     return {};
   })();
-  const lessonQuestions: string[] = Array.isArray(lesson.questions)
-    ? lesson.questions.map((item): string => {
-        if (typeof item === "string") return item;
-        if (item === null || item === undefined) return "";
-        return typeof item === "object" ? JSON.stringify(item) : String(item);
-      })
+  const questionItems = Array.isArray(lesson.questions)
+    ? (lesson.questions as any[]).map((item) => {
+        if (typeof item === "string") return { question: item, expectedAnswer: "" };
+        if (item && typeof item === "object") {
+          return {
+            question: typeof (item as any).question === "string" ? (item as any).question : "",
+            expectedAnswer: typeof (item as any).expectedAnswer === "string" ? (item as any).expectedAnswer : "",
+          };
+        }
+        return { question: String(item ?? ""), expectedAnswer: "" };
+      }).filter((item) => item.question.trim())
     : [];
   const teacherCommentsBlock = serializableAssignment.teacherComments ? (
     <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -296,12 +301,16 @@ export default async function AssignmentPage({
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Review Your Submission</h2>
           {lesson.type === LessonType.STANDARD && (
              <div className="mt-2 space-y-4 rounded-lg border bg-gray-50 p-4">
-                {Array.isArray(serializableAssignment.answers) && lessonQuestions.map((question, i) => {
+                {Array.isArray(serializableAssignment.answers) && questionItems.map((item, i) => {
                     const teacherComment = teacherAnswerCommentsMap[i];
+                    const expectedAnswer = item.expectedAnswer?.trim();
                     return (
                       <div key={i} className="space-y-2">
-                        <p className="text-sm font-semibold text-gray-600">Question {i + 1}: {question}</p>
+                        <p className="text-sm font-semibold text-gray-600">Question {i + 1}: {item.question}</p>
                         <p className="prose prose-sm mt-1 border-l-2 pl-4 text-gray-800">{serializableAssignment.answers[i] || 'No answer provided.'}</p>
+                        {expectedAnswer && (
+                          <p className="text-xs text-gray-500">Expected answer: <span className="font-medium text-gray-700">{expectedAnswer}</span></p>
+                        )}
                         {teacherComment && (
                           <div className="mt-1 flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
                             <GraduationCap className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />

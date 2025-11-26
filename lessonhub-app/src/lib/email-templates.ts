@@ -228,15 +228,18 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
 
         <!-- Trophy in the center -->
         <div style="text-align: center; font-size: 80px; margin: 20px 0;">⭐️</div>
+<p>For this you are receving <b>200</b> euros in credit on the platform and 11 points on the leaderboard!</p>
 
         🇮🇹
         <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Stai andando alla grande!</h1>
         <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Ciao {{studentName}},</p>
-        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Complimenti per continuare ad essere un campione di esempio per gli altri studenti! La tua dedizione e il tuo impegno stanno dando i loro frutti. Continua così! Sei ufficialmente un possesore sano del badge di <b>STELLA D'ORO</b>. Fallo sapere agli altri studenti e falli schiattare di invidia!</p>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Complimenti per continuare ad essere un campione di esempio per gli altri studenti!</p> 
 
+<p>La tua dedizione e il tuo impegno stanno dando i loro frutti. Continua così! Sei ufficialmente un possessore sano del badge di <b>STELLA D'ORO</b>. Fallo sapere agli altri studenti e falli schiattare di invidia!</p>
+
+<p>Per questo raggiungimento ricevo <b>200</b> euro in crediti e 11 punti sulla leaderboard.</p>
         <p style="color: #525f7f; font-size: 16px; line-height: 24px;">
-          Personal note: <em>{{message}}</em><br/>
-          Reward: <strong>{{amount}}</strong> · Points: <strong>{{points}}</strong>
+          Personal note: <em>{{message}}</em>
         </p>
         {{button}}
     `,

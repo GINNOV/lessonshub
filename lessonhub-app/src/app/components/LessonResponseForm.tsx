@@ -45,7 +45,23 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
     return new Date(assignment.draftUpdatedAt);
   });
 
-  const questions = (assignment.lesson.questions as string[]) || [];
+  const normalizeQuestions = (value: any): { question: string; expectedAnswer: string }[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((item) => {
+        if (typeof item === 'string') return { question: item, expectedAnswer: '' };
+        if (item && typeof item === 'object') {
+          return {
+            question: typeof (item as any).question === 'string' ? (item as any).question : '',
+            expectedAnswer: typeof (item as any).expectedAnswer === 'string' ? (item as any).expectedAnswer : '',
+          };
+        }
+        return { question: String(item ?? ''), expectedAnswer: '' };
+      })
+      .filter((q) => q.question.trim());
+  };
+
+  const questions = normalizeQuestions(assignment.lesson.questions);
 
   const parseStringArray = (value: unknown, length: number): string[] | null => {
     if (!Array.isArray(value) || length <= 0) return null;
@@ -136,7 +152,7 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
       {questions.map((question, index) => (
         <div key={index} className="space-y-2">
           <Label htmlFor={`question-${index}`} className="font-semibold">
-            {index + 1}. {question}
+            {index + 1}. {question.question}
           </Label>
           <Textarea
             id={`question-${index}`}
