@@ -32,6 +32,7 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const success = searchParams?.get('success');
   const refCode = searchParams?.get('ref');
+  const [locale, setLocale] = useState<string>('en');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -64,6 +65,17 @@ function RegisterForm() {
   useEffect(() => {
     void loadChallenge();
   }, [loadChallenge]);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.language) {
+      setLocale(navigator.language.toLowerCase());
+    }
+  }, []);
+
+  const heroCopy =
+    locale.startsWith('it') || locale.startsWith('es') || locale.startsWith('fr')
+      ? 'Viaggia con confidenza. Sentiti semplicemente sicuro di interaggire con il resto del mondo.'
+      : 'Travel with confidence. Feel at ease engaging with the world around you.';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,24 +124,31 @@ function RegisterForm() {
 
   if (success) {
     return (
-      <div className="text-center">
-        <h1 className="text-2xl font-bold">Registration Successful!</h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          A welcome email has been sent to your inbox.
-        </p>
-        <Button asChild className="mt-6">
-          <Link href="/signin">Proceed to Sign In</Link>
-        </Button>
+      <div className="mx-auto max-w-md px-4 py-12 text-center sm:py-16">
+        <div className="rounded-2xl border bg-gradient-to-br from-indigo-50 via-white to-emerald-50 p-6 shadow-sm">
+          <h1 className="text-3xl font-bold text-slate-900">You’re in! 🎉</h1>
+          <p className="mt-3 text-sm text-slate-600">
+            Your account is ready and a welcome email is on the way. Take a breath, then dive into your lessons with confidence.
+          </p>
+          <div className="mt-6 space-y-3">
+            <Button asChild className="w-full">
+              <Link href="/signin">Go to sign in</Link>
+            </Button>
+            <p className="text-xs text-slate-500">
+              Need help? Reply to the welcome email and we’ll be there.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto grid w-[350px] gap-6">
+    <div className="mx-auto grid w-full max-w-md gap-6 px-4 sm:px-6">
         <div className="grid gap-2 text-center">
           <h1 className="text-3xl font-bold">Create Account</h1>
           <p className="text-balance text-muted-foreground">
-            Enter your details below to get started
+            {heroCopy}
           </p>
         </div>
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
@@ -201,10 +220,27 @@ function RegisterForm() {
               <Button
                 type="button"
                 variant="outline"
+                className="px-3"
                 onClick={() => void loadChallenge()}
                 disabled={isChallengeLoading || isLoading}
+                aria-label="New question"
               >
-                New question
+                <svg
+                  aria-hidden="true"
+                  focusable="false"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 2l-2 2m0 0-4.5 4.5a2.121 2.121 0 0 1-3 0L9 10l5 5" />
+                  <path d="m21 2-5.5 5.5" />
+                  <path d="M6 18 2 22" />
+                  <path d="m3 21 1-4 4-4 3 3-4 4Z" />
+                </svg>
               </Button>
             </div>
           </div>
