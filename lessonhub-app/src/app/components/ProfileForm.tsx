@@ -245,18 +245,16 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     }
   };
 
-  const tabOptions = [
-    { value: 'profile', label: 'Profile', visible: true },
-    { value: 'about', label: 'About me', visible: user?.role === Role.TEACHER },
-    { value: 'status', label: 'Billing', visible: user?.role === Role.STUDENT },
-    { value: 'password', label: 'Password', visible: !isAdmin },
-    { value: 'delete', label: 'Break(up) time', visible: !isAdmin },
-  ] as const;
-
-  const visibleTabs = useMemo(
-    () => tabOptions.filter((option) => option.visible),
-    [tabOptions]
-  );
+  const visibleTabs = useMemo(() => {
+    const base = [
+      { value: 'profile', label: 'Profile', visible: true },
+      { value: 'about', label: 'About me', visible: user?.role === Role.TEACHER },
+      { value: 'status', label: 'Billing', visible: user?.role === Role.STUDENT },
+      { value: 'password', label: 'Password', visible: !isAdmin },
+      { value: 'delete', label: 'Break(up) time', visible: !isAdmin },
+    ] as const;
+    return base.filter((option) => option.visible);
+  }, [user?.role, isAdmin]);
 
   const defaultTab = useMemo(() => {
     if (normalizedTab && visibleTabs.some((tab) => tab.value === normalizedTab)) {

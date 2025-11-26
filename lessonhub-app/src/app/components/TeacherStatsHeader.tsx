@@ -65,10 +65,7 @@ export default function TeacherStatsHeader({ stats }: TeacherStatsHeaderProps) {
   };
 
   return (
-    <Card className="mb-8 shadow-md">
-      <CardHeader>
-        <CardTitle>Teacher Summary</CardTitle>
-      </CardHeader>
+    <Card className="mb-6 shadow-md">
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard

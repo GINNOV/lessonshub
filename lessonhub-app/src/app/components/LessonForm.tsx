@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Lesson, AssignmentNotification } from '@prisma/client';
 import ImageBrowser from './ImageBrowser'; 
 import { getWeekAndDay } from '@/lib/utils';
-import { Info } from 'lucide-react';
+import { Info, Upload } from 'lucide-react';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import FileUploadButton from '@/components/FileUploadButton';
@@ -261,27 +261,30 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
   };
 
   const handleQuestionsCsv = async (file?: File | null) => {
-    if (!file) return;
-    const text = await file.text();
-    const rows = text
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-    if (rows.length === 0) {
-      setError('CSV appears to be empty.');
+  if (!file) return;
+  const text = await file.text();
+  const rows = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  if (rows.length === 0) {
+    setError('CSV appears to be empty.');
+    return;
+  }
+  const nextQuestions: string[] = [];
+  const nextExpected: string[] = [];
+  rows.forEach((row, idx) => {
+    const parts = row.split(',').map((part) => part.trim().replace(/^"|"$/g, ''));
+    // Skip header row if present
+    if (idx === 0 && parts[0]?.toLowerCase() === 'question' && parts[1]?.toLowerCase() === 'answer') {
       return;
     }
-    const nextQuestions: string[] = [];
-    const nextExpected: string[] = [];
-    for (const row of rows) {
-      const parts = row.split(',').map((part) => part.trim().replace(/^"|"$/g, ''));
-      const question = parts[0] || '';
-      const expected = parts[1] || '';
-      if (question) {
-        nextQuestions.push(question);
-        nextExpected.push(expected);
-      }
-    }
+    const question = parts[0] || '';
+    const expected = parts[1] || '';
+    if (!question) return;
+    nextQuestions.push(question);
+    nextExpected.push(expected);
+  });
     if (nextQuestions.length === 0) {
       setError('No questions found in the CSV (expected columns: question, expected answer).');
       return;
@@ -543,19 +546,30 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         <div className="rounded-lg border bg-gray-50 p-3 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <Label htmlFor="questionsCsv" className="text-sm">Import CSV (question, expected answer)</Label>
-            <Input
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              disabled={isLoading}
+              className="w-10 h-10"
+              onClick={() => document.getElementById('questionsCsv')?.click()}
+              title="Import questions from CSV"
+            >
+              <Upload className="h-4 w-4" />
+            </Button>
+            <input
               id="questionsCsv"
               type="file"
               accept=".csv,text/csv"
               disabled={isLoading}
               onChange={(e) => handleQuestionsCsv(e.target.files?.[0] ?? null)}
-              className="w-full sm:w-auto"
+              className="hidden"
             />
           </div>
-          {questions.map((question, index) => (
+            {questions.map((question, index) => (
             <div key={index} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-slate-500">Item {index + 1}</span>
+                <span className="text-xs font-semibold text-slate-500">Question {index + 1}</span>
                 <div className="flex gap-1">
                   <Button type="button" size="icon" onClick={handleAddQuestion} disabled={isLoading}>+</Button>
                   <Button type="button" size="icon" onClick={() => handleRemoveQuestion(index)} disabled={isLoading || questions.length <= 1} variant="destructive">-</Button>
