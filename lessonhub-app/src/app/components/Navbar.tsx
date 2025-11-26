@@ -99,6 +99,9 @@ export default function Navbar() {
                           <Link href="/admin/lessons">Lesson Management</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
+                          <Link href="/admin/referrals">Referral Dashboard</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
                           <Link href="/admin/emails">Email Editor</Link>
                         </DropdownMenuItem>
                          <DropdownMenuItem asChild>
