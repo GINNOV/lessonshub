@@ -7,6 +7,7 @@ import WeekDivider from '@/app/components/WeekDivider';
 import { getWeekAndDay } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import Link from 'next/link';
 
 type SerializableUser = {
   id: string;
@@ -111,9 +112,17 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-center text-gray-500 p-6 border rounded-lg">
-          You have no assignments yet. Talk to your teacher if you were expecting some.
-        </p>
+        <div className="text-center text-gray-500 p-6 border rounded-lg">
+          <p>You have no assignments yet.</p>
+          <div className="mt-2 text-sm">
+            <Link
+              href="/teachers"
+              className="text-indigo-600 underline hover:text-indigo-700"
+            >
+              Browse teachers directory
+            </Link>
+          </div>
+        </div>
       ) : (
         <div className="space-y-6">
           {(() => {

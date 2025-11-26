@@ -19,6 +19,10 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
   }
 
   const { guideId } = await params;
+  const guide = await getHubGuideById(guideId);
+  if (!guide) {
+    notFound();
+  }
 
   const studentRecord = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -26,8 +30,9 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
   });
 
   const isPaying = studentRecord?.isPaying ?? session.user.isPaying ?? false;
+  const isFreeGuide = guide.guideIsFreeForAll === true;
 
-  if (!isPaying) {
+  if (!isPaying && !isFreeGuide) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 p-6">
         <Button asChild variant="ghost">
@@ -46,7 +51,6 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
     );
   }
 
-  const guidePromise = getHubGuideById(guideId);
   const completionPromise = prisma.guideCompletion.findUnique({
     where: {
       studentId_guideId: {
@@ -56,10 +60,7 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
     },
   });
 
-  const [guide, completion] = await Promise.all([guidePromise, completionPromise]);
-  if (!guide) {
-    notFound();
-  }
+  const [completion] = await Promise.all([completionPromise]);
 
   const previewHtml = guide.lessonPreview ? await marked.parse(guide.lessonPreview) : null;
   const instructionsHtml = guide.assignmentText ? await marked.parse(guide.assignmentText) : null;

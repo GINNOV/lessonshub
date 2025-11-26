@@ -42,29 +42,29 @@ export default function HubGuideBanner({ variant, guideCount = 0, className }: H
         <X className="h-4 w-4" />
       </button>
       {variant === 'paying' ? (
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">Hub Guides</p>
-            <h2 className="mt-1 text-3xl font-bold">Always-on practice hub</h2>
-            <p className="mt-2 max-w-xl text-indigo-100/80">
-              Switch between your assigned lessons and on-demand guides anytime.
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-indigo-100">{guideCountLabel(guideCount)}</p>
+        <div className="flex flex-col gap-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">Hub Guides</p>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold">Always-on practice hub</h2>
+              <p className="max-w-4xl text-indigo-100/80">
+                Switch between your assigned lessons and on-demand guides anytime.
+              </p>
+            </div>
+            <div className="text-sm text-indigo-100 md:text-right">{guideCountLabel(guideCount)}</div>
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="space-y-2 md:max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">Hub Guides</p>
-            <h2 className="mt-1 text-3xl font-bold">Always-on practice hub</h2>
-            <p className="mt-2 max-w-xl text-indigo-100/80">
-              Upgrade to unlock interactive guides between lessons.
+            <h2 className="text-3xl font-bold">Always-on practice hub</h2>
+            <p className="text-indigo-100/80">
+              Guides are always ready for practice. No deadlines, no expirations, no grading—just a pure knowledge stream into your brain vessels. Some guides are free and a ton of others are for a small token of cash. Upgrade to unlock interactive guides between lessons.
             </p>
           </div>
-          <Button asChild variant="secondary" className="bg-white text-indigo-700">
-            <Link href="/profile">Unlock Hub Guides</Link>
+          <Button asChild variant="secondary" className="bg-white text-indigo-700 shrink-0">
+            <Link href="/profile?tab=status">Unlock Hub Guides</Link>
           </Button>
         </div>
       )}

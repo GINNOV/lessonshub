@@ -329,7 +329,7 @@ export async function getLeaderboardData() {
       b.totalPoints - a.totalPoints ||
       b.completedCount - a.completedCount ||
       a.averageCompletionTime - b.averageCompletionTime
-    );
+    ).slice(0, 12);
     
     return leaderboard;
   } catch (error) {

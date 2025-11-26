@@ -27,6 +27,9 @@ type GamificationTransaction = {
 
 type GamificationSnapshot = {
   totalPoints: number;
+  guidePoints?: number;
+  goldStarPoints?: number;
+  goldStarAmount?: number;
   badges: GamificationBadge[];
   nextBadge: {
     slug: string;
@@ -71,6 +74,9 @@ export default function StudentGamificationPanel({
   }
 
   const { totalPoints, badges, nextBadge, recentTransactions } = data;
+  const guidePoints = data.guidePoints ?? 0;
+  const goldStarPoints = data.goldStarPoints ?? 0;
+  const goldStarAmount = data.goldStarAmount ?? 0;
 
   return (
     <div className="mb-10">
@@ -127,10 +133,27 @@ export default function StudentGamificationPanel({
                     Badges unlocked
                   </p>
                 </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {guidePoints.toLocaleString()} pts
+                  </p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Guides completed
+                  </p>
+                </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {goldStarPoints.toLocaleString()} pts
+                </p>
+                <p className="text-xs uppercase tracking-wide text-gray-500">
+                  Gold stars received
+                </p>
+                <p className="text-xs text-gray-400">≈ €{goldStarAmount.toLocaleString()}</p>
               </div>
             </div>
-          )}
-        </CardHeader>
+          </div>
+        )}
+      </CardHeader>
         {achievementsExpanded && (
           <CardContent className="space-y-6">
             <div className="flex flex-wrap gap-6 text-sm">
@@ -149,6 +172,23 @@ export default function StudentGamificationPanel({
                 <p className="text-xs uppercase tracking-wide text-gray-500">
                   Badges unlocked
                 </p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {guidePoints.toLocaleString()} pts
+                </p>
+                <p className="text-xs uppercase tracking-wide text-gray-500">
+                  Guides completed
+                </p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {goldStarPoints.toLocaleString()} pts
+                </p>
+                <p className="text-xs uppercase tracking-wide text-gray-500">
+                  Gold stars received
+                </p>
+                <p className="text-xs text-gray-400">≈ €{goldStarAmount.toLocaleString()}</p>
               </div>
             </div>
             {badges.length === 0 ? (
