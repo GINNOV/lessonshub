@@ -35,8 +35,8 @@ const timeFormatter =
 
 export default function LoginHistoryCard({
   entries,
-  title = "Recent logins",
-  emptyMessage = "No login activity yet.",
+  title = "Recent activity",
+  emptyMessage = "No activity yet.",
   getLessonHref,
 }: LoginHistoryCardProps) {
   const groupedByStudent = entries.reduce<Map<string, { dayKey: string; dayLabel: string; entry: LoginHistoryEntry; timestamp: Date }[]>>((acc, entry) => {
@@ -72,7 +72,7 @@ export default function LoginHistoryCard({
               <AccordionItem value={studentName} key={studentName}>
                 <AccordionTrigger className="text-left text-sm font-semibold text-slate-900">
                   {studentName}
-                  <span className="text-xs font-normal text-slate-500"> ({studentEntries.length} login{studentEntries.length === 1 ? "" : "s"})</span>
+                  <span className="text-xs font-normal text-slate-500"> ({studentEntries.length} activit{studentEntries.length === 1 ? "y" : "ies"})</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-4">
@@ -89,7 +89,7 @@ export default function LoginHistoryCard({
                               >
                                 <div>
                                   <p className="font-medium text-slate-900">{formattedTime}</p>
-                                  <p className="text-xs text-slate-600">Lesson used: {entry.lessonTitle ? entry.lessonTitle : "Not recorded"}</p>
+                                  <p className="text-xs text-slate-600">Lesson: {entry.lessonTitle ? entry.lessonTitle : "Not recorded"}</p>
                                 </div>
                                 {entry.lessonId && getLessonHref && getLessonHref(entry.lessonId) && (
                                   <Link

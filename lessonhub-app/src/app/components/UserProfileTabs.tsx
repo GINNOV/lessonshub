@@ -69,8 +69,8 @@ export default function UserProfileTabs({ user, loginHistory }: UserProfileTabsP
           </Card>
           <LoginHistoryCard
             entries={loginHistory}
-            title="Recent logins"
-            emptyMessage="No login activity yet."
+            title="Recent activity"
+            emptyMessage="No activity yet."
             getLessonHref={(lessonId) => `/dashboard/assign/${lessonId}`}
           />
         </div>

@@ -123,13 +123,12 @@ export default async function DashboardPage({
   const classId = typeof resolvedSearchParams.classId === 'string' ? resolvedSearchParams.classId : undefined;
   const weekNumber = getWeekNumber(new Date(), teacher.timeZone);
 
-  const [lessons, leaderboardData, stats, classes, latestLoginGroups] = await Promise.all([
+  const [lessons, leaderboardData, stats, classes, recentLogins] = await Promise.all([
     getLessonsForTeacher(session.user.id),
     getLeaderboardDataForTeacher(session.user.id, classId),
     getTeacherDashboardStats(session.user.id),
     getClassesForTeacher(),
-    prisma.loginEvent.groupBy({
-      by: ['userId'],
+    prisma.loginEvent.findMany({
       where: {
         user: {
           teachers: {
@@ -137,38 +136,18 @@ export default async function DashboardPage({
           },
         },
       },
-      _max: { createdAt: true },
-      orderBy: {
-        _max: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: { name: true },
+        },
+        lesson: {
+          select: { id: true, title: true },
+        },
       },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
     }),
   ]);
-
-  const latestLoginFilters = latestLoginGroups
-    .filter((group) => group._max.createdAt)
-    .map((group) => ({ userId: group.userId, createdAt: group._max.createdAt as Date }));
-
-  const recentLogins = latestLoginFilters.length
-    ? await prisma.loginEvent.findMany({
-        where: {
-          OR: latestLoginFilters.map(({ userId, createdAt }) => ({ userId, createdAt })),
-        },
-        include: {
-          user: {
-            select: {
-              name: true,
-            },
-          },
-          lesson: {
-            select: {
-              id: true,
-              title: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      })
-    : [];
 
   const lessonsWithRatings = await Promise.all(
     lessons.map(async (lesson) => {
@@ -276,8 +255,8 @@ export default async function DashboardPage({
       <div className="mt-8">
         <LoginHistoryCard
           entries={studentLoginEntries}
-          title="Student logins"
-          emptyMessage="No recent logins from your students yet."
+          title="Student activities"
+          emptyMessage="No recent activity from your students yet."
           getLessonHref={(lessonId) => `/dashboard/assign/${lessonId}`}
         />
       </div>

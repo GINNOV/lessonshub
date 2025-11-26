@@ -1611,16 +1611,24 @@ export async function saveLyricAssignmentDraft(
 export async function recordLessonUsageForLatestLogin(userId: string, lessonId: string) {
   if (!userId || !lessonId) return;
   try {
-    const latest = await prisma.loginEvent.findFirst({
-      where: { userId },
+    const recentLessonEvent = await prisma.loginEvent.findFirst({
+      where: {
+        userId,
+        lessonId,
+        createdAt: {
+          gte: new Date(Date.now() - 10 * 60 * 1000), // ignore duplicates within 10 minutes
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
-    if (!latest || latest.lessonId === lessonId) {
-      return;
-    }
-    await prisma.loginEvent.update({
-      where: { id: latest.id },
-      data: { lessonId },
+
+    if (recentLessonEvent) return;
+
+    await prisma.loginEvent.create({
+      data: {
+        userId,
+        lessonId,
+      },
     });
   } catch (error) {
     console.error('LOGIN_EVENT_LESSON_UPDATE_ERROR', error);
