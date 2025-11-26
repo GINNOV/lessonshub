@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Filter } from "lucide-react";
 import TeacherClassLeaderboard from "@/app/components/TeacherClassLeaderboard";
 import prisma from "@/lib/prisma";
 import TeacherStatsHeader from "@/app/components/TeacherStatsHeader";
@@ -238,7 +238,7 @@ export default async function DashboardPage({
 
       <TeacherStatsHeader stats={stats} />
       <div className="mt-8">
-        <CollapsibleSection title="Your lessons" helperText="Teacher view" defaultOpen>
+        <CollapsibleSection title="Your assignments" defaultOpen>
           <TeacherLessonList
             lessons={filteredLessons}
             classes={classFilterOptions}
@@ -253,9 +253,11 @@ export default async function DashboardPage({
                 ))}
               </div>
             )}
-            <TeacherClassLeaderboard leaderboardData={leaderboardData} />
           </div>
         </CollapsibleSection>
+      </div>
+      <div className="mt-8">
+        <TeacherClassLeaderboard leaderboardData={leaderboardData} />
       </div>
       <div className="mt-8">
         <LoginHistoryCard

@@ -255,7 +255,7 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
 
   const visibleTabs = useMemo(
     () => tabOptions.filter((option) => option.visible),
-    [user?.role, isAdmin]
+    [tabOptions]
   );
 
   const defaultTab = useMemo(() => {
