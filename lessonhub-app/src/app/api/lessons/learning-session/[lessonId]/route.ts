@@ -90,6 +90,7 @@ export async function PATCH(
     guideCardImage,
     assignment_notification,
     scheduled_assignment_date,
+    isFreeForAll,
   } = body;
   const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
   const rawScheduledAssignmentDate = scheduled_assignment_date
@@ -142,6 +143,7 @@ export async function PATCH(
           assignment_notification: assignmentNotification,
           scheduled_assignment_date: scheduledAssignmentDate,
           type: LessonType.LEARNING_SESSION,
+          isFreeForAll: Boolean(isFreeForAll),
           guideCardImage: normalizedImage,
           learningSessionCards: {
             create: normalizedCards,

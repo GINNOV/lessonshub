@@ -726,75 +726,91 @@ export async function getAssignmentsForStudent(studentId: string) {
 
         // Select explicit scalar fields to avoid querying optional columns
         // that may not exist yet in some environments (e.g., teacherAnswerComments).
-        const assignments = await prisma.assignment.findMany({
-            where: {
-                studentId: studentId,
-                startDate: {
-                    lte: new Date(),
+        const baseLessonSelect = {
+            id: true,
+            teacherId: true,
+            title: true,
+            type: true,
+            lesson_preview: true,
+            assignment_text: true,
+            questions: true,
+            assignment_image_url: true,
+            soundcloud_url: true,
+            context_text: true,
+            attachment_url: true,
+            notes: true,
+            assignment_notification: true,
+            scheduled_assignment_date: true,
+            createdAt: true,
+            updatedAt: true,
+            public_share_id: true,
+            price: true,
+            difficulty: true,
+            assignments: {
+                select: {
+                    status: true,
                 },
             },
-            select: {
-                id: true,
-                assignedAt: true,
-                startDate: true,
-                deadline: true,
-                originalDeadline: true,
-                status: true,
-                score: true,
-                pointsAwarded: true,
-                gradedAt: true,
-                studentNotes: true,
-                rating: true,
-                answers: true,
-                teacherComments: true,
-                // teacherAnswerComments intentionally omitted for DBs without the column
-                reminderSentAt: true,
-                milestoneNotified: true,
-                notifyOnStartDate: true,
-                lessonId: true,
-                studentId: true,
-                lesson: {
-                    select: {
-                        id: true,
-                        teacherId: true,
-                        title: true,
-                        type: true,
-                        lesson_preview: true,
-                        assignment_text: true,
-                        questions: true,
-                        assignment_image_url: true,
-                        soundcloud_url: true,
-                        context_text: true,
-                        attachment_url: true,
-                        notes: true,
-                        assignment_notification: true,
-                        scheduled_assignment_date: true,
-                        createdAt: true,
-                        updatedAt: true,
-                        public_share_id: true,
-                        price: true,
-                        difficulty: true,
-                        assignments: {
-                            select: {
-                                status: true,
-                            },
-                        },
-                        teacher: {
-                            select: {
-                                id: true,
-                                name: true,
-                                image: true,
-                                // Keep optional; if absent in DB, Prisma will ignore
-                                defaultLessonPrice: true,
-                            }
-                        },
-                        _count: { select: { assignments: true } },
+            teacher: {
+                select: {
+                    id: true,
+                    name: true,
+                    image: true,
+                    // Keep optional; if absent in DB, Prisma will ignore
+                    defaultLessonPrice: true,
+                }
+            },
+            _count: { select: { assignments: true } },
+        } as const;
+
+        const fetchAssignments = async (includeFreeFlag: boolean) => {
+            const lessonSelect = includeFreeFlag ? { ...baseLessonSelect, isFreeForAll: true } : baseLessonSelect;
+
+            return prisma.assignment.findMany({
+                where: {
+                    studentId: studentId,
+                    startDate: {
+                        lte: new Date(),
                     },
                 },
-            },
-            orderBy: { deadline: 'asc' },
-        });
-        return assignments;
+                select: {
+                    id: true,
+                    assignedAt: true,
+                    startDate: true,
+                    deadline: true,
+                    originalDeadline: true,
+                    status: true,
+                    score: true,
+                    pointsAwarded: true,
+                    gradedAt: true,
+                    studentNotes: true,
+                    rating: true,
+                    answers: true,
+                    teacherComments: true,
+                    // teacherAnswerComments intentionally omitted for DBs without the column
+                    reminderSentAt: true,
+                    milestoneNotified: true,
+                    notifyOnStartDate: true,
+                    lessonId: true,
+                    studentId: true,
+                    lesson: {
+                        select: lessonSelect,
+                    },
+                },
+                orderBy: { deadline: 'asc' },
+            });
+        };
+
+        try {
+            return await fetchAssignments(true);
+        } catch (err: unknown) {
+            const message = (err as Error)?.message || '';
+            if (message.includes('isFreeForAll')) {
+                console.warn('Lesson.isFreeForAll column missing; falling back without select.');
+                return fetchAssignments(false);
+            }
+            throw err;
+        }
     } catch (error) {
         console.error("Failed to fetch assignments for student:", error);
         return [];
@@ -1572,6 +1588,117 @@ export async function getLessonAverageRating(lessonId: string) {
     return null;
   }
 }
+
+export async function getFreeForAllLessons(studentId: string) {
+  try {
+    // 1. Get IDs of lessons already assigned to the student
+    const assignedLessonIds = await prisma.assignment.findMany({
+      where: { studentId },
+      select: { lessonId: true },
+    });
+    const excludeIds = assignedLessonIds.map(a => a.lessonId).filter(Boolean);
+    const whereClause: Prisma.LessonWhereInput = {
+      isFreeForAll: true,
+      type: { not: LessonType.LEARNING_SESSION },
+    };
+
+    // Avoid Prisma's empty-notIn guard which would otherwise hide all free lessons
+    if (excludeIds.length > 0) {
+      whereClause.id = { notIn: excludeIds };
+    }
+
+    // 2. Fetch free lessons not in that list, excluding guides
+    const lessons = await prisma.lesson.findMany({
+      where: whereClause,
+      include: {
+        teacher: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        _count: {
+          select: { assignments: true },
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return lessons.map(lesson => ({
+      id: lesson.id,
+      title: lesson.title,
+      type: lesson.type,
+      lesson_preview: lesson.lesson_preview,
+      assignment_image_url: lesson.assignment_image_url,
+      price: lesson.price.toNumber(),
+      difficulty: lesson.difficulty,
+      teacher: lesson.teacher,
+      completionCount: lesson._count.assignments,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch free lessons:", error);
+    return [];
+  }
+}
+
+export async function startFreeLesson(lessonId: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized" };
+  }
+  const studentId = session.user.id;
+
+  try {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+    });
+
+    if (!lesson) {
+      return { success: false, error: "Lesson not found." };
+    }
+
+    if (!lesson.isFreeForAll) {
+      return { success: false, error: "This lesson is not free." };
+    }
+
+    // Check if already assigned
+    const existing = await prisma.assignment.findUnique({
+      where: {
+        lessonId_studentId: {
+          lessonId,
+          studentId,
+        },
+      },
+    });
+
+    if (existing) {
+      return { success: true, assignmentId: existing.id };
+    }
+
+    // Create new assignment
+    // Default deadline: 7 days from now
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + 7);
+
+    const newAssignment = await prisma.assignment.create({
+      data: {
+        studentId,
+        lessonId,
+        deadline,
+        originalDeadline: deadline,
+        status: AssignmentStatus.PENDING,
+      },
+    });
+
+    revalidatePath('/my-lessons');
+    return { success: true, assignmentId: newAssignment.id };
+  } catch (error) {
+    console.error("Failed to start free lesson:", error);
+    return { success: false, error: "Failed to start lesson." };
+  }
+}
+
 export async function saveLyricAssignmentDraft(
   assignmentId: string,
   studentId: string,

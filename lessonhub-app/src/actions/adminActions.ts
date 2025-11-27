@@ -563,3 +563,18 @@ export async function updateDashboardSettings(data: DashboardSettings) {
         return { success: false, error: "An error occurred." };
     }
 }
+
+export async function signOutAllUsers() {
+    const session = await auth();
+    if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+        await prisma.session.deleteMany();
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to sign out all users:", error);
+        return { success: false, error: "An error occurred." };
+    }
+}

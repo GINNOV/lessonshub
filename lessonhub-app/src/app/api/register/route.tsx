@@ -9,6 +9,9 @@ import { createButton, sendEmail } from "@/lib/email-templates";
 import { Role } from '@prisma/client';
 import { verifyRegisterChallenge } from '@/lib/registerChallenge';
 
+const DEFAULT_DEADLINE_HOURS = 36;
+const FREE_CLASS_NAME = "New Free Users";
+
 async function sendAdminNotifications(newUser: { name: string | null; email: string }) {
     const admins = await prisma.user.findMany({ where: { role: Role.ADMIN } });
     if (admins.length === 0) return;
@@ -80,8 +83,38 @@ export async function POST(req: NextRequest) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    
+
     const user = await prisma.$transaction(async (tx) => {
+        const now = new Date();
+        const defaultDeadline = new Date(now.getTime() + DEFAULT_DEADLINE_HOURS * 60 * 60 * 1000);
+
+        const allTeachers = await tx.user.findMany({
+            where: { role: Role.TEACHER },
+            select: { id: true },
+            orderBy: { id: 'asc' },
+        });
+        const primaryTeacherId = referrer?.role === Role.TEACHER
+          ? referrer.id
+          : allTeachers[0]?.id;
+
+        let freeClassId: string | null = null;
+        if (primaryTeacherId) {
+          const existingClass = await tx.class.findFirst({
+            where: { name: FREE_CLASS_NAME, teacherId: primaryTeacherId },
+            select: { id: true },
+          });
+          const freeClass = existingClass
+            ? existingClass
+            : await tx.class.create({
+                data: {
+                  name: FREE_CLASS_NAME,
+                  teacherId: primaryTeacherId,
+                },
+                select: { id: true },
+              });
+          freeClassId = freeClass.id;
+        }
+
         const newUser = await tx.user.create({
             data: {
                 email,
@@ -91,27 +124,48 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        if (referrer && referrer.role === Role.TEACHER) {
-            await tx.teachersForStudent.create({
-                data: {
-                    studentId: newUser.id,
-                    teacherId: referrer.id,
-                },
-            });
-        } else {
-            const allTeachers = await tx.user.findMany({
-                where: { role: Role.TEACHER },
-            });
+        // Build teacher links (with class if available)
+        const teacherLinks = new Map<string, { teacherId: string; classId: string | null }>();
 
-            if (allTeachers.length > 0) {
-                await tx.teachersForStudent.createMany({
-                    data: allTeachers.map((teacher) => ({
-                        studentId: newUser.id,
-                        teacherId: teacher.id,
-                    })),
-                });
+        if (referrer && referrer.role === Role.TEACHER) {
+            teacherLinks.set(referrer.id, { teacherId: referrer.id, classId: referrer.id === primaryTeacherId ? freeClassId : null });
+        } else {
+            for (const teacher of allTeachers) {
+                teacherLinks.set(teacher.id, { teacherId: teacher.id, classId: teacher.id === primaryTeacherId ? freeClassId : null });
             }
         }
+
+        if (teacherLinks.size > 0) {
+            await tx.teachersForStudent.createMany({
+                data: Array.from(teacherLinks.values()).map((link) => ({
+                    studentId: newUser.id,
+                    teacherId: link.teacherId,
+                    classId: link.classId,
+                })),
+                skipDuplicates: true,
+            });
+        }
+
+        // Auto-assign free-for-all lessons so new students see them immediately
+        const freeLessons = await tx.lesson.findMany({
+            where: { isFreeForAll: true },
+            select: { id: true },
+        });
+
+        if (freeLessons.length > 0) {
+            await tx.assignment.createMany({
+                data: freeLessons.map((lesson) => ({
+                    lessonId: lesson.id,
+                    studentId: newUser.id,
+                    deadline: defaultDeadline,
+                    originalDeadline: defaultDeadline,
+                    startDate: now,
+                    notifyOnStartDate: false,
+                })),
+                skipDuplicates: true,
+            });
+        }
+
         return newUser;
     });
 

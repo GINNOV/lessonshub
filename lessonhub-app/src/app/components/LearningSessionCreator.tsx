@@ -22,6 +22,7 @@ import Image from 'next/image';
 import { guideImageOptions } from '@/lib/guideImages';
 import FileUploadButton from '@/components/FileUploadButton';
 import { Download } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 type TeacherPreferences = {
   defaultLessonPrice?: number | null;
@@ -38,6 +39,7 @@ interface InstructionBooklet {
 
 type LessonWithCards = Omit<Lesson, 'price'> & {
   price: number;
+  isFreeForAll?: boolean;
   guideCardImage?: string | null;
   learningSessionCards: {
     id: string;
@@ -164,6 +166,7 @@ export default function LearningSessionCreator({
   const [scheduledDate, setScheduledDate] = useState(
     formatDateTimeLocal(lesson?.scheduled_assignment_date ?? null)
   );
+  const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
 
   const downloadLearningSessionTemplate = () => {
     const headers = ['content1', 'content2', 'content3', 'content4', 'extra'];
@@ -315,6 +318,7 @@ export default function LearningSessionCreator({
           guideCardImage,
           assignment_notification: assignmentNotification,
           scheduled_assignment_date: scheduledDatePayload,
+          isFreeForAll,
         }),
       });
 
@@ -363,6 +367,15 @@ export default function LearningSessionCreator({
           onChange={(e) => setPrice(e.target.value)}
           disabled={isLoading}
         />
+      </div>
+      <div className="flex items-start justify-between rounded-lg border p-4">
+        <div>
+          <p className="text-sm font-semibold">Make this lesson free for everyone</p>
+          <p className="text-xs text-muted-foreground">
+            When enabled, all students can access this lesson even without a paid plan.
+          </p>
+        </div>
+        <Switch checked={isFreeForAll} onCheckedChange={setIsFreeForAll} />
       </div>
 
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />

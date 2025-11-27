@@ -117,6 +117,7 @@ model Lesson {
   updatedAt                 DateTime               @updatedAt
   teacherId                 String?
   price                     Decimal                @default(0)
+  isFreeForAll              Boolean                @default(false)
   public_share_id           String?
   guideIsVisible            Boolean                @default(true)
   guideIsFreeForAll         Boolean                @default(false)

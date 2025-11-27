@@ -15,9 +15,11 @@ import { Info, Upload } from 'lucide-react';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import FileUploadButton from '@/components/FileUploadButton';
+import { Switch } from '@/components/ui/switch';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
+  isFreeForAll?: boolean;
 };
 
 type TeacherPreferences = {
@@ -105,6 +107,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
   const [scheduledDate, setScheduledDate] = useState('');
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
   const [selectedBookletId, setSelectedBookletId] = useState('');
+  const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
 
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -154,6 +157,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         setScheduledDate(formattedDate);
       }
       setDifficulty(lesson.difficulty ?? 3);
+      setIsFreeForAll(Boolean((lesson as any).isFreeForAll));
     }
   }, [lesson]);
 
@@ -347,6 +351,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
           notes,
           assignment_notification: assignmentNotification,
           scheduled_assignment_date: assignmentNotification === 'ASSIGN_ON_DATE' ? new Date(scheduledDate) : null,
+          isFreeForAll,
         }),
       });
       if (!response.ok) {
@@ -381,8 +386,17 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
       </div>
 
       <div className="form-field">
-          <Label htmlFor="price">Price (€)</Label>
-          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
+        <Label htmlFor="price">Price (€)</Label>
+        <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
+      </div>
+      <div className="flex items-start justify-between rounded-lg border p-4">
+        <div>
+          <p className="text-sm font-semibold">Make this lesson free for everyone</p>
+          <p className="text-xs text-muted-foreground">
+            When enabled, all students can access this lesson even without a paid plan.
+          </p>
+        </div>
+        <Switch checked={isFreeForAll} onCheckedChange={setIsFreeForAll} />
       </div>
 
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />

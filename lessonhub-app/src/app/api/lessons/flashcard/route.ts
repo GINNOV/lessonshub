@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     difficulty,
     assignment_notification,
     scheduled_assignment_date,
+    isFreeForAll,
   } = body;
   const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
   const rawScheduledAssignmentDate = scheduled_assignment_date
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
         assignment_notification: assignmentNotification,
         scheduled_assignment_date: scheduledAssignmentDate,
         teacherId: session.user.id,
+        isFreeForAll: Boolean(isFreeForAll),
         flashcards: {
           create: flashcards.map((fc: { term: string; definition: string; termImageUrl?: string, definitionImageUrl?: string }) => ({
             term: fc.term,

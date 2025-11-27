@@ -16,8 +16,9 @@ import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelec
 import { parseCsv } from '@/lib/csv';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import FileUploadButton from '@/components/FileUploadButton';
+import { Switch } from '@/components/ui/switch';
 
-type SerializableLesson = Omit<Lesson, 'price'>;
+type SerializableLesson = Omit<Lesson, 'price'> & { isFreeForAll?: boolean };
 
 type LessonWithFlashcards = SerializableLesson & {
   flashcards: PrismaFlashcard[];
@@ -204,6 +205,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
   const [isImporting, setIsImporting] = useState(false);
   const [selectedBookletId, setSelectedBookletId] = useState('');
+  const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
   const isEditMode = !!lesson;
 
   useEffect(() => {
@@ -220,6 +222,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
       setAssignmentNotification(lesson.assignment_notification);
       setScheduledDate(formatDateTimeLocal(lesson.scheduled_assignment_date));
       setDifficulty(lesson.difficulty ?? 3);
+      setIsFreeForAll(Boolean((lesson as any).isFreeForAll));
       if (lesson.flashcards && lesson.flashcards.length > 0) {
         setFlashcards(lesson.flashcards.map(fc => ({ 
             term: fc.term, 
@@ -423,6 +426,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
             flashcards: validFlashcards,
             assignment_notification: assignmentNotification,
             scheduled_assignment_date: scheduledDatePayload,
+            isFreeForAll,
         }),
       });
 
@@ -451,6 +455,15 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
       <div className="form-field">
          <Label htmlFor="price">Price (€)</Label>
          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
+      </div>
+      <div className="flex items-start justify-between rounded-lg border p-4">
+        <div>
+          <p className="text-sm font-semibold">Make this lesson free for everyone</p>
+          <p className="text-xs text-muted-foreground">
+            When enabled, all students can access this lesson even without a paid plan.
+          </p>
+        </div>
+        <Switch checked={isFreeForAll} onCheckedChange={setIsFreeForAll} />
       </div>
 
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />

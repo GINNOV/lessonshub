@@ -108,6 +108,7 @@ export async function POST(request: Request) {
       settings,
       assignment_notification,
       scheduled_assignment_date,
+      isFreeForAll,
     } = body ?? {};
     const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
     const rawScheduledAssignmentDate = scheduled_assignment_date
@@ -177,6 +178,7 @@ export async function POST(request: Request) {
         notes,
         teacherId: session.user.id,
         type: LessonType.LYRIC,
+        isFreeForAll: Boolean(isFreeForAll),
         assignment_notification: assignmentNotification,
         scheduled_assignment_date: scheduledAssignmentDate,
         lyricConfig: {

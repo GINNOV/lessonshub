@@ -19,9 +19,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 
 type SerializableLesson = Omit<Lesson, 'price' | 'createdAt' | 'updatedAt'> & {
   price: number;
+  isFreeForAll?: boolean;
   lyricConfig: (Omit<LyricLessonConfig, 'lines' | 'settings'> & {
     lines: LyricLine[];
     settings: LyricLessonSettings | null;
@@ -243,6 +245,7 @@ export default function LyricLessonEditor({
   const [settings, setSettings] = useState<LyricLessonSettings>(DEFAULT_SETTINGS);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [manualEditingEnabled, setManualEditingEnabled] = useState<boolean>(() => !lesson?.lyricConfig?.lrcUrl);
+  const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
 
   const isEditMode = !!lesson;
   const hasImportedLrc = Boolean(lrcUrl);
@@ -259,6 +262,7 @@ export default function LyricLessonEditor({
       setRawLyrics('');
       setSettings(DEFAULT_SETTINGS);
       setManualEditingEnabled(true);
+      setIsFreeForAll(false);
       setAttachmentUrl('');
       setAttachmentLinkStatus('idle');
       return;
@@ -275,6 +279,7 @@ export default function LyricLessonEditor({
     setAssignmentNotification(lesson.assignment_notification);
     setScheduledDate(formatDateTimeLocal(lesson.scheduled_assignment_date));
     setDifficulty(lesson.difficulty ?? 3);
+    setIsFreeForAll(Boolean((lesson as any).isFreeForAll));
 
     if (lesson.lyricConfig) {
       const normalized = normalizeLines(lesson.lyricConfig.lines);
@@ -865,6 +870,7 @@ export default function LyricLessonEditor({
           settings: serializeSettings(),
           assignment_notification: assignmentNotification,
           scheduled_assignment_date: scheduledDatePayload,
+          isFreeForAll,
         }),
       });
 
@@ -923,6 +929,16 @@ export default function LyricLessonEditor({
           />
         </div>
         <LessonDifficultySelector value={difficulty} onChange={setDifficulty} />
+      </div>
+
+      <div className="flex items-start justify-between rounded-lg border p-4">
+        <div>
+          <p className="text-sm font-semibold">Make this lesson free for everyone</p>
+          <p className="text-xs text-muted-foreground">
+            When enabled, all students can access this lesson even without a paid plan.
+          </p>
+        </div>
+        <Switch checked={isFreeForAll} onCheckedChange={setIsFreeForAll} />
       </div>
 
       <div className="space-y-2">

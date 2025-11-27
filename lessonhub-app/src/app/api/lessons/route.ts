@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, price, difficulty, lesson_preview, assignmentText, questions, contextText, assignment_image_url, soundcloud_url, attachment_url, notes, assignment_notification, scheduled_assignment_date } = body; 
+  const { title, price, difficulty, lesson_preview, assignmentText, questions, contextText, assignment_image_url, soundcloud_url, attachment_url, notes, assignment_notification, scheduled_assignment_date, isFreeForAll } = body; 
   const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
   const rawScheduledAssignmentDate = scheduled_assignment_date
     ? new Date(scheduled_assignment_date)
@@ -67,6 +67,7 @@ export async function POST(request: Request) {
         assignment_notification: assignmentNotification,
         scheduled_assignment_date: scheduledAssignmentDate,
         teacherId: session.user.id,
+        isFreeForAll: Boolean(isFreeForAll),
       },
     });
 

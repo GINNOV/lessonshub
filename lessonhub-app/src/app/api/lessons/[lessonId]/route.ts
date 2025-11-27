@@ -19,7 +19,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { title, price, difficulty, lesson_preview, assignmentText, questions, contextText, assignment_image_url, soundcloud_url, attachment_url, notes, assignment_notification, scheduled_assignment_date } = body;
+    const { title, price, difficulty, lesson_preview, assignmentText, questions, contextText, assignment_image_url, soundcloud_url, attachment_url, notes, assignment_notification, scheduled_assignment_date, isFreeForAll } = body;
 
     const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
 
@@ -51,6 +51,7 @@ export async function PATCH(
         difficulty: difficultyValue,
         assignment_notification,
         scheduled_assignment_date,
+        isFreeForAll: Boolean(isFreeForAll),
       },
     });
 

@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       soundcloud_url,
       assignment_notification,
       scheduled_assignment_date,
+      isFreeForAll,
     } = body;
     const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
     const rawScheduledAssignmentDate = scheduled_assignment_date
@@ -91,6 +92,7 @@ export async function POST(request: Request) {
         scheduled_assignment_date: scheduledAssignmentDate,
         type: LessonType.MULTI_CHOICE, // Use the enum for type safety
         teacherId: session.user.id,
+        isFreeForAll: Boolean(isFreeForAll),
         multiChoiceQuestions: {
           create: questions.map((q: any) => ({
             question: q.question,

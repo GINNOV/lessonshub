@@ -8,12 +8,24 @@ type RegisterChallengePayload = {
 
 const SECRET_KEYS = ['REGISTER_CHALLENGE_SECRET', 'NEXTAUTH_SECRET'] as const;
 
+// Cache the secret for the lifetime of the process so we don't regenerate per request.
+let cachedSecret: string | null = null;
+
 function getChallengeSecret() {
+  if (cachedSecret) return cachedSecret;
+
   for (const key of SECRET_KEYS) {
     const value = process.env[key];
-    if (value) return value;
+    if (value) {
+      cachedSecret = value;
+      return cachedSecret;
+    }
   }
-  throw new Error('Missing REGISTER_CHALLENGE_SECRET (or NEXTAUTH_SECRET) for math challenge signing.');
+
+  // Fallback to an in-memory secret to avoid breaking registration in non-prod/dev setups
+  cachedSecret = crypto.randomBytes(32).toString('hex');
+  console.warn('[registerChallenge] Missing REGISTER_CHALLENGE_SECRET; using ephemeral in-memory secret.');
+  return cachedSecret;
 }
 
 function encodePayload(payload: RegisterChallengePayload) {

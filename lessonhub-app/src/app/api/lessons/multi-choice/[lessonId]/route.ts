@@ -34,6 +34,7 @@ export async function PATCH(
       notes,
       assignment_notification,
       scheduled_assignment_date,
+      isFreeForAll,
     } = body;
     const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
     const rawScheduledAssignmentDate = scheduled_assignment_date
@@ -108,6 +109,7 @@ export async function PATCH(
           difficulty: difficultyValue,
           assignment_notification: assignmentNotification,
           scheduled_assignment_date: scheduledAssignmentDate,
+          isFreeForAll: Boolean(isFreeForAll),
           multiChoiceQuestions: {
             create: questions.map((q: any) => ({
               question: q.question,

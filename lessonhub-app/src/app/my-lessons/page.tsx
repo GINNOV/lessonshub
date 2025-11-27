@@ -5,12 +5,14 @@ import {
   getAssignmentsForStudent,
   getStudentStats,
   getHubGuides,
+  getFreeForAllLessons,
 } from "@/actions/lessonActions";
 import { getDashboardSettings } from "@/actions/adminActions";
 import StudentLessonList from "@/app/components/StudentLessonList";
 import StudentGuideList, {
   StudentGuideSummary,
 } from "@/app/components/StudentGuideList";
+import StudentFreeLessonList from "@/app/components/StudentFreeLessonList";
 import StudentStatsHeader from "../components/StudentStatsHeader";
 import Leaderboard from "../components/Leaderboard";
 import {
@@ -65,6 +67,7 @@ export default async function MyLessonsPage() {
   }
 
   const guidesPromise = getHubGuides();
+  const freeLessonsPromise = getFreeForAllLessons(session.user.id);
 
   const [
     assignments,
@@ -75,6 +78,7 @@ export default async function MyLessonsPage() {
     whatsNewUS,
     whatsNewIT,
     guides,
+    freeLessons,
   ] = await Promise.all([
     getAssignmentsForStudent(session.user.id),
     getStudentStats(session.user.id),
@@ -84,6 +88,7 @@ export default async function MyLessonsPage() {
     loadLatestUpgradeNote("us"),
     loadLatestUpgradeNote("it"),
     guidesPromise,
+    freeLessonsPromise,
   ]);
   const whatsNewNotes = {
     us: whatsNewUS,
@@ -213,6 +218,12 @@ export default async function MyLessonsPage() {
                 Lessons
               </TabsTrigger>
               <TabsTrigger
+                value="free"
+                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+              >
+                Free Lessons
+              </TabsTrigger>
+              <TabsTrigger
                 value="guides"
                 className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
               >
@@ -221,6 +232,9 @@ export default async function MyLessonsPage() {
             </TabsList>
             <TabsContent value="lessons">
               <StudentLessonList assignments={serializableAssignments} />
+            </TabsContent>
+             <TabsContent value="free">
+              <StudentFreeLessonList lessons={freeLessons} />
             </TabsContent>
             <TabsContent value="guides">
               {visibleGuides.length > 0 ? (
@@ -241,6 +255,16 @@ export default async function MyLessonsPage() {
             </div>
             <StudentLessonList assignments={serializableAssignments} />
           </section>
+          
+          {freeLessons.length > 0 && (
+            <section className="mt-10 space-y-4">
+              <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold">Available Free Lessons</h1>
+              </div>
+              <StudentFreeLessonList lessons={freeLessons} />
+            </section>
+          )}
+
           <section className="mt-16 space-y-4">
             <HubGuideBanner variant="locked" guideCount={freeGuides.length} />
             {freeGuides.length > 0 ? (
