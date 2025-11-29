@@ -6,6 +6,8 @@ import StudentLessonCard from '@/app/components/StudentLessonCard';
 import WeekDivider from '@/app/components/WeekDivider';
 import { getWeekAndDay } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Search } from 'lucide-react';
 
 type SerializableUser = {
@@ -46,10 +48,10 @@ interface StudentLessonListProps {
 export default function StudentLessonList({ assignments }: StudentLessonListProps) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'graded' | 'failed'>('pending');
+  const [showFreeOnly, setShowFreeOnly] = useState(false);
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
-    const now = new Date();
     return (assignments || [])
       .filter(a => {
         // Status filter (only keep the requested ones)
@@ -58,6 +60,7 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
         if (filter === 'failed') return a.status === AssignmentStatus.FAILED;
         return true; // all
       })
+      .filter(a => !showFreeOnly || a.lesson.price === 0)
       .filter(a => {
         if (!term) return true;
         const title = a.lesson.title?.toLowerCase() || '';
@@ -65,7 +68,7 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
         return title.includes(term) || teacher.includes(term);
       })
       .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
-  }, [assignments, filter, search]);
+  }, [assignments, filter, search, showFreeOnly]);
 
   return (
     <div className="space-y-4">
@@ -80,32 +83,45 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
             className="w-full pl-9"
           />
         </div>
-        <div className="flex flex-wrap gap-2">
-          {([
-            { key: 'all', label: 'ALL' },
-            { key: 'pending', label: 'PENDING' },
-            { key: 'graded', label: 'GRADED' },
-            { key: 'failed', label: 'FAILED' },
-          ] as const).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={[
-                'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
-                filter === key
-                  ? (
-                      key === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                      key === 'graded'  ? 'bg-green-100 text-green-800 border-green-300'   :
-                      key === 'failed'  ? 'bg-red-100 text-red-800 border-red-300'         :
-                                          'bg-gray-200 text-gray-900 border-gray-300'
-                    )
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-300'
-              ].join(' ')}
-              type="button"
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            {([
+              { key: 'all', label: 'ALL' },
+              { key: 'pending', label: 'PENDING' },
+              { key: 'graded', label: 'GRADED' },
+              { key: 'failed', label: 'FAILED' },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className={[
+                  'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
+                  filter === key
+                    ? (
+                        key === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                        key === 'graded'  ? 'bg-green-100 text-green-800 border-green-300'   :
+                        key === 'failed'  ? 'bg-red-100 text-red-800 border-red-300'         :
+                                            'bg-gray-200 text-gray-900 border-gray-300'
+                      )
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-300'
+                ].join(' ')}
+                type="button"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            <Switch
+              id="free-lessons-toggle"
+              checked={showFreeOnly}
+              onCheckedChange={setShowFreeOnly}
+              aria-label="Toggle free lessons filter"
+            />
+            <Label htmlFor="free-lessons-toggle" className="cursor-pointer">
+              Show only free lessons
+            </Label>
+          </div>
         </div>
       </div>
 
