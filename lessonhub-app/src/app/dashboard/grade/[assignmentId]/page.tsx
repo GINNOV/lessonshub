@@ -879,13 +879,16 @@ export default async function GradeSubmissionPage({
                     const questionText = formatContent(
                       (question as any)?.question ?? (question as any)?.prompt ?? question
                     );
+                    const expectedText = formatContent(
+                      (question as any)?.expectedAnswer ?? (question as any)?.expected ?? ''
+                    );
                     const studentAnswer = formatContent(studentAnswers?.[index]);
                     return (
-                      <div key={index}>
-                        <p className="rounded-md border bg-gray-50 p-3 font-semibold shadow-sm">
+                      <div key={index} className="space-y-2 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                        <p className="font-semibold text-gray-900">
                           Q{index + 1}❓ {questionText}
                         </p>
-                        <blockquote className="mt-2 rounded-md border-l-4 border-blue-300 bg-blue-50 p-3 text-gray-800">
+                        <div className="rounded-md border-l-4 border-blue-300 bg-blue-50 px-3 py-2 text-sm text-gray-800">
                           {studentAnswer ? (
                             studentAnswer
                           ) : (
@@ -893,7 +896,12 @@ export default async function GradeSubmissionPage({
                               No answer provided.
                             </span>
                           )}
-                        </blockquote>
+                        </div>
+                        {expectedText && (
+                          <div className="rounded-md border-l-4 border-green-300 bg-green-50 px-3 py-2 text-xs text-gray-700">
+                            Expected: <span className="font-semibold">{expectedText}</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

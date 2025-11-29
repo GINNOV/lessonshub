@@ -128,127 +128,164 @@ export default function GradingForm({ assignment }: GradingFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <div className="flex items-center justify-between">
-          <Label className="text-base font-medium text-gray-900">Score</Label>
-          {existingScore !== null && (
-            <span className="text-sm text-gray-600">
-              Current grade: <span className="font-semibold">{existingScore}</span>/10
-            </span>
-          )}
-        </div>
-        <RadioGroup
-          value={scoreValue ?? ''}
-          onValueChange={(value) => {
-            if (value) {
-              setScoreValue(value);
-              setScoreError(null);
-            } else {
-              setScoreValue(null);
-            }
-          }}
-          className="mt-2"
-        >
-          {scoreOptions.map((option) => (
-            <div key={option.value} className="flex items-center space-x-2">
-              <RadioGroupItem value={option.value} id={option.label} />
-              <Label htmlFor={option.label}>
-                {option.label} ({option.value} points)
-              </Label>
-            </div>
-          ))}
-        </RadioGroup>
-      </div>
+      <div className="grid gap-6">
+        <div className="space-y-4 rounded-lg border bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-medium text-gray-900">Score</Label>
+            {existingScore !== null && (
+              <span className="text-sm text-gray-600">
+                Current grade: <span className="font-semibold">{existingScore}</span>/10
+              </span>
+            )}
+          </div>
+          <RadioGroup
+            value={scoreValue ?? ''}
+            onValueChange={(value) => {
+              if (value) {
+                setScoreValue(value);
+                setScoreError(null);
+              } else {
+                setScoreValue(null);
+              }
+            }}
+            className="mt-2 space-y-2"
+          >
+            {scoreOptions.map((option) => (
+              <div key={option.value} className="flex items-center space-x-2">
+                <RadioGroupItem value={option.value} id={option.label} />
+                <Label htmlFor={option.label}>
+                  {option.label} ({option.value} points)
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
 
-      <div className="space-y-2">
-        <Label htmlFor="custom-score">Custom Score (Overrides Above)</Label>
-        <select
-          id="custom-score"
-          value={scoreValue ?? ''}
-          onChange={(event) => {
-            const { value } = event.target;
-            if (value === '') {
-              setScoreValue(null);
-            } else {
-              setScoreValue(value);
-              setScoreError(null);
-            }
-          }}
-          className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-        >
-          <option value="">Select a score</option>
-          {Array.from({ length: 11 }, (_, i) => i).map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-        {scoreError && (
-          <p className="mt-2 text-sm text-red-600">{scoreError}</p>
-        )}
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="custom-score">Custom Score (Overrides Above)</Label>
+            <select
+              id="custom-score"
+              value={scoreValue ?? ''}
+              onChange={(event) => {
+                const { value } = event.target;
+                if (value === '') {
+                  setScoreValue(null);
+                } else {
+                  setScoreValue(value);
+                  setScoreError(null);
+                }
+              }}
+              className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+            >
+              <option value="">Select a score</option>
+              {Array.from({ length: 11 }, (_, i) => i).map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+            {scoreError && (
+              <p className="mt-2 text-sm text-red-600">{scoreError}</p>
+            )}
+          </div>
 
-      <div>
-        <Label htmlFor="comments">Comments (Markdown supported)</Label>
-        <Textarea
-          id="comments"
-          value={teacherComments}
-          onChange={(e) => setTeacherComments(e.target.value)}
-          placeholder="Provide feedback for the student... You can use markdown for **bold**, *italics*, etc."
-        />
-      </div>
-
-      {isStandard && questions.length > 0 && (
-        <div className="space-y-4">
-          <p className="text-sm font-medium text-gray-700">Per-answer comments</p>
-          <div className="space-y-4">
-            {questions.map((q, i) => {
-              const questionText = (() => {
-                const candidate = (q as any)?.question ?? (q as any)?.prompt ?? q;
-                return formatContent(candidate);
-              })();
-              const studentAnswer = formatContent(studentAnswers?.[i]);
-              return (
-                <div key={i} className="grid grid-cols-1 gap-3">
-                  <div className="rounded-md border bg-gray-50 p-3">
-                    <p className="text-sm font-semibold">Q{i + 1}: {questionText}</p>
-                    <blockquote className="mt-2 rounded-md border-l-4 border-blue-300 bg-blue-50 p-3 text-gray-800">
-                      {studentAnswer || <span className="italic text-gray-500">No answer provided.</span>}
-                    </blockquote>
-                  </div>
-                  {!openEditors[i] ? (
-                    <div>
-                      <Button type="button" variant="outline" onClick={() => setOpenEditors(prev => ({ ...prev, [i]: true }))}>
-                        Add comment for Q{i + 1}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div>
-                      <Label htmlFor={`answer-comment-${i}`}>Comment for Q{i + 1} (optional)</Label>
-                      <Textarea
-                        id={`answer-comment-${i}`}
-                        value={answerComments[i] || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setAnswerComments(prev => {
-                            const next = { ...prev } as Record<number, string>;
-                            if (val.trim()) next[i] = val; else delete next[i];
-                            return next;
-                          });
-                        }}
-                        placeholder="Your feedback on this specific answer..."
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div>
+            <Label htmlFor="comments">Comments (Markdown supported)</Label>
+            <Textarea
+              id="comments"
+              value={teacherComments}
+              onChange={(e) => setTeacherComments(e.target.value)}
+              placeholder="Provide feedback for the student... You can use markdown for **bold**, *italics*, etc."
+            />
           </div>
         </div>
-      )}
-      <Button type="submit" disabled={isLoading || scoreValue === null} className="w-full">
-        {isLoading ? 'Submitting...' : 'Submit Grade'}
-      </Button>
+
+        {isStandard && questions.length > 0 && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
+              <p className="text-sm font-semibold text-gray-800">Student&apos;s Response</p>
+              {questions.map((q, i) => {
+                const questionText = (() => {
+                  const candidate = (q as any)?.question ?? (q as any)?.prompt ?? q;
+                  return formatContent(candidate);
+                })();
+                const expectedText = formatContent((q as any)?.expectedAnswer ?? (q as any)?.expected ?? '');
+                const studentAnswer = formatContent(studentAnswers?.[i]);
+                return (
+                  <div key={i} className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+                    <p className="text-sm font-semibold text-gray-900">
+                      Q{i + 1}❓ {questionText}
+                    </p>
+                    <div className="rounded-md border-l-4 border-blue-300 bg-white px-3 py-2 text-sm text-gray-800">
+                      {studentAnswer || <span className="italic text-gray-500">No answer provided.</span>}
+                    </div>
+                    {expectedText && (
+                      <div className="rounded-md border-l-4 border-green-300 bg-white px-3 py-2 text-xs text-gray-700">
+                        Expected: <span className="font-semibold">{expectedText}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
+              <p className="text-sm font-semibold text-gray-800">Per-answer comments</p>
+              {questions.map((q, i) => {
+                const questionText = (() => {
+                  const candidate = (q as any)?.question ?? (q as any)?.prompt ?? q;
+                  return formatContent(candidate);
+                })();
+                const studentAnswer = formatContent(studentAnswers?.[i]);
+                return (
+                  <div key={i} className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+                    <p className="text-sm font-semibold text-gray-900">
+                      Q{i + 1}: {questionText}
+                    </p>
+                    {studentAnswer && (
+                      <div className="rounded-md border-l-4 border-blue-300 bg-white px-3 py-2 text-sm text-gray-800">
+                        {studentAnswer}
+                      </div>
+                    )}
+                    {!openEditors[i] ? (
+                      <div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setOpenEditors(prev => ({ ...prev, [i]: true }))}
+                        >
+                          Add comment for Q{i + 1}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <Label htmlFor={`answer-comment-${i}`}>Comment for Q{i + 1} (optional)</Label>
+                        <Textarea
+                          id={`answer-comment-${i}`}
+                          value={answerComments[i] || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setAnswerComments(prev => {
+                              const next = { ...prev } as Record<number, string>;
+                              if (val.trim()) next[i] = val; else delete next[i];
+                              return next;
+                            });
+                          }}
+                          placeholder="Your feedback on this specific answer..."
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <Button type="submit" disabled={isLoading || scoreValue === null} className="w-full">
+          {isLoading ? 'Submitting...' : 'Submit Grade'}
+        </Button>
+      </div>
     </form>
   );
 }
