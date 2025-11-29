@@ -38,7 +38,9 @@ export default function GradingForm({ assignment }: GradingFormProps) {
   );
   const [scoreError, setScoreError] = useState<string | null>(null);
   const isStandard = assignment.lesson?.type === 'STANDARD';
-  const questions = (assignment.lesson?.questions as any as string[]) || [];
+  const questions = Array.isArray(assignment.lesson?.questions)
+    ? (assignment.lesson?.questions as any[])
+    : [];
   const studentAnswers: string[] | null = Array.isArray(assignment.answers) ? (assignment.answers as string[]) : null;
   // Normalize existing comments: support array or object from DB
   const existingMap: Record<number, string> = (() => {
@@ -190,10 +192,15 @@ export default function GradingForm({ assignment }: GradingFormProps) {
         <div className="space-y-4">
           <p className="text-sm font-medium text-gray-700">Per-answer comments</p>
           <div className="space-y-4">
-            {questions.map((q, i) => (
+            {questions.map((q, i) => {
+              const questionText =
+                typeof q === 'string'
+                  ? q
+                  : (q as any)?.question || (q as any)?.prompt || JSON.stringify(q);
+              return (
               <div key={i} className="grid grid-cols-1 gap-3">
                 <div className="rounded-md border bg-gray-50 p-3">
-                  <p className="text-sm font-semibold">Q{i + 1}: {q}</p>
+                  <p className="text-sm font-semibold">Q{i + 1}: {questionText}</p>
                   <blockquote className="mt-2 rounded-md border-l-4 border-blue-300 bg-blue-50 p-3 text-gray-800">
                     {studentAnswers?.[i] || <span className="italic text-gray-500">No answer provided.</span>}
                   </blockquote>
