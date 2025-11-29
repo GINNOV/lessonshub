@@ -212,8 +212,8 @@ export default async function MyLessonsPage() {
     .filter(
       (assignment) =>
         assignment.lesson.price === 0 ||
-        assignment.lesson.isFreeForAll ||
-        assignment.lesson.guideIsFreeForAll,
+        (assignment.lesson as any).isFreeForAll ||
+        (assignment.lesson as any).guideIsFreeForAll,
     )
     .map((assignment) => ({
       id: assignment.lesson.id,

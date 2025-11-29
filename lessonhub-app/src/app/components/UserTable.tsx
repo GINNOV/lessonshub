@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { User as UserIcon, ShieldCheck, UserCog, Edit, Ban, Trash2, Users, KeySquare } from 'lucide-react';
+import { User as UserIcon, ShieldCheck, UserCog, Edit, Ban, Trash2, Users, KeySquare, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 
@@ -115,13 +115,16 @@ export default function UserTable({
   return (
     <TooltipProvider>
       <div>
-        <Input
-          type="search"
-          placeholder="Search users..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="mb-4"
-        />
+        <div className="relative mb-4">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+          <Input
+            type="search"
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">

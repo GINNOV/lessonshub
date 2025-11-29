@@ -549,7 +549,22 @@ export async function getLessonsForTeacher(teacherId: string) {
   try {
     const lessons = await prisma.lesson.findMany({
       where: { teacherId: teacherId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        price: true,
+        isFreeForAll: true,
+        guideIsFreeForAll: true,
+        guideIsVisible: true,
+        lesson_preview: true,
+        difficulty: true,
+        assignment_text: true,
+        createdAt: true,
+        updatedAt: true,
+        scheduled_assignment_date: true,
+        guideCardImage: true,
+        teacherId: true,
         assignments: {
           select: {
             status: true,
@@ -571,8 +586,7 @@ export async function getLessonsForTeacher(teacherId: string) {
                 },
               },
             },
-          }
-          ,
+          },
           orderBy: {
             deadline: 'asc',
           },

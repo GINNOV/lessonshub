@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { getWeekAndDay } from '@/lib/utils';
 import DeleteLessonButton from './DeleteLessonButton';
 import WeekDivider from './WeekDivider';
-import { Pencil, UserPlus, Eye, Share2, Mail, Star, Check, Copy, Trash2, CalendarDays, Filter, Layers, Users } from 'lucide-react';
+import { Pencil, UserPlus, Eye, Share2, Mail, Star, Check, Copy, Trash2, CalendarDays, Filter, Layers, Users, Search } from 'lucide-react';
 import { duplicateLesson, generateShareLink } from '@/actions/lessonActions';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -23,13 +23,23 @@ type LessonAssignmentSummary = Pick<Assignment, 'status' | 'deadline' | 'startDa
   className: string | null;
 };
 
-type SerializableLessonWithAssignments = Omit<Lesson, 'price'> & {
+type SerializableLessonWithAssignments = {
+  id: string;
+  title: string;
+  type: LessonType;
   price: number;
-  assignments: LessonAssignmentSummary[];
-  averageRating?: number | null;
+  difficulty: number;
+  assignment_text: string | null;
+  lesson_preview: string | null;
+  guideCardImage?: string | null;
+  scheduled_assignment_date: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   guideIsVisible?: boolean;
   guideIsFreeForAll?: boolean;
   isFreeForAll?: boolean;
+  assignments: LessonAssignmentSummary[];
+  averageRating?: number | null;
 };
 
 interface TeacherLessonListProps {
@@ -467,6 +477,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       .filter(lesson => {
         const referenceDate = lesson.filterDate ?? new Date(lesson.createdAt);
         const referenceStart = getStartOfDay(referenceDate);
+        if (statusFilter === 'free') return true;
         if (dateFilter === 'today') return referenceStart.getTime() === todayStart.getTime();
         if (dateFilter === 'this_week') return referenceStart >= thisWeek.start && referenceStart <= thisWeek.end;
         if (dateFilter === 'last_week') return referenceStart >= lastWeek.start && referenceStart <= lastWeek.end;
@@ -646,6 +657,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     const difficultyOption = DIFFICULTY_OPTIONS[normalizedDifficulty - 1];
     const chipBg = difficultyOption.color.replace('500', '100');
     const chipBorder = difficultyOption.color.replace('500', '200');
+    const isFree = lesson.price === 0 || !!lesson.isFreeForAll || !!lesson.guideIsFreeForAll;
 
     if (isGuide) {
       const createdAtDate = new Date(lesson.createdAt);
@@ -660,7 +672,10 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       return (
         <div
           key={key ?? `guide-${lesson.id}`}
-          className="flex flex-col gap-4 rounded-md border border-green-200 bg-green-50 p-4"
+          className={cn(
+            "flex flex-col gap-4 rounded-md border p-4",
+            isFree ? "bg-purple-50 border-purple-200" : "border-green-200 bg-green-50"
+          )}
         >
           <div className="flex flex-col gap-2">
             <Link href={`/dashboard/edit/${lesson.id}`} className="text-lg font-bold hover:underline">
@@ -754,9 +769,10 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         key={key ?? `lesson-${lesson.id}`}
         className={cn(
           "p-4 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center",
-          totalAssignments === 0 && "bg-red-50 border-red-200",
-          allStudentsProcessed && totalAssignments > 0 && "bg-blue-50 border-blue-200",
-          totalAssignments > 0 && !allStudentsProcessed && index % 2 !== 0 && "bg-slate-50"
+          isFree && "bg-purple-50 border-purple-200",
+          !isFree && totalAssignments === 0 && "bg-red-50 border-red-200",
+          !isFree && allStudentsProcessed && totalAssignments > 0 && "bg-blue-50 border-blue-200",
+          !isFree && totalAssignments > 0 && !allStudentsProcessed && index % 2 !== 0 && "bg-slate-50"
         )}
       >
         <div className="flex-1 mb-4 sm:mb-0">
@@ -854,13 +870,16 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <Input
-          type="search"
-          placeholder="Search lessons..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-xs"
-        />
+        <div className="relative w-full max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+          <Input
+            type="search"
+            placeholder="Search lessons..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <div className="flex gap-2 flex-wrap justify-end">
           <div className="relative">
             <select

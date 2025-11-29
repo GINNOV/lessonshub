@@ -30,7 +30,6 @@ type SerializableLesson = {
   teacher: SerializableUser | null;
   completionCount: number;
   difficulty: number;
-  isFreeForAll?: boolean;
 };
 
 type SerializableAssignment = {

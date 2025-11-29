@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Check, Loader2, UserX } from 'lucide-react';
+import { Check, Loader2, Search, UserX } from 'lucide-react';
 import LessonPriceEditor from './LessonPriceEditor';
 
 type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
@@ -115,13 +115,16 @@ export default function LessonTable({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Input
-          type="search"
-          placeholder="Search by lesson or teacher…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:max-w-xs"
-        />
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+          <Input
+            type="search"
+            placeholder="Search by lesson or teacher…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9"
+          />
+        </div>
         {isRefreshing && (
           <div className="flex items-center text-sm text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

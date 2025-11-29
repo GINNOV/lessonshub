@@ -172,7 +172,14 @@ export default async function DashboardPage({
         };
       });
 
-      return { ...lessonRest, price, assignments: sanitizedAssignments, averageRating };
+      return {
+        ...lessonRest,
+        price,
+        isFreeForAll: !!(lesson as any).isFreeForAll,
+        guideIsFreeForAll: !!(lesson as any).guideIsFreeForAll,
+        assignments: sanitizedAssignments,
+        averageRating,
+      };
     })
   );
 
