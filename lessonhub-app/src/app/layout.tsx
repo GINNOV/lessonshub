@@ -6,7 +6,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import TimezoneSync from './components/TimezoneSync';
+import PageContainer from './components/PageContainer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -50,10 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <Navbar />
           <main className="flex-grow">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              <TimezoneSync />
-              {children}
-            </div>
+            <PageContainer>{children}</PageContainer>
           </main>
           <Footer />
         </Providers>

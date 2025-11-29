@@ -7,7 +7,6 @@ import { getSubmissionForGrading } from "@/actions/lessonActions";
 import { LessonType, Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
 import LessonContentView from "@/app/components/LessonContentView";
-import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
 import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -57,6 +56,116 @@ const normalizeLyricLines = (value: unknown): LyricLine[] => {
     });
   });
   return normalized;
+};
+
+const normalizeUserDecimals = <T extends { referralRewardPercent?: unknown; referralRewardMonthlyAmount?: unknown; defaultLessonPrice?: unknown }>(
+  user: T | null | undefined
+) => {
+  if (!user) return user ?? null;
+  return {
+    ...user,
+    referralRewardPercent: typeof (user as any).referralRewardPercent === 'object' && (user as any).referralRewardPercent?.toNumber
+      ? (user as any).referralRewardPercent.toNumber()
+      : (user as any).referralRewardPercent,
+    referralRewardMonthlyAmount: typeof (user as any).referralRewardMonthlyAmount === 'object' && (user as any).referralRewardMonthlyAmount?.toNumber
+      ? (user as any).referralRewardMonthlyAmount.toNumber()
+      : (user as any).referralRewardMonthlyAmount,
+    defaultLessonPrice: typeof (user as any).defaultLessonPrice === 'object' && (user as any).defaultLessonPrice?.toNumber
+      ? (user as any).defaultLessonPrice.toNumber()
+      : (user as any).defaultLessonPrice,
+  } as T;
+};
+
+const sanitizeWord = (value: string) =>
+  value
+    .normalize('NFKD')
+    .replace(/['’‘‛‵`´]/g, '')
+    .replace(/[^a-z0-9]/gi, '')
+    .toLowerCase();
+
+const tokenizeLine = (text: string): { value: string; isWord: boolean }[] => {
+  if (!text) return [];
+  const tokens = text.match(/[\w']+|[^\w\s]+|\s+/g);
+  if (!tokens) return [];
+  return tokens.map((token) => ({
+    value: token,
+    isWord: /\w/.test(token),
+  }));
+};
+
+const selectHiddenIndices = (line: LyricLine, tokens: { value: string; isWord: boolean }[], difficulty: number) => {
+  const wordTokens = tokens
+    .map((token, index) => ({ ...token, index }))
+    .filter((token) => token.isWord && sanitizeWord(token.value).length >= 3);
+
+  if (wordTokens.length === 0) return new Set<number>();
+
+  const explicitWords = Array.isArray(line.hiddenWords) ? line.hiddenWords.map(sanitizeWord).filter(Boolean) : [];
+
+  if (explicitWords.length > 0) {
+    const explicitSet = new Set<number>();
+    let cursor = 0;
+    explicitWords.forEach((targetWord) => {
+      for (let i = cursor; i < wordTokens.length; i += 1) {
+        const tokenWord = sanitizeWord(wordTokens[i].value);
+        if (tokenWord === targetWord && !explicitSet.has(wordTokens[i].index)) {
+          explicitSet.add(wordTokens[i].index);
+          cursor = i + 1;
+          break;
+        }
+      }
+    });
+    if (explicitSet.size > 0) return explicitSet;
+  }
+
+  const targetCount = Math.max(1, Math.min(wordTokens.length, Math.round(wordTokens.length * difficulty)));
+  const ranked = [...wordTokens].sort((a, b) => sanitizeWord(b.value).length - sanitizeWord(a.value).length);
+  const selected = new Set<number>();
+  for (const token of ranked) {
+    if (selected.size >= targetCount) break;
+    selected.add(token.index);
+  }
+  return selected;
+};
+
+const prepareLinesForReview = (lines: LyricLine[], difficulty: number) => {
+  return lines.map((line) => {
+    const tokens = tokenizeLine(line.text);
+    const hiddenIndices = selectHiddenIndices(line, tokens, difficulty);
+    const orderedHidden = Array.from(hiddenIndices).sort((a, b) => a - b);
+    const hiddenWords = orderedHidden.map((index) => tokens[index]?.value ?? '');
+
+    return {
+      id: line.id,
+      startTime: line.startTime ?? null,
+      endTime: line.endTime ?? null,
+      hiddenWords,
+      tokens: tokens.map((token, index) => ({
+        value: token.value,
+        hidden: token.isWord && hiddenIndices.has(index),
+        answerIndex: token.isWord && hiddenIndices.has(index) ? orderedHidden.indexOf(index) : null,
+      })),
+    };
+  });
+};
+
+const formatDuration = (seconds: number | null) => {
+  if (seconds === null || Number.isNaN(seconds)) return '--:--';
+  const totalSeconds = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+const formatContent = (value: unknown): string => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 };
 
 export default async function GradeSubmissionPage({
@@ -122,6 +231,8 @@ export default async function GradeSubmissionPage({
 
   const serializableSubmission = {
     ...submission,
+    student: normalizeUserDecimals(submission.student),
+    teacher: normalizeUserDecimals((submission as any).teacher ?? null),
     lesson: {
       ...submission.lesson,
       price: submission.lesson.price.toNumber(),
@@ -139,6 +250,14 @@ export default async function GradeSubmissionPage({
   const multiChoiceQuestions = submission.lesson.multiChoiceQuestions ?? [];
   const lyricLessonConfig = serializableSubmission.lesson.lyricConfig;
   const lyricExistingAttempt = serializableSubmission.lesson.lyricAttempts?.[0] ?? null;
+  const lyricPreparedLines = lyricLessonConfig
+    ? prepareLinesForReview(
+        lyricLessonConfig.lines as LyricLine[],
+        typeof lyricLessonConfig.settings?.fillBlankDifficulty === 'number'
+          ? lyricLessonConfig.settings.fillBlankDifficulty
+          : 0.2
+      )
+    : [];
 
   const parseFlashcardAnswers = (): Record<string, 'correct' | 'incorrect'> | null => {
     if (submission.lesson.type !== LessonType.FLASHCARD) return null;
@@ -560,14 +679,19 @@ export default async function GradeSubmissionPage({
         Student: {submission.student.name || submission.student.email}
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
-        <div className="space-y-6 rounded-lg border bg-white p-6 shadow-md">
-          <div>
-            <h2 className="border-b pb-2 text-xl font-semibold">
-              Student&apos;s Response
-            </h2>
+      {submission.lesson.type === LessonType.STANDARD ? (
+        <div className="mt-6">
+          <GradingForm assignment={serializableSubmission} />
+        </div>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
+          <div className="space-y-6 rounded-lg border bg-white p-6 shadow-md">
+            <div>
+              <h2 className="border-b pb-2 text-xl font-semibold">
+                Student&apos;s Response
+              </h2>
 
-            {submission.lesson.type === LessonType.FLASHCARD && (
+              {submission.lesson.type === LessonType.FLASHCARD && (
               <div className="mt-4 space-y-3">
                 {flashcards.length > 0 ? (
                   <>
@@ -649,9 +773,9 @@ export default async function GradeSubmissionPage({
                   </p>
                 )}
               </div>
-            )}
+              )}
 
-            {submission.lesson.type === LessonType.MULTI_CHOICE && (
+              {submission.lesson.type === LessonType.MULTI_CHOICE && (
               <div className="mt-4 space-y-3">
                 {multiChoiceDetails.length > 0 ? (
                   <>
@@ -750,79 +874,84 @@ export default async function GradeSubmissionPage({
                   </p>
                 )}
               </div>
-            )}
-            
-            {submission.lesson.type === LessonType.STANDARD && (
-              <div className="mt-4 space-y-6">
-                {(submission.lesson.questions as string[])?.map(
-                  (question, index) => {
-                    const studentAnswers = submission.answers as string[] | null;
-                    return (
-                      <div key={index}>
-                        <p className="rounded-md border bg-gray-50 p-3 font-semibold shadow-sm">
-                          Q{index + 1}❓ {question}
-                        </p>
-                        <blockquote className="mt-2 rounded-md border-l-4 border-blue-300 bg-blue-50 p-3 text-gray-800">
-                          {studentAnswers?.[index] || (
-                            <span className="italic text-gray-500">
-                              No answer provided.
-                            </span>
-                          )}
-                        </blockquote>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-            )}
-            {submission.lesson.type === LessonType.LYRIC && lyricLessonConfig && (
-              <>
+              )}
+              
+              {submission.lesson.type === LessonType.LYRIC && lyricLessonConfig && (
+              <div className="mt-4 space-y-3 rounded-lg border bg-slate-50 p-4">
                 {lyricExistingAttempt ? (
-                  <div className="mt-4 rounded-lg border bg-slate-50 p-4">
-                    <LyricLessonPlayer
-                      assignmentId={serializableSubmission.id}
-                      studentId={serializableSubmission.studentId}
-                      lessonId={serializableSubmission.lesson.id}
-                      audioUrl={lyricLessonConfig.audioUrl}
-                      lines={lyricLessonConfig.lines as LyricLine[]}
-                      settings={lyricLessonConfig.settings as LyricLessonSettings | null}
-                      status={serializableSubmission.status}
-                      existingAttempt={lyricExistingAttempt}
-                      timingSourceUrl={lyricLessonConfig.timingSourceUrl ?? null}
-                      lrcUrl={lyricLessonConfig.lrcUrl ?? null}
-                      draftState={{
-                        answers: (serializableSubmission as any).lyricDraftAnswers ?? null,
-                        mode:
-                          serializableSubmission.lyricDraftMode === 'read' ||
-                          serializableSubmission.lyricDraftMode === 'fill'
-                            ? serializableSubmission.lyricDraftMode
-                            : null,
-                        readModeSwitches: serializableSubmission.lyricDraftReadSwitches ?? null,
-                        updatedAt: serializableSubmission.lyricDraftUpdatedAt
-                          ? serializableSubmission.lyricDraftUpdatedAt.toISOString()
-                          : null,
-                      }}
-                    />
-                    {typeof lyricExistingAttempt?.readModeSwitchesUsed === 'number' && (
-                      <p className="mt-3 text-sm text-slate-600">
-                        Read-along switches used: {lyricExistingAttempt.readModeSwitchesUsed}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="mt-4 rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-                    The student hasn&apos;t submitted any lyric attempts yet.
-                  </p>
-                )}
-              </>
-            )}
+                  <>
+                    <p className="text-sm font-semibold text-slate-900">Filled blanks (read-only)</p>
+                    <div className="max-h-[520px] space-y-3 overflow-y-auto rounded-md border bg-white p-3 text-sm text-slate-800">
+                      {lyricPreparedLines.map((line, index) => {
+                        const answers = (lyricExistingAttempt.answers ?? {}) as Record<string, string[]>;
+                        const replacements = answers[line.id] ?? [];
+                        const displayIndex = index + 1;
+
+                        return (
+                          <div key={line.id} className="rounded-md border border-slate-200 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+                            <div className="flex items-center justify-between text-xs text-slate-500">
+                              <div className="flex items-center gap-3">
+                                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-600">
+                                  {displayIndex}
+                                </span>
+                                <span>
+                                  {formatDuration(line.startTime)} → {formatDuration(line.endTime)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mt-3 text-base leading-relaxed text-slate-900">
+                              {line.tokens.map((token, tokenIndex) => {
+                                if (!token.hidden || token.answerIndex === null) {
+                                  return <span key={`${line.id}-${tokenIndex}`}>{token.value}</span>;
+                                }
+
+                                const replacement = replacements[token.answerIndex] ?? '';
+                                const expected = line.hiddenWords[token.answerIndex] ?? '';
+                                const isMatch = sanitizeWord(replacement) === sanitizeWord(expected);
+
+                                return (
+                                  <span key={`${line.id}-${tokenIndex}`} className="mx-1 inline-block">
+                                    <span
+                                      className={`inline-flex min-w-[80px] items-center justify-center rounded-md border px-2 py-1 text-sm ${
+                                        isMatch
+                                          ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                                          : 'border-amber-300 bg-amber-50 text-amber-800'
+                                      }`}
+                                    >
+                                      {replacement && replacement.trim() ? replacement : '____'}
+                                    </span>
+                                    {!isMatch && expected && (
+                                      <span className="mt-1 block text-xs text-amber-700">{expected}</span>
+                                    )}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          );
+                        })}
+                      </div>
+                      {typeof lyricExistingAttempt?.readModeSwitchesUsed === 'number' && (
+                        <p className="text-xs text-slate-600">
+                          Read-along switches used: {lyricExistingAttempt.readModeSwitchesUsed}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-slate-600">
+                      The student hasn&apos;t submitted any lyric attempts yet.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-white p-6 shadow-md">
+            <GradingForm assignment={serializableSubmission} />
           </div>
         </div>
-
-        <div className="rounded-lg border bg-white p-6 shadow-md">
-          <GradingForm assignment={serializableSubmission} />
-        </div>
-      </div>
+      )}
       
       <div className="mt-8">
         <Accordion type="single" collapsible>

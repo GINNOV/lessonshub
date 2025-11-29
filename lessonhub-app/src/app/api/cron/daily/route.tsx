@@ -1,14 +1,15 @@
 // file: src/app/api/cron/daily/route.tsx
 import { NextResponse } from 'next/server';
-import { sendDeadlineReminders, sendStartDateNotifications, sendWeeklySummaries } from '@/actions/cronActions';
+import { failExpiredAssignments, sendDeadlineReminders, sendStartDateNotifications, sendWeeklySummaries } from '@/actions/cronActions';
 
 export async function GET() {
   try {
     // We can run these in parallel as they don't depend on each other
-    const [remindersResult, startDateResult, weeklyResult] = await Promise.all([
+    const [remindersResult, startDateResult, weeklyResult, failExpiredResult] = await Promise.all([
       sendDeadlineReminders(),
       sendStartDateNotifications(),
       sendWeeklySummaries(),
+      failExpiredAssignments(),
     ]);
     
     return NextResponse.json({
@@ -16,6 +17,7 @@ export async function GET() {
       remindersResult,
       startDateResult,
       weeklyResult,
+      failExpiredResult,
     });
   } catch (error) {
     console.error("Cron job failed:", error);

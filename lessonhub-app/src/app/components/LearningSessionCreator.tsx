@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lesson } from '@prisma/client';
+import { Lesson, AssignmentNotification } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +21,8 @@ import {
 import Image from 'next/image';
 import { guideImageOptions } from '@/lib/guideImages';
 import FileUploadButton from '@/components/FileUploadButton';
+import { Download } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 type TeacherPreferences = {
   defaultLessonPrice?: number | null;
@@ -37,6 +39,7 @@ interface InstructionBooklet {
 
 type LessonWithCards = Omit<Lesson, 'price'> & {
   price: number;
+  isFreeForAll?: boolean;
   guideCardImage?: string | null;
   learningSessionCards: {
     id: string;
@@ -108,6 +111,18 @@ const parseLearningSessionCsv = (content: string): LearningSessionCardState[] =>
   }, []);
 };
 
+const formatDateTimeLocal = (value: string | Date | null | undefined) => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export default function LearningSessionCreator({
   lesson,
   teacherPreferences,
@@ -145,6 +160,53 @@ export default function LearningSessionCreator({
   const [isImporting, setIsImporting] = useState(false);
   const [selectedBookletId, setSelectedBookletId] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(
+    lesson?.assignment_notification ?? AssignmentNotification.NOT_ASSIGNED
+  );
+  const [scheduledDate, setScheduledDate] = useState(
+    formatDateTimeLocal(lesson?.scheduled_assignment_date ?? null)
+  );
+  const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
+
+  const downloadLearningSessionTemplate = () => {
+    const headers = ['content1', 'content2', 'content3', 'content4', 'extra'];
+    const sampleRows: LearningSessionCardState[] = [
+      {
+        content1: 'Introduce vowel cascade warm-up.',
+        content2: 'Student mirrors immediately.',
+        content3: 'Add metronome at 80bpm.',
+        content4: 'Coach tall vowels and soft palate.',
+        extra: 'Link: https://example.com/demo',
+      },
+      {
+        content1: 'Chord progression call-and-response.',
+        content2: 'Student sings roman numerals.',
+        content3: 'Transpose up a whole step.',
+        content4: 'Sustain tonic for 4 beats.',
+        extra: 'Reminder: breathe every two bars.',
+      },
+    ];
+    const dataRows = (cards.length ? cards : sampleRows).map((card) => [
+      card.content1 ?? '',
+      card.content2 ?? '',
+      card.content3 ?? '',
+      card.content4 ?? '',
+      card.extra ?? '',
+    ]);
+    const rows = [headers, ...dataRows];
+    const csv = rows
+      .map((row) => row.map((value) => `"${(value ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'learning-session-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const totalCards = cards.length;
   const validCards = useMemo(
@@ -222,6 +284,20 @@ export default function LearningSessionCreator({
       return;
     }
 
+    let scheduledDatePayload: Date | null = null;
+    if (assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE) {
+      if (!scheduledDate) {
+        toast.error('Please select a date and time to schedule the assignment.');
+        return;
+      }
+      const parsed = new Date(scheduledDate);
+      if (Number.isNaN(parsed.getTime())) {
+        toast.error('Please provide a valid date and time for the scheduled assignment.');
+        return;
+      }
+      scheduledDatePayload = parsed;
+    }
+
     setIsLoading(true);
     const endpoint = isEditMode
       ? `/api/lessons/learning-session/${lesson!.id}`
@@ -240,15 +316,18 @@ export default function LearningSessionCreator({
           difficulty,
           cards,
           guideCardImage,
+          assignment_notification: assignmentNotification,
+          scheduled_assignment_date: scheduledDatePayload,
+          isFreeForAll,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to save learning session.');
+        throw new Error(errorData.error || 'Failed to save guide.');
       }
 
-      toast.success(`Learning session ${isEditMode ? 'updated' : 'created'} successfully.`);
+      toast.success(`Guide ${isEditMode ? 'updated' : 'created'} successfully.`);
       router.push('/dashboard');
       router.refresh();
     } catch (error) {
@@ -288,6 +367,15 @@ export default function LearningSessionCreator({
           onChange={(e) => setPrice(e.target.value)}
           disabled={isLoading}
         />
+      </div>
+      <div className="flex items-start justify-between rounded-lg border p-4">
+        <div>
+          <p className="text-sm font-semibold">Make this lesson free for everyone</p>
+          <p className="text-xs text-muted-foreground">
+            When enabled, all students can access this lesson even without a paid plan.
+          </p>
+        </div>
+        <Switch checked={isFreeForAll} onCheckedChange={setIsFreeForAll} />
       </div>
 
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />
@@ -386,10 +474,46 @@ export default function LearningSessionCreator({
         </p>
       </div>
 
+      <div className="form-field">
+        <Label htmlFor="assignmentNotification">Assignment Status</Label>
+        <select
+          id="assignmentNotification"
+          value={assignmentNotification}
+          onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
+          disabled={isLoading}
+          className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+        >
+          <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
+          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
+          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign to All and Notify Now</option>
+          <option value={AssignmentNotification.ASSIGN_ON_DATE}>Assign on a Specific Date</option>
+        </select>
+      </div>
+
+      {assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE && (
+        <div className="form-field">
+          <Label htmlFor="scheduledDate">Scheduled Assignment Date &amp; Time</Label>
+          <Input
+            type="datetime-local"
+            id="scheduledDate"
+            value={scheduledDate}
+            onChange={(e) => setScheduledDate(e.target.value)}
+            disabled={isLoading}
+            required
+          />
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div>
-            <Label htmlFor="learningSessionCsv">Import learning session CSV</Label>
+          <div className="w-full space-y-1">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="learningSessionCsv">Import guide CSV</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={downloadLearningSessionTemplate} className="text-xs font-semibold">
+                <Download className="mr-2 h-4 w-4" />
+                Download template
+              </Button>
+            </div>
             <p className="text-xs text-gray-500">
               Columns: content1, content2, content3, content4, extra (optional).
             </p>
@@ -488,14 +612,14 @@ export default function LearningSessionCreator({
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Saving…' : isEditMode ? 'Update Learning Session' : 'Create Learning Session'}
+          {isLoading ? 'Saving…' : isEditMode ? 'Update Guide' : 'Create Guide'}
         </Button>
       </div>
 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Preview learning session</DialogTitle>
+            <DialogTitle>Preview guide</DialogTitle>
           </DialogHeader>
           {previewableCards.length > 0 ? (
             <LearningSessionPlayer cards={previewableCards} lessonTitle={title || 'Preview'} />

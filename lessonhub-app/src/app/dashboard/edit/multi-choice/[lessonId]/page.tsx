@@ -5,8 +5,36 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getTeacherPreferences } from "@/actions/teacherActions";
 import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletActions";
+import { auth } from "@/auth";
+import { hasAdminPrivileges } from "@/lib/authz";
+import { Role } from "@prisma/client";
 
 export default async function EditMultiChoicePage({ params }: { params: Promise<{ lessonId: string }> }) {
+    const session = await auth();
+    const isAdminLike = hasAdminPrivileges(session?.user);
+
+    if (!session) {
+      return (
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Please sign in</h1>
+          <Button asChild className="mt-4">
+            <Link href="/signin">Go to sign in</Link>
+          </Button>
+        </div>
+      );
+    }
+
+    if (session.user.role === Role.STUDENT || (session.user.role !== Role.TEACHER && !isAdminLike)) {
+      return (
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Unauthorized</h1>
+          <Button asChild className="mt-4">
+            <Link href="/">Return home</Link>
+          </Button>
+        </div>
+      );
+    }
+
     const { lessonId } = await params;
     const lesson = await getLessonById(lessonId);
 
@@ -20,6 +48,18 @@ export default async function EditMultiChoicePage({ params }: { params: Promise<
                  </Button>
             </div>
         )
+    }
+
+    if (lesson.teacherId && lesson.teacherId !== session.user.id && !isAdminLike) {
+      return (
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Unauthorized</h1>
+          <p>You can only edit your own lessons.</p>
+          <Button asChild className="mt-4">
+            <Link href="/dashboard">Return to Dashboard</Link>
+          </Button>
+        </div>
+      );
     }
 
     const [preferences, instructionBooklets] = await Promise.all([

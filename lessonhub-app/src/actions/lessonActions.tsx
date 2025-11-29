@@ -11,6 +11,7 @@ import { nanoid } from 'nanoid';
 import { checkAndSendMilestoneEmail } from "./studentActions";
 import { awardBadgesForStudent, calculateAssignmentPoints } from "@/lib/gamification";
 import { hasAdminPrivileges } from "@/lib/authz";
+import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 
 export async function getUploadedImages() {
   try {
@@ -268,11 +269,13 @@ export async function assignLessonByShareId(shareId: string, studentId: string) 
             return { success: true, assignment: existingAssignment };
         }
 
+        const initialDeadline = new Date(Date.now() + 36 * 60 * 60 * 1000);
         const newAssignment = await prisma.assignment.create({
             data: {
                 studentId: studentId,
                 lessonId: lesson.id,
-                deadline: new Date(Date.now() + 36 * 60 * 60 * 1000),
+                deadline: initialDeadline,
+                originalDeadline: initialDeadline,
             }
         });
 
@@ -723,74 +726,91 @@ export async function getAssignmentsForStudent(studentId: string) {
 
         // Select explicit scalar fields to avoid querying optional columns
         // that may not exist yet in some environments (e.g., teacherAnswerComments).
-        const assignments = await prisma.assignment.findMany({
-            where: {
-                studentId: studentId,
-                startDate: {
-                    lte: new Date(),
+        const baseLessonSelect = {
+            id: true,
+            teacherId: true,
+            title: true,
+            type: true,
+            lesson_preview: true,
+            assignment_text: true,
+            questions: true,
+            assignment_image_url: true,
+            soundcloud_url: true,
+            context_text: true,
+            attachment_url: true,
+            notes: true,
+            assignment_notification: true,
+            scheduled_assignment_date: true,
+            createdAt: true,
+            updatedAt: true,
+            public_share_id: true,
+            price: true,
+            difficulty: true,
+            assignments: {
+                select: {
+                    status: true,
                 },
             },
-            select: {
-                id: true,
-                assignedAt: true,
-                startDate: true,
-                deadline: true,
-                status: true,
-                score: true,
-                pointsAwarded: true,
-                gradedAt: true,
-                studentNotes: true,
-                rating: true,
-                answers: true,
-                teacherComments: true,
-                // teacherAnswerComments intentionally omitted for DBs without the column
-                reminderSentAt: true,
-                milestoneNotified: true,
-                notifyOnStartDate: true,
-                lessonId: true,
-                studentId: true,
-                lesson: {
-                    select: {
-                        id: true,
-                        teacherId: true,
-                        title: true,
-                        type: true,
-                        lesson_preview: true,
-                        assignment_text: true,
-                        questions: true,
-                        assignment_image_url: true,
-                        soundcloud_url: true,
-                        context_text: true,
-                        attachment_url: true,
-                        notes: true,
-                        assignment_notification: true,
-                        scheduled_assignment_date: true,
-                        createdAt: true,
-                        updatedAt: true,
-                        public_share_id: true,
-                        price: true,
-                        difficulty: true,
-                        assignments: {
-                            select: {
-                                status: true,
-                            },
-                        },
-                        teacher: {
-                            select: {
-                                id: true,
-                                name: true,
-                                image: true,
-                                // Keep optional; if absent in DB, Prisma will ignore
-                                defaultLessonPrice: true,
-                            }
-                        },
-                        _count: { select: { assignments: true } },
+            teacher: {
+                select: {
+                    id: true,
+                    name: true,
+                    image: true,
+                    // Keep optional; if absent in DB, Prisma will ignore
+                    defaultLessonPrice: true,
+                }
+            },
+            _count: { select: { assignments: true } },
+        } as const;
+
+        const fetchAssignments = async (includeFreeFlag: boolean) => {
+            const lessonSelect = includeFreeFlag ? { ...baseLessonSelect, isFreeForAll: true } : baseLessonSelect;
+
+            return prisma.assignment.findMany({
+                where: {
+                    studentId: studentId,
+                    startDate: {
+                        lte: new Date(),
                     },
                 },
-            },
-            orderBy: { deadline: 'asc' },
-        });
-        return assignments;
+                select: {
+                    id: true,
+                    assignedAt: true,
+                    startDate: true,
+                    deadline: true,
+                    originalDeadline: true,
+                    status: true,
+                    score: true,
+                    pointsAwarded: true,
+                    gradedAt: true,
+                    studentNotes: true,
+                    rating: true,
+                    answers: true,
+                    teacherComments: true,
+                    // teacherAnswerComments intentionally omitted for DBs without the column
+                    reminderSentAt: true,
+                    milestoneNotified: true,
+                    notifyOnStartDate: true,
+                    lessonId: true,
+                    studentId: true,
+                    lesson: {
+                        select: lessonSelect,
+                    },
+                },
+                orderBy: { deadline: 'asc' },
+            });
+        };
+
+        try {
+            return await fetchAssignments(true);
+        } catch (err: unknown) {
+            const message = (err as Error)?.message || '';
+            if (message.includes('isFreeForAll')) {
+                console.warn('Lesson.isFreeForAll column missing; falling back without select.');
+                return fetchAssignments(false);
+            }
+            throw err;
+        }
     } catch (error) {
         console.error("Failed to fetch assignments for student:", error);
         return [];
@@ -1026,30 +1046,51 @@ export async function getStudentStats(studentId: string) {
       return { totalValue: 0, totalPoints: student?.totalPoints ?? 0 };
     }
 
-    const assignments = await prisma.assignment.findMany({
-      where: {
-        studentId: studentId,
-        OR: [{ status: AssignmentStatus.GRADED }, { status: AssignmentStatus.FAILED }],
-      },
-      select: {
-        id: true,
-        status: true,
-        score: true,
-        pointsAwarded: true,
-        lesson: { select: { price: true } },
-      },
-    });
+    const [assignments, goldStarsSum] = await Promise.all([
+      prisma.assignment.findMany({
+        where: {
+          studentId: studentId,
+        },
+        select: {
+          id: true,
+          status: true,
+          score: true,
+          pointsAwarded: true,
+          deadline: true,
+          originalDeadline: true,
+          lesson: { select: { price: true } },
+        },
+      }),
+      prisma.goldStar.aggregate({
+        where: { studentId },
+        _sum: { amountEuro: true },
+      }),
+    ]);
+
     let totalValue = 0;
-    assignments.forEach(a => {
+    let extensionSpend = 0;
+
+    assignments.forEach((a) => {
       const price = a.lesson.price.toNumber();
+      const isExtended = isExtendedDeadline(a.deadline, a.originalDeadline);
+
       if (a.status === AssignmentStatus.FAILED) {
         totalValue -= price;
       } else if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score >= 0) {
         totalValue += price;
       }
+
+      if (isExtended) {
+        extensionSpend += EXTENSION_POINT_COST;
+      }
     });
+
+    totalValue -= extensionSpend;
+    const goldStarValue = goldStarsSum._sum.amountEuro ?? 0;
+    totalValue += goldStarValue;
+
     const derivedPoints = assignments.reduce((sum, assignment) => sum + (assignment.pointsAwarded ?? 0), 0);
-    const totalPoints = Math.max(student.totalPoints ?? 0, derivedPoints);
+    const totalPoints = student.totalPoints ?? derivedPoints;
     return { totalValue, totalPoints };
   } catch (error) {
     console.error("Failed to calculate student stats:", error);
@@ -1174,6 +1215,7 @@ export async function sendManualReminder(assignmentId: string) {
     });
     
     revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);
+    revalidatePath('/my-lessons');
     return { success: true };
   } catch (error) {
     console.error("Failed to send reminder:", error);
@@ -1229,35 +1271,129 @@ export async function failAssignment(assignmentId: string) {
   }
 }
 
-export async function extendDeadline(assignmentId: string) {
+type ExtensionActor = "teacher" | "student";
+
+async function applyDeadlineExtension(assignmentId: string, actor: ExtensionActor) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
+  const isTeacher = session?.user?.role === Role.TEACHER;
+  const isStudent = session?.user?.role === Role.STUDENT;
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  if ((actor === "teacher" && !isTeacher) || (actor === "student" && !isStudent)) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const assignment = await prisma.assignment.findUnique({
-      where: { id: assignmentId },
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        ...(actor === "teacher"
+          ? { lesson: { teacherId: session.user.id } }
+          : { studentId: session.user.id }),
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            totalPoints: true,
+          },
+        },
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
     });
 
     if (!assignment) {
-      return { success: false, error: "Assignment not found." };
+      const notFoundMessage =
+        actor === "student"
+          ? "Assignment not found."
+          : "Assignment not found or you do not have access to it.";
+      return { success: false, error: notFoundMessage };
     }
 
-    const newDeadline = new Date();
-    newDeadline.setHours(newDeadline.getHours() + 48);
+    const alreadyExtended =
+      assignment.originalDeadline &&
+      assignment.originalDeadline.getTime() !== assignment.deadline.getTime();
+    if (alreadyExtended) {
+      return {
+        success: false,
+        error: "This lesson has already been extended.",
+      };
+    }
 
-    await prisma.assignment.update({
-      where: { id: assignmentId },
-      data: { deadline: newDeadline, status: AssignmentStatus.PENDING },
+    const availablePoints = assignment.student?.totalPoints ?? 0;
+    if (availablePoints < EXTENSION_POINT_COST) {
+      const insufficientMessage =
+        actor === "student"
+          ? `You need at least ${EXTENSION_POINT_COST} points to request an extension.`
+          : `This student needs at least ${EXTENSION_POINT_COST} points available to extend this lesson.`;
+      return {
+        success: false,
+        error: insufficientMessage,
+      };
+    }
+
+    const now = new Date();
+    const baseDeadline =
+      assignment.deadline && assignment.deadline > now ? assignment.deadline : now;
+    const newDeadline = new Date(baseDeadline.getTime() + 48 * 60 * 60 * 1000);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedAssignment = await tx.assignment.update({
+        where: { id: assignmentId },
+        data: {
+          deadline: newDeadline,
+          status: AssignmentStatus.PENDING,
+          originalDeadline: assignment.originalDeadline ?? assignment.deadline,
+        },
+      });
+
+      const remainingPoints = availablePoints - EXTENSION_POINT_COST;
+      await tx.user.update({
+        where: { id: assignment.studentId },
+        data: { totalPoints: remainingPoints },
+      });
+
+      await tx.pointTransaction.create({
+        data: {
+          userId: assignment.studentId,
+          assignmentId,
+          points: -EXTENSION_POINT_COST,
+          reason: PointReason.MANUAL_ADJUSTMENT,
+          note: `Lesson extension for ${assignment.lesson?.title ?? "lesson"}`,
+        },
+      });
+
+      return { updatedAssignment, remainingPoints };
     });
 
+    revalidatePath(`/assignments/${assignmentId}`);
+    revalidatePath("/my-lessons");
     revalidatePath(`/dashboard/submissions/${assignment.lessonId}`);
-    return { success: true };
+
+    return {
+      success: true,
+      newDeadline: result.updatedAssignment.deadline,
+      remainingPoints: result.remainingPoints,
+    };
   } catch (error) {
     console.error("Failed to extend deadline:", error);
     return { success: false, error: "An error occurred." };
   }
+}
+
+export async function extendDeadline(assignmentId: string) {
+  return applyDeadlineExtension(assignmentId, "teacher");
+}
+
+export async function requestStudentExtension(assignmentId: string) {
+  return applyDeadlineExtension(assignmentId, "student");
 }
 
 export async function gradeAssignment(
@@ -1452,6 +1588,117 @@ export async function getLessonAverageRating(lessonId: string) {
     return null;
   }
 }
+
+export async function getFreeForAllLessons(studentId: string) {
+  try {
+    // 1. Get IDs of lessons already assigned to the student
+    const assignedLessonIds = await prisma.assignment.findMany({
+      where: { studentId },
+      select: { lessonId: true },
+    });
+    const excludeIds = assignedLessonIds.map(a => a.lessonId).filter(Boolean);
+    const whereClause: Prisma.LessonWhereInput = {
+      isFreeForAll: true,
+      type: { not: LessonType.LEARNING_SESSION },
+    };
+
+    // Avoid Prisma's empty-notIn guard which would otherwise hide all free lessons
+    if (excludeIds.length > 0) {
+      whereClause.id = { notIn: excludeIds };
+    }
+
+    // 2. Fetch free lessons not in that list, excluding guides
+    const lessons = await prisma.lesson.findMany({
+      where: whereClause,
+      include: {
+        teacher: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        _count: {
+          select: { assignments: true },
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return lessons.map(lesson => ({
+      id: lesson.id,
+      title: lesson.title,
+      type: lesson.type,
+      lesson_preview: lesson.lesson_preview,
+      assignment_image_url: lesson.assignment_image_url,
+      price: lesson.price.toNumber(),
+      difficulty: lesson.difficulty,
+      teacher: lesson.teacher,
+      completionCount: lesson._count.assignments,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch free lessons:", error);
+    return [];
+  }
+}
+
+export async function startFreeLesson(lessonId: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized" };
+  }
+  const studentId = session.user.id;
+
+  try {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+    });
+
+    if (!lesson) {
+      return { success: false, error: "Lesson not found." };
+    }
+
+    if (!lesson.isFreeForAll) {
+      return { success: false, error: "This lesson is not free." };
+    }
+
+    // Check if already assigned
+    const existing = await prisma.assignment.findUnique({
+      where: {
+        lessonId_studentId: {
+          lessonId,
+          studentId,
+        },
+      },
+    });
+
+    if (existing) {
+      return { success: true, assignmentId: existing.id };
+    }
+
+    // Create new assignment
+    // Default deadline: 7 days from now
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + 7);
+
+    const newAssignment = await prisma.assignment.create({
+      data: {
+        studentId,
+        lessonId,
+        deadline,
+        originalDeadline: deadline,
+        status: AssignmentStatus.PENDING,
+      },
+    });
+
+    revalidatePath('/my-lessons');
+    return { success: true, assignmentId: newAssignment.id };
+  } catch (error) {
+    console.error("Failed to start free lesson:", error);
+    return { success: false, error: "Failed to start lesson." };
+  }
+}
+
 export async function saveLyricAssignmentDraft(
   assignmentId: string,
   studentId: string,
@@ -1491,16 +1738,24 @@ export async function saveLyricAssignmentDraft(
 export async function recordLessonUsageForLatestLogin(userId: string, lessonId: string) {
   if (!userId || !lessonId) return;
   try {
-    const latest = await prisma.loginEvent.findFirst({
-      where: { userId },
+    const recentLessonEvent = await prisma.loginEvent.findFirst({
+      where: {
+        userId,
+        lessonId,
+        createdAt: {
+          gte: new Date(Date.now() - 10 * 60 * 1000), // ignore duplicates within 10 minutes
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
-    if (!latest || latest.lessonId === lessonId) {
-      return;
-    }
-    await prisma.loginEvent.update({
-      where: { id: latest.id },
-      data: { lessonId },
+
+    if (recentLessonEvent) return;
+
+    await prisma.loginEvent.create({
+      data: {
+        userId,
+        lessonId,
+      },
     });
   } catch (error) {
     console.error('LOGIN_EVENT_LESSON_UPDATE_ERROR', error);

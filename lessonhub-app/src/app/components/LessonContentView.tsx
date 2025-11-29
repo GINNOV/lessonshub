@@ -4,7 +4,7 @@ import Link from "next/link";
 import { marked } from "marked";
 import { Lesson } from "@prisma/client";
 import { Button } from "@/components/ui/button";
-import { Paperclip, Eye } from "lucide-react";
+import { Paperclip, Eye, Volume2, ExternalLink } from "lucide-react";
 marked.setOptions({
   gfm: true,
   breaks: true,
@@ -21,13 +21,16 @@ type LessonWithOptionalLyric = Omit<Lesson, 'price'> & {
 
 interface LessonContentViewProps {
   lesson: LessonWithOptionalLyric; // Expects a serialized lesson
+  showInstructions?: boolean;
 }
 
-export default async function LessonContentView({ lesson }: LessonContentViewProps) {
+export default async function LessonContentView({ lesson, showInstructions = true }: LessonContentViewProps) {
   const assignmentHtml = lesson.assignment_text ? ((await marked.parse(lesson.assignment_text)) as string) : "";
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : "";
 
   const audioUrl = lesson.soundcloud_url || lesson.lyricConfig?.audioUrl || "";
+  const isSpotifyAudio = typeof audioUrl === 'string' && /open\.spotify\.com/i.test(audioUrl);
+  const isSpotifyMaterialLink = typeof lesson.attachment_url === 'string' && /open\.spotify\.com/i.test(lesson.attachment_url);
 
   const isYouTubeUrl = (url: string) => /(?:youtube\.com|youtu\.be)\//i.test(url);
   const getYouTubeId = (url: string): string | null => {
@@ -89,7 +92,13 @@ export default async function LessonContentView({ lesson }: LessonContentViewPro
 
       {audioUrl && (
         <div className="my-4">
-          {isYouTubeUrl(audioUrl) ? (
+          {isSpotifyAudio ? (
+            <Button asChild variant="outline">
+              <Link href={audioUrl} target="_blank" rel="noopener noreferrer">
+                <Volume2 className="mr-2 h-4 w-4" /> Listen on Spotify <ExternalLink className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          ) : isYouTubeUrl(audioUrl) ? (
             (() => {
               const vid = getYouTubeId(audioUrl);
               if (!vid) return null as any;
@@ -145,10 +154,12 @@ export default async function LessonContentView({ lesson }: LessonContentViewPro
         </div>
       )}
 
-      <div className="mb-6 rounded-lg border bg-gray-50 p-4">
-        <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
-        <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
-      </div>
+      {showInstructions && (
+        <div className="mb-6 rounded-lg border bg-gray-50 p-4">
+          <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
+          <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
+        </div>
+      )}
 
       {contextHtml && (
         <>
@@ -164,7 +175,15 @@ export default async function LessonContentView({ lesson }: LessonContentViewPro
           </h3>
           <Button asChild variant="outline">
             <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
-              <Eye className="mr-2 h-4 w-4" /> View Attachment
+              {isSpotifyMaterialLink ? (
+                <>
+                  <Volume2 className="mr-2 h-4 w-4" /> Listen on Spotify
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-2 h-4 w-4" /> View Attachment
+                </>
+              )}
             </Link>
           </Button>
         </div>

@@ -6,7 +6,7 @@ Hub Guides deliver on-demand practice between assignments. Think of them as Less
 
 - **Paying students:** full catalog, dismissible banner, and two-tab layout on `/my-lessons`.
 - **Free students:** select “Free access” guides, plus a call-to-action to upgrade via Profile → Billing.
-- **Teachers:** build guides from Learning Session Creator; each guide becomes available automatically once marked visible.
+- **Teachers:** build guides from the Guide Creator; each guide becomes available automatically once marked visible.
 
 ## Guide cards
 
@@ -21,7 +21,7 @@ Hub Guides deliver on-demand practice between assignments. Think of them as Less
 ## Player experience
 
 - Each guide opens at `/guides/[guideId]`.
-- The page mirrors Apple’s calm layout: hero image, update timestamp, preview Markdown, instructions, and the Learning Session Player.
+- The page mirrors Apple’s calm layout: hero image, update timestamp, preview Markdown, instructions, and the Guide Player.
 - Attachments, audio, and `.lrc` lyric imports are supported automatically.
 
 ## Tips for teachers

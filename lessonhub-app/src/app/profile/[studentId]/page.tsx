@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
+import { Role } from "@prisma/client";
 import { getStudentLeaderboardProfile } from "@/actions/studentActions";
+import GoldStarForm from "@/app/components/GoldStarForm";
 
 const currencyFormatter =
   typeof Intl !== "undefined"
@@ -30,6 +33,7 @@ function getInitials(name: string | null | undefined) {
 
 export default async function StudentProfilePage({ params }: { params: Promise<{ studentId: string }> }) {
   const { studentId } = await params;
+  const session = await auth();
   const profile = await getStudentLeaderboardProfile(studentId);
 
   if (!profile) {
@@ -58,6 +62,8 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
     },
     { label: "Total points", value: stats.totalPoints.toLocaleString() },
   ];
+
+  const canSendGoldStar = session?.user?.role === Role.TEACHER && session.user.id !== studentId;
 
   const bioContent =
     profile.studentBio?.trim().length > 0
@@ -145,6 +151,10 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
             </div>
           )}
         </div>
+
+        {canSendGoldStar && (
+          <GoldStarForm studentId={studentId} studentName={profile.name ?? "this student"} />
+        )}
       </div>
     </div>
   );

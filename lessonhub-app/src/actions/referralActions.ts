@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { nanoid } from "nanoid";
+import { hasAdminPrivileges } from "@/lib/authz";
 
 interface ReferralSummary {
   id: string;
@@ -45,6 +46,35 @@ export interface ReferralDashboardData {
     monthlySharePerReferral: number;
     estimatedMonthlyReward: number;
   };
+}
+
+export interface AdminReferralSummaryRow {
+  id: string;
+  name: string | null;
+  email: string;
+  role: Role;
+  totalReferrals: number;
+  payingReferrals: number;
+  pausedReferrals: number;
+  estimatedMonthlyReward: number;
+}
+
+export interface AdminReferralSummaryData {
+  stats: {
+    referrers: number;
+    totalReferrals: number;
+    payingReferrals: number;
+    pausedReferrals: number;
+    estimatedMonthlyPayout: number;
+    monthlySharePerReferral: number;
+    rewardPercent: number;
+    rewardMonthlyAmount: number;
+  };
+  referrers: AdminReferralSummaryRow[];
+  referrals: (ReferralSummary & {
+    referrerName: string | null;
+    referrerEmail: string;
+  })[];
 }
 
 export async function getReferralDashboardData(): Promise<ReferralDashboardData> {
@@ -172,5 +202,110 @@ export async function getReferralDashboardData(): Promise<ReferralDashboardData>
       monthlySharePerReferral: monthlySharePerReferral,
       estimatedMonthlyReward: payingReferrals * monthlySharePerReferral,
     },
+  };
+}
+
+export async function getAdminReferralSummaryData(): Promise<AdminReferralSummaryData> {
+  const session = await auth();
+  if (!hasAdminPrivileges(session?.user)) {
+    throw new Error("Unauthorized");
+  }
+
+  const referralSettings = await prisma.user.findFirst({
+    where: { role: Role.ADMIN },
+    select: {
+      referralRewardPercent: true,
+      referralRewardMonthlyAmount: true,
+    },
+  });
+
+  const rewardPercent = referralSettings
+    ? referralSettings.referralRewardPercent.toNumber()
+    : 35;
+  const rewardMonthlyAmount = referralSettings
+    ? referralSettings.referralRewardMonthlyAmount.toNumber()
+    : 100;
+  const monthlySharePerReferral = rewardMonthlyAmount * (rewardPercent / 100);
+
+  const referrerRecords = await prisma.user.findMany({
+    where: { referrals: { some: {} } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      referrals: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isPaying: true,
+          lastSeen: true,
+          isSuspended: true,
+          isTakingBreak: true,
+        },
+      },
+    },
+    orderBy: {
+      referrals: {
+        _count: "desc",
+      },
+    },
+  });
+
+  const referrers: AdminReferralSummaryRow[] = referrerRecords.map((record) => {
+    const totalReferrals = record.referrals.length;
+    const payingReferrals = record.referrals.filter((referral) => referral.isPaying).length;
+    const pausedReferrals = record.referrals.filter((referral) => referral.isTakingBreak).length;
+
+    return {
+      id: record.id,
+      name: record.name,
+      email: record.email,
+      role: record.role,
+      totalReferrals,
+      payingReferrals,
+      pausedReferrals,
+      estimatedMonthlyReward: payingReferrals * monthlySharePerReferral,
+    };
+  });
+
+  const flattenedReferrals = referrerRecords.flatMap((referrer) =>
+    referrer.referrals.map((referral) => ({
+      id: referral.id,
+      name: referral.name,
+      email: referral.email,
+      role: referral.role,
+      isPaying: referral.isPaying,
+      lastSeen: referral.lastSeen,
+      isSuspended: referral.isSuspended,
+      isTakingBreak: referral.isTakingBreak,
+      referrerName: referrer.name,
+      referrerEmail: referrer.email,
+    }))
+  );
+
+  const totals = referrers.reduce(
+    (acc, referrer) => {
+      acc.referrers += 1;
+      acc.totalReferrals += referrer.totalReferrals;
+      acc.payingReferrals += referrer.payingReferrals;
+      acc.pausedReferrals += referrer.pausedReferrals;
+      return acc;
+    },
+    { referrers: 0, totalReferrals: 0, payingReferrals: 0, pausedReferrals: 0 }
+  );
+
+  return {
+    stats: {
+      ...totals,
+      estimatedMonthlyPayout: totals.payingReferrals * monthlySharePerReferral,
+      monthlySharePerReferral,
+      rewardPercent,
+      rewardMonthlyAmount,
+    },
+    referrers,
+    referrals: flattenedReferrals,
   };
 }

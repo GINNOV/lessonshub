@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { LessonType, Prisma, Role } from "@prisma/client";
+import { AssignmentNotification, LessonType, Prisma, Role } from "@prisma/client";
 import { hasAdminPrivileges } from "@/lib/authz";
 
 type LyricLineInput = {
@@ -153,15 +153,38 @@ export async function PATCH(
       rawLyrics,
       lines,
       settings,
+      assignment_notification,
+      scheduled_assignment_date,
+      isFreeForAll,
     } = body ?? {};
+    const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
+    const rawScheduledAssignmentDate = scheduled_assignment_date
+      ? new Date(scheduled_assignment_date)
+      : null;
+    const scheduledAssignmentDate =
+      rawScheduledAssignmentDate && !Number.isNaN(rawScheduledAssignmentDate.getTime())
+        ? rawScheduledAssignmentDate
+        : null;
 
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return NextResponse.json({ error: "Lesson title is required." }, { status: 400 });
     }
 
-    if (!audioUrl || typeof audioUrl !== 'string') {
+    const cleanedAudioUrl = typeof audioUrl === 'string' ? audioUrl.trim() : '';
+    const attachmentTrimmed = typeof attachment_url === 'string' ? attachment_url.trim() : existingLesson.attachment_url?.trim() ?? '';
+    const attachmentIsAudioFile = Boolean(
+      attachmentTrimmed && /\.(mp3|wav|ogg|m4a|aac)$/i.test(attachmentTrimmed)
+    );
+    const attachmentIsSpotify = Boolean(
+      attachmentTrimmed && /open\.spotify\.com/i.test(attachmentTrimmed)
+    );
+    const attachmentAllowsAudioBypass = attachmentIsAudioFile || attachmentIsSpotify;
+
+    if (!cleanedAudioUrl && !attachmentAllowsAudioBypass) {
       return NextResponse.json({ error: "Audio URL is required." }, { status: 400 });
     }
+
+    const derivedAudioUrl = cleanedAudioUrl || (attachmentIsAudioFile ? attachmentTrimmed : '');
 
     if (!rawLyrics || typeof rawLyrics !== 'string' || rawLyrics.trim().length === 0) {
       return NextResponse.json({ error: "Raw lyrics are required." }, { status: 400 });
@@ -175,6 +198,16 @@ export async function PATCH(
     const difficultyValue = Number(difficulty ?? existingLesson.difficulty ?? 3);
     if (!Number.isInteger(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
       return NextResponse.json({ error: "Difficulty must be an integer between 1 and 5." }, { status: 400 });
+    }
+
+    if (
+      assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE &&
+      (!scheduledAssignmentDate || Number.isNaN(scheduledAssignmentDate.getTime()))
+    ) {
+      return NextResponse.json(
+        { error: "A valid scheduled assignment date is required." },
+        { status: 400 }
+      );
     }
 
     const fallbackPrice =
@@ -196,11 +229,16 @@ export async function PATCH(
         attachment_url,
         notes,
         type: LessonType.LYRIC,
+        isFreeForAll: Boolean(isFreeForAll ?? existingLesson.isFreeForAll),
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: scheduledAssignmentDate,
         lyricConfig: {
           upsert: {
             update: {
-              audioUrl,
-              audioStorageKey: typeof audioStorageKey === 'string' ? audioStorageKey : null,
+              audioUrl: derivedAudioUrl,
+              audioStorageKey: cleanedAudioUrl
+                ? (typeof audioStorageKey === 'string' ? audioStorageKey : null)
+                : null,
               timingSourceUrl:
                 typeof timingSourceUrl === 'string' && timingSourceUrl.trim().length > 0
                   ? timingSourceUrl.trim()
@@ -215,8 +253,10 @@ export async function PATCH(
               settings: settings as Prisma.InputJsonValue | undefined,
             },
             create: {
-              audioUrl,
-              audioStorageKey: typeof audioStorageKey === 'string' ? audioStorageKey : null,
+              audioUrl: derivedAudioUrl,
+              audioStorageKey: cleanedAudioUrl
+                ? (typeof audioStorageKey === 'string' ? audioStorageKey : null)
+                : null,
               timingSourceUrl:
                 typeof timingSourceUrl === 'string' && timingSourceUrl.trim().length > 0
                   ? timingSourceUrl.trim()

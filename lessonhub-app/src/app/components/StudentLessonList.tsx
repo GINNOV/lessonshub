@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Search } from 'lucide-react';
+import Link from 'next/link';
 
 type SerializableUser = {
   id: string;
@@ -29,12 +30,14 @@ type SerializableLesson = {
   teacher: SerializableUser | null;
   completionCount: number;
   difficulty: number;
+  isFreeForAll?: boolean;
 };
 
 type SerializableAssignment = {
   id: string;
   status: AssignmentStatus;
   deadline: Date | string;
+  originalDeadline: Date | string | null;
   score: number | null;
   pointsAwarded: number;
   answers: any;
@@ -126,9 +129,17 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-center text-gray-500 p-6 border rounded-lg">
-          You have no assignments yet. Talk to your teacher if you were expecting some.
-        </p>
+        <div className="text-center text-gray-500 p-6 border rounded-lg">
+          <p>You have no assignments yet.</p>
+          <div className="mt-2 text-sm">
+            <Link
+              href="/teachers"
+              className="text-indigo-600 underline hover:text-indigo-700"
+            >
+              Browse teachers directory
+            </Link>
+          </div>
+        </div>
       ) : (
         <div className="space-y-6">
           {(() => {

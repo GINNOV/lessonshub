@@ -100,13 +100,17 @@ export async function PATCH(req: Request) {
 
     // Assign new students
     if (assignmentsToAssign.length > 0) {
-      const assignmentsData = assignmentsToAssign.map((item) => ({
-        lessonId,
-        studentId: item.studentId,
-        deadline: new Date(item.deadline),
-        startDate: new Date(item.startDate),
-        notifyOnStartDate: shouldScheduleStartNotificationsForNewAssignments,
-      }));
+      const assignmentsData = assignmentsToAssign.map((item) => {
+        const parsedDeadline = new Date(item.deadline);
+        return {
+          lessonId,
+          studentId: item.studentId,
+          deadline: parsedDeadline,
+          originalDeadline: parsedDeadline,
+          startDate: new Date(item.startDate),
+          notifyOnStartDate: shouldScheduleStartNotificationsForNewAssignments,
+        };
+      });
       await prisma.assignment.createMany({ data: assignmentsData });
 
       if (notificationOption === 'immediate') {
@@ -187,26 +191,43 @@ export async function PATCH(req: Request) {
         select: {
           studentId: true,
           notifyOnStartDate: true,
+          deadline: true,
+          originalDeadline: true,
         },
       });
-      const notifyStateByStudent = new Map(existingAssignmentStates.map(({ studentId, notifyOnStartDate }) => [studentId, notifyOnStartDate]));
+      const stateByStudent = new Map(existingAssignmentStates.map((state) => [state.studentId, state]));
 
       for (const item of assignmentsToUpdate) {
-        const previousNotifyState = notifyStateByStudent.get(item.studentId);
+        const existingState = stateByStudent.get(item.studentId);
+        const previousNotifyState = existingState?.notifyOnStartDate;
         const shouldNotifyOnStartDate =
           shouldScheduleStartNotificationsForNewAssignments
             ? true
             : disableStartNotifications
               ? false
               : previousNotifyState ?? false;
+        const parsedDeadline = new Date(item.deadline);
+        const parsedStartDate = new Date(item.startDate);
+        let originalDeadlineForUpdate: Date | undefined;
+        if (existingState?.originalDeadline) {
+          originalDeadlineForUpdate = existingState.originalDeadline;
+        } else if (existingState && parsedDeadline.getTime() !== existingState.deadline.getTime()) {
+          originalDeadlineForUpdate = existingState.deadline;
+        }
+
+        const updateData: Record<string, any> = {
+          deadline: parsedDeadline,
+          startDate: parsedStartDate,
+          notifyOnStartDate: shouldNotifyOnStartDate,
+        };
+
+        if (originalDeadlineForUpdate) {
+          updateData.originalDeadline = originalDeadlineForUpdate;
+        }
 
         const updatedAssignment = await prisma.assignment.update({
           where: { lessonId_studentId: { lessonId, studentId: item.studentId } },
-          data: {
-            deadline: new Date(item.deadline),
-            startDate: new Date(item.startDate),
-            notifyOnStartDate: shouldNotifyOnStartDate,
-          },
+          data: updateData,
           include: {
             student: true,
             lesson: { include: { teacher: true } },

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { getWeekAndDay } from '@/lib/utils';
 import DeleteLessonButton from './DeleteLessonButton';
 import WeekDivider from './WeekDivider';
-import { Pencil, UserPlus, Eye, Share2, Mail, Star, Check, Copy, Trash2 } from 'lucide-react';
+import { Pencil, UserPlus, Eye, Share2, Mail, Star, Check, Copy, Trash2, CalendarDays, Filter, Layers, Users } from 'lucide-react';
 import { duplicateLesson, generateShareLink } from '@/actions/lessonActions';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -83,7 +83,7 @@ const lessonTypeLabels: Record<LessonType, string> = {
   [LessonType.STANDARD]: 'Standard',
   [LessonType.FLASHCARD]: 'Flashcard',
   [LessonType.MULTI_CHOICE]: 'Multi-choice',
-  [LessonType.LEARNING_SESSION]: 'Learning session',
+  [LessonType.LEARNING_SESSION]: 'Guide',
   [LessonType.LYRIC]: 'Lyric',
 };
 
@@ -91,7 +91,7 @@ const STORAGE_KEY = 'teacher-dashboard-filters';
 
 type StatusFilterValue = AssignmentStatus | 'all' | 'past_due' | 'empty_class';
 type OrderViewValue = 'deadline' | 'week' | 'available';
-type LessonTypeFilterValue = 'all' | LessonType;
+type LessonTypeFilterValue = 'all' | 'guides' | LessonType;
 const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   'all',
   'past_due',
@@ -103,6 +103,7 @@ const STATUS_FILTER_VALUES: StatusFilterValue[] = [
 ];
 const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = [
   'all',
+  'guides',
   LessonType.STANDARD,
   LessonType.FLASHCARD,
   LessonType.MULTI_CHOICE,
@@ -212,7 +213,7 @@ const FILTER_LEGEND = [
   },
   {
     label: 'Lesson Type Filter',
-    description: 'Narrow the list down to a specific lesson format like standard, flashcard, lyric, or learning sessions.',
+    description: 'Narrow the list down to a specific lesson format like standard, flashcard, lyric, or guides.',
   },
   {
     label: 'Order',
@@ -433,6 +434,9 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       .filter(lesson => lesson.title.toLowerCase().includes(searchTerm.toLowerCase()))
       .filter(lesson => {
         if (lessonTypeFilter === 'all') return true;
+        if (lessonTypeFilter === 'guides') {
+          return lesson.type === LessonType.LEARNING_SESSION;
+        }
         return lesson.type === lessonTypeFilter;
       })
       .filter(lesson => {
@@ -853,42 +857,51 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
           className="max-w-xs"
         />
         <div className="flex gap-2 flex-wrap justify-end">
-          <select
-            value={orderView}
-            onChange={(e) => setOrderView(e.target.value as OrderViewValue)}
-            className="border-gray-300 rounded-md shadow-sm"
-          >
-            <option value="deadline">Deadline (Asc)</option>
-            <option value="week">Week Order</option>
-            <option value="available">Available Order</option>
-          </select>
-          {classes.length > 0 && (
+          <div className="relative">
             <select
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              className="border-gray-300 rounded-md shadow-sm"
+              value={orderView}
+              onChange={(e) => setOrderView(e.target.value as OrderViewValue)}
+              className="border-gray-300 rounded-md shadow-sm pl-8 pr-3 py-2"
             >
-              <option value="all">All Classes</option>
-              <option value="unassigned">Unassigned</option>
-              {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name}
-                </option>
-              ))}
+              <option value="deadline">Deadline (Asc)</option>
+              <option value="week">Week Order</option>
+              <option value="available">Available Order</option>
             </select>
+            <Filter className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          </div>
+          {classes.length > 0 && (
+            <div className="relative">
+              <select
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                className="border-gray-300 rounded-md shadow-sm pl-8 pr-3 py-2"
+              >
+                <option value="all">All Classes</option>
+                <option value="unassigned">Unassigned</option>
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </option>
+                ))}
+              </select>
+              <Users className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            </div>
           )}
-          <select
-            value={dateFilter}
-            onChange={(e) => handleDateFilterChange(e.target.value as DateFilterValue)}
-            className="border-gray-300 rounded-md shadow-sm"
-          >
-            <option value="today">Today</option>
-            <option value="this_week">This Week</option>
-            <option value="last_week">Past Week</option>
-            <option value="this_month">This Month</option>
-            <option value="this_year">This Year</option>
-            <option value="custom">Custom</option>
-          </select>
+          <div className="relative">
+            <select
+              value={dateFilter}
+              onChange={(e) => handleDateFilterChange(e.target.value as DateFilterValue)}
+              className="border-gray-300 rounded-md shadow-sm pl-8 pr-3 py-2"
+            >
+              <option value="today">Today</option>
+              <option value="this_week">This Week</option>
+              <option value="last_week">Past Week</option>
+              <option value="this_month">This Month</option>
+              <option value="this_year">This Year</option>
+              <option value="custom">Custom</option>
+            </select>
+            <CalendarDays className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          </div>
           {dateFilter === 'custom' && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500">From</span>
@@ -909,31 +922,38 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               />
             </div>
           )}
-          <select
-            value={lessonTypeFilter}
-            onChange={(e) => setLessonTypeFilter(e.target.value as LessonTypeFilterValue)}
-            className="border-gray-300 rounded-md shadow-sm"
-          >
-            <option value="all">All lesson types</option>
-            {LESSON_TYPE_FILTER_VALUES.filter((value): value is LessonType => value !== 'all').map((type) => (
-              <option key={type} value={type}>
-                {lessonTypeEmojis[type]} {lessonTypeLabels[type]}
-              </option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilterValue)}
-            className="border-gray-300 rounded-md shadow-sm"
-          >
-            <option value="all">All Statuses</option>
-            <option value="past_due">Past Due</option>
-            <option value="empty_class">Empty Class</option>
-            <option value={AssignmentStatus.PENDING}>Pending</option>
-            <option value={AssignmentStatus.COMPLETED}>Completed</option>
-            <option value={AssignmentStatus.GRADED}>Graded</option>
-            <option value={AssignmentStatus.FAILED}>Failed</option>
-          </select>
+          <div className="relative">
+            <select
+              value={lessonTypeFilter}
+              onChange={(e) => setLessonTypeFilter(e.target.value as LessonTypeFilterValue)}
+              className="border-gray-300 rounded-md shadow-sm pl-8 pr-3 py-2"
+            >
+              <option value="all">All lesson types</option>
+              <option value="guides">Guides</option>
+              {LESSON_TYPE_FILTER_VALUES.filter((value): value is LessonType => value !== 'all' && value !== 'guides').map((type) => (
+                <option key={type} value={type}>
+                  {lessonTypeEmojis[type]} {lessonTypeLabels[type]}
+                </option>
+              ))}
+            </select>
+            <Layers className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          </div>
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilterValue)}
+              className="border-gray-300 rounded-md shadow-sm pl-8 pr-3 py-2"
+            >
+              <option value="all">All Statuses</option>
+              <option value="past_due">Past Due</option>
+              <option value="empty_class">Empty Class</option>
+              <option value={AssignmentStatus.PENDING}>Pending</option>
+              <option value={AssignmentStatus.COMPLETED}>Completed</option>
+              <option value={AssignmentStatus.GRADED}>Graded</option>
+              <option value={AssignmentStatus.FAILED}>Failed</option>
+            </select>
+            <Filter className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          </div>
           <Button
             type="button"
             variant="outline"

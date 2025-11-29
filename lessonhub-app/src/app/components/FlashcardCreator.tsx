@@ -4,20 +4,21 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
+import { Lesson, Flashcard as PrismaFlashcard, AssignmentNotification } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Upload, Info } from 'lucide-react';
+import { Upload, Info, Download } from 'lucide-react';
 import ImageBrowser from './ImageBrowser';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import { parseCsv } from '@/lib/csv';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import FileUploadButton from '@/components/FileUploadButton';
+import { Switch } from '@/components/ui/switch';
 
-type SerializableLesson = Omit<Lesson, 'price'>;
+type SerializableLesson = Omit<Lesson, 'price'> & { isFreeForAll?: boolean };
 
 type LessonWithFlashcards = SerializableLesson & {
   flashcards: PrismaFlashcard[];
@@ -52,6 +53,43 @@ type FlashcardState = {
 const normalizeUrl = (value?: string): string | null => {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+};
+
+const downloadFlashcardTemplate = (flashcards: FlashcardState[]) => {
+  const headers = ['front', 'front_image', 'back', 'back_image'];
+  const sampleRows: FlashcardState[] = [
+    {
+      term: 'Call and response',
+      definition: 'Student repeats the teacher immediately.',
+      termImageUrl: '',
+      definitionImageUrl: '',
+    },
+    {
+      term: 'Dynamics drill',
+      definition: 'Student alternates loud/soft every bar.',
+      termImageUrl: '',
+      definitionImageUrl: '',
+    },
+  ];
+  const dataRows = (flashcards.length ? flashcards : sampleRows).map((fc) => [
+    fc.term ?? '',
+    fc.termImageUrl ?? '',
+    fc.definition ?? '',
+    fc.definitionImageUrl ?? '',
+  ]);
+  const rows = [headers, ...dataRows];
+  const csv = rows
+    .map((row) => row.map((value) => `"${(value ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'flashcard-template.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
 const parseFlashcardCsv = (content: string): FlashcardState[] => {
@@ -101,6 +139,18 @@ const isBlobHosted = (url: string | null): boolean => {
   }
 };
 
+const formatDateTimeLocal = (value: string | Date | null | undefined) => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export default function FlashcardCreator({ lesson, teacherPreferences, instructionBooklets = [] }: FlashcardCreatorProps) {
   const router = useRouter();
   const [title, setTitle] = useState('');
@@ -144,6 +194,8 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
 
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
+  const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
+  const [scheduledDate, setScheduledDate] = useState('');
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
   const [flashcards, setFlashcards] = useState<FlashcardState[]>([{ term: '', definition: '', termImageUrl: null, definitionImageUrl: null }]);
   const [isLoading, setIsLoading] = useState(false);
@@ -153,6 +205,7 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
   const [isImporting, setIsImporting] = useState(false);
   const [selectedBookletId, setSelectedBookletId] = useState('');
+  const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
   const isEditMode = !!lesson;
 
   useEffect(() => {
@@ -166,7 +219,10 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
       setContextText(lesson.context_text || '');
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
+      setAssignmentNotification(lesson.assignment_notification);
+      setScheduledDate(formatDateTimeLocal(lesson.scheduled_assignment_date));
       setDifficulty(lesson.difficulty ?? 3);
+      setIsFreeForAll(Boolean((lesson as any).isFreeForAll));
       if (lesson.flashcards && lesson.flashcards.length > 0) {
         setFlashcards(lesson.flashcards.map(fc => ({ 
             term: fc.term, 
@@ -333,6 +389,22 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
       return;
     }
 
+    let scheduledDatePayload: Date | null = null;
+    if (assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE) {
+      if (!scheduledDate) {
+        toast.error('Please select a date and time to schedule the assignment.');
+        setIsLoading(false);
+        return;
+      }
+      const parsed = new Date(scheduledDate);
+      if (Number.isNaN(parsed.getTime())) {
+        toast.error('Please provide a valid date and time for the scheduled assignment.');
+        setIsLoading(false);
+        return;
+      }
+      scheduledDatePayload = parsed;
+    }
+
     const url = isEditMode ? `/api/lessons/flashcard/${lesson!.id}` : '/api/lessons/flashcard';
     const method = isEditMode ? 'PATCH' : 'POST';
 
@@ -351,7 +423,10 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
             attachment_url: attachmentUrl, 
             notes,
             difficulty,
-            flashcards: validFlashcards 
+            flashcards: validFlashcards,
+            assignment_notification: assignmentNotification,
+            scheduled_assignment_date: scheduledDatePayload,
+            isFreeForAll,
         }),
       });
 
@@ -380,6 +455,15 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
       <div className="form-field">
          <Label htmlFor="price">Price (€)</Label>
          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
+      </div>
+      <div className="flex items-start justify-between rounded-lg border p-4">
+        <div>
+          <p className="text-sm font-semibold">Make this lesson free for everyone</p>
+          <p className="text-xs text-muted-foreground">
+            When enabled, all students can access this lesson even without a paid plan.
+          </p>
+        </div>
+        <Switch checked={isFreeForAll} onCheckedChange={setIsFreeForAll} />
       </div>
 
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />
@@ -565,10 +649,46 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
         <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </div>
 
+      <div className="form-field">
+        <Label htmlFor="assignmentNotification">Assignment Status</Label>
+        <select
+          id="assignmentNotification"
+          value={assignmentNotification}
+          onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
+          disabled={isLoading}
+          className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+        >
+          <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
+          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
+          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign to All and Notify Now</option>
+          <option value={AssignmentNotification.ASSIGN_ON_DATE}>Assign on a Specific Date</option>
+        </select>
+      </div>
+
+      {assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE && (
+        <div className="form-field">
+          <Label htmlFor="scheduledDate">Scheduled Assignment Date &amp; Time</Label>
+          <Input
+            type="datetime-local"
+            id="scheduledDate"
+            value={scheduledDate}
+            onChange={(e) => setScheduledDate(e.target.value)}
+            disabled={isLoading}
+            required
+          />
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="flashcardCsv">Import flashcards from CSV</Label>
+          <div className="space-y-1 w-full">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="flashcardCsv">Import flashcards from CSV</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={() => downloadFlashcardTemplate(flashcards)} className="text-xs font-semibold">
+                <Download className="mr-2 h-4 w-4" />
+                Download template
+              </Button>
+            </div>
             <p className="text-xs text-gray-500">Expected columns: front, front_image, back, back_image.</p>
           </div>
           <FileUploadButton

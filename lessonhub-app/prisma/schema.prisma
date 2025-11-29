@@ -1,11 +1,11 @@
 // file: prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -39,6 +39,7 @@ model User {
   referrals                 User[]    @relation("UserReferrals")
   referralRewardPercent     Decimal   @default(35)
   referralRewardMonthlyAmount Decimal @default(100)
+  readAlongPoints           Int       @default(0)
 
   impersonatedBy            User?     @relation("Impersonation", fields: [impersonatedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
   impersonating             User?     @relation("Impersonation")
@@ -49,6 +50,8 @@ model User {
   assignments               Assignment[]
   pointTransactions         PointTransaction[]
   badges                    UserBadge[]
+  goldStarsReceived         GoldStar[]         @relation("GoldStarsReceived")
+  goldStarsSent             GoldStar[]         @relation("GoldStarsSent")
   classes                   Class[]
   loginEvents               LoginEvent[]
   defaultLessonPrice        Decimal?
@@ -58,6 +61,7 @@ model User {
   teacherBio                String?   @db.Text
   studentBio                String?   @db.Text
   lyricLessonAttempts       LyricLessonAttempt[]
+  guideCompletions          GuideCompletion[]
   instructionBooklets       InstructionBooklet[]
   couponRedemptions         CouponRedemption[]
   teacherRatingsGiven       TeacherRating[] @relation("StudentRatings")
@@ -113,6 +117,7 @@ model Lesson {
   updatedAt                 DateTime               @updatedAt
   teacherId                 String?
   price                     Decimal                @default(0)
+  isFreeForAll              Boolean                @default(false)
   public_share_id           String?
   guideIsVisible            Boolean                @default(true)
   guideIsFreeForAll         Boolean                @default(false)
@@ -124,6 +129,7 @@ model Lesson {
   multiChoiceQuestions      MultiChoiceQuestion[]
   lyricConfig               LyricLessonConfig?
   lyricAttempts             LyricLessonAttempt[]
+  guideCompletions          GuideCompletion[]
 }
 
 model Flashcard {
@@ -247,6 +253,7 @@ model Assignment {
   assignedAt          DateTime         @default(now())
   startDate           DateTime         @default(now())
   deadline            DateTime
+  originalDeadline    DateTime?
   status              AssignmentStatus @default(PENDING)
   score               Int?
   gradedAt            DateTime?
@@ -337,6 +344,17 @@ model LoginEvent {
   @@index([lessonId])
 }
 
+model GuideCompletion {
+  id         String   @id @default(cuid())
+  studentId  String
+  guideId    String
+  completedAt DateTime @default(now())
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guide      Lesson   @relation(fields: [guideId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, guideId])
+}
+
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -385,6 +403,22 @@ model PointTransaction {
 
   @@index([userId])
   @@index([assignmentId])
+}
+
+model GoldStar {
+  id         String   @id @default(cuid())
+  studentId  String
+  teacherId  String
+  message    String?  @db.Text
+  amountEuro Int      @default(200)
+  points     Int      @default(11)
+  createdAt  DateTime @default(now())
+
+  student User @relation("GoldStarsReceived", fields: [studentId], references: [id], onDelete: Cascade)
+  teacher User @relation("GoldStarsSent", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([teacherId])
 }
 
 enum Role {

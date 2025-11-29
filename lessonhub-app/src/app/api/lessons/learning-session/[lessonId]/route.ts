@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { LessonType, Role } from "@prisma/client";
+import { AssignmentNotification, LessonType, Role } from "@prisma/client";
 
 type CardPayload = {
   content1?: string;
@@ -88,7 +88,18 @@ export async function PATCH(
     difficulty,
     cards,
     guideCardImage,
+    assignment_notification,
+    scheduled_assignment_date,
+    isFreeForAll,
   } = body;
+  const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
+  const rawScheduledAssignmentDate = scheduled_assignment_date
+    ? new Date(scheduled_assignment_date)
+    : null;
+  const scheduledAssignmentDate =
+    rawScheduledAssignmentDate && !Number.isNaN(rawScheduledAssignmentDate.getTime())
+      ? rawScheduledAssignmentDate
+      : null;
 
   if (!title || typeof title !== 'string') {
     return NextResponse.json({ error: 'Title is required.' }, { status: 400 });
@@ -96,7 +107,7 @@ export async function PATCH(
 
   const normalizedCards = normalizeCards(cards);
   if (normalizedCards.length === 0) {
-    return NextResponse.json({ error: 'At least one learning session card is required.' }, { status: 400 });
+    return NextResponse.json({ error: 'At least one guide card is required.' }, { status: 400 });
   }
   const normalizedImage =
     typeof guideCardImage === 'string' && guideCardImage.trim()
@@ -106,6 +117,16 @@ export async function PATCH(
   const difficultyValue = Number(difficulty);
   if (!Number.isInteger(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
     return NextResponse.json({ error: 'Difficulty must be an integer between 1 and 5.' }, { status: 400 });
+  }
+
+  if (
+    assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE &&
+    (!scheduledAssignmentDate || Number.isNaN(scheduledAssignmentDate.getTime()))
+  ) {
+    return NextResponse.json(
+      { error: 'A valid scheduled assignment date is required.' },
+      { status: 400 }
+    );
   }
 
   try {
@@ -119,7 +140,10 @@ export async function PATCH(
           lesson_preview,
           assignment_text,
           difficulty: difficultyValue,
+          assignment_notification: assignmentNotification,
+          scheduled_assignment_date: scheduledAssignmentDate,
           type: LessonType.LEARNING_SESSION,
+          isFreeForAll: Boolean(isFreeForAll),
           guideCardImage: normalizedImage,
           learningSessionCards: {
             create: normalizedCards,
@@ -134,6 +158,6 @@ export async function PATCH(
     return NextResponse.json(updatedLesson, { status: 200 });
   } catch (error) {
     console.error('LEARNING_SESSION_UPDATE_ERROR', error);
-    return NextResponse.json({ error: 'Failed to update learning session.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update guide.' }, { status: 500 });
   }
 }

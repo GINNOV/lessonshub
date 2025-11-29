@@ -8,8 +8,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Check } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
 export type StudentWithStats = Omit<User, 'defaultLessonPrice'> & {
   totalPoints: number;
@@ -75,6 +76,12 @@ export default function AssignLessonForm({
   const [isSaved, setIsSaved] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [classFilter, setClassFilter] = useState<string>('all'); // 'all' | 'none' | classId
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
 
   // Initialize with default values first
   const [masterDeadline, setMasterDeadline] = useState<string>(getDefaultMidnightDate());
@@ -129,6 +136,49 @@ export default function AssignLessonForm({
       return hasChanges ? updated : prev;
     });
   }, [notificationOption, selectedStudents]);
+
+  const assignmentCountsByDate = useMemo(() => {
+    const counts = new Map<string, number>();
+    existingAssignments.forEach((assignment) => {
+      const dateKey = new Date(assignment.deadline).toLocaleDateString('en-CA');
+      counts.set(dateKey, (counts.get(dateKey) ?? 0) + 1);
+    });
+    return counts;
+  }, [existingAssignments]);
+
+  const calendarDays = useMemo(() => {
+    const firstOfMonth = new Date(calendarMonth);
+    const year = firstOfMonth.getFullYear();
+    const month = firstOfMonth.getMonth();
+    const firstDayIndex = firstOfMonth.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const days: { date: Date; inMonth: boolean; key: string; count: number }[] = [];
+
+    const prevMonthDays = firstDayIndex;
+    const totalCells = Math.ceil((prevMonthDays + daysInMonth) / 7) * 7;
+
+    for (let i = 0; i < totalCells; i++) {
+      const dayOffset = i - prevMonthDays + 1;
+      const current = new Date(year, month, dayOffset);
+      const key = current.toLocaleDateString('en-CA');
+      const inMonth = current.getMonth() === month;
+      days.push({
+        date: current,
+        inMonth,
+        key,
+        count: assignmentCountsByDate.get(key) ?? 0,
+      });
+    }
+    return days;
+  }, [assignmentCountsByDate, calendarMonth]);
+
+  const goToMonth = (delta: number) => {
+    setCalendarMonth((prev) => {
+      const next = new Date(prev);
+      next.setMonth(prev.getMonth() + delta);
+      return next;
+    });
+  };
 
 
   const filteredStudents = useMemo(() => {
@@ -295,7 +345,47 @@ export default function AssignLessonForm({
           </select>
         </div>
       </div>
-      
+
+      <div className="rounded-lg border bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Schedule map</p>
+            <h3 className="text-lg font-semibold">Allocated deadlines</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button type="button" size="icon" variant="outline" onClick={() => goToMonth(-1)} aria-label="Previous month">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-[140px] text-center text-sm font-medium">
+              {calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </div>
+            <Button type="button" size="icon" variant="outline" onClick={() => goToMonth(1)} aria-label="Next month">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+            <div key={day}>{day}</div>
+          ))}
+        </div>
+        <div className="mt-2 grid grid-cols-7 gap-1 text-sm">
+          {calendarDays.map(({ date, inMonth, key, count }) => (
+            <div
+              key={`${key}-${date.getDate()}`}
+              className={cn(
+                'rounded-md px-2 py-3 border text-center',
+                inMonth ? 'bg-white' : 'bg-slate-50 text-slate-400',
+                count > 0 ? 'border-emerald-200 bg-emerald-50/70 text-emerald-800 font-semibold' : 'border-slate-200 text-slate-700'
+              )}
+            >
+              <div className="text-xs">{date.getDate()}</div>
+              {count > 0 && <div className="text-[11px]">{count} due</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="p-4 border rounded-md space-y-3">
         <Label className="mb-2 block font-semibold">Notification Options</Label>
         <RadioGroup value={notificationOption} onValueChange={setNotificationOption} className="space-y-2">

@@ -39,7 +39,7 @@ All lesson builders live under the teacher dashboard and share the same patterns
 - Upload artwork for the lesson and individual card sides.
 - Preview automatically sorts cards when students practice.
 
-### Learning Session Creator (Hub Guides)
+### Guide Creator (Hub Guides)
 
 - Create multi-step learning cards with content1–content4 + extra notes.
 - Import entire sessions from CSV using the Upload button.

@@ -2,7 +2,8 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { LessonType, Role } from "@prisma/client";
+import { AssignmentNotification, LessonType, Role } from "@prisma/client";
+import { autoAssignLessonToAllStudents } from "@/lib/lessonAssignments";
 
 type CardPayload = {
   content1?: string;
@@ -82,7 +83,18 @@ export async function POST(request: Request) {
     difficulty,
     cards,
     guideCardImage,
+    assignment_notification,
+    scheduled_assignment_date,
+    isFreeForAll,
   } = body;
+  const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
+  const rawScheduledAssignmentDate = scheduled_assignment_date
+    ? new Date(scheduled_assignment_date)
+    : null;
+  const scheduledAssignmentDate =
+    rawScheduledAssignmentDate && !Number.isNaN(rawScheduledAssignmentDate.getTime())
+      ? rawScheduledAssignmentDate
+      : null;
 
   if (!title || typeof title !== 'string') {
     return NextResponse.json({ error: 'Title is required.' }, { status: 400 });
@@ -90,7 +102,7 @@ export async function POST(request: Request) {
 
   const normalizedCards = normalizeCards(cards);
   if (normalizedCards.length === 0) {
-    return NextResponse.json({ error: 'At least one learning session card is required.' }, { status: 400 });
+    return NextResponse.json({ error: 'At least one guide card is required.' }, { status: 400 });
   }
   const normalizedImage =
     typeof guideCardImage === 'string' && guideCardImage.trim()
@@ -102,6 +114,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Difficulty must be an integer between 1 and 5.' }, { status: 400 });
   }
 
+  if (
+    assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE &&
+    (!scheduledAssignmentDate || Number.isNaN(scheduledAssignmentDate.getTime()))
+  ) {
+    return NextResponse.json(
+      { error: 'A valid scheduled assignment date is required.' },
+      { status: 400 }
+    );
+  }
+
   try {
     const lesson = await prisma.lesson.create({
       data: {
@@ -110,8 +132,11 @@ export async function POST(request: Request) {
         lesson_preview,
         assignment_text,
         difficulty: difficultyValue,
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: scheduledAssignmentDate,
         type: LessonType.LEARNING_SESSION,
         teacherId: session.user.id,
+        isFreeForAll: Boolean(isFreeForAll),
         guideCardImage: normalizedImage,
         learningSessionCards: {
           create: normalizedCards,
@@ -122,9 +147,16 @@ export async function POST(request: Request) {
       },
     });
 
+    await autoAssignLessonToAllStudents({
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+      assignmentNotification,
+      scheduledAssignmentDate,
+      teacherName: session.user.name,
+    });
     return NextResponse.json(lesson, { status: 201 });
   } catch (error) {
     console.error('LEARNING_SESSION_CREATE_ERROR', error);
-    return NextResponse.json({ error: 'Failed to create learning session.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create guide.' }, { status: 500 });
   }
 }

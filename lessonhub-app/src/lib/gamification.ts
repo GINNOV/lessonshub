@@ -66,6 +66,15 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     bonusPoints: 50,
     check: (ctx) => ctx.totalPoints >= 500,
   },
+  {
+    slug: 'gold-star',
+    name: 'Gold Star',
+    description: 'Earned a gold star from your teacher.',
+    icon: '⭐️',
+    category: BadgeCategory.PARTICIPATION,
+    bonusPoints: 0,
+    check: () => false, // awarded manually via gold star action
+  },
 ];
 
 export function calculateAssignmentPoints(args: {
@@ -277,11 +286,12 @@ export async function getStudentGamificationSnapshot(studentId: string) {
 
   await ensureBadgeCatalog();
 
-  const [user, earnedBadges, transactions] = await Promise.all([
+  const [user, earnedBadges, transactions, goldStarTotals] = await Promise.all([
     prisma.user.findUnique({
       where: { id: studentId },
       select: {
         totalPoints: true,
+        readAlongPoints: true,
       },
     }),
     prisma.userBadge.findMany({
@@ -299,6 +309,10 @@ export async function getStudentGamificationSnapshot(studentId: string) {
         createdAt: 'desc',
       },
       take: 5,
+    }),
+    prisma.goldStar.aggregate({
+      where: { studentId },
+      _sum: { points: true, amountEuro: true },
     }),
   ]);
 
@@ -341,5 +355,8 @@ export async function getStudentGamificationSnapshot(studentId: string) {
       note: transaction.note,
     })),
     badgeCatalog: definitions,
+    guidePoints: user?.readAlongPoints ?? 0,
+    goldStarPoints: goldStarTotals._sum.points ?? 0,
+    goldStarAmount: goldStarTotals._sum.amountEuro ?? 0,
   };
 }

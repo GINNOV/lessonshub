@@ -7,6 +7,7 @@ import {
   UserCircle2,
   BarChart3,
   Ticket,
+  Gift,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -25,5 +26,6 @@ export const ADMIN_TILES: AdminTile[] = [
   { href: '/admin/cron', label: 'Cron Test Page', icon: Timer, color: 'bg-rose-50 text-rose-700 border-rose-200' },
   { href: '/admin/coupons', label: 'Coupon Management', icon: Ticket, color: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
   { href: '/admin/feedback', label: 'Feedback & Analytics', icon: BarChart3, color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  { href: '/admin/referrals', label: 'Referral Dashboard', icon: Gift, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   { href: '/profile', label: 'Profile', icon: UserCircle2, color: 'bg-slate-50 text-slate-700 border-slate-200' },
 ];

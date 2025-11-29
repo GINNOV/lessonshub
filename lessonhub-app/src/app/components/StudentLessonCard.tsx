@@ -35,12 +35,14 @@ type SerializableLesson = {
   teacher: SerializableUser | null;
   completionCount: number;
   difficulty: number;
+  isFreeForAll?: boolean;
 };
 
 type SerializableAssignment = {
   id: string;
   status: AssignmentStatus;
   deadline: Date | string;
+  originalDeadline: Date | string | null;
   score: number | null;
   pointsAwarded: number;
   answers: any;
@@ -62,7 +64,12 @@ const lessonTypeImages: Record<LessonType, string> = {
 
 export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {
   const { lesson, status, deadline, score, pointsAwarded } = assignment;
-  const isPastDeadline = new Date(deadline) < new Date();
+  const currentDeadline = new Date(deadline);
+  const originalDeadlineDate = assignment.originalDeadline ? new Date(assignment.originalDeadline) : null;
+  const hasExtendedDeadline = Boolean(
+    originalDeadlineDate && Math.abs(currentDeadline.getTime() - originalDeadlineDate.getTime()) > 60 * 1000
+  );
+  const isPastDeadline = currentDeadline < new Date();
   const isComplete = status === AssignmentStatus.COMPLETED || status === AssignmentStatus.GRADED || status === AssignmentStatus.FAILED;
   const [shareId, setShareId] = useState<string | null>(lesson.public_share_id);
   const [isCopying, setIsCopying] = useState(false);
@@ -79,10 +86,10 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
     return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Pending</Badge>;
   };
 
-  // Always use the curated images under public/my-lessons per type
-  const imageSrc = lessonTypeImages[lesson.type];
+  // Prefer lesson-specific cover when available, otherwise fall back to curated type image
+  const coverImage = lesson.assignment_image_url?.trim() || lessonTypeImages[lesson.type];
 
-  const lessonIdDisplay = `Lesson ${getWeekAndDay(new Date(deadline))}`;
+  const lessonIdDisplay = `Lesson ${getWeekAndDay(currentDeadline)}`;
 
   const copyToClipboard = async (text: string) => {
     if (navigator?.clipboard?.writeText) {
@@ -178,7 +185,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
         <CardHeader className="p-0">
             <Link href={`/assignments/${assignment.id}`} className="block relative h-40 w-full overflow-hidden rounded-t-lg">
                 <Image 
-                    src={imageSrc}
+                    src={coverImage}
                     alt={lesson.title}
                     fill
                     priority={index < 3}
@@ -269,8 +276,25 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                     </Button>
                   </div>
                 ) : (
-                  <div className={cn("font-semibold text-xs sm:text-sm", isPastDeadline ? "text-red-500" : "text-gray-600")}>
-                    <LocaleDate date={deadline} />
+                  <div className="text-right">
+                    <div className="flex flex-col items-end gap-1">
+                      <div className={cn("flex items-center gap-2 font-semibold text-xs sm:text-sm", isPastDeadline ? "text-red-500" : "text-gray-600")}>
+                        <span>Due <LocaleDate date={deadline} /></span>
+                        {hasExtendedDeadline && (
+                          <Badge variant="outline" className="border-blue-200 text-blue-600">
+                            Extended
+                          </Badge>
+                        )}
+                      </div>
+                    {hasExtendedDeadline && originalDeadlineDate && (
+                      <div className="text-[11px] text-gray-500">
+                        Original:&nbsp;
+                        <span className="line-through">
+                          <LocaleDate date={originalDeadlineDate.toISOString()} />
+                        </span>
+                      </div>
+                    )}
+                    </div>
                   </div>
                 )}
             </div>

@@ -75,6 +75,7 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
     return (
         <div className="mt-12">
             <h2 className="text-2xl font-bold mb-4">🏆 Student Leaderboard</h2>
+            <p className="mb-4 text-sm text-gray-500">Showing top 12 peers in your network.</p>
             {/* Desktop/tablet table */}
             <div className="bg-white shadow-md rounded-lg overflow-hidden hidden md:block">
                 <div className="overflow-x-auto">

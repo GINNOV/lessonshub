@@ -42,6 +42,7 @@ export async function GET() {
           lesson: {
             ...restOfLesson,
             price: price.toNumber(),
+            isFreeForAll: (restOfLesson as any).isFreeForAll ?? false,
             completionCount: _count.assignments,
             submittedCount,
             teacher: teacher ? {

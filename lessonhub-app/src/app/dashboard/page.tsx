@@ -14,13 +14,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Filter } from "lucide-react";
 import TeacherClassLeaderboard from "@/app/components/TeacherClassLeaderboard";
 import prisma from "@/lib/prisma";
 import TeacherStatsHeader from "@/app/components/TeacherStatsHeader";
 import WhatsNewDialog from "@/app/components/WhatsNewDialog";
 import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 import { ADMIN_TILES } from "@/lib/adminTiles";
+import LoginHistoryCard from "@/app/components/LoginHistoryCard";
+import CollapsibleSection from "@/app/components/CollapsibleSection";
 
 export const dynamic = "force-dynamic";
 
@@ -122,11 +124,30 @@ export default async function DashboardPage({
   const classId = typeof resolvedSearchParams.classId === 'string' ? resolvedSearchParams.classId : undefined;
   const weekNumber = getWeekNumber(new Date(), teacher.timeZone);
 
-  const [lessons, leaderboardData, stats, classes] = await Promise.all([
+  const [lessons, leaderboardData, stats, classes, recentLogins] = await Promise.all([
     getLessonsForTeacher(session.user.id),
     getLeaderboardDataForTeacher(session.user.id, classId),
     getTeacherDashboardStats(session.user.id),
     getClassesForTeacher(),
+    prisma.loginEvent.findMany({
+      where: {
+        user: {
+          teachers: {
+            some: { teacherId: session.user.id },
+          },
+        },
+      },
+      include: {
+        user: {
+          select: { name: true },
+        },
+        lesson: {
+          select: { id: true, title: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    }),
   ]);
 
   const lessonsWithRatings = await Promise.all(
@@ -171,6 +192,14 @@ export default async function DashboardPage({
     .filter((c: any) => c.isActive)
     .map((c: any) => ({ id: c.id, name: c.name }));
 
+  const studentLoginEntries = recentLogins.map((event) => ({
+    id: event.id,
+    timestamp: event.createdAt.toISOString(),
+    lessonId: event.lessonId,
+    lessonTitle: event.lesson?.title ?? null,
+    studentName: event.user?.name ?? 'Student',
+  }));
+
   return (
     <div className="p-6">
       <WhatsNewDialog notes={whatsNewNotes} />
@@ -201,28 +230,42 @@ export default async function DashboardPage({
               <Link href="/dashboard/create/lyric">Create lyric lesson</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/create/learning-session">Create learning session</Link>
+              <Link href="/dashboard/create/learning-session">Create guide</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       <TeacherStatsHeader stats={stats} />
-      <TeacherLessonList
-        lessons={filteredLessons}
-        classes={classFilterOptions}
-      />
-
       <div className="mt-8">
-        {classes.length > 0 && (
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <a href="/dashboard" className={`px-3 py-1.5 rounded-md text-sm border ${!classId ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>All</a>
-            {classes.filter((c: any) => c.isActive).map((c: any) => (
-              <a key={c.id} href={`/dashboard?classId=${c.id}`} className={`px-3 py-1.5 rounded-md text-sm border ${classId === c.id ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>{c.name}</a>
-            ))}
+        <CollapsibleSection title="Your assignments" defaultOpen>
+          <TeacherLessonList
+            lessons={filteredLessons}
+            classes={classFilterOptions}
+          />
+
+          <div className="mt-6">
+            {classes.length > 0 && (
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <a href="/dashboard" className={`px-3 py-1.5 rounded-md text-sm border ${!classId ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>All</a>
+                {classes.filter((c: any) => c.isActive).map((c: any) => (
+                  <a key={c.id} href={`/dashboard?classId=${c.id}`} className={`px-3 py-1.5 rounded-md text-sm border ${classId === c.id ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>{c.name}</a>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </CollapsibleSection>
+      </div>
+      <div className="mt-8">
         <TeacherClassLeaderboard leaderboardData={leaderboardData} />
+      </div>
+      <div className="mt-8">
+        <LoginHistoryCard
+          entries={studentLoginEntries}
+          title="Student activities"
+          emptyMessage="No recent activity from your students yet."
+          getLessonHref={(lessonId) => `/dashboard/assign/${lessonId}`}
+        />
       </div>
     </div>
   );

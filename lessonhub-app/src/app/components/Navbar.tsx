@@ -16,21 +16,24 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Role } from "@prisma/client";
 import { stopImpersonation } from "@/actions/adminActions";
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from "react";
 import TeacherClassNotesDialog from "./TeacherClassNotesDialog";
 import FeedbackDialog from "./FeedbackDialog";
 import { requestWhatsNewDialog } from "./WhatsNewDialog";
 import RateTeacherDialog from "./RateTeacherDialog";
+import { cn } from "@/lib/utils";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const user = session?.user as any;
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [isClassNotesDialogOpen, setIsClassNotesDialogOpen] = useState(false);
   const [isRateTeacherDialogOpen, setIsRateTeacherDialogOpen] = useState(false);
   const hasAdminAccess = user && (user.role === Role.ADMIN || user.hasAdminPortalAccess);
+  const isLanding = pathname === '/';
 
   const homeHref =
     status === 'authenticated'
@@ -66,10 +69,21 @@ export default function Navbar() {
           </button>
         </div>
       )}
-      <header className="bg-white/95 backdrop-blur-sm sticky top-0 z-50 border-b">
+      <header
+        className={cn(
+          "sticky top-0 z-50 backdrop-blur-sm transition-colors",
+          isLanding ? "border-b border-white/10 bg-[#0d1528]/80 text-white" : "border-b bg-white/95"
+        )}
+      >
         <nav className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-          <Link href={homeHref} className="text-lg font-bold text-gray-800">
-            🏠 LessonHUB
+          <Link
+            href={homeHref}
+            className={cn(
+              "text-lg font-bold",
+              isLanding ? "text-white hover:text-white/80" : "text-gray-800"
+            )}
+          >
+            LessonHUB
           </Link>
           <div className="flex items-center space-x-4">
             {status === 'loading' ? (
@@ -97,6 +111,9 @@ export default function Navbar() {
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href="/admin/lessons">Lesson Management</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin/referrals">Referral Dashboard</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href="/admin/emails">Email Editor</Link>
@@ -165,9 +182,49 @@ export default function Navbar() {
                 )}
               </>
             ) : (
-              <Button asChild>
-                <Link href="/signin">Sign In</Link>
-              </Button>
+              <div className="flex items-center gap-3">
+                {isLanding && (
+                  <>
+                    <Link
+                      href="#benefits"
+                      className="hidden text-sm font-medium transition-colors md:inline-flex"
+                      style={{ color: isLanding ? 'rgba(255,255,255,0.8)' : undefined }}
+                    >
+                      Benefits
+                    </Link>
+                    <Link
+                      href="#testimonials"
+                      className="hidden text-sm font-medium transition-colors md:inline-flex"
+                      style={{ color: isLanding ? 'rgba(255,255,255,0.8)' : undefined }}
+                    >
+                      Testimonials
+                    </Link>
+                  </>
+                )}
+                <Button
+                  asChild
+                  className={cn(
+                    isLanding
+                      ? "bg-transparent text-white hover:bg-white/10"
+                      : undefined,
+                    "hidden md:inline-flex"
+                  )}
+                  variant={isLanding ? "outline" : "default"}
+                >
+                  <Link href="/signin">Sign In</Link>
+                </Button>
+                <Button
+                  asChild
+                  className={cn(
+                    "font-semibold",
+                    isLanding
+                      ? "bg-[#D69E2E] text-[#1A202C] hover:bg-[#c58c25]"
+                      : undefined
+                  )}
+                >
+                  <Link href="/register">Start Free Trial</Link>
+                </Button>
+              </div>
             )}
           </div>
         </nav>

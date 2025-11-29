@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getAssignmentById, recordLessonUsageForLatestLogin } from "@/actions/lessonActions";
 import LessonResponseForm from "@/app/components/LessonResponseForm";
 import LessonContentView from "@/app/components/LessonContentView";
+import LessonInstructionsGate from "@/app/components/LessonInstructionsGate";
 import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
 import FlashcardPlayer from "@/app/components/FlashcardPlayer";
 import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
@@ -19,7 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, CheckCircle2, XCircle, GraduationCap } from "lucide-react";
 import Rating from "@/app/components/Rating";
 import { Button } from "@/components/ui/button";
+import prisma from "@/lib/prisma";
 import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
+import StudentExtensionRequest from "@/app/components/StudentExtensionRequest";
 
 marked.setOptions({
   gfm: true,
@@ -65,6 +68,12 @@ export default async function AssignmentPage({
   if (session.user.id === assignment.studentId) {
     await recordLessonUsageForLatestLogin(assignment.studentId, assignment.lessonId);
   }
+
+  const studentReadBoostRecord = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { readAlongPoints: true },
+  });
+  const availableReadBoosts = studentReadBoostRecord?.readAlongPoints ?? 0;
   
   const normalizeLyricLines = (value: unknown): LyricLine[] => {
     if (!Array.isArray(value)) return [];
@@ -165,18 +174,27 @@ export default async function AssignmentPage({
   const lessonPreviewHtml = lesson.lesson_preview ? await marked.parse(lesson.lesson_preview) : null;
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : null;
   const notesHtml = lesson.notes ? ((await marked.parse(lesson.notes)) as string) : null;
+  const instructionsHtml = lesson.assignment_text ? ((await marked.parse(lesson.assignment_text)) as string) : null;
 
   const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
   const showResultsArea = serializableAssignment.status === AssignmentStatus.GRADED || serializableAssignment.status === AssignmentStatus.FAILED;
   const isPastDue =
     serializableAssignment.status === AssignmentStatus.PENDING &&
     new Date(serializableAssignment.deadline).getTime() < Date.now();
+  const isStudentOwner = session.user.id === serializableAssignment.studentId;
+  const canRequestExtension = isStudentOwner && serializableAssignment.status === AssignmentStatus.PENDING;
 
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
   const isLyric = lesson.type === LessonType.LYRIC;
+  const lyricAudioUrl = lesson.lyricConfig?.audioUrl ?? null;
+  const lyricAudioStorageKey = lesson.lyricConfig?.audioStorageKey ?? null;
   const isLearningSession = lesson.type === LessonType.LEARNING_SESSION;
   const showConfetti = serializableAssignment.score === 10;
+  const hasExtendedDeadline = Boolean(
+    serializableAssignment.originalDeadline &&
+      new Date(serializableAssignment.originalDeadline).getTime() !== new Date(serializableAssignment.deadline).getTime(),
+  );
   const teacherAnswerCommentsMap: Record<number, string> = (() => {
     const src = (serializableAssignment as any).teacherAnswerComments;
     if (!src) return {};
@@ -204,12 +222,17 @@ export default async function AssignmentPage({
     }
     return {};
   })();
-  const lessonQuestions: string[] = Array.isArray(lesson.questions)
-    ? lesson.questions.map((item): string => {
-        if (typeof item === "string") return item;
-        if (item === null || item === undefined) return "";
-        return typeof item === "object" ? JSON.stringify(item) : String(item);
-      })
+  const questionItems = Array.isArray(lesson.questions)
+    ? (lesson.questions as any[]).map((item) => {
+        if (typeof item === "string") return { question: item, expectedAnswer: "" };
+        if (item && typeof item === "object") {
+          return {
+            question: typeof (item as any).question === "string" ? (item as any).question : "",
+            expectedAnswer: typeof (item as any).expectedAnswer === "string" ? (item as any).expectedAnswer : "",
+          };
+        }
+        return { question: String(item ?? ""), expectedAnswer: "" };
+      }).filter((item) => item.question.trim())
     : [];
   const teacherCommentsBlock = serializableAssignment.teacherComments ? (
     <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -220,77 +243,11 @@ export default async function AssignmentPage({
       </div>
     </div>
   ) : null;
-  
-  return (
-    <div className="mx-auto max-w-4xl rounded-lg bg-white p-8 shadow-md">
-      {showConfetti && <Confetti />}
-
-      <h1 className="mb-2 text-3xl font-bold">{lesson.title}</h1>
-      <p className="mb-6 text-sm font-bold text-red-600">
-        Deadline: <LocaleDate date={serializableAssignment.deadline} />
-      </p>
-      {isPastDue && (
-        <div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          <p className="font-semibold">Deadline missed</p>
-          <p className="mt-1">
-            You didn&apos;t submit this lesson before the due date. The material remains visible so you can review it, but submitting answers is disabled.
-          </p>
-        </div>
-      )}
-
-      {showResultsArea && (
-        <div className="mb-8">
-            <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Results</h2>
-            <div className={cn("p-6 rounded-lg", getGradeBackground(serializableAssignment.score))}>
-                <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-sm font-medium text-gray-600">Status</p>
-                        <Badge variant={serializableAssignment.status === 'GRADED' ? 'default' : 'destructive'}>
-                            {serializableAssignment.status}
-                        </Badge>
-            </div>
-            <div>
-                <p className="text-sm font-medium text-gray-600 text-right">Score</p>
-                <p className="text-3xl font-bold text-gray-800">
-                    {serializableAssignment.score !== null ? `${serializableAssignment.score}/10` : 'N/A'}
-                </p>
-            </div>
-        </div>
-        {practiceEligible && (
-          <div className="mt-4 flex flex-wrap gap-3">
-            {!practiceMode ? (
-              <Button asChild size="sm">
-                <Link href={practiceToggleHref}>Take the test again</Link>
-              </Button>
-            ) : (
-              <Button asChild size="sm" variant="outline">
-                <Link href={practiceToggleHref}>Exit practice mode</Link>
-              </Button>
-            )}
-          </div>
-        )}
-         {serializableAssignment.rating && (
-            <div className="mt-4 border-t border-gray-300 pt-4">
-                <h3 className="text-md font-semibold text-gray-700">Your Rating:</h3>
-                <div className="mt-1">
-                  <Rating initialRating={serializableAssignment.rating} readOnly={true} starSize={20} />
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-      )}
-      
-      {lessonPreviewHtml && (
-        <div className="mb-6 rounded-lg border bg-gray-50 p-4">
-            <h2 className="text-xl font-semibold">👀 PREVIEW</h2>
-            <div className="prose max-w-none mt-2" dangerouslySetInnerHTML={{ __html: lessonPreviewHtml as string }} />
-        </div>
-      )}
-
+  const content = (
+    <>
       {!isFlashcard && (
         <div className="my-6">
-          <LessonContentView lesson={serializableAssignment.lesson} />
+          <LessonContentView lesson={serializableAssignment.lesson} showInstructions={false} />
         </div>
       )}
 
@@ -314,7 +271,8 @@ export default async function AssignmentPage({
               assignmentId={serializableAssignment.id}
               studentId={serializableAssignment.studentId}
               lessonId={lesson.id}
-              audioUrl={lesson.lyricConfig.audioUrl}
+              audioUrl={lyricAudioUrl}
+              audioStorageKey={lyricAudioStorageKey}
               lines={lesson.lyricConfig.lines}
               settings={lesson.lyricConfig.settings}
               status={serializableAssignment.status}
@@ -327,6 +285,7 @@ export default async function AssignmentPage({
                 readModeSwitches: (serializableAssignment as any).lyricDraftReadSwitches ?? null,
                 updatedAt: (serializableAssignment as any).lyricDraftUpdatedAt ?? null,
               }}
+              bonusReadSwitches={availableReadBoosts}
             />
           ) : isLearningSession ? (
             <LearningSessionPlayer
@@ -342,12 +301,16 @@ export default async function AssignmentPage({
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Review Your Submission</h2>
           {lesson.type === LessonType.STANDARD && (
              <div className="mt-2 space-y-4 rounded-lg border bg-gray-50 p-4">
-                {Array.isArray(serializableAssignment.answers) && lessonQuestions.map((question, i) => {
+                {Array.isArray(serializableAssignment.answers) && questionItems.map((item, i) => {
                     const teacherComment = teacherAnswerCommentsMap[i];
+                    const expectedAnswer = item.expectedAnswer?.trim();
                     return (
                       <div key={i} className="space-y-2">
-                        <p className="text-sm font-semibold text-gray-600">Question {i + 1}: {question}</p>
+                        <p className="text-sm font-semibold text-gray-600">Question {i + 1}: {item.question}</p>
                         <p className="prose prose-sm mt-1 border-l-2 pl-4 text-gray-800">{serializableAssignment.answers[i] || 'No answer provided.'}</p>
+                        {expectedAnswer && (
+                          <p className="text-xs text-gray-500">Expected answer: <span className="font-medium text-gray-700">{expectedAnswer}</span></p>
+                        )}
                         {teacherComment && (
                           <div className="mt-1 flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
                             <GraduationCap className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
@@ -445,13 +408,15 @@ export default async function AssignmentPage({
               assignmentId={serializableAssignment.id}
               studentId={serializableAssignment.studentId}
               lessonId={lesson.id}
-              audioUrl={lesson.lyricConfig.audioUrl}
+              audioUrl={lyricAudioUrl}
+              audioStorageKey={lyricAudioStorageKey}
               lines={lesson.lyricConfig.lines}
               settings={lesson.lyricConfig.settings}
               status={serializableAssignment.status}
               existingAttempt={lesson.lyricAttempts?.[0] ?? null}
               timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
               lrcUrl={lesson.lyricConfig.lrcUrl ?? null}
+              bonusReadSwitches={availableReadBoosts}
             />
           )}
         </div>
@@ -479,6 +444,102 @@ export default async function AssignmentPage({
             />
           )}
         </div>
+      )}
+    </>
+  );
+  
+  return (
+    <div className="mx-auto max-w-4xl rounded-lg bg-white p-8 shadow-md">
+      {showConfetti && <Confetti />}
+
+      <h1 className="mb-2 text-3xl font-bold">{lesson.title}</h1>
+      <div className="mb-6 text-sm text-gray-600">
+        <p className="font-bold text-red-600">
+          Deadline: <LocaleDate date={serializableAssignment.deadline} />
+        </p>
+        {hasExtendedDeadline && serializableAssignment.originalDeadline && (
+          <div className="mt-1 space-y-1 text-xs text-gray-500">
+            <p>
+              Original:&nbsp;
+              <span className="line-through">
+                <LocaleDate date={serializableAssignment.originalDeadline} />
+              </span>
+            </p>
+            <p className="font-semibold text-blue-600">Deadline extended by your teacher.</p>
+          </div>
+        )}
+      </div>
+      {canRequestExtension && (
+        <StudentExtensionRequest
+          assignmentId={serializableAssignment.id}
+          disabled={hasExtendedDeadline}
+        />
+      )}
+      {isPastDue && (
+        <div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <p className="font-semibold">Deadline missed</p>
+          <p className="mt-1">
+            You didn&apos;t submit this lesson before the due date. The material remains visible so you can review it, but submitting answers is disabled.
+          </p>
+        </div>
+      )}
+
+      {showResultsArea && (
+        <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Results</h2>
+            <div className={cn("p-6 rounded-lg", getGradeBackground(serializableAssignment.score))}>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <p className="text-sm font-medium text-gray-600">Status</p>
+                        <Badge variant={serializableAssignment.status === 'GRADED' ? 'default' : 'destructive'}>
+                            {serializableAssignment.status}
+                        </Badge>
+            </div>
+            <div>
+                <p className="text-sm font-medium text-gray-600 text-right">Score</p>
+                <p className="text-3xl font-bold text-gray-800">
+                    {serializableAssignment.score !== null ? `${serializableAssignment.score}/10` : 'N/A'}
+                </p>
+            </div>
+        </div>
+        {practiceEligible && (
+          <div className="mt-4 flex flex-wrap gap-3">
+            {!practiceMode ? (
+              <Button asChild size="sm">
+                <Link href={practiceToggleHref}>Take the test again</Link>
+              </Button>
+            ) : (
+              <Button asChild size="sm" variant="outline">
+                <Link href={practiceToggleHref}>Exit practice mode</Link>
+              </Button>
+            )}
+          </div>
+        )}
+         {serializableAssignment.rating && (
+            <div className="mt-4 border-t border-gray-300 pt-4">
+                <h3 className="text-md font-semibold text-gray-700">Your Rating:</h3>
+                <div className="mt-1">
+                  <Rating initialRating={serializableAssignment.rating} readOnly={true} starSize={20} />
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+      )}
+      
+      {lessonPreviewHtml && (
+        <div className="mb-6 rounded-lg border bg-gray-50 p-4">
+            <h2 className="text-xl font-semibold">👀 PREVIEW</h2>
+            <div className="prose max-w-none mt-2" dangerouslySetInnerHTML={{ __html: lessonPreviewHtml as string }} />
+        </div>
+      )}
+
+      {showResultsArea ? (
+        content
+      ) : (
+        <LessonInstructionsGate instructionsHtml={instructionsHtml}>
+          {content}
+        </LessonInstructionsGate>
       )}
     </div>
   );

@@ -74,8 +74,8 @@ export default async function ProfilePage() {
         <h1 className="text-3xl font-bold mb-2">Control Center</h1>
         <p className="text-sm text-slate-500">Update your profile and review recent activity.</p>
       </div>
-      <LoginHistoryCard entries={loginHistory} emptyMessage="No logins recorded yet." />
       <ProfileForm userToEdit={serializableUser} />
+      <LoginHistoryCard entries={loginHistory} emptyMessage="No activity recorded yet." />
     </div>
   );
 }

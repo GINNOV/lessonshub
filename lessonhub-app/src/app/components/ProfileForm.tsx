@@ -1,7 +1,7 @@
 // file: src/app/components/ProfileForm.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import { updateTeacherBio } from '@/actions/teacherActions';
 import { redeemCoupon } from '@/actions/billingActions';
 import { Badge } from '@/components/ui/badge';
 import FileUploadButton from '@/components/FileUploadButton';
+import { useSearchParams } from 'next/navigation';
 
 interface ProfileFormProps {
   userToEdit?: User | null;
@@ -27,6 +28,9 @@ interface ProfileFormProps {
 export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileFormProps) {
   const { data: session, update } = useSession();
   const user = userToEdit || session?.user;
+  const searchParams = useSearchParams();
+  const initialTabFromUrl = searchParams?.get('tab');
+  const normalizedTab = initialTabFromUrl === 'billing' ? 'status' : initialTabFromUrl;
 
   // State from your original component
   const [name, setName] = useState(user?.name ?? '');
@@ -241,18 +245,32 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     }
   };
 
-  const tabOptions = [
-    { value: 'profile', label: 'Profile', visible: true },
-    { value: 'about', label: 'About me', visible: user?.role === Role.TEACHER },
-    { value: 'status', label: 'Billing', visible: user?.role === Role.STUDENT },
-    { value: 'password', label: 'Password', visible: !isAdmin },
-    { value: 'delete', label: 'Break(up) time', visible: !isAdmin },
-  ] as const;
+  const visibleTabs = useMemo(() => {
+    const base = [
+      { value: 'profile', label: 'Profile', visible: true },
+      { value: 'about', label: 'About me', visible: user?.role === Role.TEACHER },
+      { value: 'status', label: 'Billing', visible: user?.role === Role.STUDENT },
+      { value: 'password', label: 'Password', visible: !isAdmin },
+      { value: 'delete', label: 'Break(up) time', visible: !isAdmin },
+    ] as const;
+    return base.filter((option) => option.visible);
+  }, [user?.role, isAdmin]);
 
-  const visibleTabs = tabOptions.filter((option) => option.visible);
+  const defaultTab = useMemo(() => {
+    if (normalizedTab && visibleTabs.some((tab) => tab.value === normalizedTab)) {
+      return normalizedTab;
+    }
+    return 'profile';
+  }, [normalizedTab, visibleTabs]);
+
+  const [activeTab, setActiveTab] = useState<string>(defaultTab);
+
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [defaultTab]);
 
   return (
-    <Tabs defaultValue="profile" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner h-auto">
         {visibleTabs.map((tab) => (
           <TabsTrigger

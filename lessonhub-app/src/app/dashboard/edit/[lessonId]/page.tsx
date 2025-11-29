@@ -10,11 +10,21 @@ import MultiChoiceCreator from "@/app/components/MultiChoiceCreator";
 import LearningSessionCreator from "@/app/components/LearningSessionCreator";
 import { getTeacherPreferences } from "@/actions/teacherActions";
 import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletActions";
+import { hasAdminPrivileges } from "@/lib/authz";
 
 export default async function EditLessonPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
+  const isAdminLike = hasAdminPrivileges(session?.user);
 
-  if (!session || session.user.role !== Role.TEACHER) {
+  if (!session) {
+    redirect("/signin");
+  }
+
+  if (session.user.role === Role.STUDENT) {
+    redirect("/");
+  }
+
+  if (session.user.role !== Role.TEACHER && !isAdminLike) {
     redirect("/");
   }
 
@@ -23,6 +33,10 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
 
   if (!lesson) {
     return <div>Lesson not found.</div>;
+  }
+
+  if (lesson.teacherId && lesson.teacherId !== session.user.id && !isAdminLike) {
+    redirect("/dashboard");
   }
 
   if (lesson.type === LessonType.LYRIC) {

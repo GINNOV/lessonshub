@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption as PrismaOption } from '@prisma/client';
+import { Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption as PrismaOption, AssignmentNotification } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,12 +12,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import ImageBrowser from './ImageBrowser';
-import { Info } from 'lucide-react';
+import { Info, Download } from 'lucide-react';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import FileUploadButton from '@/components/FileUploadButton';
+import { Switch } from '@/components/ui/switch';
 
-type SerializableLesson = Omit<Lesson, 'price'>;
+type SerializableLesson = Omit<Lesson, 'price'> & { isFreeForAll?: boolean };
 
 type LessonWithQuestions = SerializableLesson & {
   price: number;
@@ -201,6 +202,18 @@ async function safeJson(response: Response) {
   }
 }
 
+const formatDateTimeLocal = (value: string | Date | null | undefined) => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export default function MultiChoiceCreator({ lesson, teacherPreferences, instructionBooklets = [] }: MultiChoiceCreatorProps) {
   const router = useRouter();
   const [title, setTitle] = useState('');
@@ -216,12 +229,15 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
   const [linkStatus, setLinkStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
+  const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
+  const [scheduledDate, setScheduledDate] = useState('');
   const [questions, setQuestions] = useState<QuestionState[]>([{ question: '', options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }] }]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [selectedBookletId, setSelectedBookletId] = useState('');
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
+  const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
   const isEditMode = !!lesson;
   const isYouTube = (url: string) => {
     try { const u = new URL(url); return /youtu\.be|youtube\.com/i.test(u.hostname); } catch { return false; }
@@ -251,7 +267,10 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
       setSoundcloudUrl(lesson.soundcloud_url || '');
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
+      setAssignmentNotification(lesson.assignment_notification);
+      setScheduledDate(formatDateTimeLocal(lesson.scheduled_assignment_date));
       setDifficulty(lesson.difficulty ?? 3);
+      setIsFreeForAll(Boolean((lesson as any).isFreeForAll));
       if (lesson.multiChoiceQuestions && lesson.multiChoiceQuestions.length > 0) {
         setQuestions(lesson.multiChoiceQuestions.map(q => ({
           question: q.question,
@@ -411,6 +430,22 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
       return;
     }
 
+    let scheduledDatePayload: Date | null = null;
+    if (assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE) {
+      if (!scheduledDate) {
+        toast.error('Please select a date and time to schedule the assignment.');
+        setIsLoading(false);
+        return;
+      }
+      const parsed = new Date(scheduledDate);
+      if (Number.isNaN(parsed.getTime())) {
+        toast.error('Please provide a valid date and time for the scheduled assignment.');
+        setIsLoading(false);
+        return;
+      }
+      scheduledDatePayload = parsed;
+    }
+
     const url = isEditMode ? `/api/lessons/multi-choice/${lesson.id}` : '/api/lessons/multi-choice';
     const method = isEditMode ? 'PATCH' : 'POST';
 
@@ -428,7 +463,10 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
                 attachment_url: attachmentUrl, 
                 notes,
                 difficulty,
-                questions 
+                questions,
+                assignment_notification: assignmentNotification,
+                scheduled_assignment_date: scheduledDatePayload,
+                isFreeForAll,
             }),
         });
         if (!response.ok) throw new Error('Failed to save lesson');
@@ -442,6 +480,49 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
     }
   };
 
+  const downloadQuestionTemplate = () => {
+    const headers = ['question', 'right_answer_id', 'answer1', 'answer2', 'answer3', 'answer4'];
+    const sampleRows = [
+      {
+        question: 'Which vowel shape starts the warmup?',
+        options: ['AH', 'OO', 'EE'],
+        correctIndex: 0,
+      },
+      {
+        question: 'Where should the student breathe?',
+        options: ['After every bar', 'Only at the rest symbol', 'Never'],
+        correctIndex: 1,
+      },
+    ];
+    const source = questions.length ? questions : sampleRows.map((row) => ({
+      question: row.question,
+      options: row.options.map((text, idx) => ({ text, isCorrect: idx === row.correctIndex })),
+    }));
+    const dataRows = source.map((question) => {
+      const answerColumns = question.options.slice(0, 4).map((opt) => opt.text);
+      while (answerColumns.length < 4) {
+        answerColumns.push('');
+      }
+      const correctIndex = question.options.findIndex((opt) => opt.isCorrect);
+      const correctId =
+        correctIndex >= 0 ? `answer${correctIndex + 1}` : 'answer1';
+      return [question.question ?? '', correctId, ...answerColumns];
+    });
+    const rows = [headers, ...dataRows];
+    const csv = rows
+      .map((row) => row.map((value) => `"${(value ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'multi-choice-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
        <div className="form-field">
@@ -453,6 +534,15 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
          <Label htmlFor="price">Price (€)</Label>
          <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
      </div>
+      <div className="flex items-start justify-between rounded-lg border p-4">
+        <div>
+          <p className="text-sm font-semibold">Make this lesson free for everyone</p>
+          <p className="text-xs text-muted-foreground">
+            When enabled, all students can access this lesson even without a paid plan.
+          </p>
+        </div>
+        <Switch checked={isFreeForAll} onCheckedChange={setIsFreeForAll} />
+      </div>
 
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isLoading} />
        <div className="form-field">
@@ -610,11 +700,47 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </div>
 
+      <div className="form-field">
+        <Label htmlFor="assignmentNotification">Assignment Status</Label>
+        <select
+          id="assignmentNotification"
+          value={assignmentNotification}
+          onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
+          disabled={isLoading}
+          className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+        >
+          <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
+          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
+          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign to All and Notify Now</option>
+          <option value={AssignmentNotification.ASSIGN_ON_DATE}>Assign on a Specific Date</option>
+        </select>
+      </div>
+
+      {assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE && (
+        <div className="form-field">
+          <Label htmlFor="scheduledDate">Scheduled Assignment Date &amp; Time</Label>
+          <Input
+            type="datetime-local"
+            id="scheduledDate"
+            value={scheduledDate}
+            onChange={(e) => setScheduledDate(e.target.value)}
+            disabled={isLoading}
+            required
+          />
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="questionsCsv">Import questions from CSV</Label>
-            <p className="text-xs text-gray-500">Columns: question, right_answer_id, answer1, answer2, answer3.</p>
+          <div className="space-y-1 w-full">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="questionsCsv">Import questions from CSV</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={downloadQuestionTemplate} className="text-xs font-semibold">
+                <Download className="mr-2 h-4 w-4" />
+                Download template
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500">Columns: question, right_answer_id, answer1, answer2, answer3 (answer4 optional).</p>
           </div>
           <FileUploadButton
             id="questionsCsv"

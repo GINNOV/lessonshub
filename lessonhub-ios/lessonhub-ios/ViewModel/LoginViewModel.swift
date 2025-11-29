@@ -1,5 +1,6 @@
 import Combine
 import SwiftUI
+import Foundation
 
 @MainActor
 class LoginViewModel: ObservableObject {
@@ -9,6 +10,18 @@ class LoginViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let authService = AuthService()
+    private let defaults = UserDefaults.standard
+    private enum Keys {
+        static let lastLoginEmail = "lessonhub.lastLoginEmail"
+    }
+    
+    init() {
+        email = defaults.string(forKey: Keys.lastLoginEmail) ?? ""
+    }
+    
+    private func rememberEmail(_ email: String) {
+        defaults.set(email, forKey: Keys.lastLoginEmail)
+    }
     
     func login(authManager: AuthenticationManager) {
         isLoading = true
@@ -17,6 +30,7 @@ class LoginViewModel: ObservableObject {
         Task {
             do {
                 try await authService.login(email: email, password: password)
+                rememberEmail(email)
                 authManager.login()
                 print("Login successful from ViewModel")
             } catch {

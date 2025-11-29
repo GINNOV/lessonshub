@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 import { getHubGuideById } from "@/actions/lessonActions";
 import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
+import GuideCompletionCTA from "@/app/components/GuideCompletionCTA";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { marked } from "marked";
@@ -18,6 +19,10 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
   }
 
   const { guideId } = await params;
+  const guide = await getHubGuideById(guideId);
+  if (!guide) {
+    notFound();
+  }
 
   const studentRecord = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -25,8 +30,9 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
   });
 
   const isPaying = studentRecord?.isPaying ?? session.user.isPaying ?? false;
+  const isFreeGuide = guide.guideIsFreeForAll === true;
 
-  if (!isPaying) {
+  if (!isPaying && !isFreeGuide) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 p-6">
         <Button asChild variant="ghost">
@@ -45,10 +51,16 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
     );
   }
 
-  const guide = await getHubGuideById(guideId);
-  if (!guide) {
-    notFound();
-  }
+  const completionPromise = prisma.guideCompletion.findUnique({
+    where: {
+      studentId_guideId: {
+        studentId: session.user.id,
+        guideId,
+      },
+    },
+  });
+
+  const [completion] = await Promise.all([completionPromise]);
 
   const previewHtml = guide.lessonPreview ? await marked.parse(guide.lessonPreview) : null;
   const instructionsHtml = guide.assignmentText ? await marked.parse(guide.assignmentText) : null;
@@ -103,6 +115,8 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
         <LearningSessionPlayer cards={guide.learningSessionCards} lessonTitle={guide.title} />
       </div>
+
+      <GuideCompletionCTA guideId={guide.id} defaultCompleted={Boolean(completion)} pointsPerGuide={3} />
     </div>
   );
 }
