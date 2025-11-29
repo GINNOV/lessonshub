@@ -198,39 +198,40 @@ export default function GradingForm({ assignment }: GradingFormProps) {
                   ? q
                   : (q as any)?.question || (q as any)?.prompt || JSON.stringify(q);
               return (
-              <div key={i} className="grid grid-cols-1 gap-3">
-                <div className="rounded-md border bg-gray-50 p-3">
-                  <p className="text-sm font-semibold">Q{i + 1}: {questionText}</p>
-                  <blockquote className="mt-2 rounded-md border-l-4 border-blue-300 bg-blue-50 p-3 text-gray-800">
-                    {studentAnswers?.[i] || <span className="italic text-gray-500">No answer provided.</span>}
-                  </blockquote>
+                <div key={i} className="grid grid-cols-1 gap-3">
+                  <div className="rounded-md border bg-gray-50 p-3">
+                    <p className="text-sm font-semibold">Q{i + 1}: {questionText}</p>
+                    <blockquote className="mt-2 rounded-md border-l-4 border-blue-300 bg-blue-50 p-3 text-gray-800">
+                      {studentAnswers?.[i] || <span className="italic text-gray-500">No answer provided.</span>}
+                    </blockquote>
+                  </div>
+                  {!openEditors[i] ? (
+                    <div>
+                      <Button type="button" variant="outline" onClick={() => setOpenEditors(prev => ({ ...prev, [i]: true }))}>
+                        Add comment for Q{i + 1}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor={`answer-comment-${i}`}>Comment for Q{i + 1} (optional)</Label>
+                      <Textarea
+                        id={`answer-comment-${i}`}
+                        value={answerComments[i] || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setAnswerComments(prev => {
+                            const next = { ...prev } as Record<number, string>;
+                            if (val.trim()) next[i] = val; else delete next[i];
+                            return next;
+                          });
+                        }}
+                        placeholder="Your feedback on this specific answer..."
+                      />
+                    </div>
+                  )}
                 </div>
-                {!openEditors[i] ? (
-                  <div>
-                    <Button type="button" variant="outline" onClick={() => setOpenEditors(prev => ({ ...prev, [i]: true }))}>
-                      Add comment for Q{i + 1}
-                    </Button>
-                  </div>
-                ) : (
-                  <div>
-                    <Label htmlFor={`answer-comment-${i}`}>Comment for Q{i + 1} (optional)</Label>
-                    <Textarea
-                      id={`answer-comment-${i}`}
-                      value={answerComments[i] || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setAnswerComments(prev => {
-                          const next = { ...prev } as Record<number, string>;
-                          if (val.trim()) next[i] = val; else delete next[i];
-                          return next;
-                        });
-                      }}
-                      placeholder="Your feedback on this specific answer..."
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
