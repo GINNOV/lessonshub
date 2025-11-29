@@ -30,6 +30,8 @@ type SerializableLesson = {
   lesson_preview: string | null;
   assignment_image_url: string | null;
   price: number;
+  isFreeForAll?: boolean;
+  guideIsFreeForAll?: boolean;
   public_share_id: string | null;
   submittedCount: number;
   teacher: SerializableUser | null;

@@ -321,7 +321,14 @@ function Benefits({ copy }: { copy: Copy }) {
         <div className="relative flex justify-center">
           <div className="absolute inset-0 -z-10 rounded-3xl bg-amber-300/10 blur-3xl" />
           <div className="relative aspect-[4/5] w-full max-w-sm overflow-hidden rounded-xl shadow-2xl shadow-black/40">
-            <Image src="/home/teacher.jpg" alt="Friendly language teacher" fill className="object-cover" priority />
+            <Image
+              src="/home/teacher.jpg"
+              alt="Friendly language teacher"
+              fill
+              sizes="(min-width: 1024px) 400px, (min-width: 768px) 320px, 90vw"
+              className="object-cover"
+              priority
+            />
           </div>
         </div>
         <div className="flex flex-col gap-4">

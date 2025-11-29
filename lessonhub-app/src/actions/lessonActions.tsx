@@ -746,6 +746,7 @@ export async function getAssignmentsForStudent(studentId: string) {
             public_share_id: true,
             price: true,
             difficulty: true,
+            guideIsFreeForAll: true,
             assignments: {
                 select: {
                     status: true,
@@ -764,7 +765,9 @@ export async function getAssignmentsForStudent(studentId: string) {
         } as const;
 
         const fetchAssignments = async (includeFreeFlag: boolean) => {
-            const lessonSelect = includeFreeFlag ? { ...baseLessonSelect, isFreeForAll: true } : baseLessonSelect;
+            const lessonSelect = includeFreeFlag
+                ? { ...baseLessonSelect, isFreeForAll: true }
+                : baseLessonSelect;
 
             return prisma.assignment.findMany({
                 where: {
@@ -805,8 +808,8 @@ export async function getAssignmentsForStudent(studentId: string) {
             return await fetchAssignments(true);
         } catch (err: unknown) {
             const message = (err as Error)?.message || '';
-            if (message.includes('isFreeForAll')) {
-                console.warn('Lesson.isFreeForAll column missing; falling back without select.');
+            if (message.includes('isFreeForAll') || message.includes('guideIsFreeForAll')) {
+                console.warn('Lesson free flags missing; falling back without select.');
                 return fetchAssignments(false);
             }
             throw err;

@@ -29,6 +29,7 @@ type SerializableLessonWithAssignments = Omit<Lesson, 'price'> & {
   averageRating?: number | null;
   guideIsVisible?: boolean;
   guideIsFreeForAll?: boolean;
+  isFreeForAll?: boolean;
 };
 
 interface TeacherLessonListProps {
@@ -89,13 +90,14 @@ const lessonTypeLabels: Record<LessonType, string> = {
 
 const STORAGE_KEY = 'teacher-dashboard-filters';
 
-type StatusFilterValue = AssignmentStatus | 'all' | 'past_due' | 'empty_class';
+type StatusFilterValue = AssignmentStatus | 'all' | 'past_due' | 'empty_class' | 'free';
 type OrderViewValue = 'deadline' | 'week' | 'available';
 type LessonTypeFilterValue = 'all' | 'guides' | LessonType;
 const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   'all',
   'past_due',
   'empty_class',
+  'free',
   AssignmentStatus.PENDING,
   AssignmentStatus.COMPLETED,
   AssignmentStatus.GRADED,
@@ -449,6 +451,9 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         }
         if (statusFilter === 'empty_class') {
           return lesson.assignmentsWithDates.length === 0;
+        }
+        if (statusFilter === 'free') {
+          return lesson.price === 0 || !!lesson.guideIsFreeForAll || !!lesson.isFreeForAll;
         }
         return lesson.assignmentsWithDates.some(a => a.status === statusFilter);
       })
@@ -947,6 +952,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               <option value="all">All Statuses</option>
               <option value="past_due">Past Due</option>
               <option value="empty_class">Empty Class</option>
+              <option value="free">Free</option>
               <option value={AssignmentStatus.PENDING}>Pending</option>
               <option value={AssignmentStatus.COMPLETED}>Completed</option>
               <option value={AssignmentStatus.GRADED}>Graded</option>

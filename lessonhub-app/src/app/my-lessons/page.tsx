@@ -46,6 +46,9 @@ export default async function MyLessonsPage() {
   const isPaying = studentRecord?.isPaying ?? session.user.isPaying ?? false;
   const isTakingBreak =
     studentRecord?.isTakingBreak ?? session.user.isTakingBreak ?? false;
+  const signupDate =
+    (session.user as any)?.createdAt ? new Date((session.user as any).createdAt) : null;
+  const signupFloor = signupDate ?? new Date();
 
   // If the user is taking a break, show the message and stop further data fetching.
   if (isTakingBreak) {
@@ -132,9 +135,22 @@ export default async function MyLessonsPage() {
       (lessonAssignment) => submittedStatuses.has(lessonAssignment.status),
     ).length;
 
+    const isFreeLesson =
+      price.toNumber() === 0 ||
+      (assignment.lesson as any).isFreeForAll ||
+      (assignment.lesson as any).guideIsFreeForAll;
+    const adjustedDeadline =
+      isFreeLesson
+        ? (() => {
+            const original = new Date(assignment.deadline);
+            return original < signupFloor ? signupFloor : original;
+          })()
+        : assignment.deadline;
+
     return {
       ...assignment,
       originalDeadline: assignment.originalDeadline ?? null,
+      deadline: adjustedDeadline,
       pointsAwarded: assignment.pointsAwarded ?? 0,
       // Ensure optional columns missing in some DBs are present for typing
       teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
@@ -192,6 +208,34 @@ export default async function MyLessonsPage() {
     (guide) => guide.guideIsFreeForAll === true,
   );
 
+  const assignedFreeLessons = serializableAssignments
+    .filter(
+      (assignment) =>
+        assignment.lesson.price === 0 ||
+        assignment.lesson.isFreeForAll ||
+        assignment.lesson.guideIsFreeForAll,
+    )
+    .map((assignment) => ({
+      id: assignment.lesson.id,
+      title: assignment.lesson.title,
+      type: assignment.lesson.type,
+      lesson_preview: assignment.lesson.lesson_preview,
+      assignment_image_url: assignment.lesson.assignment_image_url,
+      price: assignment.lesson.price,
+      difficulty: assignment.lesson.difficulty,
+      teacher: assignment.lesson.teacher,
+      completionCount: assignment.lesson.completionCount,
+    }));
+
+  const mergedFreeLessons = [
+    ...assignedFreeLessons,
+    ...freeLessons.filter(
+      (lesson) => !assignedFreeLessons.some((assigned) => assigned.id === lesson.id),
+    ),
+  ];
+
+  const guidesForTab = isPaying ? visibleGuides : freeGuides;
+
   return (
     <div>
       <WhatsNewDialog notes={whatsNewNotes} defaultLocale="us" />
@@ -206,9 +250,9 @@ export default async function MyLessonsPage() {
         pastDue={pastDue}
         settings={settings}
       />
-      {isPaying ? (
-        <section className="mt-10 space-y-6">
-          <HubGuideBanner variant="paying" guideCount={visibleGuides.length} />
+      <section className="mt-10 space-y-6">
+        <HubGuideBanner guideCount={guidesForTab.length} />
+        {isPaying ? (
           <Tabs defaultValue="lessons" className="space-y-6">
             <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner">
               <TabsTrigger
@@ -216,12 +260,6 @@ export default async function MyLessonsPage() {
                 className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
               >
                 Lessons
-              </TabsTrigger>
-              <TabsTrigger
-                value="free"
-                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
-              >
-                Free Lessons
               </TabsTrigger>
               <TabsTrigger
                 value="guides"
@@ -233,12 +271,9 @@ export default async function MyLessonsPage() {
             <TabsContent value="lessons">
               <StudentLessonList assignments={serializableAssignments} />
             </TabsContent>
-             <TabsContent value="free">
-              <StudentFreeLessonList lessons={freeLessons} />
-            </TabsContent>
             <TabsContent value="guides">
-              {visibleGuides.length > 0 ? (
-                <StudentGuideList guides={visibleGuides} />
+              {guidesForTab.length > 0 ? (
+                <StudentGuideList guides={guidesForTab} />
               ) : (
                 <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
                   New guides are on the way. Stay tuned!
@@ -246,40 +281,47 @@ export default async function MyLessonsPage() {
               )}
             </TabsContent>
           </Tabs>
-        </section>
-      ) : (
-        <>
-          <section className="mt-10 space-y-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold">My Lessons</h1>
-            </div>
-            <StudentLessonList assignments={serializableAssignments} />
-          </section>
-          
-          {freeLessons.length > 0 && (
-            <section className="mt-10 space-y-4">
-              <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Available Free Lessons</h1>
-              </div>
-              <StudentFreeLessonList lessons={freeLessons} />
-            </section>
-          )}
+        ) : (
+          <Tabs defaultValue="free" className="space-y-6">
+            <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner">
+              <TabsTrigger
+                value="free"
+                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+              >
+                Free Lessons
+              </TabsTrigger>
+              <TabsTrigger
+                value="lessons"
+                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+              >
+                My Lessons
+              </TabsTrigger>
+              <TabsTrigger
+                value="guides"
+                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+              >
+                Hub Guides
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="free">
+              <StudentFreeLessonList lessons={mergedFreeLessons} />
+            </TabsContent>
+            <TabsContent value="lessons">
+              <StudentLessonList assignments={serializableAssignments} />
+            </TabsContent>
+            <TabsContent value="guides">
+              {guidesForTab.length > 0 ? (
+                <StudentGuideList guides={guidesForTab} />
+              ) : (
+                <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
+                  No free guides are available right now. Upgrade to access the full library.
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+      </section>
 
-          <section className="mt-16 space-y-4">
-            <HubGuideBanner variant="locked" guideCount={freeGuides.length} />
-            {freeGuides.length > 0 ? (
-              <div className="space-y-4">
-                <StudentGuideList guides={freeGuides} />
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
-                No free guides are available right now. Upgrade to access the
-                full library.
-              </div>
-            )}
-          </section>
-        </>
-      )}
       <div className="mt-10 space-y-8">
         <StudentGamificationPanel data={gamificationSnapshot} />
         <Leaderboard leaderboardData={leaderboardData} />
