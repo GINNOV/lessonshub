@@ -29,6 +29,7 @@ type Copy = {
   heroSubtitle: string
   heroPrimaryCta: string
   heroSecondaryCta: string
+  heroLoginCta: string
   heroBadge: string
   howTagline: string
   howTitle: string
@@ -55,6 +56,7 @@ function getCopy(isItalian: boolean): Copy {
         'La piattaforma flessibile e divertente per imparare le lingue pensata per chi ha una vita piena. Non è mai troppo tardi per iniziare una nuova avventura.',
       heroPrimaryCta: 'Inizia la prova gratuita',
       heroSecondaryCta: 'Scopri come funziona',
+      heroLoginCta: 'Hai già un account? Accedi',
       heroBadge: 'Nessuna carta di credito richiesta',
       howTagline: 'Come funziona',
       howTitle: 'Il tuo percorso verso la fluidità in 3 semplici passi',
@@ -129,6 +131,7 @@ function getCopy(isItalian: boolean): Copy {
       'The fun and flexible language learning platform designed for busy adults. It’s never too late to start a new adventure.',
     heroPrimaryCta: 'Start Your Free Trial',
     heroSecondaryCta: 'See How It Works',
+    heroLoginCta: 'Already have an account? Sign in',
     heroBadge: 'No Credit Card Required',
     howTagline: 'How It Works',
     howTitle: 'Your Journey to Fluency in 3 Simple Steps',
@@ -270,7 +273,7 @@ function Hero({ copy }: { copy: Copy }) {
           href="/signin"
           className="text-sm font-semibold text-amber-100 transition hover:text-white"
         >
-          Already have an account? Sign in
+          {copy.heroLoginCta}
         </Link>
         <p className="flex items-center gap-2 text-sm font-medium text-[#A0AEC0]">
           <Lock className="h-4 w-4" />

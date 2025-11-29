@@ -8,6 +8,34 @@ import { createButton, sendEmail } from '@/lib/email-templates';
 import { auth } from "@/auth";
 import { hasAdminPrivileges } from "@/lib/authz";
 
+export async function failExpiredAssignments(graceHours: number = 24) {
+  try {
+    const cutoff = new Date(Date.now() - graceHours * 60 * 60 * 1000);
+    const expired = await prisma.assignment.findMany({
+      where: {
+        status: AssignmentStatus.PENDING,
+        deadline: { lt: cutoff },
+      },
+      select: { id: true },
+    });
+
+    if (expired.length === 0) {
+      return { success: true, failedCount: 0, message: "No expired assignments to fail." };
+    }
+
+    const ids = expired.map(a => a.id);
+    await prisma.assignment.updateMany({
+      where: { id: { in: ids } },
+      data: { status: AssignmentStatus.FAILED },
+    });
+
+    return { success: true, failedCount: ids.length };
+  } catch (error) {
+    console.error("FAIL_EXPIRED_ASSIGNMENTS_ERROR", error);
+    return { success: false, message: "Failed to fail expired assignments." };
+  }
+}
+
 export async function sendDeadlineReminders() {
   const now = new Date();
   const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -72,14 +100,15 @@ export async function sendDeadlineReminders() {
 }
 
 
-export async function sendStartDateNotifications(referenceDate?: Date) {
+export async function sendStartDateNotifications(referenceDate?: Date, lookaheadMinutes: number = 60) {
   const now = referenceDate ?? new Date();
+  const windowEnd = new Date(now.getTime() + lookaheadMinutes * 60 * 1000);
 
   const assignmentsToNotify = await prisma.assignment.findMany({
     where: {
       status: AssignmentStatus.PENDING,
       notifyOnStartDate: true,
-      startDate: { lte: now },
+      startDate: { lte: windowEnd },
     },
     include: {
       student: true,
