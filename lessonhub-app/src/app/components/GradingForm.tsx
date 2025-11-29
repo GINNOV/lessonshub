@@ -29,6 +29,16 @@ const scoreOptions = [
 
 export default function GradingForm({ assignment }: GradingFormProps) {
   const router = useRouter();
+  const formatContent = (value: unknown) => {
+    if (typeof value === 'string') return value;
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  };
   const existingScore = typeof assignment.score === 'number' ? assignment.score : null;
   const [scoreValue, setScoreValue] = useState<string | null>(
     existingScore !== null ? existingScore.toString() : null
@@ -193,16 +203,17 @@ export default function GradingForm({ assignment }: GradingFormProps) {
           <p className="text-sm font-medium text-gray-700">Per-answer comments</p>
           <div className="space-y-4">
             {questions.map((q, i) => {
-              const questionText =
-                typeof q === 'string'
-                  ? q
-                  : (q as any)?.question || (q as any)?.prompt || JSON.stringify(q);
+              const questionText = (() => {
+                const candidate = (q as any)?.question ?? (q as any)?.prompt ?? q;
+                return formatContent(candidate);
+              })();
+              const studentAnswer = formatContent(studentAnswers?.[i]);
               return (
                 <div key={i} className="grid grid-cols-1 gap-3">
                   <div className="rounded-md border bg-gray-50 p-3">
                     <p className="text-sm font-semibold">Q{i + 1}: {questionText}</p>
                     <blockquote className="mt-2 rounded-md border-l-4 border-blue-300 bg-blue-50 p-3 text-gray-800">
-                      {studentAnswers?.[i] || <span className="italic text-gray-500">No answer provided.</span>}
+                      {studentAnswer || <span className="italic text-gray-500">No answer provided.</span>}
                     </blockquote>
                   </div>
                   {!openEditors[i] ? (

@@ -157,6 +157,17 @@ const formatDuration = (seconds: number | null) => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
+const formatContent = (value: unknown): string => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+
 export default async function GradeSubmissionPage({
   params,
 }: {
@@ -862,16 +873,22 @@ export default async function GradeSubmissionPage({
             
             {submission.lesson.type === LessonType.STANDARD && (
               <div className="mt-4 space-y-6">
-                {(submission.lesson.questions as string[])?.map(
-                  (question, index) => {
-                    const studentAnswers = submission.answers as string[] | null;
+                {Array.isArray(submission.lesson.questions) &&
+                  submission.lesson.questions.map((question, index) => {
+                    const studentAnswers = submission.answers as unknown[] | null;
+                    const questionText = formatContent(
+                      (question as any)?.question ?? (question as any)?.prompt ?? question
+                    );
+                    const studentAnswer = formatContent(studentAnswers?.[index]);
                     return (
                       <div key={index}>
                         <p className="rounded-md border bg-gray-50 p-3 font-semibold shadow-sm">
-                          Q{index + 1}❓ {question}
+                          Q{index + 1}❓ {questionText}
                         </p>
                         <blockquote className="mt-2 rounded-md border-l-4 border-blue-300 bg-blue-50 p-3 text-gray-800">
-                          {studentAnswers?.[index] || (
+                          {studentAnswer ? (
+                            studentAnswer
+                          ) : (
                             <span className="italic text-gray-500">
                               No answer provided.
                             </span>
@@ -879,8 +896,7 @@ export default async function GradeSubmissionPage({
                         </blockquote>
                       </div>
                     );
-                  }
-                )}
+                  })}
               </div>
             )}
             {submission.lesson.type === LessonType.LYRIC && lyricLessonConfig && (
