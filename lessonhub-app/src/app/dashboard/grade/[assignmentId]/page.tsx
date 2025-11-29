@@ -679,14 +679,19 @@ export default async function GradeSubmissionPage({
         Student: {submission.student.name || submission.student.email}
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
-        <div className="space-y-6 rounded-lg border bg-white p-6 shadow-md">
-          <div>
-            <h2 className="border-b pb-2 text-xl font-semibold">
-              Student&apos;s Response
-            </h2>
+      {submission.lesson.type === LessonType.STANDARD ? (
+        <div className="mt-6">
+          <GradingForm assignment={serializableSubmission} />
+        </div>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
+          <div className="space-y-6 rounded-lg border bg-white p-6 shadow-md">
+            <div>
+              <h2 className="border-b pb-2 text-xl font-semibold">
+                Student&apos;s Response
+              </h2>
 
-            {submission.lesson.type === LessonType.FLASHCARD && (
+              {submission.lesson.type === LessonType.FLASHCARD && (
               <div className="mt-4 space-y-3">
                 {flashcards.length > 0 ? (
                   <>
@@ -768,9 +773,9 @@ export default async function GradeSubmissionPage({
                   </p>
                 )}
               </div>
-            )}
+              )}
 
-            {submission.lesson.type === LessonType.MULTI_CHOICE && (
+              {submission.lesson.type === LessonType.MULTI_CHOICE && (
               <div className="mt-4 space-y-3">
                 {multiChoiceDetails.length > 0 ? (
                   <>
@@ -869,45 +874,9 @@ export default async function GradeSubmissionPage({
                   </p>
                 )}
               </div>
-            )}
-            
-            {submission.lesson.type === LessonType.STANDARD && (
-              <div className="mt-4 space-y-6">
-                {Array.isArray(submission.lesson.questions) &&
-                  submission.lesson.questions.map((question, index) => {
-                    const studentAnswers = submission.answers as unknown[] | null;
-                    const questionText = formatContent(
-                      (question as any)?.question ?? (question as any)?.prompt ?? question
-                    );
-                    const expectedText = formatContent(
-                      (question as any)?.expectedAnswer ?? (question as any)?.expected ?? ''
-                    );
-                    const studentAnswer = formatContent(studentAnswers?.[index]);
-                    return (
-                      <div key={index} className="space-y-2 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                        <p className="font-semibold text-gray-900">
-                          Q{index + 1}❓ {questionText}
-                        </p>
-                        <div className="rounded-md border-l-4 border-blue-300 bg-blue-50 px-3 py-2 text-sm text-gray-800">
-                          {studentAnswer ? (
-                            studentAnswer
-                          ) : (
-                            <span className="italic text-gray-500">
-                              No answer provided.
-                            </span>
-                          )}
-                        </div>
-                        {expectedText && (
-                          <div className="rounded-md border-l-4 border-green-300 bg-green-50 px-3 py-2 text-xs text-gray-700">
-                            Expected: <span className="font-semibold">{expectedText}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-            {submission.lesson.type === LessonType.LYRIC && lyricLessonConfig && (
+              )}
+              
+              {submission.lesson.type === LessonType.LYRIC && lyricLessonConfig && (
               <div className="mt-4 space-y-3 rounded-lg border bg-slate-50 p-4">
                 {lyricExistingAttempt ? (
                   <>
@@ -959,29 +928,30 @@ export default async function GradeSubmissionPage({
                               })}
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                    {typeof lyricExistingAttempt?.readModeSwitchesUsed === 'number' && (
-                      <p className="text-xs text-slate-600">
-                        Read-along switches used: {lyricExistingAttempt.readModeSwitchesUsed}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-slate-600">
-                    The student hasn&apos;t submitted any lyric attempts yet.
-                  </p>
-                )}
-              </div>
-            )}
+                          );
+                        })}
+                      </div>
+                      {typeof lyricExistingAttempt?.readModeSwitchesUsed === 'number' && (
+                        <p className="text-xs text-slate-600">
+                          Read-along switches used: {lyricExistingAttempt.readModeSwitchesUsed}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-slate-600">
+                      The student hasn&apos;t submitted any lyric attempts yet.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-white p-6 shadow-md">
+            <GradingForm assignment={serializableSubmission} />
           </div>
         </div>
-
-        <div className="rounded-lg border bg-white p-6 shadow-md">
-          <GradingForm assignment={serializableSubmission} />
-        </div>
-      </div>
+      )}
       
       <div className="mt-8">
         <Accordion type="single" collapsible>

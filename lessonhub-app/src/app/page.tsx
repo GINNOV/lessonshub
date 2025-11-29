@@ -266,6 +266,12 @@ function Hero({ copy }: { copy: Copy }) {
             {copy.heroSecondaryCta} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
+        <Link
+          href="/signin"
+          className="text-sm font-semibold text-amber-100 transition hover:text-white"
+        >
+          Already have an account? Sign in
+        </Link>
         <p className="flex items-center gap-2 text-sm font-medium text-[#A0AEC0]">
           <Lock className="h-4 w-4" />
           {copy.heroBadge}
