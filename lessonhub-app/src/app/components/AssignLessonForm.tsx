@@ -23,6 +23,7 @@ interface AssignLessonFormProps {
   lesson: Omit<Lesson, 'price'> & { price: number };
   students: StudentWithStats[];
   existingAssignments: Assignment[];
+  calendarAssignments?: Pick<Assignment, 'deadline' | 'lessonId'>[];
   classes?: { id: string; name: string; isActive: boolean }[];
 }
 
@@ -64,6 +65,7 @@ export default function AssignLessonForm({
   lesson,
   students,
   existingAssignments = [],
+  calendarAssignments = [],
   classes = [],
 }: AssignLessonFormProps) {
   const router = useRouter();
@@ -137,14 +139,16 @@ export default function AssignLessonForm({
     });
   }, [notificationOption, selectedStudents]);
 
+  const assignmentsForCalendar = calendarAssignments.length > 0 ? calendarAssignments : existingAssignments;
+
   const assignmentCountsByDate = useMemo(() => {
     const counts = new Map<string, number>();
-    existingAssignments.forEach((assignment) => {
+    assignmentsForCalendar.forEach((assignment) => {
       const dateKey = new Date(assignment.deadline).toLocaleDateString('en-CA');
       counts.set(dateKey, (counts.get(dateKey) ?? 0) + 1);
     });
     return counts;
-  }, [existingAssignments]);
+  }, [assignmentsForCalendar]);
 
   const calendarDays = useMemo(() => {
     const firstOfMonth = new Date(calendarMonth);
