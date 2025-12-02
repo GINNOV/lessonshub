@@ -122,6 +122,14 @@ const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = [
   LessonType.LEARNING_SESSION,
   LessonType.LYRIC,
 ];
+const normalizeLessonTypeFilter = (value: string | null | undefined): LessonTypeFilterValue => {
+  if (!value) return 'all';
+  if (value === 'guide') return 'guides';
+  if (LESSON_TYPE_FILTER_VALUES.includes(value as LessonTypeFilterValue)) {
+    return value as LessonTypeFilterValue;
+  }
+  return 'all';
+};
 const DATE_FILTER_VALUES = ['today', 'this_week', 'last_week', 'this_month', 'this_year', 'custom'] as const;
 const ORDER_VIEW_VALUES: OrderViewValue[] = ['deadline', 'week', 'available'];
 type DateFilterValue = (typeof DATE_FILTER_VALUES)[number];
@@ -455,8 +463,9 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         if (statusFilter === 'all') return true;
         if (statusFilter === 'past_due') {
           return lesson.assignmentsWithDates.some(a => {
-            if (a.status !== AssignmentStatus.PENDING || !a.deadlineDate) return false;
-            return a.deadlineDate <= today;
+            if (!a.deadlineDate) return false;
+            // Treat any assignment that is not graded and past its deadline as past due
+            return a.deadlineDate <= today && a.status !== AssignmentStatus.GRADED;
           });
         }
         if (statusFilter === 'empty_class') {
@@ -475,6 +484,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         return lesson.assignmentsWithDates.some(a => a.classId === classFilter);
       })
       .filter(lesson => {
+        if (statusFilter === 'past_due') return true;
         const referenceDate = lesson.filterDate ?? new Date(lesson.createdAt);
         const referenceStart = getStartOfDay(referenceDate);
         if (statusFilter === 'free') return true;
@@ -571,16 +581,16 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       if (!stored) {
         return;
       }
-      const parsed = JSON.parse(stored) as {
-        searchTerm?: string;
-        statusFilter?: StatusFilterValue;
-        dateFilter?: string;
-        customStartDate?: string;
-        customEndDate?: string;
-        classFilter?: string;
-        orderView?: OrderViewValue;
-        lessonTypeFilter?: LessonTypeFilterValue;
-      };
+    const parsed = JSON.parse(stored) as {
+      searchTerm?: string;
+      statusFilter?: StatusFilterValue;
+      dateFilter?: string;
+      customStartDate?: string;
+      customEndDate?: string;
+      classFilter?: string;
+      orderView?: OrderViewValue;
+      lessonTypeFilter?: LessonTypeFilterValue | string;
+    };
       if (typeof parsed.searchTerm === 'string') setSearchTerm(parsed.searchTerm);
       if (parsed.statusFilter && STATUS_FILTER_VALUES.includes(parsed.statusFilter)) {
         setStatusFilter(parsed.statusFilter);
@@ -594,9 +604,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       if (parsed.orderView && ORDER_VIEW_VALUES.includes(parsed.orderView)) {
         setOrderView(parsed.orderView);
       }
-      if (parsed.lessonTypeFilter && LESSON_TYPE_FILTER_VALUES.includes(parsed.lessonTypeFilter)) {
-        setLessonTypeFilter(parsed.lessonTypeFilter);
-      }
+      setLessonTypeFilter(normalizeLessonTypeFilter(parsed.lessonTypeFilter as string | undefined));
     } catch (error) {
       console.warn('Unable to restore teacher dashboard filters', error);
     }
@@ -655,8 +663,8 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     const allStudentsProcessed = lesson.assignmentsWithDates.length > 0 && lesson.assignmentsWithDates.every(a => a.status === AssignmentStatus.GRADED || a.status === AssignmentStatus.FAILED);
     const normalizedDifficulty = Math.min(Math.max((lesson.difficulty ?? 3), 1), 5);
     const difficultyOption = DIFFICULTY_OPTIONS[normalizedDifficulty - 1];
-    const chipBg = difficultyOption.color.replace('500', '100');
-    const chipBorder = difficultyOption.color.replace('500', '200');
+    const chipBg = 'bg-slate-800/80';
+    const chipBorder = 'border border-slate-700';
     const isFree = lesson.price === 0 || !!lesson.isFreeForAll || !!lesson.guideIsFreeForAll;
 
     if (isGuide) {
@@ -673,24 +681,22 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         <div
           key={key ?? `guide-${lesson.id}`}
           className={cn(
-            "flex flex-col gap-4 rounded-md border p-4",
-            isFree ? "bg-purple-50 border-purple-200" : "border-green-200 bg-green-50"
+            "flex flex-col gap-4 rounded-2xl border border-slate-800/70 bg-slate-900/70 p-4 shadow-lg backdrop-blur-sm",
+            isFree ? "ring-1 ring-teal-400/20" : "ring-1 ring-emerald-300/15"
           )}
         >
           <div className="flex flex-col gap-2">
-            <Link href={`/dashboard/edit/${lesson.id}`} className="text-lg font-bold hover:underline">
+            <Link href={`/dashboard/edit/${lesson.id}`} className="text-lg font-bold text-slate-100 hover:text-teal-200">
               <span className="mr-2">{lessonTypeEmojis[lesson.type]}</span>
               {lesson.title}
             </Link>
-            <p className="text-xs text-green-900">
+            <p className="text-xs text-slate-400">
               Guide {weekLabel}-{dayLabel} · Created {createdStamp}
             </p>
             <span
               className={cn(
-                'w-fit inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide',
-                chipBg,
-                chipBorder,
-                difficultyOption.text
+                'w-fit inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-200',
+                'border-teal-300/60 bg-teal-500/15'
               )}
             >
               <span className={cn('h-2 w-2 rounded-full', difficultyOption.color)} aria-hidden="true" />
@@ -700,7 +706,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               <span
                 className={cn(
                   'rounded-full px-3 py-1',
-                  lesson.guideIsVisible ? 'bg-emerald-200 text-emerald-900' : 'bg-gray-300 text-gray-700'
+                  lesson.guideIsVisible ? 'border border-emerald-300/60 bg-emerald-500/15 text-emerald-100' : 'border border-slate-700 bg-slate-800 text-slate-300'
                 )}
               >
                 {lesson.guideIsVisible ? 'Visible in student catalog' : 'Hidden from students'}
@@ -708,7 +714,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               <span
                 className={cn(
                   'rounded-full px-3 py-1',
-                  lesson.guideIsFreeForAll ? 'bg-blue-200 text-blue-900' : 'bg-indigo-200 text-indigo-900'
+                  lesson.guideIsFreeForAll ? 'border border-cyan-300/60 bg-cyan-500/15 text-cyan-100' : 'border border-indigo-300/60 bg-indigo-500/15 text-indigo-100'
                 )}
               >
                 {lesson.guideIsFreeForAll ? 'Free for all plans' : 'Premium students only'}
@@ -723,6 +729,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
                 size="sm"
                 onClick={() => updateGuideSettings(lesson.id, { guideIsVisible: !lesson.guideIsVisible })}
                 disabled={guideActionLoading}
+                className="border-slate-700 bg-slate-800/70 text-slate-100 hover:border-teal-400/60 hover:text-white"
               >
                 {lesson.guideIsVisible ? 'Hide from catalog' : 'Show to students'}
               </Button>
@@ -732,6 +739,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
                 size="sm"
                 onClick={() => updateGuideSettings(lesson.id, { guideIsFreeForAll: !lesson.guideIsFreeForAll })}
                 disabled={guideActionLoading}
+                className="border-slate-700 bg-slate-800/70 text-slate-100 hover:border-teal-400/60 hover:text-white"
               >
                 {lesson.guideIsFreeForAll ? 'Restrict to paying students' : 'Make free for all'}
               </Button>
@@ -742,6 +750,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
                 size="icon"
                 onClick={() => handleShareClick(lesson.id)}
                 title="Share Guide"
+                className="border-slate-700 bg-slate-800/70 text-slate-100 hover:border-teal-400/60 hover:text-white"
               >
                 {copiedLessonId === lesson.id ? (
                   <Check className="h-4 w-4 text-green-500" />
@@ -749,10 +758,10 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
                   <Share2 className="h-4 w-4" />
                 )}
               </Button>
-              <Button variant="outline" size="icon" onClick={() => handleDuplicateClick(lesson.id)} title="Duplicate Guide">
+              <Button variant="outline" size="icon" onClick={() => handleDuplicateClick(lesson.id)} title="Duplicate Guide" className="border-slate-700 bg-slate-800/70 text-slate-100 hover:border-teal-400/60 hover:text-white">
                 <Copy className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="icon" asChild title="Edit Guide">
+              <Button variant="outline" size="icon" asChild title="Edit Guide" className="border-slate-700 bg-slate-800/70 text-slate-100 hover:border-teal-400/60 hover:text-white">
                 <Link href={`/dashboard/edit/${lesson.id}`}>
                   <Pencil className="h-4 w-4" />
                 </Link>
@@ -868,37 +877,37 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-4 shadow-xl backdrop-blur-sm md:flex-row md:items-center md:justify-between">
         <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
           <Input
             type="search"
             placeholder="Search lessons..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="w-full rounded-xl border border-slate-800 bg-slate-900/70 pl-9 text-slate-100 placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/40"
           />
         </div>
-        <div className="flex gap-2 flex-wrap justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
           <div className="relative">
             <select
               value={orderView}
               onChange={(e) => setOrderView(e.target.value as OrderViewValue)}
-              className="border-gray-300 rounded-md shadow-sm pl-8 pr-3 py-2"
+              className="h-11 appearance-none rounded-xl border border-slate-800 bg-slate-900/70 pl-10 pr-4 text-sm font-semibold text-slate-100 shadow-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
             >
               <option value="deadline">Deadline (Asc)</option>
               <option value="week">Week Order</option>
               <option value="available">Available Order</option>
             </select>
-            <Filter className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           </div>
           {classes.length > 0 && (
             <div className="relative">
               <select
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
-                className="border-gray-300 rounded-md shadow-sm pl-8 pr-3 py-2"
+                className="h-11 appearance-none rounded-xl border border-slate-800 bg-slate-900/70 pl-10 pr-4 text-sm font-semibold text-slate-100 shadow-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
               >
                 <option value="all">All Classes</option>
                 <option value="unassigned">Unassigned</option>
@@ -908,14 +917,14 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
                   </option>
                 ))}
               </select>
-              <Users className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             </div>
           )}
           <div className="relative">
             <select
               value={dateFilter}
               onChange={(e) => handleDateFilterChange(e.target.value as DateFilterValue)}
-              className="border-gray-300 rounded-md shadow-sm pl-8 pr-3 py-2"
+              className="h-11 appearance-none rounded-xl border border-slate-800 bg-slate-900/70 pl-10 pr-4 text-sm font-semibold text-slate-100 shadow-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
             >
               <option value="today">Today</option>
               <option value="this_week">This Week</option>
@@ -924,11 +933,11 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               <option value="this_year">This Year</option>
               <option value="custom">Custom</option>
             </select>
-            <CalendarDays className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           </div>
           {dateFilter === 'custom' && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">From</span>
+              <span className="text-sm font-semibold text-slate-300">From</span>
               <Input
                 type="date"
                 value={customStartDate}
@@ -936,7 +945,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
                 max={customEndDate || undefined}
                 className="w-36"
               />
-              <span className="text-sm text-gray-500">to</span>
+              <span className="text-sm font-semibold text-slate-300">to</span>
               <Input
                 type="date"
                 value={customEndDate}
@@ -950,7 +959,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             <select
               value={lessonTypeFilter}
               onChange={(e) => setLessonTypeFilter(e.target.value as LessonTypeFilterValue)}
-              className="border-gray-300 rounded-md shadow-sm pl-8 pr-3 py-2"
+              className="h-11 appearance-none rounded-xl border border-slate-800 bg-slate-900/70 pl-10 pr-4 text-sm font-semibold text-slate-100 shadow-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
             >
               <option value="all">All lesson types</option>
               <option value="guides">Guides</option>
@@ -960,13 +969,13 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
                 </option>
               ))}
             </select>
-            <Layers className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Layers className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           </div>
           <div className="relative">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilterValue)}
-              className="border-gray-300 rounded-md shadow-sm pl-8 pr-3 py-2"
+              className="h-11 appearance-none rounded-xl border border-slate-800 bg-slate-900/70 pl-10 pr-4 text-sm font-semibold text-slate-100 shadow-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
             >
               <option value="all">All Statuses</option>
               <option value="past_due">Past Due</option>
@@ -977,13 +986,13 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               <option value={AssignmentStatus.GRADED}>Graded</option>
               <option value={AssignmentStatus.FAILED}>Failed</option>
             </select>
-            <Filter className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="shrink-0"
+            className="shrink-0 border-slate-800 bg-slate-900/70 text-slate-200 hover:border-teal-400/60 hover:text-white"
             onClick={() => setIsLegendOpen(true)}
           >
             <span aria-hidden="true" className="text-base font-semibold">
@@ -994,8 +1003,9 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         </div>
       </div>
 
-      <div className="mt-6 bg-white shadow-md rounded-lg p-6">
-        <h2 className="text-2xl font-semibold mb-4">Your Lessons</h2>
+      <div className="mt-6 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
+        <h2 className="text-2xl font-semibold mb-2 text-slate-100">Your Lessons</h2>
+        <p className="mb-4 text-sm text-slate-400">Review, share, and manage lessons with the new dark theme.</p>
         {filteredLessons.length > 0 ? (
           <div className="space-y-6">
             {(() => {
@@ -1013,42 +1023,42 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             })()}
           </div>
         ) : (
-          <p>No lessons match your criteria.</p>
+          <p className="text-slate-400">No lessons match your criteria.</p>
         )}
       </div>
       <Dialog open={isLegendOpen} onOpenChange={setIsLegendOpen}>
-        <DialogContent className="w-[95vw] max-w-4xl sm:max-w-4xl">
+        <DialogContent className="w-[95vw] max-w-4xl border border-slate-800/70 bg-slate-950/90 text-slate-100 shadow-2xl sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Dashboard legend</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-bold text-slate-50">Dashboard legend</DialogTitle>
+            <DialogDescription className="text-slate-400">
               Press Cmd + Shift + / (or Ctrl + Shift + /) anytime to reopen this cheat sheet.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-6 text-sm text-gray-600 sm:grid-cols-2">
+          <div className="grid gap-6 text-sm text-slate-200 sm:grid-cols-2">
             <section>
-              <p className="text-xs font-semibold uppercase text-gray-500">Status colors</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Status colors</p>
               <div className="mt-3 space-y-2">
                 {STATUS_LEGEND.map((status) => (
                   <div key={status.label} className="flex items-start gap-3">
                     <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${status.badgeClass}`}>
                       {status.label}
                     </span>
-                    <p className="flex-1 leading-relaxed">{status.description}</p>
+                    <p className="flex-1 leading-relaxed text-slate-300">{status.description}</p>
                   </div>
                 ))}
               </div>
             </section>
 
             <section>
-              <p className="text-xs font-semibold uppercase text-gray-500">Card backgrounds</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Card backgrounds</p>
               <div className="mt-3 space-y-2">
                 {CARD_STATE_LEGEND.map((card) => (
                   <div key={card.label} className="flex items-start gap-3">
                     <span className={`h-5 w-5 rounded-md ${card.swatchClass}`} aria-hidden="true" />
                     <div className="leading-relaxed">
-                      <p className="font-semibold text-gray-800">{card.label}</p>
-                      <p>{card.description}</p>
+                      <p className="font-semibold text-slate-100">{card.label}</p>
+                      <p className="text-slate-300">{card.description}</p>
                     </div>
                   </div>
                 ))}
@@ -1056,28 +1066,28 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             </section>
 
             <section>
-              <p className="text-xs font-semibold uppercase text-gray-500">Filters & ordering</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Filters & ordering</p>
               <div className="mt-3 space-y-2">
                 {FILTER_LEGEND.map((filter) => (
                   <div key={filter.label} className="leading-relaxed">
-                    <p className="font-semibold text-gray-800">{filter.label}</p>
-                    <p>{filter.description}</p>
+                    <p className="font-semibold text-slate-100">{filter.label}</p>
+                    <p className="text-slate-300">{filter.description}</p>
                   </div>
                 ))}
               </div>
             </section>
 
             <section>
-              <p className="text-xs font-semibold uppercase text-gray-500">Action buttons</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Action buttons</p>
               <div className="mt-3 space-y-2">
                 {BUTTON_LEGEND.map((action) => (
                   <div key={action.label} className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex rounded-md border border-gray-200 bg-gray-50 p-1.5 text-gray-700">
+                    <span className="mt-0.5 inline-flex rounded-md border border-slate-700 bg-slate-800/70 p-1.5 text-slate-200">
                       <action.icon className="h-4 w-4" />
                     </span>
                     <div className="leading-relaxed">
-                      <p className="font-semibold text-gray-800">{action.label}</p>
-                      <p>{action.description}</p>
+                      <p className="font-semibold text-slate-100">{action.label}</p>
+                      <p className="text-slate-300">{action.description}</p>
                     </div>
                   </div>
                 ))}

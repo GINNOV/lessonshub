@@ -31,13 +31,13 @@ const StatCard = ({
   label: string;
   colorClassName: string;
 }) => (
-  <div className="flex items-center gap-4">
-    <div className={`rounded-full p-3 ${colorClassName}`}>
-      <Icon className="h-6 w-6 text-white" />
+  <div className="flex items-center gap-4 rounded-2xl border border-slate-800/70 bg-slate-900/70 px-4 py-3 shadow-lg">
+    <div className={`flex h-14 w-14 items-center justify-center rounded-full text-white shadow-inner ${colorClassName}`}>
+      <Icon className="h-6 w-6" />
     </div>
     <div>
-      <p className="text-3xl font-bold text-gray-800">{value}</p>
-      <p className="text-sm text-gray-500">{label}</p>
+      <p className="text-3xl font-black leading-tight text-slate-100">{value}</p>
+      <p className="text-sm font-semibold text-slate-300">{label}</p>
     </div>
   </div>
 );
@@ -65,9 +65,9 @@ export default function TeacherStatsHeader({ stats }: TeacherStatsHeaderProps) {
   };
 
   return (
-    <Card className="mb-6 shadow-md">
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <Card className="mb-6 border border-slate-800/70 bg-slate-950/70 shadow-2xl backdrop-blur-sm">
+      <CardContent className="space-y-8">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             icon={BookUser}
             value={stats.totalStudents}
@@ -78,17 +78,17 @@ export default function TeacherStatsHeader({ stats }: TeacherStatsHeaderProps) {
             icon={Coffee}
             value={stats.studentsOnBreak}
             label="Students on Break"
-            colorClassName="bg-yellow-500"
+            colorClassName="bg-amber-400"
           />
           <StatCard
             icon={BookOpen}
             value={stats.totalLessons}
             label="Total Lessons Delivered"
-            colorClassName="bg-green-500"
+            colorClassName="bg-emerald-500"
           />
           <div>
-            <h4 className="font-semibold text-gray-700 mb-2">This Week&apos;s Schedule</h4>
-            <div className="flex items-center gap-2">
+            <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-300">This Week&apos;s Schedule</h4>
+            <div className="flex flex-wrap items-center gap-2">
               {weekdays.map((day, index) => (
                 <button
                   key={day}
@@ -96,9 +96,9 @@ export default function TeacherStatsHeader({ stats }: TeacherStatsHeaderProps) {
                   className={cn(
                     'flex h-10 w-10 items-center justify-center rounded-full font-bold transition-all',
                     stats.lessonsThisWeek.includes(index)
-                      ? 'bg-green-500 text-white'
-                      : 'bg-red-100 text-red-500',
-                    selectedDay === String(index) && 'ring-2 ring-offset-2 ring-blue-500'
+                      ? 'bg-emerald-500 text-emerald-50 shadow-[0_10px_30px_rgba(52,211,153,0.25)]'
+                      : 'bg-slate-800 text-slate-300',
+                    selectedDay === String(index) && 'ring-2 ring-offset-2 ring-teal-400 ring-offset-slate-950'
                   )}
                   title={
                     stats.lessonsThisWeek.includes(index)
@@ -112,7 +112,7 @@ export default function TeacherStatsHeader({ stats }: TeacherStatsHeaderProps) {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <StatCard
             icon={AlertTriangle}
             value={stats.pastDueLessons}
@@ -129,7 +129,7 @@ export default function TeacherStatsHeader({ stats }: TeacherStatsHeaderProps) {
             icon={FolderOpen}
             value={stats.emptyLessons}
             label="Empty Lessons"
-            colorClassName="bg-slate-500"
+            colorClassName="bg-slate-600"
           />
           <StatCard
             icon={BookMarked}

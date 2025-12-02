@@ -31,6 +31,7 @@ import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from "@/lib/locale";
 import { studentDashboardCopy, StudentDashboardLocale } from "@/lib/studentDashboardCopy";
+import { BookOpen, Sparkles, Gift } from "lucide-react";
 
 export default async function MyLessonsPage() {
   const session = await auth();
@@ -269,18 +270,24 @@ export default async function MyLessonsPage() {
         <HubGuideBanner guideCount={guidesForTab.length} copy={copy.guides} />
         {isPaying ? (
           <Tabs defaultValue="lessons" className="space-y-6">
-            <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner">
+            <TabsList className="mb-2 flex w-full flex-wrap items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 px-2 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
               <TabsTrigger
                 value="lessons"
-                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+                className="flex-1 min-w-[140px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
               >
-                {locale === "it" ? "Lezioni" : "Lessons"}
+                <span className="flex items-center justify-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  {locale === "it" ? "Lezioni" : "Lessons"}
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value="guides"
-                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+                className="flex-1 min-w-[140px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
               >
-                {copy.guides.tabLabel}
+                <span className="flex items-center justify-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  {copy.guides.tabLabel}
+                </span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="lessons">
@@ -298,24 +305,33 @@ export default async function MyLessonsPage() {
           </Tabs>
         ) : (
           <Tabs defaultValue="free" className="space-y-6">
-            <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner">
+            <TabsList className="mb-2 flex w-full flex-wrap items-stretch gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-slate-800/70">
               <TabsTrigger
                 value="free"
-                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+                className="flex-1 min-w-[150px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
               >
-                {locale === "it" ? "Lezioni gratuite" : "Free Lessons"}
+                <span className="flex items-center justify-center gap-2">
+                  <Gift className="h-4 w-4" />
+                  {locale === "it" ? "Lezioni gratuite" : "Free Lessons"}
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value="lessons"
-                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+                className="flex-1 min-w-[150px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
               >
-                {locale === "it" ? "Le mie lezioni" : "My Lessons"}
+                <span className="flex items-center justify-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  {locale === "it" ? "Le mie lezioni" : "My Lessons"}
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value="guides"
-                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+                className="flex-1 min-w-[150px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
               >
-                {copy.guides.tabLabel}
+                <span className="flex items-center justify-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  {copy.guides.tabLabel}
+                </span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="free">

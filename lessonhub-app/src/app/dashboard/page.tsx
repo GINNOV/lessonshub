@@ -208,17 +208,17 @@ export default async function DashboardPage({
   }));
 
   return (
-    <div className="p-6">
+    <div className="p-6 text-slate-100">
       <WhatsNewDialog notes={whatsNewNotes} />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Teacher Dashboard</h1>
-          <p className="mt-1 text-gray-600">Welcome, {session.user?.name ?? "Teacher"}! It&apos;s week {weekNumber}.</p>
+          <p className="mt-1 text-slate-400">Welcome, {session.user?.name ?? "Teacher"}! It&apos;s week {weekNumber}.</p>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button>
+            <Button className="bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] hover:brightness-110">
               Create New Lesson
               <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
@@ -254,9 +254,9 @@ export default async function DashboardPage({
           <div className="mt-6">
             {classes.length > 0 && (
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <a href="/dashboard" className={`px-3 py-1.5 rounded-md text-sm border ${!classId ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>All</a>
+                <a href="/dashboard" className={`px-3 py-1.5 rounded-md text-sm border ${!classId ? 'border-teal-300/60 bg-teal-500/20 text-teal-50 shadow-[0_10px_25px_rgba(45,212,191,0.18)]' : 'border-slate-800 bg-slate-900/60 text-slate-200 hover:border-teal-400/60'}`}>All</a>
                 {classes.filter((c: any) => c.isActive).map((c: any) => (
-                  <a key={c.id} href={`/dashboard?classId=${c.id}`} className={`px-3 py-1.5 rounded-md text-sm border ${classId === c.id ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>{c.name}</a>
+                  <a key={c.id} href={`/dashboard?classId=${c.id}`} className={`px-3 py-1.5 rounded-md text-sm border ${classId === c.id ? 'border-teal-300/60 bg-teal-500/20 text-teal-50 shadow-[0_10px_25px_rgba(45,212,191,0.18)]' : 'border-slate-800 bg-slate-900/60 text-slate-200 hover:border-teal-400/60'}`}>{c.name}</a>
                 ))}
               </div>
             )}

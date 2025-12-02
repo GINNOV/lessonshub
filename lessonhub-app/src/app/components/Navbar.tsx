@@ -140,23 +140,23 @@ export default function Navbar() {
       )}
       <header
         className={cn(
-          "sticky top-0 z-50 backdrop-blur-sm transition-colors",
-          isLanding ? "border-b border-white/10 bg-[#0d1528]/80 text-white" : "border-b bg-white/95"
+          "sticky top-0 z-50 border-b border-slate-800/70 bg-slate-950/80 backdrop-blur-xl transition-colors shadow-[0_10px_40px_rgba(7,11,26,0.55)]",
+          isLanding && "bg-slate-950/70"
         )}
       >
-        <nav className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+        <nav className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between text-slate-100">
           <Link
             href={homeHref}
             className={cn(
-              "text-lg font-bold",
-              isLanding ? "text-white hover:text-white/80" : "text-gray-800"
+              "text-lg font-semibold tracking-tight text-slate-100 hover:text-teal-200",
+              isLanding && "drop-shadow-[0_10px_30px_rgba(20,184,166,0.35)]"
             )}
           >
             LessonHUB
           </Link>
           <div className="flex items-center space-x-4">
             {status === 'loading' ? (
-              <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="h-10 w-10 rounded-full bg-slate-800 animate-pulse"></div>
             ) : session?.user ? (
               <>
                 <DropdownMenu>
@@ -170,7 +170,7 @@ export default function Navbar() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>
-                      <div className="font-normal text-sm text-gray-500">{session.user.email}</div>
+                      <div className="text-sm font-normal text-slate-400">{session.user.email}</div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {user?.role === Role.ADMIN && (
@@ -256,15 +256,13 @@ export default function Navbar() {
                   <>
                     <Link
                       href="#benefits"
-                      className="hidden text-sm font-medium transition-colors md:inline-flex"
-                      style={{ color: isLanding ? 'rgba(255,255,255,0.8)' : undefined }}
+                      className="hidden text-sm font-medium text-slate-300 transition-colors hover:text-white md:inline-flex"
                     >
                       {copy.benefits}
                     </Link>
                     <Link
                       href="#testimonials"
-                      className="hidden text-sm font-medium transition-colors md:inline-flex"
-                      style={{ color: isLanding ? 'rgba(255,255,255,0.8)' : undefined }}
+                      className="hidden text-sm font-medium text-slate-300 transition-colors hover:text-white md:inline-flex"
                     >
                       {copy.testimonials}
                     </Link>
@@ -274,8 +272,8 @@ export default function Navbar() {
                   asChild
                   className={cn(
                     isLanding
-                      ? "bg-transparent text-white hover:bg-white/10"
-                      : undefined,
+                      ? "bg-transparent text-slate-100 hover:bg-white/10 border border-slate-800"
+                      : "bg-slate-900 text-slate-100 hover:bg-slate-800 border border-slate-800",
                     "hidden md:inline-flex"
                   )}
                   variant={isLanding ? "outline" : "default"}
@@ -287,8 +285,8 @@ export default function Navbar() {
                   className={cn(
                     "font-semibold",
                     isLanding
-                      ? "bg-[#D69E2E] text-[#1A202C] hover:bg-[#c58c25]"
-                      : undefined
+                      ? "bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 hover:brightness-110 shadow-[0_10px_30px_rgba(45,212,191,0.35)]"
+                      : "bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 hover:brightness-110 shadow-[0_10px_30px_rgba(45,212,191,0.35)]"
                   )}
                 >
                   <Link href="/register">{copy.startFreeTrial}</Link>
