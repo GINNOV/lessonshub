@@ -74,10 +74,10 @@ export default async function LessonContentView({ lesson, showInstructions = tru
   };
 
   return (
-    <div className="prose max-w-none">
+    <div className="prose prose-sm max-w-none text-slate-200">
       {lesson.assignment_image_url && (
         <div className="my-4">
-          <h2 className="text-sm font-semibold uppercase text-gray-500">
+          <h2 className="text-sm font-semibold uppercase text-slate-300">
             Supporting Material
           </h2>
           <Image
@@ -93,7 +93,7 @@ export default async function LessonContentView({ lesson, showInstructions = tru
       {audioUrl && (
         <div className="my-4">
           {isSpotifyAudio ? (
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" className="border-slate-800 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white">
               <Link href={audioUrl} target="_blank" rel="noopener noreferrer">
                 <Volume2 className="mr-2 h-4 w-4" /> Listen on Spotify <ExternalLink className="ml-1 h-3 w-3" />
               </Link>
@@ -139,13 +139,13 @@ export default async function LessonContentView({ lesson, showInstructions = tru
             />
           )}
           {lesson.lyricConfig?.timingSourceUrl && (
-            <div className="mt-2 text-sm text-slate-600">
+            <div className="mt-2 text-sm text-slate-300">
               Timing reference:{' '}
               <a
                 href={lesson.lyricConfig.timingSourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-indigo-600 underline"
+                className="font-medium text-teal-200 underline"
               >
                 open track
               </a>
@@ -155,25 +155,29 @@ export default async function LessonContentView({ lesson, showInstructions = tru
       )}
 
       {showInstructions && (
-        <div className="mb-6 rounded-lg border bg-gray-50 p-4">
-          <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
-          <div dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
+        <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-md">
+          <h2 className="text-xl font-semibold text-slate-100">👉🏼 INSTRUCTIONS</h2>
+          <div className="prose prose-sm max-w-none text-slate-200" dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
         </div>
       )}
 
       {contextHtml && (
         <>
-          <h3 className="mt-4 text-lg font-semibold">Additional Information</h3>
-          <div dangerouslySetInnerHTML={{ __html: contextHtml }} />
+          <h3 className="mt-4 text-lg font-semibold text-slate-100">Additional Information</h3>
+          <div className="prose prose-sm max-w-none text-slate-200" dangerouslySetInnerHTML={{ __html: contextHtml }} />
         </>
       )}
 
       {lesson.attachment_url && (
         <div className="mt-6">
-          <h3 className="mb-2 flex items-center text-lg font-semibold">
+          <h3 className="mb-2 flex items-center text-lg font-semibold text-slate-100">
             <Paperclip className="h-5 w-5 mr-2" /> MATERIAL
           </h3>
-          <Button asChild variant="outline">
+          <Button
+            asChild
+            variant="outline"
+            className="border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] hover:brightness-110"
+          >
             <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
               {isSpotifyMaterialLink ? (
                 <>
