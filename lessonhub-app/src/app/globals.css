@@ -70,6 +70,6 @@
   }
 
   .form-field label[data-slot="label"] {
-    @apply text-sm font-semibold text-gray-700;
+    @apply text-sm font-semibold text-foreground;
   }
 }

@@ -700,8 +700,8 @@ export default function LyricLessonEditor({
     return (
       <div
         className={[
-          'rounded-md border p-4 transition-shadow',
-          selectedLineId === line.id ? 'border-indigo-500 shadow-md' : 'border-slate-200 hover:shadow-sm',
+          'rounded-md border bg-card/70 p-4 transition-shadow',
+          selectedLineId === line.id ? 'border-primary/70 shadow-md' : 'border-border hover:shadow-sm',
         ].join(' ')}
         onClick={() => setSelectedLineId(line.id)}
       >
@@ -711,7 +711,7 @@ export default function LyricLessonEditor({
               Line {index + 1}
               {!showPerLineActions && lines.length > 0 ? ` of ${lines.length}` : ''}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               {startDisplay} → {endDisplay}
             </p>
           </div>
@@ -754,7 +754,7 @@ export default function LyricLessonEditor({
 
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor={startInputId} className="text-xs font-medium uppercase text-slate-500">
+            <Label htmlFor={startInputId} className="text-xs font-medium uppercase text-muted-foreground">
               Start Time (s)
             </Label>
             <div className="flex items-center gap-2">
@@ -788,7 +788,7 @@ export default function LyricLessonEditor({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor={endInputId} className="text-xs font-medium uppercase text-slate-500">
+            <Label htmlFor={endInputId} className="text-xs font-medium uppercase text-muted-foreground">
               End Time (s)
             </Label>
             <div className="flex items-center gap-2">
@@ -931,7 +931,7 @@ export default function LyricLessonEditor({
         <LessonDifficultySelector value={difficulty} onChange={setDifficulty} />
       </div>
 
-      <div className="flex items-start justify-between rounded-lg border p-4">
+      <div className="flex items-start justify-between rounded-lg border bg-card/60 p-4">
         <div>
           <p className="text-sm font-semibold">Make this lesson free for everyone</p>
           <p className="text-xs text-muted-foreground">
@@ -960,7 +960,7 @@ export default function LyricLessonEditor({
               <select
                 value={selectedBookletId}
                 onChange={(event) => setSelectedBookletId(event.target.value)}
-                className="rounded-md border border-gray-300 p-2 text-sm shadow-sm"
+                className="rounded-md border border-border bg-card/70 p-2 text-sm text-foreground shadow-sm"
               >
                 <option value="">Insert from booklet…</option>
                 {instructionBooklets.map((booklet) => (
@@ -999,7 +999,7 @@ export default function LyricLessonEditor({
           value={assignmentText}
           onChange={(e) => setAssignmentText(e.target.value)}
         />
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Need reusable sets? <ManageInstructionBookletsLink />
         </p>
       </div>
@@ -1022,7 +1022,7 @@ export default function LyricLessonEditor({
           value={assignmentNotification}
           onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
           disabled={isSubmitting}
-          className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+          className="w-full rounded-md border border-border bg-card/70 p-2 text-foreground shadow-sm"
         >
           <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
           <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
@@ -1075,7 +1075,7 @@ export default function LyricLessonEditor({
           </Button>
         </div>
         {recentAttachmentUrls.length > 0 && (
-          <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
             <span>Recent:</span>
             {recentAttachmentUrls.map((url) => {
               let hostname = url;
@@ -1114,7 +1114,7 @@ export default function LyricLessonEditor({
                 value={audioUrl}
                 onChange={(e) => setAudioUrl(e.target.value)}
               />
-              <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm hover:bg-gray-50 cursor-pointer">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-card/70 px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-card">
                 <Upload className="h-4 w-4" />
                 <span>{audioUploadState === 'uploading' ? 'Uploading…' : 'Upload'}</span>
                 <input
@@ -1127,8 +1127,8 @@ export default function LyricLessonEditor({
               </label>
             </div>
             {audioUrl && (
-              <div className="mt-3 flex items-center gap-3 rounded-md border p-3">
-                <Music className="h-5 w-5 text-purple-500" />
+              <div className="mt-3 flex items-center gap-3 rounded-md border border-border bg-card/60 p-3">
+                <Music className="h-5 w-5 text-primary" />
                 <div className="flex-1">
                   <p className="text-sm font-medium">Preview</p>
                   <audio ref={audioRef} src={audioUrl} controls className="mt-2 w-full" preload="metadata" />
@@ -1143,7 +1143,7 @@ export default function LyricLessonEditor({
               <OptionalIndicator />
             </div>
             <div className="flex flex-wrap gap-2">
-              <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium shadow-sm hover:bg-gray-50 cursor-pointer">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-card/70 px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-card">
                 <BookOpenText className="h-4 w-4" />
                 <span>
                   {lrcImportState === 'parsing'
@@ -1170,7 +1170,7 @@ export default function LyricLessonEditor({
                 </Button>
               )}
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               We read the timestamps in the LRC file and apply them to the lyric lines. You can still fine-tune start or end
               times below.
             </p>
@@ -1179,8 +1179,8 @@ export default function LyricLessonEditor({
 
         <div className="space-y-4">
           {hasImportedLrc && (
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 space-y-2">
-              <p className="font-medium text-slate-700">Timed lyrics imported from LRC</p>
+            <div className="rounded-md border border-border bg-card/60 p-4 text-sm text-muted-foreground space-y-2">
+              <p className="font-medium text-foreground">Timed lyrics imported from LRC</p>
               <p>Playback now uses the timestamps from your file. Enable manual adjustments if you need to tweak timings by hand.</p>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -1229,8 +1229,8 @@ export default function LyricLessonEditor({
 
         <div className="space-y-4">
           {!hasImportedLrc && (
-            <div className="rounded-md border p-4 space-y-3 bg-slate-50">
-              <h3 className="text-sm font-semibold uppercase text-slate-500">Playback Controls</h3>
+            <div className="rounded-md border border-border bg-card/60 p-4 space-y-3">
+              <h3 className="text-sm font-semibold uppercase text-muted-foreground">Playback Controls</h3>
               <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" variant="default" size="sm" onClick={() => playFromSelected('start')}>
                   <Play className="mr-2 h-4 w-4" />
@@ -1245,15 +1245,15 @@ export default function LyricLessonEditor({
                   Pause
                 </Button>
               </div>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-muted-foreground">
                 Select a line below, play the audio, then use <strong>Mark Start</strong> /
                 <strong>Mark End</strong> to capture the current timestamp.
               </p>
             </div>
           )}
 
-          <div className="rounded-md border p-4 space-y-3">
-            <h3 className="text-sm font-semibold uppercase text-slate-500">Default Mode</h3>
+          <div className="rounded-md border border-border bg-card/60 p-4 space-y-3">
+            <h3 className="text-sm font-semibold uppercase text-muted-foreground">Default Mode</h3>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -1283,7 +1283,7 @@ export default function LyricLessonEditor({
             <div className="space-y-2">
               <Label htmlFor="fillBlankDifficulty" className="text-sm flex items-center gap-2">
                 Fill-in difficulty
-                <Clock className="h-4 w-4 text-slate-500" />
+                <Clock className="h-4 w-4 text-muted-foreground" />
               </Label>
               <input
                 id="fillBlankDifficulty"
@@ -1299,10 +1299,10 @@ export default function LyricLessonEditor({
                     fillBlankDifficulty: Number(event.target.value) / 100,
                   }))
                 }
-                className="block w-full accent-indigo-600"
+                className="block w-full accent-primary"
                 aria-describedby="fillBlankDifficultyHelp"
               />
-              <p id="fillBlankDifficultyHelp" className="text-xs text-slate-500">
+              <p id="fillBlankDifficultyHelp" className="text-xs text-muted-foreground">
                 Approximately {Math.round(settings.fillBlankDifficulty * 100)}% of the words will be hidden in fill-in mode.
               </p>
             </div>
@@ -1323,7 +1323,7 @@ export default function LyricLessonEditor({
                 }}
                 className="w-36"
               />
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Limit how many times students can switch back to Read Along. Leave blank for unlimited access.
               </p>
             </div>
@@ -1369,7 +1369,7 @@ export default function LyricLessonEditor({
         </div>
 
         {lines.length === 0 ? (
-          <p className="rounded-md border border-dashed p-6 text-center text-sm text-slate-500">
+          <p className="rounded-md border border-dashed border-border/70 bg-card/40 p-6 text-center text-sm text-muted-foreground">
             Paste your lyrics, click &ldquo;Generate Lines&rdquo;, then fine-tune the text and timings here.
           </p>
         ) : showAllLines ? (
@@ -1405,7 +1405,7 @@ export default function LyricLessonEditor({
                 </div>
               </>
             ) : (
-              <p className="rounded-md border border-dashed p-6 text-center text-sm text-slate-500">
+              <p className="rounded-md border border-dashed border-border/70 bg-card/40 p-6 text-center text-sm text-muted-foreground">
                 Add a lyric line to start editing.
               </p>
             )}
@@ -1428,9 +1428,9 @@ export default function LyricLessonEditor({
               Quick reference for importing an audio track and LRC file. Press Cmd + ? anytime to reopen this guide.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 text-sm text-slate-600">
+          <div className="space-y-4 text-sm text-muted-foreground">
             <section>
-              <h3 className="font-semibold text-slate-800">1. Produce or collect the audio + LRC pair</h3>
+              <h3 className="font-semibold text-foreground">1. Produce or collect the audio + LRC pair</h3>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li>Use your preferred editor (e.g. MiniLyrics, Aegisub, or an online converter) to export the song as a <code>.lrc</code> file.</li>
                 <li>Check that each line contains a timestamp in the format <code>[mm:ss.xx]</code> or <code>[mm:ss.xxx]</code>.</li>
@@ -1438,7 +1438,7 @@ export default function LyricLessonEditor({
               </ul>
             </section>
             <section>
-              <h3 className="font-semibold text-slate-800">2. Upload in LessonHUB</h3>
+              <h3 className="font-semibold text-foreground">2. Upload in LessonHUB</h3>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li>Upload the audio track first so you can preview playback.</li>
                 <li>Upload the matching <code>.lrc</code> file—LessonHUB will parse the timestamps and populate the lyric lines.</li>
@@ -1446,7 +1446,7 @@ export default function LyricLessonEditor({
               </ul>
             </section>
             <section>
-              <h3 className="font-semibold text-slate-800">3. Double-check before saving</h3>
+              <h3 className="font-semibold text-foreground">3. Double-check before saving</h3>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li>Use the &ldquo;Play from line start&rdquo; button to confirm each timestamp aligns with the audio.</li>
                 <li>Click &ldquo;Sync from Editor&rdquo; if you adjust line text and want to refresh the raw lyric block.</li>
@@ -1454,7 +1454,7 @@ export default function LyricLessonEditor({
               </ul>
             </section>
             <section>
-              <h3 className="font-semibold text-slate-800">Helpful shortcuts</h3>
+              <h3 className="font-semibold text-foreground">Helpful shortcuts</h3>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li>
                   Need an <code>.lrc</code> fast? Try{' '}
