@@ -352,12 +352,12 @@ export default function ProfileForm({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner h-auto">
+      <TabsList className="mb-4 flex w-full flex-wrap gap-2 rounded-2xl border border-slate-800 bg-slate-950/70 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)] h-auto">
         {visibleTabs.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100 md:flex-none"
+            className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-slate-100 transition data-[state=active]:border-teal-400/60 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 md:flex-none"
           >
             {tab.label}
           </TabsTrigger>
@@ -365,15 +365,15 @@ export default function ProfileForm({
       </TabsList>
 
       <TabsContent value="profile" className="mt-4">
-        <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-2xl font-semibold">{copy.profile.title}</h2>
-          <form onSubmit={handleProfileSubmit} className="space-y-5">
-            <div className="space-y-4">
-              <Label>{copy.profile.picture}</Label>
+        <div className="mt-2 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
+          <h2 className="mb-4 text-2xl font-semibold text-slate-100">{copy.profile.title}</h2>
+          <form onSubmit={handleProfileSubmit} className="space-y-6">
+            <div className="space-y-3">
+              <Label className="text-slate-100">{copy.profile.picture}</Label>
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
                   {image && <AvatarImage src={image} alt={name} />}
-                  <AvatarFallback className="text-3xl">
+                  <AvatarFallback className="text-3xl bg-slate-800 text-slate-200">
                     {getInitials(name)}
                   </AvatarFallback>
                 </Avatar>
@@ -386,14 +386,11 @@ export default function ProfileForm({
                 />
               </div>
               {isUploading && (
-                <p className="text-sm text-gray-500">{copy.profile.uploading}</p>
+                <p className="text-sm text-slate-400">{copy.profile.uploading}</p>
               )}
             </div>
             <div className="space-y-3">
-              <Label
-                htmlFor="name"
-                className="text-sm font-medium text-gray-700"
-              >
+              <Label htmlFor="name" className="text-sm font-semibold text-slate-100">
                 {copy.profile.name}
               </Label>
               <Input
@@ -401,13 +398,11 @@ export default function ProfileForm({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
               />
             </div>
             <div className="space-y-2">
-              <Label
-                htmlFor="email"
-                className="text-sm font-medium text-gray-700"
-              >
+              <Label htmlFor="email" className="text-sm font-semibold text-slate-100">
                 {copy.profile.email}
               </Label>
               <Input
@@ -415,22 +410,17 @@ export default function ProfileForm({
                 type="email"
                 value={user?.email || ""}
                 disabled
-                className="bg-gray-100"
+                className="bg-slate-900/70 text-slate-200 rounded-xl border border-slate-700/80"
               />
-              <p className="text-xs text-gray-500">
-                {copy.profile.emailNote}
-              </p>
+              <p className="text-xs text-slate-400">{copy.profile.emailNote}</p>
             </div>
             <div className="space-y-2">
-              <Label
-                htmlFor="gender"
-                className="text-sm font-medium text-gray-700"
-              >
+              <Label htmlFor="gender" className="text-sm font-semibold text-slate-100">
                 {copy.profile.gender}
               </Label>
               <select
                 id="gender"
-                className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+                className="w-full rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-slate-100 shadow-sm"
                 value={gender}
                 onChange={(e) => setGender(e.target.value as Gender)}
               >
@@ -439,12 +429,12 @@ export default function ProfileForm({
                 <option value={Gender.BINARY}>{copy.profile.genderOptions.binary}</option>
               </select>
             </div>
-            <div className="flex items-center justify-between border rounded-md p-3">
-              <div>
-                <Label htmlFor="weekly-summary" className="font-medium">
+            <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+              <div className="space-y-1">
+                <Label htmlFor="weekly-summary" className="font-semibold text-slate-200">
                   {copy.profile.weeklyLabel}
                 </Label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-slate-400">
                   {copy.profile.weeklyDesc}
                 </p>
               </div>
@@ -455,16 +445,13 @@ export default function ProfileForm({
               />
             </div>
             <div className="space-y-2">
-              <Label
-                htmlFor="timeZone"
-                className="text-sm font-medium text-gray-700"
-              >
+              <Label htmlFor="timeZone" className="text-sm font-semibold text-slate-100">
                 {copy.profile.timeZone}
               </Label>
               {tzList.length > 0 ? (
                 <select
                   id="timeZone"
-                  className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-slate-100 shadow-sm"
                   value={timeZone}
                   onChange={(e) => setTimeZone(e.target.value)}
                 >
@@ -480,22 +467,18 @@ export default function ProfileForm({
                   type="text"
                   value={timeZone}
                   onChange={(e) => setTimeZone(e.target.value)}
+                  className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
                 />
               )}
-              <p className="text-xs text-gray-500 mt-1">
-                {copy.profile.timeZoneHint}
-              </p>
+              <p className="text-xs text-slate-500 mt-1">{copy.profile.timeZoneHint}</p>
             </div>
             <div className="space-y-2">
-              <Label
-                htmlFor="uiLanguage"
-                className="text-sm font-medium text-gray-700"
-              >
+              <Label htmlFor="uiLanguage" className="text-sm font-semibold text-slate-100">
                 {copy.profile.uiLanguageLabel}
               </Label>
               <select
                 id="uiLanguage"
-                className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+                className="w-full rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-slate-100 shadow-sm"
                 value={uiLanguage}
                 onChange={(e) =>
                   setUiLanguage(e.target.value as UiLanguagePreference)
@@ -505,16 +488,11 @@ export default function ProfileForm({
                 <option value="en">{copy.profile.uiOptions.en}</option>
                 <option value="it">{copy.profile.uiOptions.it}</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
-                {copy.profile.uiLanguageHint}
-              </p>
+              <p className="text-xs text-slate-500 mt-1">{copy.profile.uiLanguageHint}</p>
             </div>
             {user?.role === Role.STUDENT && (
               <div className="space-y-2">
-                <Label
-                  htmlFor="student-bio"
-                  className="text-sm font-medium text-gray-700"
-                >
+                <Label htmlFor="student-bio" className="text-sm font-semibold text-slate-100">
                   {copy.profile.bioLabel}
                 </Label>
                 <Textarea
@@ -523,13 +501,16 @@ export default function ProfileForm({
                   onChange={(e) => setStudentBio(e.target.value)}
                   rows={4}
                   placeholder={copy.profile.bioPlaceholder}
+                  className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  {copy.profile.bioHint}
-                </p>
+                <p className="text-xs text-slate-500 mt-1">{copy.profile.bioHint}</p>
               </div>
             )}
-            <Button type="submit" disabled={isSubmittingProfile || isUploading}>
+            <Button
+              type="submit"
+              disabled={isSubmittingProfile || isUploading}
+              className="border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] hover:brightness-110"
+            >
               {isSubmittingProfile ? copy.profile.saving : copy.profile.save}
             </Button>
           </form>
@@ -537,11 +518,11 @@ export default function ProfileForm({
       </TabsContent>
       {user?.role === Role.TEACHER && (
         <TabsContent value="about" className="mt-4">
-          <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
-            <h2 className="mb-4 text-2xl font-semibold">{copy.about.title}</h2>
+          <div className="mt-2 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
+            <h2 className="mb-4 text-2xl font-semibold text-slate-100">{copy.about.title}</h2>
             <form onSubmit={handleTeacherBioSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="teacher-bio">
+                <Label htmlFor="teacher-bio" className="text-sm font-semibold text-slate-100">
                   {copy.about.label}
                 </Label>
                 <Textarea
@@ -550,12 +531,17 @@ export default function ProfileForm({
                   onChange={(e) => setTeacherBio(e.target.value)}
                   rows={6}
                   placeholder={copy.about.placeholder}
+                  className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-slate-500">
                   {copy.about.hint}
                 </p>
               </div>
-              <Button type="submit" disabled={isSubmittingBio}>
+              <Button
+                type="submit"
+                disabled={isSubmittingBio}
+                className="border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] hover:brightness-110"
+              >
                 {isSubmittingBio ? copy.about.saving : copy.about.save}
               </Button>
             </form>
@@ -565,14 +551,12 @@ export default function ProfileForm({
 
       {user?.role === Role.STUDENT && (
         <TabsContent value="status" className="mt-4">
-          <div className="mt-4 space-y-4">
-            <div className="rounded-lg border bg-white p-6 shadow-md space-y-4">
+          <div className="mt-2 space-y-4">
+            <div className="space-y-4 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold">{copy.billing.title}</h2>
-                  <p className="text-sm text-gray-500">
-                    {copy.billing.subtitle}
-                  </p>
+                  <h2 className="text-xl font-semibold text-slate-100">{copy.billing.title}</h2>
+                  <p className="text-sm text-slate-400">{copy.billing.subtitle}</p>
                 </div>
                 <Badge
                   variant={isPaying ? "success" : "default"}
@@ -585,12 +569,12 @@ export default function ProfileForm({
                   {isPaying ? copy.billing.badgeActive : copy.billing.badgeFree}
                 </Badge>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-slate-200">
                 {isPaying
                   ? copy.billing.descriptionActive
                   : copy.billing.descriptionFree}
               </p>
-              <div className="rounded-md border border-dashed p-4">
+              <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/60 p-4">
                 <form
                   onSubmit={handleRedeemCoupon}
                   className="flex flex-col gap-3 sm:flex-row"
@@ -600,21 +584,23 @@ export default function ProfileForm({
                     placeholder={copy.billing.couponPlaceholder}
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
-                    className="flex-1"
+                    className="flex-1 rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
                   />
-                  <Button type="submit" disabled={isRedeemingCoupon}>
+                  <Button
+                    type="submit"
+                    disabled={isRedeemingCoupon}
+                    className="border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] hover:brightness-110"
+                  >
                     {isRedeemingCoupon ? copy.billing.redeeming : copy.billing.redeem}
                   </Button>
                 </form>
-                <p className="mt-2 text-xs text-gray-500">
-                  {copy.billing.couponHint}
-                </p>
+                <p className="mt-2 text-xs text-slate-500">{copy.billing.couponHint}</p>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-slate-500">
                 {copy.billing.support}{" "}
                 <a
                   href={`mailto:${copy.billing.supportEmail}`}
-                  className="underline"
+                  className="underline text-teal-200"
                 >
                   {copy.billing.supportEmail}
                 </a>
@@ -628,44 +614,51 @@ export default function ProfileForm({
       {!isAdmin && (
         <>
           <TabsContent value="password" className="mt-4">
-            <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
-              <h2 className="mb-4 text-2xl font-semibold">{copy.password.title}</h2>
+            <div className="mt-2 rounded-2xl border border-slate-800/70 bg-slate-950/80 p-6 shadow-2xl backdrop-blur">
+              <h2 className="mb-4 text-2xl font-semibold text-slate-100">{copy.password.title}</h2>
               <form onSubmit={handlePasswordSubmit} className="space-y-5">
                 <div className="form-field">
-                  <Label htmlFor="newPassword">{copy.password.newLabel}</Label>
+                  <Label htmlFor="newPassword" className="text-slate-100 text-base">{copy.password.newLabel}</Label>
                   <Input
                     id="newPassword"
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
+                    className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
                   />
                 </div>
                 <div className="form-field">
-                  <Label htmlFor="confirmPassword">{copy.password.confirmLabel}</Label>
+                  <Label htmlFor="confirmPassword" className="text-slate-100 text-base">{copy.password.confirmLabel}</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
                   />
                 </div>
-                <Button type="submit" disabled={isSubmittingPassword}>
-                  {isSubmittingPassword ? copy.password.saving : copy.password.change}
+                <Button
+                  type="submit"
+                  disabled={isSubmittingPassword}
+                  className="group relative overflow-hidden rounded-xl border border-emerald-300/50 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-[0_16px_40px_rgba(16,185,129,0.35)] transition hover:brightness-110"
+                >
+                  <span className="absolute inset-0 bg-emerald-400/30 blur-2xl opacity-0 transition-opacity group-hover:opacity-100" />
+                  <span className="relative">
+                    {isSubmittingPassword ? copy.password.saving : copy.password.change}
+                  </span>
                 </Button>
               </form>
             </div>
           </TabsContent>
 
           <TabsContent value="delete" className="mt-4">
-            <div className="rounded-lg border bg-white p-6 shadow-md mb-4">
-              <h2 className="text-xl font-semibold mb-4">{copy.breakTab.title}</h2>
+            <div className="mb-4 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
+              <h2 className="text-xl font-semibold mb-4 text-slate-100">{copy.breakTab.title}</h2>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">
-                    {copy.breakTab.description}
-                  </p>
+                  <p className="text-sm text-slate-400">{copy.breakTab.description}</p>
                 </div>
                 <Switch
                   id="taking-a-break"
@@ -674,16 +667,16 @@ export default function ProfileForm({
                 />
               </div>
             </div>
-            <div className="rounded-lg border border-red-200 bg-red-50 p-6 shadow-md">
-              <h2 className="text-2xl font-semibold text-red-800 mb-4">
+            <div className="rounded-2xl border border-red-500/30 bg-gradient-to-b from-red-950/80 via-red-950/60 to-slate-950/80 p-6 shadow-2xl">
+              <h2 className="text-2xl font-semibold text-red-50 mb-4">
                 {copy.breakTab.deleteTitle}
               </h2>
-              <p className="text-red-700 mb-4">
+              <p className="text-red-100 mb-4">
                 {copy.breakTab.deleteDescription}
               </p>
               <form onSubmit={handleDeleteSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="deleteConfirmation">
+                <div className="space-y-2">
+                  <Label htmlFor="deleteConfirmation" className="text-red-50">
                     {copy.breakTab.confirmLabel.replace("{text}", confirmationText)}
                   </Label>
                   <Input
@@ -692,6 +685,7 @@ export default function ProfileForm({
                     value={deleteConfirmation}
                     onChange={(e) => setDeleteConfirmation(e.target.value)}
                     required
+                    className="rounded-xl border-red-500/50 bg-red-950/80 text-red-50 placeholder:text-red-200"
                   />
                 </div>
                 <Button
@@ -700,6 +694,7 @@ export default function ProfileForm({
                   disabled={
                     isDeleting || deleteConfirmation !== confirmationText
                   }
+                  className="bg-red-600 text-white hover:bg-red-500"
                 >
                   {isDeleting ? copy.breakTab.deleting : copy.breakTab.delete}
                 </Button>

@@ -76,6 +76,30 @@ const navTranslations: Record<NavLocale, Record<string, string>> = {
   },
 };
 
+type FestiveTheme = {
+  name: string;
+  emoji: string;
+  gradient: string;
+  borderClass: string;
+  pillFrom: string;
+  pillTo: string;
+};
+
+const monthThemes: Record<number, FestiveTheme> = {
+  0: { name: 'New Year Glow', emoji: '🎆', gradient: 'linear-gradient(120deg, #0f172a 0%, #111827 35%, #0ea5e9 100%)', borderClass: 'border-sky-400/50', pillFrom: '#38bdf8', pillTo: '#22d3ee' },
+  1: { name: 'Carnevale', emoji: '🎭', gradient: 'linear-gradient(120deg, #111827 0%, #312e81 40%, #9333ea 100%)', borderClass: 'border-violet-400/50', pillFrom: '#a855f7', pillTo: '#f472b6' },
+  2: { name: 'Spring Ahead', emoji: '🌷', gradient: 'linear-gradient(120deg, #0f172a 0%, #0b3b2e 40%, #22c55e 100%)', borderClass: 'border-emerald-300/50', pillFrom: '#34d399', pillTo: '#bef264' },
+  3: { name: 'Easter Vibes', emoji: '🐣', gradient: 'linear-gradient(120deg, #0f172a 0%, #1e293b 35%, #f59e0b 100%)', borderClass: 'border-amber-300/50', pillFrom: '#fbbf24', pillTo: '#fde68a' },
+  4: { name: 'Labor Day (IT)', emoji: '🛠️', gradient: 'linear-gradient(120deg, #0f172a 0%, #0b3b2e 40%, #22c55e 100%)', borderClass: 'border-emerald-300/50', pillFrom: '#22c55e', pillTo: '#34d399' },
+  5: { name: 'Republic Day', emoji: '🇮🇹', gradient: 'linear-gradient(120deg, #0f172a 0%, #0f766e 40%, #dc2626 100%)', borderClass: 'border-emerald-300/50', pillFrom: '#22c55e', pillTo: '#f87171' },
+  6: { name: 'Independence Day', emoji: '🎇', gradient: 'linear-gradient(120deg, #0f172a 0%, #1d4ed8 40%, #dc2626 100%)', borderClass: 'border-sky-300/50', pillFrom: '#38bdf8', pillTo: '#fb7185' },
+  7: { name: 'Ferragosto Sun', emoji: '🌞', gradient: 'linear-gradient(120deg, #0f172a 0%, #7c2d12 40%, #f59e0b 100%)', borderClass: 'border-amber-300/50', pillFrom: '#fbbf24', pillTo: '#fb923c' },
+  8: { name: 'Labor Day (US)', emoji: '🛠️', gradient: 'linear-gradient(120deg, #0f172a 0%, #1d4ed8 40%, #0ea5e9 100%)', borderClass: 'border-indigo-300/50', pillFrom: '#6366f1', pillTo: '#38bdf8' },
+  9: { name: 'Harvest Glow', emoji: '🎃', gradient: 'linear-gradient(120deg, #0f172a 0%, #7c2d12 40%, #ea580c 100%)', borderClass: 'border-orange-300/50', pillFrom: '#f97316', pillTo: '#fbbf24' },
+  10: { name: 'Thanksgiving', emoji: '🦃', gradient: 'linear-gradient(120deg, #0f172a 0%, #7c2d12 40%, #d97706 100%)', borderClass: 'border-amber-300/50', pillFrom: '#d97706', pillTo: '#f59e0b' },
+  11: { name: 'Holiday Cheer', emoji: '🎄', gradient: 'linear-gradient(120deg, #0f172a 0%, #064e3b 40%, #16a34a 100%)', borderClass: 'border-emerald-300/60', pillFrom: '#22c55e', pillTo: '#2dd4bf' },
+};
+
 export default function Navbar() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -88,6 +112,7 @@ export default function Navbar() {
   const hasAdminAccess = user && (user.role === Role.ADMIN || user.hasAdminPortalAccess);
   const isLanding = pathname === '/';
   const copy = navTranslations[locale];
+  const festiveTheme = monthThemes[new Date().getMonth()] ?? monthThemes[11];
 
   useEffect(() => {
     const preferredLanguage = (user?.uiLanguage as UiLanguagePreference) ?? 'device';
@@ -140,9 +165,17 @@ export default function Navbar() {
       )}
       <header
         className={cn(
-          "sticky top-0 z-50 border-b border-slate-800/70 bg-slate-950/80 backdrop-blur-xl transition-colors shadow-[0_10px_40px_rgba(7,11,26,0.55)]",
+          "sticky top-0 z-50 border-b backdrop-blur-xl transition-colors shadow-[0_10px_40px_rgba(7,11,26,0.55)]",
+          festiveTheme.borderClass,
           isLanding && "bg-slate-950/70"
         )}
+        style={{
+          backgroundImage: `
+            ${festiveTheme.gradient},
+            radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06), transparent 25%),
+            radial-gradient(circle at 80% 0%, rgba(255,255,255,0.04), transparent 20%)
+          `,
+        }}
       >
         <nav className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between text-slate-100">
           <Link
@@ -154,6 +187,20 @@ export default function Navbar() {
           >
             LessonHUB
           </Link>
+          <div className="hidden items-center gap-2 sm:flex">
+            <span
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold shadow-md",
+                festiveTheme.borderClass
+              )}
+              style={{
+                backgroundImage: `linear-gradient(135deg, ${festiveTheme.pillFrom}, ${festiveTheme.pillTo})`,
+              }}
+            >
+              <span role="img" aria-label={festiveTheme.name}>{festiveTheme.emoji}</span>
+              <span className="text-white">{festiveTheme.name}</span>
+            </span>
+          </div>
           <div className="flex items-center space-x-4">
             {status === 'loading' ? (
               <div className="h-10 w-10 rounded-full bg-slate-800 animate-pulse"></div>

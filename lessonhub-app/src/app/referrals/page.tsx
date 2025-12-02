@@ -525,40 +525,45 @@ export default async function ReferralDashboardPage() {
         )}
       </div>
 
-      <Accordion type="single" collapsible defaultValue="how-it-works" className="rounded-xl border bg-muted/40">
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue="how-it-works"
+        className="rounded-2xl border border-slate-800/70 bg-slate-950/70 shadow-2xl backdrop-blur-sm"
+      >
         <AccordionItem value="how-it-works" className="border-none">
-          <AccordionTrigger className="px-4 sm:px-6 py-3 hover:no-underline justify-between text-sm text-muted-foreground">
+          <AccordionTrigger className="justify-between px-4 py-3 text-sm font-semibold text-slate-200 hover:no-underline sm:px-6">
             <span className="font-medium">
               {copy.accordionToggle}
             </span>
           </AccordionTrigger>
           <AccordionContent className="px-4 sm:px-6 pb-6">
-            <div className="rounded-3xl border border-[#efece2] bg-[#f8f8f5] p-6 sm:p-10 space-y-12">
-              <div className="text-center space-y-3">
-                <h3 className="text-3xl font-black text-[#111418]">
+            <div className="space-y-12 rounded-3xl border border-slate-800/80 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+              <div className="space-y-3 text-center">
+                <h3 className="text-3xl font-black text-slate-50">
                   {copy.accordionTitle}
                 </h3>
-                <p className="text-base text-[#617589] max-w-3xl mx-auto">
+                <p className="mx-auto max-w-3xl text-base text-slate-300">
                   {copy.accordionSubtitle}
                 </p>
               </div>
 
               <div className="space-y-4">
-                <h4 className="px-1 text-lg font-semibold text-[#111418]">
+                <h4 className="px-1 text-lg font-semibold text-slate-100">
                   {copy.essentialsTitle}
                 </h4>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {essentials.map(({ title, body, Icon }) => (
                     <div
                       key={title}
-                      className="flex h-full flex-col gap-4 rounded-2xl border border-[#e5e2d9] bg-white p-5 shadow-[0_4px_16px_rgba(17,20,24,0.04)]"
+                      className="flex h-full flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-[0_10px_35px_rgba(0,0,0,0.35)]"
                     >
-                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-400/15 text-emerald-200">
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="space-y-1">
-                        <h5 className="text-base font-semibold text-[#111418]">{title}</h5>
-                        <p className="text-sm leading-relaxed text-[#617589]">{body}</p>
+                        <h5 className="text-base font-semibold text-slate-100">{title}</h5>
+                        <p className="text-sm leading-relaxed text-slate-400">{body}</p>
                       </div>
                     </div>
                   ))}
@@ -566,21 +571,21 @@ export default async function ReferralDashboardPage() {
               </div>
 
               <div className="space-y-5">
-                <h4 className="px-1 text-lg font-semibold text-[#111418]">
+                <h4 className="px-1 text-lg font-semibold text-slate-100">
                   {copy.stepsTitle}
                 </h4>
                 <div className="grid gap-4 md:grid-cols-3">
                   {steps.map(({ title, body }, index) => (
                     <div
                       key={title}
-                      className="flex h-full flex-col items-center gap-4 rounded-2xl border border-[#e5e2d9] bg-white p-6 text-center shadow-[0_4px_16px_rgba(17,20,24,0.04)]"
+                      className="flex h-full flex-col items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center shadow-[0_10px_35px_rgba(0,0,0,0.35)]"
                     >
-                      <div className="flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 text-amber-600 text-lg font-semibold">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400/15 text-emerald-200 text-lg font-semibold">
                         {index + 1}
                       </div>
                       <div className="space-y-1">
-                        <h5 className="text-base font-semibold text-[#111418]">{title}</h5>
-                        <p className="text-sm leading-relaxed text-[#617589]">{body}</p>
+                        <h5 className="text-base font-semibold text-slate-100">{title}</h5>
+                        <p className="text-sm leading-relaxed text-slate-400">{body}</p>
                       </div>
                     </div>
                   ))}
