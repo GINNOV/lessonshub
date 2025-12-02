@@ -308,7 +308,13 @@ export default function FlashcardPlayer({
             </div>
         </div>
         <div className="flex justify-center">
-          <Button type="button" variant="outline" onClick={handleFlip} aria-label="Flip card">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleFlip}
+            aria-label="Flip card"
+            className="border-slate-700 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white"
+          >
             Flip
           </Button>
         </div>

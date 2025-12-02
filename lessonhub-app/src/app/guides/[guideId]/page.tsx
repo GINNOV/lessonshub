@@ -75,19 +75,23 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
   return (
     <div className="mx-auto max-w-3xl space-y-8 p-6">
       <div className="flex items-center justify-between">
-        <Button asChild variant="ghost">
+        <Button
+          asChild
+          variant="ghost"
+          className="border-slate-700 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white"
+        >
           <Link href="/my-lessons">← Back to dashboard</Link>
         </Button>
-        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Hub Guide</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-teal-200">Hub Guide</p>
       </div>
 
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold text-gray-900">{guide.title}</h1>
-        <p className="text-sm text-gray-500">Updated {updatedLabel}</p>
+        <h1 className="text-4xl font-bold text-slate-100">{guide.title}</h1>
+        <p className="text-sm text-slate-400">Updated {updatedLabel}</p>
       </div>
 
       {guide.guideCardImage && (
-        <div className="relative h-48 w-full overflow-hidden rounded-2xl border shadow-sm">
+        <div className="relative h-48 w-full overflow-hidden rounded-2xl border border-slate-800 shadow-xl">
           <Image
             src={guide.guideCardImage}
             alt={`${guide.title} card`}
@@ -100,19 +104,19 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
 
       {previewHtml && (
         <div
-          className="prose prose-slate max-w-none rounded-2xl border bg-white p-6 shadow-sm"
+          className="prose prose-sm max-w-none rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-slate-200 shadow-xl"
           dangerouslySetInnerHTML={{ __html: previewHtml as string }}
         />
       )}
 
       {instructionsHtml && (
         <div
-          className="prose prose-slate max-w-none rounded-2xl border bg-white p-6 shadow-sm"
+          className="prose prose-sm max-w-none rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-slate-200 shadow-xl"
           dangerouslySetInnerHTML={{ __html: instructionsHtml as string }}
         />
       )}
 
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-xl">
         <LearningSessionPlayer cards={guide.learningSessionCards} lessonTitle={guide.title} />
       </div>
 
