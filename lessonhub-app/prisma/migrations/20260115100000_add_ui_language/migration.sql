@@ -1,0 +1,2 @@
+ALTER TABLE "User"
+ADD COLUMN "uiLanguage" TEXT NOT NULL DEFAULT 'device';

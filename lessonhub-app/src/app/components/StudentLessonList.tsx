@@ -45,9 +45,16 @@ type SerializableAssignment = {
 
 interface StudentLessonListProps {
   assignments: SerializableAssignment[];
+  copy?: {
+    searchPlaceholder: string;
+    filters: { all: string; pending: string; graded: string; failed: string };
+    freeToggle: string;
+    empty: string;
+    browseTeachers: string;
+  };
 }
 
-export default function StudentLessonList({ assignments }: StudentLessonListProps) {
+export default function StudentLessonList({ assignments, copy }: StudentLessonListProps) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'graded' | 'failed'>('pending');
   const [showFreeOnly, setShowFreeOnly] = useState(false);
@@ -79,7 +86,7 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
           <Input
             type="search"
-            placeholder="Search by title or teacher..."
+            placeholder={copy?.searchPlaceholder || "Search by title or teacher..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9"
@@ -87,10 +94,10 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {([
-            { key: 'all', label: 'ALL' },
-            { key: 'pending', label: 'PENDING' },
-            { key: 'graded', label: 'GRADED' },
-            { key: 'failed', label: 'FAILED' },
+            { key: 'all', label: copy?.filters.all || 'ALL' },
+            { key: 'pending', label: copy?.filters.pending || 'PENDING' },
+            { key: 'graded', label: copy?.filters.graded || 'GRADED' },
+            { key: 'failed', label: copy?.filters.failed || 'FAILED' },
           ] as const).map(({ key, label }) => (
             <button
               key={key}
@@ -121,20 +128,20 @@ export default function StudentLessonList({ assignments }: StudentLessonListProp
             ].join(' ')}
             type="button"
           >
-            Free
+            {copy?.freeToggle || 'Free'}
           </button>
         </div>
       </div>
 
       {filtered.length === 0 ? (
         <div className="text-center text-gray-500 p-6 border rounded-lg">
-          <p>You have no assignments yet.</p>
+          <p>{copy?.empty || "You have no assignments yet."}</p>
           <div className="mt-2 text-sm">
             <Link
               href="/teachers"
               className="text-indigo-600 underline hover:text-indigo-700"
             >
-              Browse teachers directory
+              {copy?.browseTeachers || "Browse teachers directory"}
             </Link>
           </div>
         </div>

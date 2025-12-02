@@ -5,10 +5,14 @@
 import { signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 
-export default function SignOutButton() {
+type SignOutButtonProps = {
+  label?: string;
+};
+
+export default function SignOutButton({ label = 'Sign Out' }: SignOutButtonProps) {
   return (
     <Button variant="destructive" onClick={() => signOut({ callbackUrl: '/' })}>
-      Sign Out
+      {label}
     </Button>
   );
 }

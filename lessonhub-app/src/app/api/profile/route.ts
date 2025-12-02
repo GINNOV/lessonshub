@@ -25,20 +25,21 @@ export async function GET() {
         image: true,
         role: true,
         timeZone: true,
-        weeklySummaryOptOut: true,
-        gender: true,
-        lastSeen: true,
-        isPaying: true,
-        isSuspended: true,
-        isTakingBreak: true,
-        totalPoints: true,
-        studentBio: true,
-        progressCardTitle: true,
-        progressCardBody: true,
-        progressCardLinkText: true,
-        progressCardLinkUrl: true,
-      },
-    });
+      weeklySummaryOptOut: true,
+      gender: true,
+      lastSeen: true,
+      isPaying: true,
+      isSuspended: true,
+      isTakingBreak: true,
+      totalPoints: true,
+      studentBio: true,
+      progressCardTitle: true,
+      progressCardBody: true,
+      progressCardLinkText: true,
+      progressCardLinkUrl: true,
+      uiLanguage: true,
+    },
+  });
 
     if (!user) {
       return new NextResponse(JSON.stringify({ error: "User not found" }), {
@@ -113,6 +114,7 @@ export async function PATCH(request: NextRequest) {
       studentBio,
       isTakingBreak,
       newPassword,
+      uiLanguage,
     } = body as {
       name?: string;
       image?: string;
@@ -122,6 +124,7 @@ export async function PATCH(request: NextRequest) {
       studentBio?: string | null;
       isTakingBreak?: boolean;
       newPassword?: string;
+      uiLanguage?: string;
     };
 
     const dataToUpdate: {
@@ -133,6 +136,7 @@ export async function PATCH(request: NextRequest) {
       studentBio?: string | null;
       isTakingBreak?: boolean;
       hashedPassword?: string;
+      uiLanguage?: string;
     } = {};
     if (name) dataToUpdate.name = name;
     if (image) dataToUpdate.image = image;
@@ -141,6 +145,7 @@ export async function PATCH(request: NextRequest) {
     if (typeof weeklySummaryOptOut === 'boolean') dataToUpdate.weeklySummaryOptOut = weeklySummaryOptOut;
     if (studentBio !== undefined) dataToUpdate.studentBio = studentBio;
     if (typeof isTakingBreak === 'boolean') dataToUpdate.isTakingBreak = isTakingBreak;
+    if (uiLanguage && ['device', 'en', 'it'].includes(uiLanguage)) dataToUpdate.uiLanguage = uiLanguage;
     if (typeof newPassword === 'string' && newPassword.length >= 8) {
       dataToUpdate.hashedPassword = await bcrypt.hash(newPassword, 12);
     } else if (typeof newPassword === 'string' && newPassword.length > 0 && newPassword.length < 8) {

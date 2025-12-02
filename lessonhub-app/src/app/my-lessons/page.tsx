@@ -28,6 +28,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import prisma from "@/lib/prisma";
+import { headers } from "next/headers";
+import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from "@/lib/locale";
+import { studentDashboardCopy, StudentDashboardLocale } from "@/lib/studentDashboardCopy";
 
 export default async function MyLessonsPage() {
   const session = await auth();
@@ -236,6 +239,17 @@ export default async function MyLessonsPage() {
 
   const guidesForTab = isPaying ? visibleGuides : freeGuides;
 
+  const headerList = await headers();
+  const detectedLocales = parseAcceptLanguage(headerList.get("accept-language"));
+  const preference = ((session.user as any)?.uiLanguage as UiLanguagePreference) ?? "device";
+  const locale = resolveLocale({
+    preference,
+    detectedLocales,
+    supportedLocales: ["en", "it"] as const,
+    fallback: "en",
+  }) as StudentDashboardLocale;
+  const copy = studentDashboardCopy[locale];
+
   return (
     <div>
       <WhatsNewDialog notes={whatsNewNotes} defaultLocale="us" />
@@ -249,9 +263,10 @@ export default async function MyLessonsPage() {
         failed={failed}
         pastDue={pastDue}
         settings={settings}
+        copy={copy.stats}
       />
       <section className="mt-10 space-y-6">
-        <HubGuideBanner guideCount={guidesForTab.length} />
+        <HubGuideBanner guideCount={guidesForTab.length} copy={copy.guides} />
         {isPaying ? (
           <Tabs defaultValue="lessons" className="space-y-6">
             <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner">
@@ -259,24 +274,24 @@ export default async function MyLessonsPage() {
                 value="lessons"
                 className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
               >
-                Lessons
+                {locale === "it" ? "Lezioni" : "Lessons"}
               </TabsTrigger>
               <TabsTrigger
                 value="guides"
                 className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
               >
-                Hub Guides
+                {copy.guides.tabLabel}
               </TabsTrigger>
             </TabsList>
             <TabsContent value="lessons">
-              <StudentLessonList assignments={serializableAssignments} />
+              <StudentLessonList assignments={serializableAssignments} copy={copy.lessons} />
             </TabsContent>
             <TabsContent value="guides">
               {guidesForTab.length > 0 ? (
-                <StudentGuideList guides={guidesForTab} />
+                <StudentGuideList guides={guidesForTab} copy={copy.guides} />
               ) : (
                 <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
-                  New guides are on the way. Stay tuned!
+                  {copy.guides.emptyPaid}
                 </div>
               )}
             </TabsContent>
@@ -288,33 +303,33 @@ export default async function MyLessonsPage() {
                 value="free"
                 className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
               >
-                Free Lessons
+                {locale === "it" ? "Lezioni gratuite" : "Free Lessons"}
               </TabsTrigger>
               <TabsTrigger
                 value="lessons"
                 className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
               >
-                My Lessons
+                {locale === "it" ? "Le mie lezioni" : "My Lessons"}
               </TabsTrigger>
               <TabsTrigger
                 value="guides"
                 className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
               >
-                Hub Guides
+                {copy.guides.tabLabel}
               </TabsTrigger>
             </TabsList>
             <TabsContent value="free">
-              <StudentFreeLessonList lessons={mergedFreeLessons} />
+              <StudentFreeLessonList lessons={mergedFreeLessons} copy={{ searchPlaceholder: copy.guides.searchPlaceholder, emptyFree: copy.guides.emptyFree }} />
             </TabsContent>
             <TabsContent value="lessons">
-              <StudentLessonList assignments={serializableAssignments} />
+              <StudentLessonList assignments={serializableAssignments} copy={copy.lessons} />
             </TabsContent>
             <TabsContent value="guides">
               {guidesForTab.length > 0 ? (
-                <StudentGuideList guides={guidesForTab} />
+                <StudentGuideList guides={guidesForTab} copy={copy.guides} />
               ) : (
                 <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
-                  No free guides are available right now. Upgrade to access the full library.
+                  {copy.guides.emptyFree}
                 </div>
               )}
             </TabsContent>

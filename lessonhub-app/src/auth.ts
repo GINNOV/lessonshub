@@ -76,6 +76,7 @@ export const {
         token.id = user.id;
         token.role = user.role;
         token.isTakingBreak = user.isTakingBreak;
+        (token as any).uiLanguage = (user as any).uiLanguage ?? 'device';
         (token as any).hasAdminPortalAccess = (user as any).hasAdminPortalAccess ?? false;
       }
       return token;
@@ -93,6 +94,7 @@ export const {
           isSuspended: true,
           isTakingBreak: true, // Include isTakingBreak
           hasAdminPortalAccess: true,
+          uiLanguage: true,
           impersonatedBy: {
             select: {
               id: true,
@@ -104,6 +106,7 @@ export const {
               isSuspended: true,
               isTakingBreak: true,
               hasAdminPortalAccess: true,
+              uiLanguage: true,
             },
           },
         },
@@ -126,6 +129,7 @@ export const {
           isSuspended: (impersonatedUser as any).isSuspended,
           isTakingBreak: (impersonatedUser as any).isTakingBreak, // Pass through impersonated user's status
           hasAdminPortalAccess: (impersonatedUser as any).hasAdminPortalAccess ?? false,
+          uiLanguage: (impersonatedUser as any).uiLanguage ?? 'device',
           impersonating: true,
           originalUserId: dbUser.id,
         };
@@ -139,6 +143,7 @@ export const {
         session.user.isSuspended = dbUser.isSuspended;
         session.user.isTakingBreak = dbUser.isTakingBreak; // Assign to the direct user
         (session.user as any).hasAdminPortalAccess = dbUser.hasAdminPortalAccess;
+        (session.user as any).uiLanguage = (dbUser as any).uiLanguage ?? 'device';
       }
       return session;
     },

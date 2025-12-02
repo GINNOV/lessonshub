@@ -35,6 +35,23 @@ interface StudentStatsHeaderProps {
     progressCardLinkUrl?: string | null;
     assignmentSummaryFooter?: string | null;
   } | null;
+  copy?: {
+    progressTitle: string;
+    progressPoints: string;
+    progressBody: string;
+    investLink: string;
+    aboutTitle: string;
+    aboutBody: string;
+    assignmentSummary: string;
+    labels: {
+      total: string;
+      pending: string;
+      submitted: string;
+      graded: string;
+      pastDue: string;
+      failed: string;
+    };
+  };
 }
 
 // A sleek, reusable component for each individual stat in the summary
@@ -68,7 +85,14 @@ export default function StudentStatsHeader({
   failed,
   pastDue,
   settings,
+  copy,
 }: StudentStatsHeaderProps) {
+  const labels = copy?.labels;
+  const progressPointsLabel = (copy?.progressPoints || "{points} pts earned").replace(
+    "{points}",
+    totalPoints.toLocaleString(),
+  );
+
   return (
     <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
       {/* The "Hero" Card for My Progress */}
@@ -76,21 +100,23 @@ export default function StudentStatsHeader({
         <TrendingUp className="absolute top-4 right-4 h-16 w-16 text-white/60 drop-shadow-md" />
         <div className="flex h-full flex-col justify-between">
           <div>
-            <h3 className="text-lg font-medium text-gray-300">{settings?.progressCardTitle || 'My Progress'}</h3>
+            <h3 className="text-lg font-medium text-gray-300">
+              {settings?.progressCardTitle || copy?.progressTitle || 'My Progress'}
+            </h3>
             <p className="mt-2 text-5xl font-bold tracking-tight">
               €{totalValue.toFixed(2)}
             </p>
             <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white">
               <span role="img" aria-label="Sparkles">✨</span>
-              {totalPoints.toLocaleString()} pts earned
+              {progressPointsLabel}
             </p>
           </div>
           <div className="mt-4 text-xs text-gray-400">
-            {settings?.progressCardBody || 'Total value from all graded lessons.'}
+            {settings?.progressCardBody || copy?.progressBody || 'Total value from all graded lessons.'}
             <div className="mt-2">
                 <span>💰</span>
                 <InvestDialog
-                  linkText={settings?.progressCardLinkText || 'Invest in your future - watch now'}
+                  linkText={settings?.progressCardLinkText || copy?.investLink || 'Invest in your future - watch now'}
                   videoUrl={settings?.progressCardLinkUrl || "https://www.youtube.com/embed/kd8zMU3kd0s?si=j0X6hdJqhcXDYn3g&amp;controls=0"}
                 />
             </div>
@@ -105,10 +131,10 @@ export default function StudentStatsHeader({
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>About &quot;My Progress&quot;</DialogTitle>
+                <DialogTitle>{copy?.aboutTitle || 'About "My Progress"'}</DialogTitle>
               </DialogHeader>
               <div className="p-4">
-                <p>Quanto avresti speso con un metodo di insegnamento tradizionale. Che affare!</p>
+                <p>{copy?.aboutBody || 'Quanto avresti speso con un metodo di insegnamento tradizionale. Che affare!'}</p>
               </div>
             </DialogContent>
           </Dialog>
@@ -119,43 +145,43 @@ export default function StudentStatsHeader({
       <div className="rounded-xl border bg-white p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
         <div>
           <h3 className="text-lg font-medium text-gray-600">
-            Assignment Summary
+            {copy?.assignmentSummary || 'Assignment Summary'}
           </h3>
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-6">
             <StatItem
               icon={ClipboardList}
               value={total}
-              label="Total"
+              label={labels?.total || "Total"}
               colorClassName="text-gray-400"
             />
             <StatItem
               icon={Clock}
               value={pending}
-              label="Pending"
+              label={labels?.pending || "Pending"}
               colorClassName="text-yellow-500"
             />
             <StatItem
               icon={CircleCheckBig}
               value={submitted}
-              label="Submitted"
+              label={labels?.submitted || "Submitted"}
               colorClassName="text-blue-500"
             />
             <StatItem
               icon={FileBadge}
               value={graded}
-              label="Graded"
+              label={labels?.graded || "Graded"}
               colorClassName="text-green-500"
             />
             <StatItem
               icon={Clock}
               value={pastDue}
-              label="Past Due"
+              label={labels?.pastDue || "Past Due"}
               colorClassName="text-red-500"
             />
             <StatItem
               icon={XCircle}
               value={failed}
-              label="Failed"
+              label={labels?.failed || "Failed"}
               colorClassName="text-red-500"
             />
           </div>

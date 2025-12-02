@@ -17,12 +17,64 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Role } from "@prisma/client";
 import { stopImpersonation } from "@/actions/adminActions";
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TeacherClassNotesDialog from "./TeacherClassNotesDialog";
 import FeedbackDialog from "./FeedbackDialog";
 import { requestWhatsNewDialog } from "./WhatsNewDialog";
 import RateTeacherDialog from "./RateTeacherDialog";
 import { cn } from "@/lib/utils";
+import { resolveLocale, UiLanguagePreference } from "@/lib/locale";
+
+type NavLocale = 'en' | 'it';
+
+const navTranslations: Record<NavLocale, Record<string, string>> = {
+  en: {
+    impersonatingPrefix: 'You are impersonating',
+    stopImpersonating: 'Stop Impersonating',
+    userManagement: 'User Management',
+    lessonManagement: 'Lesson Management',
+    referralDashboard: 'Referral Dashboard',
+    emailEditor: 'Email Editor',
+    dashboardSettings: 'Dashboard Settings',
+    cronTestPage: 'Cron Test Page',
+    manageClasses: 'Manage Classes',
+    settings: 'Settings',
+    sendNotes: 'Send notes to students',
+    profile: 'Profile',
+    adminDashboard: 'Admin dashboard',
+    whatsNew: "What's new",
+    rateTeacher: 'Rate your teacher',
+    sendFeedback: 'Send Feedback',
+    signOut: 'Sign Out',
+    benefits: 'Benefits',
+    testimonials: 'Testimonials',
+    signIn: 'Sign In',
+    startFreeTrial: 'Start Free Trial',
+  },
+  it: {
+    impersonatingPrefix: 'Stai impersonando',
+    stopImpersonating: 'Interrompi impersonificazione',
+    userManagement: 'Gestione utenti',
+    lessonManagement: 'Gestione lezioni',
+    referralDashboard: 'Dashboard referenze',
+    emailEditor: 'Editor email',
+    dashboardSettings: 'Impostazioni dashboard',
+    cronTestPage: 'Pagina test cron',
+    manageClasses: 'Gestisci classi',
+    settings: 'Impostazioni',
+    sendNotes: 'Invia note agli studenti',
+    profile: 'Profilo',
+    adminDashboard: 'Dashboard admin',
+    whatsNew: 'Novità',
+    rateTeacher: 'Valuta il tuo insegnante',
+    sendFeedback: 'Invia feedback',
+    signOut: 'Esci',
+    benefits: 'Vantaggi',
+    testimonials: 'Testimonianze',
+    signIn: 'Accedi',
+    startFreeTrial: 'Inizia prova gratuita',
+  },
+};
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -32,8 +84,25 @@ export default function Navbar() {
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [isClassNotesDialogOpen, setIsClassNotesDialogOpen] = useState(false);
   const [isRateTeacherDialogOpen, setIsRateTeacherDialogOpen] = useState(false);
+  const [locale, setLocale] = useState<NavLocale>('en');
   const hasAdminAccess = user && (user.role === Role.ADMIN || user.hasAdminPortalAccess);
   const isLanding = pathname === '/';
+  const copy = navTranslations[locale];
+
+  useEffect(() => {
+    const preferredLanguage = (user?.uiLanguage as UiLanguagePreference) ?? 'device';
+    const detectedLocales =
+      typeof navigator !== 'undefined'
+        ? (navigator.languages?.length ? navigator.languages : [navigator.language]).filter(Boolean)
+        : [];
+    const resolved = resolveLocale({
+      preference: preferredLanguage,
+      detectedLocales,
+      supportedLocales: ['en', 'it'] as const,
+      fallback: 'en',
+    }) as NavLocale;
+    setLocale(resolved);
+  }, [user?.uiLanguage]);
 
   const homeHref =
     status === 'authenticated'
@@ -63,9 +132,9 @@ export default function Navbar() {
     <>
       {user?.impersonating && (
         <div className="bg-yellow-400 text-center p-2 text-sm">
-          You are impersonating {user.name}.{' '}
+          {copy.impersonatingPrefix} {user.name}.{' '}
           <button onClick={handleStopImpersonation} className="underline font-bold">
-            Stop Impersonating
+            {copy.stopImpersonating}
           </button>
         </div>
       )}
@@ -107,44 +176,44 @@ export default function Navbar() {
                     {user?.role === Role.ADMIN && (
                       <>
                         <DropdownMenuItem asChild>
-                          <Link href="/admin/users">User Management</Link>
+                          <Link href="/admin/users">{copy.userManagement}</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href="/admin/lessons">Lesson Management</Link>
+                          <Link href="/admin/lessons">{copy.lessonManagement}</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href="/admin/referrals">Referral Dashboard</Link>
+                          <Link href="/admin/referrals">{copy.referralDashboard}</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href="/admin/emails">Email Editor</Link>
+                          <Link href="/admin/emails">{copy.emailEditor}</Link>
                         </DropdownMenuItem>
                          <DropdownMenuItem asChild>
-                          <Link href="/admin/settings">Dashboard Settings</Link>
+                          <Link href="/admin/settings">{copy.dashboardSettings}</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href="/admin/cron">Cron Test Page</Link>
+                          <Link href="/admin/cron">{copy.cronTestPage}</Link>
                         </DropdownMenuItem>
                       </>
                     )}
                     {user?.role === Role.TEACHER && (
                       <>
                         <DropdownMenuItem asChild>
-                          <Link href="/dashboard/classes">Manage Classes</Link>
+                          <Link href="/dashboard/classes">{copy.manageClasses}</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href="/dashboard/settings">Settings</Link>
+                          <Link href="/dashboard/settings">{copy.settings}</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => setIsClassNotesDialogOpen(true)}>
-                          Send notes to students
+                          {copy.sendNotes}
                         </DropdownMenuItem>
                       </>
                     )}
                     <DropdownMenuItem asChild>
-                      <Link href="/profile">Profile</Link>
+                      <Link href="/profile">{copy.profile}</Link>
                     </DropdownMenuItem>
                     {hasAdminAccess && user?.role !== Role.ADMIN && (
                       <DropdownMenuItem asChild>
-                        <Link href="/admin">Admin dashboard</Link>
+                        <Link href="/admin">{copy.adminDashboard}</Link>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
@@ -152,24 +221,24 @@ export default function Navbar() {
                         requestWhatsNewDialog();
                       }}
                     >
-                      What&apos;s new
+                      {copy.whatsNew}
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/referrals">Referral dashboard</Link>
+                      <Link href="/referrals">{copy.referralDashboard}</Link>
                     </DropdownMenuItem>
                     {user?.role === Role.STUDENT && (
                       <DropdownMenuItem onSelect={() => setIsRateTeacherDialogOpen(true)}>
-                        Rate your teacher
+                        {copy.rateTeacher}
                       </DropdownMenuItem>
                     )}
                     {user?.role !== Role.TEACHER && (
                       <DropdownMenuItem onSelect={() => setIsFeedbackDialogOpen(true)}>
-                        Send Feedback
+                        {copy.sendFeedback}
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <SignOutButton />
+                      <SignOutButton label={copy.signOut} />
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -190,14 +259,14 @@ export default function Navbar() {
                       className="hidden text-sm font-medium transition-colors md:inline-flex"
                       style={{ color: isLanding ? 'rgba(255,255,255,0.8)' : undefined }}
                     >
-                      Benefits
+                      {copy.benefits}
                     </Link>
                     <Link
                       href="#testimonials"
                       className="hidden text-sm font-medium transition-colors md:inline-flex"
                       style={{ color: isLanding ? 'rgba(255,255,255,0.8)' : undefined }}
                     >
-                      Testimonials
+                      {copy.testimonials}
                     </Link>
                   </>
                 )}
@@ -211,7 +280,7 @@ export default function Navbar() {
                   )}
                   variant={isLanding ? "outline" : "default"}
                 >
-                  <Link href="/signin">Sign In</Link>
+                  <Link href="/signin">{copy.signIn}</Link>
                 </Button>
                 <Button
                   asChild
@@ -222,7 +291,7 @@ export default function Navbar() {
                       : undefined
                   )}
                 >
-                  <Link href="/register">Start Free Trial</Link>
+                  <Link href="/register">{copy.startFreeTrial}</Link>
                 </Button>
               </div>
             )}
