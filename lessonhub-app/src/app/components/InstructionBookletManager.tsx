@@ -119,11 +119,11 @@ export default function InstructionBookletManager({ initialBooklets }: Instructi
         <form onSubmit={handleCreate}>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">Title</label>
+              <label className="text-sm font-medium text-slate-100">Title</label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Standard Essay Instructions" />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">Content</label>
+              <label className="text-sm font-medium text-slate-100">Content</label>
               <Textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
@@ -153,11 +153,11 @@ export default function InstructionBookletManager({ initialBooklets }: Instructi
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Title</label>
+                    <label className="text-sm font-medium text-slate-100">Title</label>
                     <Input value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Content</label>
+                    <label className="text-sm font-medium text-slate-100">Content</label>
                     <Textarea value={editingBody} onChange={(e) => setEditingBody(e.target.value)} rows={8} />
                   </div>
                 </CardContent>

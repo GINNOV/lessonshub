@@ -122,7 +122,7 @@ export default function TeacherClassNotesDialog({
         </DialogHeader>
 
         <div className="space-y-3">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-100">
             Choose class
             <select
               value={selectedClassId}
@@ -151,7 +151,7 @@ export default function TeacherClassNotesDialog({
             </select>
           </label>
 
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-100">
             Message
             <Textarea
               rows={5}

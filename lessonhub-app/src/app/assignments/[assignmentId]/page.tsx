@@ -260,7 +260,7 @@ export default async function AssignmentPage({
             </div>
           )}
           {!isFlashcard && !isLearningSession && (
-            <h2 className="mb-4 text-2xl font-bold text-gray-800">Your Response</h2>
+            <h2 className="mb-4 text-2xl font-bold text-slate-100 drop-shadow-sm">Your Response</h2>
           )}
           {isFlashcard ? (
             <FlashcardPlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
