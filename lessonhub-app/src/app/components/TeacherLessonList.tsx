@@ -91,7 +91,7 @@ const lessonTypeEmojis: Record<LessonType, string> = {
 };
 
 const lessonTypeLabels: Record<LessonType, string> = {
-  [LessonType.STANDARD]: 'Standard',
+  [LessonType.STANDARD]: 'Topic',
   [LessonType.FLASHCARD]: 'Flashcard',
   [LessonType.MULTI_CHOICE]: 'Multi-choice',
   [LessonType.LEARNING_SESSION]: 'Guide',
@@ -479,6 +479,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       .filter(lesson => {
         if (classFilter === 'all') return true;
         if (classFilter === 'unassigned') {
+          if (lesson.type === LessonType.LEARNING_SESSION) return false;
           return lesson.assignmentsWithDates.length === 0 || lesson.assignmentsWithDates.every(a => !a.classId);
         }
         return lesson.assignmentsWithDates.some(a => a.classId === classFilter);
@@ -962,7 +963,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               className="h-11 appearance-none rounded-xl border border-slate-800 bg-slate-900/70 pl-10 pr-4 text-sm font-semibold text-slate-100 shadow-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
             >
               <option value="all">All lesson types</option>
-              <option value="guides">Guides</option>
+              <option value="guides">🧠 Guides</option>
               {LESSON_TYPE_FILTER_VALUES.filter((value): value is LessonType => value !== 'all' && value !== 'guides').map((type) => (
                 <option key={type} value={type}>
                   {lessonTypeEmojis[type]} {lessonTypeLabels[type]}

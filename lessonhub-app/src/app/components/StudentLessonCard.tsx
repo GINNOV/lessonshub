@@ -15,6 +15,7 @@ import { Share2, Users, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { ensureLessonShareLink } from '@/actions/lessonActions';
 import { LessonDifficultyIndicator } from '@/app/components/LessonDifficultySelector';
+import { LESSON_TYPE_SHORT_LABELS } from '@/lib/lessonTypeLabels';
 
 type SerializableUser = {
   id: string;
@@ -115,6 +116,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
 
   // Prefer lesson-specific cover when available, otherwise fall back to curated type image
   const coverImage = lesson.assignment_image_url?.trim() || lessonTypeImages[lesson.type];
+  const typeLabel = LESSON_TYPE_SHORT_LABELS[lesson.type] || 'LESSON';
 
   const lessonIdDisplay = `Lesson ${getWeekAndDay(currentDeadline)}`;
 
@@ -220,7 +222,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-black/40 to-transparent" />
           <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
-            <span className="text-teal-200/90">Lesson</span>
+            <span className="text-teal-200/90">{typeLabel}</span>
             <span className="font-mono text-white/80">{lessonIdDisplay}</span>
           </div>
           <div className="absolute right-3 top-3 text-2xl drop-shadow">
