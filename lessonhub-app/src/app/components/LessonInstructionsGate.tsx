@@ -8,27 +8,51 @@ import { AlertCircle } from 'lucide-react';
 type LessonInstructionsGateProps = {
   instructionsHtml: string | null;
   children: React.ReactNode;
+  skipAcknowledgement?: boolean;
+  defaultCollapsed?: boolean;
 };
 
-export default function LessonInstructionsGate({ instructionsHtml, children }: LessonInstructionsGateProps) {
+export default function LessonInstructionsGate({
+  instructionsHtml,
+  children,
+  skipAcknowledgement = false,
+  defaultCollapsed = false,
+}: LessonInstructionsGateProps) {
   const hasInstructions = useMemo(() => Boolean(instructionsHtml && instructionsHtml.trim().length > 0), [instructionsHtml]);
-  const [acknowledged, setAcknowledged] = useState(!hasInstructions);
-  const [checked, setChecked] = useState(!hasInstructions);
+  const initialAcknowledged = skipAcknowledgement || !hasInstructions;
+  const [acknowledged, setAcknowledged] = useState(initialAcknowledged);
+  const [checked, setChecked] = useState(initialAcknowledged);
+  const [collapsed, setCollapsed] = useState(defaultCollapsed && hasInstructions);
 
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm">
-        <div className="flex items-center gap-2 text-amber-900">
-          <AlertCircle className="h-5 w-5" />
-          <h2 className="text-lg font-semibold uppercase tracking-wide">Instructions</h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-amber-900">
+            <AlertCircle className="h-5 w-5" />
+            <h2 className="text-lg font-semibold uppercase tracking-wide">Instructions</h2>
+          </div>
+          {hasInstructions && acknowledged && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="text-amber-900 hover:text-amber-800"
+              onClick={() => setCollapsed((prev) => !prev)}
+            >
+              {collapsed ? 'Show instructions' : 'Hide instructions'}
+            </Button>
+          )}
         </div>
-        <div
-          className="prose prose-sm mt-3 max-w-none text-amber-900"
-          dangerouslySetInnerHTML={{
-            __html: hasInstructions ? (instructionsHtml as string) : '<p>No instructions provided.</p>',
-          }}
-        />
-        {hasInstructions && !acknowledged && (
+        {!collapsed && (
+          <div
+            className="prose prose-sm mt-3 max-w-none text-amber-900"
+            dangerouslySetInnerHTML={{
+              __html: hasInstructions ? (instructionsHtml as string) : '<p>No instructions provided.</p>',
+            }}
+          />
+        )}
+        {hasInstructions && !acknowledged && !skipAcknowledgement && (
           <div className="mt-4 flex flex-col gap-3 rounded-lg border border-amber-200 bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between">
             <label htmlFor="acknowledge-instructions" className="flex items-start gap-3 text-sm text-amber-900">
               <Checkbox

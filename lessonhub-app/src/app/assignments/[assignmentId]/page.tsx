@@ -17,7 +17,7 @@ import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
 import LocaleDate from "@/app/components/LocaleDate";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, CheckCircle2, XCircle, GraduationCap } from "lucide-react";
+import { Check, X, CheckCircle2, XCircle, GraduationCap, UserRound } from "lucide-react";
 import Rating from "@/app/components/Rating";
 import { Button } from "@/components/ui/button";
 import prisma from "@/lib/prisma";
@@ -300,35 +300,52 @@ export default async function AssignmentPage({
         <div className="mt-8 border-t border-slate-800 pt-6">
           <h2 className="text-2xl font-bold text-slate-100 mb-4">Review Your Submission</h2>
           {lesson.type === LessonType.STANDARD && (
-             <div className="mt-2 space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-slate-100">
-                {Array.isArray(serializableAssignment.answers) && questionItems.map((item, i) => {
-                    const teacherComment = teacherAnswerCommentsMap[i];
-                    const expectedAnswer = item.expectedAnswer?.trim();
-                    return (
-                      <div key={i} className="space-y-2">
-                        <p className="text-sm font-semibold text-slate-200">Question {i + 1}: {item.question}</p>
-                        <p className="prose prose-sm mt-1 border-l-2 border-slate-700 pl-4 text-slate-100">{serializableAssignment.answers[i] || 'No answer provided.'}</p>
-                        {expectedAnswer && (
-                          <p className="text-xs text-slate-400">Expected answer: <span className="font-medium text-slate-200">{expectedAnswer}</span></p>
-                        )}
-                        {teacherComment && (
-                          <div className="mt-1 flex items-start gap-2 rounded-md border border-amber-300/30 bg-amber-500/10 p-3 text-sm text-amber-100">
-                            <GraduationCap className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-200" />
-                            <p className="whitespace-pre-wrap">{teacherComment}</p>
-                          </div>
-                        )}
+            <div className="mt-2 space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-slate-100">
+              {Array.isArray(serializableAssignment.answers) && questionItems.map((item, i) => {
+                const teacherComment = teacherAnswerCommentsMap[i];
+                const expectedAnswer = item.expectedAnswer?.trim();
+                const studentAnswer = serializableAssignment.answers[i] || 'No answer provided.';
+                return (
+                  <div key={i} className="space-y-3 rounded-xl border border-slate-800/60 bg-slate-900/70 p-4">
+                    <p className="text-sm font-semibold text-slate-100">
+                      Question {i + 1}: <span className="font-normal text-slate-200">{item.question}</span>
+                    </p>
+
+                    <div className="flex items-start gap-3 rounded-lg border border-sky-200 bg-sky-50/90 p-3 text-slate-800">
+                      <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-amber-400 text-slate-900">
+                        <UserRound className="h-5 w-5" />
                       </div>
-                    );
-                })}
-                {teacherCommentsBlock}
-                {serializableAssignment.rating && (
-                  <div>
-                    <p className="text-sm font-semibold text-slate-200">Your Rating</p>
-                    <div className="mt-1">
-                       <Rating initialRating={serializableAssignment.rating} readOnly={true} starSize={20} />
+                      <div className="space-y-1 text-sm">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Student answer</p>
+                        <p className="whitespace-pre-wrap">{studentAnswer}</p>
+                      </div>
                     </div>
+
+                    {expectedAnswer && (
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50/90 p-3 text-sm text-emerald-900">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Expected answer</p>
+                        <p className="mt-1 whitespace-pre-wrap font-medium">{expectedAnswer}</p>
+                      </div>
+                    )}
+
+                    {teacherComment && (
+                      <div className="flex items-start gap-2 rounded-md border border-amber-300/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+                        <GraduationCap className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-200" />
+                        <p className="whitespace-pre-wrap">{teacherComment}</p>
+                      </div>
+                    )}
                   </div>
-                )}
+                );
+              })}
+              {teacherCommentsBlock}
+              {serializableAssignment.rating && (
+                <div>
+                  <p className="text-sm font-semibold text-slate-200">Your Rating</p>
+                  <div className="mt-1">
+                    <Rating initialRating={serializableAssignment.rating} readOnly={true} starSize={20} />
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {lesson.type === LessonType.MULTI_CHOICE && Array.isArray(serializableAssignment.answers) && (
@@ -532,7 +549,7 @@ export default async function AssignmentPage({
           )}
         </div>
       )}
-      
+
       {lessonPreviewHtml && (
         <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-lg">
             <h2 className="text-xl font-semibold text-slate-100">👀 PREVIEW</h2>
@@ -540,13 +557,13 @@ export default async function AssignmentPage({
         </div>
       )}
 
-      {showResultsArea ? (
-        content
-      ) : (
-        <LessonInstructionsGate instructionsHtml={instructionsHtml}>
-          {content}
-        </LessonInstructionsGate>
-      )}
+      <LessonInstructionsGate
+        instructionsHtml={instructionsHtml}
+        skipAcknowledgement={showResultsArea}
+        defaultCollapsed={showResultsArea}
+      >
+        {content}
+      </LessonInstructionsGate>
     </div>
   );
 }
