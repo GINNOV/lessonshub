@@ -23,6 +23,8 @@ import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 import { ADMIN_TILES } from "@/lib/adminTiles";
 import LoginHistoryCard from "@/app/components/LoginHistoryCard";
 import CollapsibleSection from "@/app/components/CollapsibleSection";
+import AiFeaturesCard from "@/app/components/AiFeaturesCard";
+import { getAiSettings } from "@/actions/adminActions";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +88,7 @@ export default async function DashboardPage({
 
   // Admins see an Admin Dashboard instead of the Teacher view
   if (session.user.role === Role.ADMIN) {
+    const aiSettings = await getAiSettings();
     return (
       <div className="p-6">
         <WhatsNewDialog notes={whatsNewNotes} />
@@ -100,6 +103,9 @@ export default async function DashboardPage({
               </div>
             </Link>
           ))}
+        </div>
+        <div className="mt-8">
+          <AiFeaturesCard initialGeminiApiKey={aiSettings?.geminiApiKey ?? null} />
         </div>
       </div>
     );
