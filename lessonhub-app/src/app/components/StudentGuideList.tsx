@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import StudentGuideCard from '@/app/components/StudentGuideCard';
+import { Search } from 'lucide-react';
 
 export type StudentGuideSummary = {
   id: string;
@@ -18,9 +19,13 @@ export type StudentGuideSummary = {
 
 interface StudentGuideListProps {
   guides: StudentGuideSummary[];
+  copy?: {
+    searchPlaceholder: string;
+    emptyPaid: string;
+  };
 }
 
-export default function StudentGuideList({ guides }: StudentGuideListProps) {
+export default function StudentGuideList({ guides, copy }: StudentGuideListProps) {
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
@@ -35,17 +40,20 @@ export default function StudentGuideList({ guides }: StudentGuideListProps) {
 
   return (
     <div className="space-y-4">
-      <Input
-        type="search"
-        placeholder="Search Hub Guides..."
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        className="w-full sm:max-w-md"
-      />
+      <div className="relative w-full sm:max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+        <Input
+          type="search"
+          placeholder={copy?.searchPlaceholder || "Search Hub Guides..."}
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          className="w-full pl-9"
+        />
+      </div>
 
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
-          No Hub Guides available yet. New guides will appear here automatically.
+          {copy?.emptyPaid || "No Hub Guides available yet. New guides will appear here automatically."}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

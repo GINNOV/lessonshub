@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import ProfileForm from "@/app/components/ProfileForm";
 import LoginHistoryCard from "@/app/components/LoginHistoryCard";
 import prisma from "@/lib/prisma";
+import { headers } from "next/headers";
+import { parseAcceptLanguage, resolveLocale } from "@/lib/locale";
+import { profileCopy, ProfileLocale } from "@/lib/profileCopy";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -46,6 +49,7 @@ export default async function ProfilePage() {
     progressCardLinkText: user.progressCardLinkText,
     progressCardLinkUrl: user.progressCardLinkUrl,
     assignmentSummaryFooter: user.assignmentSummaryFooter,
+    uiLanguage: (user as any).uiLanguage ?? "device",
   } as any;
 
   const loginEvents = await prisma.loginEvent.findMany({
@@ -68,14 +72,25 @@ export default async function ProfilePage() {
     lessonTitle: event.lesson?.title ?? null,
   }));
 
+  const headerList = await headers();
+  const detectedLocales = parseAcceptLanguage(headerList.get("accept-language"));
+  const preference = (user as any).uiLanguage ?? "device";
+  const locale = resolveLocale({
+    preference,
+    detectedLocales,
+    supportedLocales: ["en", "it"] as const,
+    fallback: "en",
+  }) as ProfileLocale;
+  const copy = profileCopy[locale];
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Control Center</h1>
-        <p className="text-sm text-slate-500">Update your profile and review recent activity.</p>
+        <h1 className="text-3xl font-bold mb-2">{copy.headerTitle}</h1>
+        <p className="text-sm text-slate-500">{copy.headerSubtitle}</p>
       </div>
-      <ProfileForm userToEdit={serializableUser} />
-      <LoginHistoryCard entries={loginHistory} emptyMessage="No activity recorded yet." />
+      <ProfileForm userToEdit={serializableUser} resolvedLocale={locale} />
+      <LoginHistoryCard entries={loginHistory} emptyMessage={copy.loginHistoryEmpty} />
     </div>
   );
 }

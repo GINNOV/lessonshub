@@ -80,8 +80,8 @@ export default function StudentGamificationPanel({
 
   return (
     <div className="mb-10">
-      <Card className="shadow-sm">
-        <CardHeader className="flex flex-col gap-2">
+      <Card className="border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-xl backdrop-blur-sm">
+        <CardHeader className="flex flex-col gap-2 border-b border-slate-800/70 pb-4">
           <div className="flex items-center justify-between gap-3">
             <CardTitle>Achievements</CardTitle>
             <Button
@@ -95,8 +95,8 @@ export default function StudentGamificationPanel({
               aria-expanded={achievementsExpanded}
               className={`h-10 w-10 rounded-full border transition ${
                 achievementsExpanded
-                  ? "border-purple-200 bg-purple-50 text-purple-800"
-                  : "border-gray-200 bg-white text-gray-700 hover:border-purple-200 hover:text-purple-700"
+                  ? "border-teal-300/60 bg-teal-500/20 text-teal-100 shadow-[0_10px_30px_rgba(45,212,191,0.25)]"
+                  : "border-slate-700 bg-slate-800/70 text-slate-200 hover:border-teal-400/70 hover:text-white"
               }`}
             >
               {achievementsExpanded ? (
@@ -108,47 +108,47 @@ export default function StudentGamificationPanel({
           </div>
           {!achievementsExpanded && (
             <div className="space-y-3">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-slate-400">
                 Track the points and badges you&apos;ve earned so far.
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-slate-400">
                 🇮🇹 Guadagna punti per ottenere EXTRAS che ti consentono di avere
                 opportunità addizionali ed estendere deadlines. Ogni BADGE
                 ottenuto ti permette di ottenere un bonus di punti aggiuntivi.
               </p>
               <div className="flex flex-wrap gap-6 text-sm">
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-2xl font-bold text-slate-50">
                     {totalPoints.toLocaleString()} pts
                   </p>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">
                     Lifetime points
                   </p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-2xl font-bold text-slate-50">
                     {badges.length}
                   </p>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">
                     Badges unlocked
                   </p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-2xl font-bold text-slate-50">
                     {guidePoints.toLocaleString()} pts
                   </p>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">
                     Guides completed
                   </p>
                 </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-slate-50">
                   {goldStarPoints.toLocaleString()} pts
                 </p>
-                <p className="text-xs uppercase tracking-wide text-gray-500">
+                <p className="text-xs uppercase tracking-wide text-slate-400">
                   Gold stars received
                 </p>
-                <p className="text-xs text-gray-400">≈ €{goldStarAmount.toLocaleString()}</p>
+                <p className="text-xs text-slate-500">≈ €{goldStarAmount.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -158,41 +158,41 @@ export default function StudentGamificationPanel({
           <CardContent className="space-y-6">
             <div className="flex flex-wrap gap-6 text-sm">
               <div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-slate-50">
                   {totalPoints.toLocaleString()} pts
                 </p>
-                <p className="text-xs uppercase tracking-wide text-gray-500">
+                <p className="text-xs uppercase tracking-wide text-slate-400">
                   Lifetime points
                 </p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-slate-50">
                   {badges.length}
                 </p>
-                <p className="text-xs uppercase tracking-wide text-gray-500">
+                <p className="text-xs uppercase tracking-wide text-slate-400">
                   Badges unlocked
                 </p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-slate-50">
                   {guidePoints.toLocaleString()} pts
                 </p>
-                <p className="text-xs uppercase tracking-wide text-gray-500">
+                <p className="text-xs uppercase tracking-wide text-slate-400">
                   Guides completed
                 </p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-slate-50">
                   {goldStarPoints.toLocaleString()} pts
                 </p>
-                <p className="text-xs uppercase tracking-wide text-gray-500">
+                <p className="text-xs uppercase tracking-wide text-slate-400">
                   Gold stars received
                 </p>
-                <p className="text-xs text-gray-400">≈ €{goldStarAmount.toLocaleString()}</p>
+                <p className="text-xs text-slate-500">≈ €{goldStarAmount.toLocaleString()}</p>
               </div>
             </div>
             {badges.length === 0 ? (
-              <p className="rounded-lg border border-dashed bg-gray-50 p-4 text-sm text-gray-500">
+              <p className="rounded-lg border border-dashed border-slate-700 bg-slate-900/60 p-4 text-sm text-slate-300">
                 Your first badge is just a lesson away. Submit a graded lesson
                 to start collecting rewards.
               </p>
@@ -201,17 +201,17 @@ export default function StudentGamificationPanel({
                 {badges.map((badge) => (
                   <div
                     key={badge.id}
-                    className="flex items-center gap-3 rounded-lg border bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/70 p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg hover:border-teal-400/50"
                   >
                     <div className="text-2xl">{badge.icon ?? "🎖️"}</div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-gray-900">
+                      <p className="truncate text-sm font-semibold text-slate-50">
                         {badge.name}
                       </p>
-                      <p className="truncate text-xs text-gray-500">
+                      <p className="truncate text-xs text-slate-400">
                         {categoryLabels[badge.category]}
                       </p>
-                      <p className="truncate text-xs text-gray-400">
+                      <p className="truncate text-xs text-slate-500">
                         Earned {formatDate(badge.awardedAt)}
                       </p>
                     </div>
@@ -222,25 +222,25 @@ export default function StudentGamificationPanel({
 
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-gray-700">Next up</h3>
-                <p className="text-xs text-gray-500">
+                <h3 className="text-sm font-semibold text-slate-100">Next up</h3>
+                <p className="text-xs text-slate-400">
                   Peek at your upcoming rewards.
                 </p>
               </div>
               {nextBadge ? (
-                <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm text-purple-900">
+                <div className="rounded-lg border border-teal-300/60 bg-teal-500/10 p-4 text-sm text-teal-50">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{nextBadge.icon ?? "🎯"}</span>
                     <div>
                       <p className="font-semibold">{nextBadge.name}</p>
-                      <p className="text-xs text-purple-800/80">
+                      <p className="text-xs text-teal-100/80">
                         {nextBadge.description}
                       </p>
                     </div>
                   </div>
                 </div>
               ) : (
-                <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                <p className="rounded-lg border border-emerald-300/60 bg-emerald-500/10 p-4 text-sm text-emerald-50">
                   You&apos;ve unlocked every badge currently available.
                   Legendary status!
                 </p>
@@ -248,11 +248,11 @@ export default function StudentGamificationPanel({
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-700">
+              <h3 className="text-sm font-semibold text-slate-100">
                 Recent activity
               </h3>
               {recentTransactions.length === 0 ? (
-                <p className="mt-2 text-xs text-gray-500">
+                <p className="mt-2 text-xs text-slate-400">
                   Points updates will appear here once your next lesson is
                   graded.
                 </p>
@@ -265,15 +265,15 @@ export default function StudentGamificationPanel({
                     return (
                       <li
                         key={transaction.id}
-                        className="rounded-md border bg-white p-3"
+                        className="rounded-md border border-slate-800 bg-slate-900/70 p-3"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-medium text-slate-100">
                               {friendlyReason}
                             </p>
                             {transaction.note && (
-                              <p className="mt-1 text-xs text-gray-500">
+                              <p className="mt-1 text-xs text-slate-400">
                                 {transaction.note}
                               </p>
                             )}
@@ -282,7 +282,7 @@ export default function StudentGamificationPanel({
                             variant={isPositive ? "default" : "destructive"}
                             className={
                               isPositive
-                                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                                ? "bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/20"
                                 : undefined
                             }
                           >
@@ -290,7 +290,7 @@ export default function StudentGamificationPanel({
                             {transaction.points} pts
                           </UiBadge>
                         </div>
-                        <p className="mt-2 text-xs text-gray-400">
+                        <p className="mt-2 text-xs text-slate-500">
                           {formatDate(transaction.createdAt)}
                         </p>
                       </li>

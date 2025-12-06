@@ -52,10 +52,10 @@ export default function LoginHistoryCard({
   }, new Map());
 
   return (
-    <div className="rounded-xl border bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+    <div className="rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
+      <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
       {entries.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-500">{emptyMessage}</p>
+        <p className="mt-4 text-sm text-slate-400">{emptyMessage}</p>
       ) : (
         <Accordion type="multiple" className="mt-4">
           {Array.from(groupedByStudent.entries()).map(([studentName, studentEntries]) => {
@@ -70,31 +70,31 @@ export default function LoginHistoryCard({
 
             return (
               <AccordionItem value={studentName} key={studentName}>
-                <AccordionTrigger className="text-left text-sm font-semibold text-slate-900">
+                <AccordionTrigger className="text-left text-sm font-semibold text-slate-100">
                   {studentName}
-                  <span className="text-xs font-normal text-slate-500"> ({studentEntries.length} activit{studentEntries.length === 1 ? "y" : "ies"})</span>
+                  <span className="text-xs font-normal text-slate-400"> ({studentEntries.length} activit{studentEntries.length === 1 ? "y" : "ies"})</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-4">
                     {groupedByDay.map((day) => (
-                      <div key={`${studentName}-${day.dayKey}`} className="rounded-lg border bg-slate-50/70 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{day.dayLabel}</p>
+                      <div key={`${studentName}-${day.dayKey}`} className="rounded-lg border border-slate-800 bg-slate-900/70 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{day.dayLabel}</p>
                         <ul className="mt-2 space-y-2">
                           {day.items.map(({ entry, timestamp }) => {
                             const formattedTime = timeFormatter ? timeFormatter.format(timestamp) : timestamp.toLocaleTimeString();
                             return (
                               <li
                                 key={entry.id}
-                                className="flex flex-col gap-1 rounded-md border bg-white px-3 py-2 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between"
+                                className="flex flex-col gap-1 rounded-md border border-slate-800 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 sm:flex-row sm:items-center sm:justify-between"
                               >
                                 <div>
-                                  <p className="font-medium text-slate-900">{formattedTime}</p>
-                                  <p className="text-xs text-slate-600">Lesson: {entry.lessonTitle ? entry.lessonTitle : "Not recorded"}</p>
+                                  <p className="font-medium text-slate-100">{formattedTime}</p>
+                                  <p className="text-xs text-slate-400">Lesson: {entry.lessonTitle ? entry.lessonTitle : "Not recorded"}</p>
                                 </div>
                                 {entry.lessonId && getLessonHref && getLessonHref(entry.lessonId) && (
                                   <Link
                                     href={getLessonHref(entry.lessonId)!}
-                                    className="text-xs font-semibold text-indigo-600 underline"
+                                    className="text-xs font-semibold text-teal-200 underline underline-offset-2"
                                   >
                                     View lesson
                                   </Link>

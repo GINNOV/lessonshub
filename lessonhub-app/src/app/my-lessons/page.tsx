@@ -28,6 +28,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import prisma from "@/lib/prisma";
+import { headers } from "next/headers";
+import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from "@/lib/locale";
+import { studentDashboardCopy, StudentDashboardLocale } from "@/lib/studentDashboardCopy";
+import { BookOpen, Sparkles, Gift } from "lucide-react";
 
 export default async function MyLessonsPage() {
   const session = await auth();
@@ -46,6 +50,9 @@ export default async function MyLessonsPage() {
   const isPaying = studentRecord?.isPaying ?? session.user.isPaying ?? false;
   const isTakingBreak =
     studentRecord?.isTakingBreak ?? session.user.isTakingBreak ?? false;
+  const signupDate =
+    (session.user as any)?.createdAt ? new Date((session.user as any).createdAt) : null;
+  const signupFloor = signupDate ?? new Date();
 
   // If the user is taking a break, show the message and stop further data fetching.
   if (isTakingBreak) {
@@ -132,9 +139,22 @@ export default async function MyLessonsPage() {
       (lessonAssignment) => submittedStatuses.has(lessonAssignment.status),
     ).length;
 
+    const isFreeLesson =
+      price.toNumber() === 0 ||
+      (assignment.lesson as any).isFreeForAll ||
+      (assignment.lesson as any).guideIsFreeForAll;
+    const adjustedDeadline =
+      isFreeLesson
+        ? (() => {
+            const original = new Date(assignment.deadline);
+            return original < signupFloor ? signupFloor : original;
+          })()
+        : assignment.deadline;
+
     return {
       ...assignment,
       originalDeadline: assignment.originalDeadline ?? null,
+      deadline: adjustedDeadline,
       pointsAwarded: assignment.pointsAwarded ?? 0,
       // Ensure optional columns missing in some DBs are present for typing
       teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
@@ -192,6 +212,45 @@ export default async function MyLessonsPage() {
     (guide) => guide.guideIsFreeForAll === true,
   );
 
+  const assignedFreeLessons = serializableAssignments
+    .filter(
+      (assignment) =>
+        assignment.lesson.price === 0 ||
+        (assignment.lesson as any).isFreeForAll ||
+        (assignment.lesson as any).guideIsFreeForAll,
+    )
+    .map((assignment) => ({
+      id: assignment.lesson.id,
+      title: assignment.lesson.title,
+      type: assignment.lesson.type,
+      lesson_preview: assignment.lesson.lesson_preview,
+      assignment_image_url: assignment.lesson.assignment_image_url,
+      price: assignment.lesson.price,
+      difficulty: assignment.lesson.difficulty,
+      teacher: assignment.lesson.teacher,
+      completionCount: assignment.lesson.completionCount,
+    }));
+
+  const mergedFreeLessons = [
+    ...assignedFreeLessons,
+    ...freeLessons.filter(
+      (lesson) => !assignedFreeLessons.some((assigned) => assigned.id === lesson.id),
+    ),
+  ];
+
+  const guidesForTab = isPaying ? visibleGuides : freeGuides;
+
+  const headerList = await headers();
+  const detectedLocales = parseAcceptLanguage(headerList.get("accept-language"));
+  const preference = ((session.user as any)?.uiLanguage as UiLanguagePreference) ?? "device";
+  const locale = resolveLocale({
+    preference,
+    detectedLocales,
+    supportedLocales: ["en", "it"] as const,
+    fallback: "en",
+  }) as StudentDashboardLocale;
+  const copy = studentDashboardCopy[locale];
+
   return (
     <div>
       <WhatsNewDialog notes={whatsNewNotes} defaultLocale="us" />
@@ -205,81 +264,95 @@ export default async function MyLessonsPage() {
         failed={failed}
         pastDue={pastDue}
         settings={settings}
+        copy={copy.stats}
       />
-      {isPaying ? (
-        <section className="mt-10 space-y-6">
-          <HubGuideBanner variant="paying" guideCount={visibleGuides.length} />
+      <section className="mt-10 space-y-6">
+        <HubGuideBanner guideCount={guidesForTab.length} copy={copy.guides} />
+        {isPaying ? (
           <Tabs defaultValue="lessons" className="space-y-6">
-            <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner">
+            <TabsList className="mb-2 flex w-full flex-wrap items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 px-2 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
               <TabsTrigger
                 value="lessons"
-                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+                className="flex-1 min-w-[140px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
               >
-                Lessons
-              </TabsTrigger>
-              <TabsTrigger
-                value="free"
-                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
-              >
-                Free Lessons
+                <span className="flex items-center justify-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  {locale === "it" ? "Lezioni" : "Lessons"}
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value="guides"
-                className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
+                className="flex-1 min-w-[140px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
               >
-                Hub Guides
+                <span className="flex items-center justify-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  {copy.guides.tabLabel}
+                </span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="lessons">
-              <StudentLessonList assignments={serializableAssignments} />
-            </TabsContent>
-             <TabsContent value="free">
-              <StudentFreeLessonList lessons={freeLessons} />
+              <StudentLessonList assignments={serializableAssignments} copy={copy.lessons} />
             </TabsContent>
             <TabsContent value="guides">
-              {visibleGuides.length > 0 ? (
-                <StudentGuideList guides={visibleGuides} />
+              {guidesForTab.length > 0 ? (
+                <StudentGuideList guides={guidesForTab} copy={copy.guides} />
               ) : (
                 <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
-                  New guides are on the way. Stay tuned!
+                  {copy.guides.emptyPaid}
                 </div>
               )}
             </TabsContent>
           </Tabs>
-        </section>
-      ) : (
-        <>
-          <section className="mt-10 space-y-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold">My Lessons</h1>
-            </div>
-            <StudentLessonList assignments={serializableAssignments} />
-          </section>
-          
-          {freeLessons.length > 0 && (
-            <section className="mt-10 space-y-4">
-              <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Available Free Lessons</h1>
-              </div>
-              <StudentFreeLessonList lessons={freeLessons} />
-            </section>
-          )}
+        ) : (
+          <Tabs defaultValue="free" className="space-y-6">
+            <TabsList className="mb-2 flex w-full flex-wrap items-stretch gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-slate-800/70">
+              <TabsTrigger
+                value="free"
+                className="flex-1 min-w-[150px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <Gift className="h-4 w-4" />
+                  {locale === "it" ? "Lezioni gratuite" : "Free Lessons"}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="lessons"
+                className="flex-1 min-w-[150px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  {locale === "it" ? "Le mie lezioni" : "My Lessons"}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="guides"
+                className="flex-1 min-w-[150px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  {copy.guides.tabLabel}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="free">
+              <StudentFreeLessonList lessons={mergedFreeLessons} copy={{ searchPlaceholder: copy.guides.searchPlaceholder, emptyFree: copy.guides.emptyFree }} />
+            </TabsContent>
+            <TabsContent value="lessons">
+              <StudentLessonList assignments={serializableAssignments} copy={copy.lessons} />
+            </TabsContent>
+            <TabsContent value="guides">
+              {guidesForTab.length > 0 ? (
+                <StudentGuideList guides={guidesForTab} copy={copy.guides} />
+              ) : (
+                <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
+                  {copy.guides.emptyFree}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+      </section>
 
-          <section className="mt-16 space-y-4">
-            <HubGuideBanner variant="locked" guideCount={freeGuides.length} />
-            {freeGuides.length > 0 ? (
-              <div className="space-y-4">
-                <StudentGuideList guides={freeGuides} />
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
-                No free guides are available right now. Upgrade to access the
-                full library.
-              </div>
-            )}
-          </section>
-        </>
-      )}
       <div className="mt-10 space-y-8">
         <StudentGamificationPanel data={gamificationSnapshot} />
         <Leaderboard leaderboardData={leaderboardData} />

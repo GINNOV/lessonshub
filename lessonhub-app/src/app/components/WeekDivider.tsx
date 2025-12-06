@@ -2,15 +2,13 @@
 
 export default function WeekDivider({ weekNumber }: { weekNumber: number }) {
   return (
-    <div className="relative my-4">
-      <div className="absolute inset-0 flex items-center" aria-hidden="true">
-        <div className="w-full border-t border-gray-200" />
+    <div className="flex items-center gap-3">
+      <div className="h-px flex-1 bg-slate-800" />
+      <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-300 shadow-sm">
+        <span role="img" aria-label="Calendar">🗓️</span>
+        <span>Week {weekNumber}</span>
       </div>
-      <div className="relative flex justify-center">
-        <span className="bg-gray-50 px-2 text-sm text-gray-400">
-          🗓️ Week {weekNumber} ⬇️
-        </span>
-      </div>
+      <div className="h-px flex-1 bg-slate-800" />
     </div>
   );
 }

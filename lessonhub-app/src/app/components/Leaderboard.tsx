@@ -63,41 +63,41 @@ const getInitials = (name: string | null | undefined) => {
 
 const getSavingsMeta = (value: number | undefined) => {
     if (typeof value !== 'number' || Number.isNaN(value)) {
-        return { label: '—', className: 'text-gray-500' };
+        return { label: '—', className: 'text-slate-500' };
     }
     const label = `€${value.toFixed(2)}`;
-    if (value < 0) return { label, className: 'text-red-600' };
-    if (value > 0) return { label, className: 'text-emerald-600' };
-    return { label, className: 'text-gray-700' };
+    if (value < 0) return { label, className: 'text-rose-300' };
+    if (value > 0) return { label, className: 'text-emerald-300' };
+    return { label, className: 'text-slate-300' };
 };
 
 export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
-    return (
-        <div className="mt-12">
-            <h2 className="text-2xl font-bold mb-4">🏆 Student Leaderboard</h2>
-            <p className="mb-4 text-sm text-gray-500">Showing top 12 peers in your network.</p>
+  return (
+    <div className="mt-12">
+            <h2 className="mb-2 text-2xl font-bold text-slate-100">🏆 Student Leaderboard</h2>
+            <p className="mb-4 text-sm text-slate-400">Showing top 12 peers in your network.</p>
             {/* Desktop/tablet table */}
-            <div className="bg-white shadow-md rounded-lg overflow-hidden hidden md:block">
+            <div className="hidden overflow-hidden rounded-lg border border-slate-800/70 bg-slate-900/80 shadow-xl backdrop-blur-sm md:block">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-slate-800">
+                        <thead className="bg-slate-900/90">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Time</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Savings</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Badges</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Rank</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Student</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Points</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Completed</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Avg. Time</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Savings</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Badges</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="divide-y divide-slate-800">
                             {leaderboardData.map((student, index) => {
                                 const { label: savingsLabel, className: savingsClass } = getSavingsMeta(student.savings);
                                 return (
-                                  <tr key={student.id}>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
+                                  <tr key={student.id} className="hover:bg-slate-900/60 transition-colors">
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-100">{index + 1}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-200">
                                         <div className="flex items-center gap-2">
                                             <Avatar className="h-8 w-8">
                                                 <AvatarImage src={student.image || ''} alt={student.name || ''} />
@@ -107,27 +107,27 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                                                 href={`/profile/${student.id}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="text-sm font-medium text-purple-700 hover:underline"
+                                                className="text-sm font-semibold text-teal-200 hover:text-teal-100"
                                             >
                                                 {anonymizeName(student.name)}
                                             </Link>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-700">
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-slate-100">
                                         {student.totalPoints.toLocaleString()} pts
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{student.completedCount}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                        <span className="text-2xl mr-1">{getSpeedEmoji(student.speedTier, index + 1)}</span>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-400">{student.completedCount}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-400">
+                                        <span className="mr-1 text-2xl">{getSpeedEmoji(student.speedTier, index + 1)}</span>
                                         {formatDuration(student.averageCompletionTime)}
                                     </td>
                                     <td className={`px-4 py-3 whitespace-nowrap text-sm font-semibold ${savingsClass}`}>
                                         {savingsLabel}
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-400">
                                         <div className="flex items-center gap-2">
                                             {student.recentBadges.length === 0 ? (
-                                                <span className="text-xs text-gray-400">—</span>
+                                                <span className="text-xs text-slate-500">—</span>
                                             ) : (
                                                 student.recentBadges.map((badge) => (
                                                     <span key={badge.slug} title={badge.name} className="text-lg">
@@ -144,7 +144,7 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                     </table>
                 </div>
                 {leaderboardData.length === 0 && (
-                    <p className="p-6 text-center text-gray-500">No leaderboard activity yet. Submissions and grades will appear here.</p>
+                    <p className="p-6 text-center text-slate-400">No leaderboard activity yet. Submissions and grades will appear here.</p>
                 )}
             </div>
 
@@ -153,7 +153,7 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                 {leaderboardData.map((student) => {
                     const { label: savingsLabel, className: savingsClass } = getSavingsMeta(student.savings);
                     return (
-                      <div key={student.id} className="flex items-center justify-between rounded-lg border bg-white p-3 shadow-sm">
+                      <div key={student.id} className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/70 p-3 shadow-sm">
                         <div className="flex items-center gap-3 min-w-0">
                             <Avatar className="h-10 w-10 flex-shrink-0">
                                 <AvatarImage src={student.image || ''} alt={student.name || ''} />
@@ -164,22 +164,22 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                                     href={`/profile/${student.id}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-sm font-semibold text-gray-900 truncate hover:text-purple-700"
+                                    className="truncate text-sm font-semibold text-teal-200 hover:text-teal-100"
                                 >
                                     {anonymizeName(student.name)}
                                 </Link>
-                                <div className="text-xs text-gray-500">{student.testsTaken} tests taken</div>
+                                <div className="text-xs text-slate-400">{student.testsTaken} tests taken</div>
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-xs uppercase tracking-wide text-gray-400">Savings</div>
+                            <div className="text-xs uppercase tracking-wide text-slate-500">Savings</div>
                             <div className={`text-base font-semibold ${savingsClass}`}>{savingsLabel}</div>
                         </div>
                       </div>
                     );
                 })}
                 {leaderboardData.length === 0 && (
-                    <p className="p-4 text-center text-gray-500">No leaderboard activity yet.</p>
+                    <p className="p-4 text-center text-slate-400">No leaderboard activity yet.</p>
                 )}
             </div>
         </div>

@@ -13,7 +13,27 @@ interface ReferralShareCardProps {
   rewardPercent: number;
 }
 
-export default function ReferralShareCard({ referralLink, referralCode, rewardPercent }: ReferralShareCardProps) {
+type ReferralShareCardCopy = {
+  title: string;
+  description: string;
+  linkLabel: string;
+  codeLabel: string;
+  copy: string;
+  copiedLink: string;
+  copiedCode: string;
+  copyError: string;
+  footer: string;
+  shareButton: string;
+  shareTitle: string;
+  shareText: string;
+};
+
+export default function ReferralShareCard({
+  referralLink,
+  referralCode,
+  rewardPercent,
+  copy,
+}: ReferralShareCardProps & { copy: ReferralShareCardCopy }) {
   const [copiedField, setCopiedField] = useState<"link" | "code" | null>(null);
   const formattedPercent = Number.isInteger(rewardPercent)
     ? rewardPercent.toString()
@@ -23,10 +43,10 @@ export default function ReferralShareCard({ referralLink, referralCode, rewardPe
     try {
       await navigator.clipboard.writeText(value);
       setCopiedField(type);
-      toast.success(type === "link" ? "Referral link copied" : "Referral code copied");
+      toast.success(type === "link" ? copy.copiedLink : copy.copiedCode);
       setTimeout(() => setCopiedField((current) => (current === type ? null : current)), 2000);
     } catch {
-      toast.error("Unable to copy. Please copy it manually.");
+      toast.error(copy.copyError);
     }
   };
 
@@ -34,8 +54,8 @@ export default function ReferralShareCard({ referralLink, referralCode, rewardPe
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Join LessonHUB",
-          text: "Learn English with LessonHUB. Use my referral link to sign up!",
+          title: copy.shareTitle,
+          text: copy.shareText,
           url: referralLink,
         });
       } catch {
@@ -49,40 +69,38 @@ export default function ReferralShareCard({ referralLink, referralCode, rewardPe
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Share your invite</CardTitle>
+        <CardTitle>{copy.title}</CardTitle>
         <CardDescription>
-          Send the link or code below to let friends keep 100% of their lessons while you collect {formattedPercent}% of their monthly payment.
+          {copy.description.replace("{percent}", formattedPercent)}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <p className="text-sm text-muted-foreground mb-1">Referral link</p>
+          <p className="text-sm text-muted-foreground mb-1">{copy.linkLabel}</p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input value={referralLink} readOnly className="font-mono text-sm" />
             <Button onClick={() => handleCopy(referralLink, "link")} variant="secondary" className="whitespace-nowrap">
               <Copy className="h-4 w-4 mr-2" />
-              {copiedField === "link" ? "Copied" : "Copy"}
+              {copiedField === "link" ? copy.copiedLink : copy.copy}
             </Button>
           </div>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground mb-1">Referral code</p>
+          <p className="text-sm text-muted-foreground mb-1">{copy.codeLabel}</p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input value={referralCode} readOnly className="font-mono text-sm sm:max-w-[200px]" />
             <Button onClick={() => handleCopy(referralCode, "code")} variant="outline" className="whitespace-nowrap">
               <Copy className="h-4 w-4 mr-2" />
-              {copiedField === "code" ? "Copied" : "Copy"}
+              {copiedField === "code" ? copy.copiedCode : copy.copy}
             </Button>
           </div>
         </div>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          Earn rewards when referred students subscribe. Tracking updates automatically.
-        </p>
+        <p className="text-sm text-muted-foreground">{copy.footer}</p>
         <Button onClick={handleShare} className="w-full sm:w-auto">
           <LinkIcon className="h-4 w-4 mr-2" />
-          Share link
+          {copy.shareButton}
         </Button>
       </CardFooter>
     </Card>

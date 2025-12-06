@@ -22,16 +22,16 @@ export default function CollapsibleSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <section className="rounded-xl border bg-white shadow-sm">
+    <section className="rounded-2xl border border-slate-800/70 bg-slate-900/70 shadow-xl backdrop-blur-sm">
       <header className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">{helperText}</p>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        <div className="space-y-1">
+          <p className="text-[11px] uppercase tracking-wide text-teal-200">{helperText}</p>
+          <h2 className="text-lg font-semibold text-slate-50">{title}</h2>
         </div>
         <Button
           variant="ghost"
           size="sm"
-          className="flex items-center gap-2 text-sm"
+          className="flex items-center gap-2 text-sm text-slate-200 hover:text-white hover:bg-slate-800/80"
           onClick={() => setOpen((prev) => !prev)}
           aria-expanded={open}
           aria-controls={`${title.replace(/\s+/g, '-').toLowerCase()}-section`}
@@ -42,7 +42,7 @@ export default function CollapsibleSection({
       </header>
       <div
         id={`${title.replace(/\s+/g, '-').toLowerCase()}-section`}
-        className={cn('border-t px-4 pb-4 sm:px-6 sm:pb-6', open ? 'block' : 'hidden')}
+        className={cn('border-t border-slate-800 px-4 pb-4 sm:px-6 sm:pb-6', open ? 'block' : 'hidden')}
       >
         {children}
       </div>

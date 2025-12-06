@@ -1,92 +1,131 @@
 // file: src/app/components/ProfileForm.tsx
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { useSession, signOut } from 'next-auth/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { changePassword, deleteUserAccount, toggleTakingABreak } from '@/actions/userActions';
-import { toggleTakingABreakForUser } from '@/actions/adminActions';
+import { useEffect, useMemo, useState } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  changePassword,
+  deleteUserAccount,
+  toggleTakingABreak,
+} from "@/actions/userActions";
+import { toggleTakingABreakForUser } from "@/actions/adminActions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Role, Gender } from '@prisma/client';
-import { toast } from 'sonner';
+import { User, Role, Gender } from "@prisma/client";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from '@/components/ui/textarea';
-import { updateTeacherBio } from '@/actions/teacherActions';
-import { redeemCoupon } from '@/actions/billingActions';
-import { Badge } from '@/components/ui/badge';
-import FileUploadButton from '@/components/FileUploadButton';
-import { useSearchParams } from 'next/navigation';
+import { Textarea } from "@/components/ui/textarea";
+import { updateTeacherBio } from "@/actions/teacherActions";
+import { redeemCoupon } from "@/actions/billingActions";
+import { Badge } from "@/components/ui/badge";
+import FileUploadButton from "@/components/FileUploadButton";
+import { useSearchParams } from "next/navigation";
+import { UiLanguagePreference, resolveLocale } from "@/lib/locale";
+import { profileCopy, ProfileLocale } from "@/lib/profileCopy";
 
 interface ProfileFormProps {
   userToEdit?: User | null;
   isAdmin?: boolean;
+  resolvedLocale?: ProfileLocale;
 }
-
-export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileFormProps) {
+export default function ProfileForm({
+  userToEdit,
+  isAdmin = false,
+  resolvedLocale = "en",
+}: ProfileFormProps) {
   const { data: session, update } = useSession();
   const user = userToEdit || session?.user;
   const searchParams = useSearchParams();
-  const initialTabFromUrl = searchParams?.get('tab');
-  const normalizedTab = initialTabFromUrl === 'billing' ? 'status' : initialTabFromUrl;
+  const initialTabFromUrl = searchParams?.get("tab");
+  const normalizedTab =
+    initialTabFromUrl === "billing" ? "status" : initialTabFromUrl;
 
   // State from your original component
-  const [name, setName] = useState(user?.name ?? '');
+  const [name, setName] = useState(user?.name ?? "");
   const [image, setImage] = useState(user?.image ?? null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  const confirmationText = "Yes, I am sure.";
+  const [locale, setLocale] = useState<ProfileLocale>(resolvedLocale);
+  const copy = profileCopy[locale];
+  const confirmationText = copy.breakTab.confirmationText;
 
   // State for the "Taking a Break" feature
-  const [isTakingBreak, setIsTakingBreak] = useState(user?.isTakingBreak ?? false);
-  const [gender, setGender] = useState<Gender>((user as any)?.gender ?? Gender.BINARY);
-  const [weeklySummaryOptOut, setWeeklySummaryOptOut] = useState<boolean>((user as any)?.weeklySummaryOptOut ?? false);
+  const [isTakingBreak, setIsTakingBreak] = useState(
+    user?.isTakingBreak ?? false,
+  );
+  const [gender, setGender] = useState<Gender>(
+    (user as any)?.gender ?? Gender.BINARY,
+  );
+  const [uiLanguage, setUiLanguage] = useState<UiLanguagePreference>(
+    ((user as any)?.uiLanguage as UiLanguagePreference) ?? "device",
+  );
+  const [weeklySummaryOptOut, setWeeklySummaryOptOut] = useState<boolean>(
+    (user as any)?.weeklySummaryOptOut ?? false,
+  );
 
   // Timezone state
   const defaultTz = (() => {
-    try { return (user as any)?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return (user as any)?.timeZone || 'UTC'; }
+    try {
+      return (
+        (user as any)?.timeZone ||
+        Intl.DateTimeFormat().resolvedOptions().timeZone
+      );
+    } catch {
+      return (user as any)?.timeZone || "UTC";
+    }
   })();
   const [timeZone, setTimeZone] = useState<string>(defaultTz);
   const tzList: string[] = (() => {
     try {
       // @ts-ignore
-      return typeof Intl !== 'undefined' && (Intl as any).supportedValuesOf ? (Intl as any).supportedValuesOf('timeZone') : [];
-    } catch { return []; }
+      return typeof Intl !== "undefined" && (Intl as any).supportedValuesOf
+        ? (Intl as any).supportedValuesOf("timeZone")
+        : [];
+    } catch {
+      return [];
+    }
   })();
-  const [teacherBio, setTeacherBio] = useState(user?.teacherBio ?? '');
-  const [studentBio, setStudentBio] = useState(user?.studentBio ?? '');
+  const [teacherBio, setTeacherBio] = useState(user?.teacherBio ?? "");
+  const [studentBio, setStudentBio] = useState(user?.studentBio ?? "");
   const [isSubmittingBio, setIsSubmittingBio] = useState(false);
   const [isPaying, setIsPaying] = useState(user?.isPaying ?? false);
-  const [couponCode, setCouponCode] = useState('');
+  const [couponCode, setCouponCode] = useState("");
   const [isRedeemingCoupon, setIsRedeemingCoupon] = useState(false);
 
   // All handlers from your original component are preserved
   const getInitials = (name: string | null | undefined): string => {
-    if (!name) return '??';
-    const names = name.split(' ');
+    if (!name) return "??";
+    const names = name.split(" ");
     return names.length > 1
       ? `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase()
       : name.substring(0, 2).toUpperCase();
   };
-  
+
   const handleToggleBreak = async (isChecked: boolean) => {
     setIsTakingBreak(isChecked);
-    const result = isAdmin && userToEdit
+    const result =
+      isAdmin && userToEdit
         ? await toggleTakingABreakForUser(userToEdit.id)
         : await toggleTakingABreak();
 
     if (result.success) {
-      const message = result.isTakingBreak ? 'Lessons are now paused.' : 'Lessons are now active.';
+      const message = result.isTakingBreak
+        ? copy.toasts.breakOn
+        : copy.toasts.breakOff;
       toast.success(message);
       if (!isAdmin) {
-          await update({ ...session, user: { ...session?.user, isTakingBreak: isChecked } });
+        await update({
+          ...session,
+          user: { ...session?.user, isTakingBreak: isChecked },
+        });
       }
     } else {
       toast.error(result.error);
@@ -97,14 +136,14 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
   const handleRedeemCoupon = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!couponCode.trim()) {
-      toast.error('Enter your coupon code first.');
+      toast.error(copy.toasts.redeemEmpty);
       return;
     }
     setIsRedeemingCoupon(true);
     const result = await redeemCoupon(couponCode.trim());
     if (result.success) {
-      toast.success(result.message || 'Coupon applied successfully!');
-      setCouponCode('');
+      toast.success(result.message || copy.toasts.redeemSuccess);
+      setCouponCode("");
       setIsPaying(true);
       if (!isAdmin && session) {
         await update({
@@ -116,20 +155,25 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
         });
       }
     } else {
-      toast.error(result.error || 'Unable to redeem coupon.');
+      toast.error(result.error || copy.toasts.redeemError);
     }
     setIsRedeemingCoupon(false);
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     event.preventDefault();
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
-    
+
     try {
-      const response = await fetch(`/api/upload?filename=${file.name}`, { method: 'POST', body: file });
+      const response = await fetch(`/api/upload?filename=${file.name}`, {
+        method: "POST",
+        body: file,
+      });
       if (!response.ok) throw new Error("Upload failed.");
       const newBlob = await response.json();
       setImage(newBlob.url);
@@ -140,26 +184,34 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
       setIsUploading(false);
     }
   };
-  
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingProfile(true);
-    
-    const apiRoute = isAdmin && userToEdit ? `/api/profile/${userToEdit.id}` : '/api/profile';
-    
-    const payload: Record<string, unknown> = { name, image, timeZone, gender, weeklySummaryOptOut };
+
+    const apiRoute =
+      isAdmin && userToEdit ? `/api/profile/${userToEdit.id}` : "/api/profile";
+
+    const payload: Record<string, unknown> = {
+      name,
+      image,
+      timeZone,
+      gender,
+      weeklySummaryOptOut,
+      uiLanguage,
+    };
     if (user?.role === Role.STUDENT) {
       payload.studentBio = studentBio;
     }
 
     const response = await fetch(apiRoute, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
     if (response.ok) {
-      toast.success('Profile updated successfully!');
+      toast.success(copy.toasts.profileSaved);
       if (!isAdmin) {
         await update({
           ...session,
@@ -170,13 +222,14 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
             timeZone,
             gender,
             weeklySummaryOptOut,
+            uiLanguage,
             ...(user?.role === Role.STUDENT ? { studentBio } : {}),
           } as any,
         });
       }
     } else {
       const data = await response.json();
-      toast.error(data.error || 'Failed to update profile.');
+      toast.error(data.error || copy.toasts.profileError);
     }
     setIsSubmittingProfile(false);
   };
@@ -188,7 +241,7 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     try {
       const result = await updateTeacherBio(teacherBio);
       if (result.success) {
-        toast.success('About me updated successfully!');
+        toast.success(copy.toasts.aboutSaved);
         if (!isAdmin && session) {
           await update({
             ...session,
@@ -199,10 +252,10 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
           });
         }
       } else {
-        toast.error(result.error || 'Failed to update About me.');
+        toast.error(result.error || copy.toasts.aboutError);
       }
     } catch (error) {
-      toast.error('An unexpected error occurred.');
+      toast.error(copy.toasts.aboutUnexpected);
     }
 
     setIsSubmittingBio(false);
@@ -211,7 +264,7 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      toast.error('New passwords do not match.');
+      toast.error(copy.toasts.passwordMismatch);
       return;
     }
     setIsSubmittingPassword(true);
@@ -219,10 +272,10 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     const result = await changePassword(newPassword);
 
     if (result.success) {
-      await signOut({ callbackUrl: '/signin' });
-      toast.info('Password changed successfully. Please sign in again.');
+      await signOut({ callbackUrl: "/signin" });
+      toast.info(copy.toasts.passwordChanged);
     } else {
-      toast.error(result.error || 'Failed to change password.');
+      toast.error(result.error || copy.toasts.passwordError);
       setIsSubmittingPassword(false);
     }
   };
@@ -230,37 +283,48 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
   const handleDeleteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (deleteConfirmation !== confirmationText) {
-      toast.error('Please type the confirmation text exactly as shown.');
+      toast.error(copy.toasts.deleteConfirmMismatch);
       return;
     }
     setIsDeleting(true);
 
     const result = await deleteUserAccount();
     if (result.success) {
-      await signOut({ callbackUrl: '/' });
-      toast.success('Account deleted successfully.');
+      await signOut({ callbackUrl: "/" });
+      toast.success(copy.toasts.deleteSuccess);
     } else {
-      toast.error(result.error || 'Failed to delete account.');
+      toast.error(result.error || copy.toasts.deleteError);
       setIsDeleting(false);
     }
   };
 
   const visibleTabs = useMemo(() => {
     const base = [
-      { value: 'profile', label: 'Profile', visible: true },
-      { value: 'about', label: 'About me', visible: user?.role === Role.TEACHER },
-      { value: 'status', label: 'Billing', visible: user?.role === Role.STUDENT },
-      { value: 'password', label: 'Password', visible: !isAdmin },
-      { value: 'delete', label: 'Break(up) time', visible: !isAdmin },
+      { value: "profile", label: copy.tabs.profile, visible: true },
+      {
+        value: "about",
+        label: copy.tabs.about,
+        visible: user?.role === Role.TEACHER,
+      },
+      {
+        value: "status",
+        label: copy.tabs.billing,
+        visible: user?.role === Role.STUDENT,
+      },
+      { value: "password", label: copy.tabs.password, visible: !isAdmin },
+      { value: "delete", label: copy.tabs.delete, visible: !isAdmin },
     ] as const;
     return base.filter((option) => option.visible);
-  }, [user?.role, isAdmin]);
+  }, [user?.role, isAdmin, copy.tabs]);
 
   const defaultTab = useMemo(() => {
-    if (normalizedTab && visibleTabs.some((tab) => tab.value === normalizedTab)) {
+    if (
+      normalizedTab &&
+      visibleTabs.some((tab) => tab.value === normalizedTab)
+    ) {
       return normalizedTab;
     }
-    return 'profile';
+    return "profile";
   }, [normalizedTab, visibleTabs]);
 
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
@@ -269,30 +333,49 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
     setActiveTab(defaultTab);
   }, [defaultTab]);
 
+  useEffect(() => {
+    const preference = (user as any)?.uiLanguage ?? resolvedLocale ?? "device";
+    const detectedLocales =
+      typeof navigator !== "undefined"
+        ? (navigator.languages?.length ? navigator.languages : [navigator.language]).filter(
+            Boolean,
+          )
+        : [];
+    const nextLocale = resolveLocale({
+      preference: preference as UiLanguagePreference,
+      detectedLocales,
+      supportedLocales: ["en", "it"] as const,
+      fallback: "en",
+    }) as ProfileLocale;
+    setLocale(nextLocale);
+  }, [user, resolvedLocale]);
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="mb-2 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner h-auto">
+      <TabsList className="mb-4 flex w-full flex-wrap gap-2 rounded-2xl border border-slate-800 bg-slate-950/70 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)] h-auto">
         {visibleTabs.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100 md:flex-none"
+            className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-slate-100 transition data-[state=active]:border-teal-400/60 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 md:flex-none"
           >
             {tab.label}
           </TabsTrigger>
         ))}
       </TabsList>
-      
+
       <TabsContent value="profile" className="mt-4">
-        <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
-            <h2 className="mb-4 text-2xl font-semibold">Update Profile</h2>
-            <form onSubmit={handleProfileSubmit} className="space-y-5">
-            <div className="space-y-4">
-                <Label>Profile Picture</Label>
-                <div className="flex items-center gap-4">
+        <div className="mt-2 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
+          <h2 className="mb-4 text-2xl font-semibold text-slate-100">{copy.profile.title}</h2>
+          <form onSubmit={handleProfileSubmit} className="space-y-6">
+            <div className="space-y-3">
+              <Label className="text-slate-100">{copy.profile.picture}</Label>
+              <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
-                    {image && <AvatarImage src={image} alt={name} />}
-                    <AvatarFallback className="text-3xl">{getInitials(name)}</AvatarFallback>
+                  {image && <AvatarImage src={image} alt={name} />}
+                  <AvatarFallback className="text-3xl bg-slate-800 text-slate-200">
+                    {getInitials(name)}
+                  </AvatarFallback>
                 </Avatar>
                 <FileUploadButton
                   id="picture"
@@ -301,95 +384,165 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
                   accept="image/*"
                   className="w-auto"
                 />
-                </div>
-                {isUploading && <p className="text-sm text-gray-500">Uploading...</p>}
+              </div>
+              {isUploading && (
+                <p className="text-sm text-slate-400">{copy.profile.uploading}</p>
+              )}
             </div>
             <div className="space-y-3">
-                <Label htmlFor="name" className="text-sm font-medium text-gray-700">Name</Label>
-                <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
+              <Label htmlFor="name" className="text-sm font-semibold text-slate-100">
+                {copy.profile.name}
+              </Label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
+              />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
-                <Input id="email" type="email" value={user?.email || ''} disabled className="bg-gray-100" />
-                <p className="text-xs text-gray-500">Email addresses cannot be changed.</p>
+              <Label htmlFor="email" className="text-sm font-semibold text-slate-100">
+                {copy.profile.email}
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={user?.email || ""}
+                disabled
+                className="bg-slate-900/70 text-slate-200 rounded-xl border border-slate-700/80"
+              />
+              <p className="text-xs text-slate-400">{copy.profile.emailNote}</p>
             </div>
             <div className="space-y-2">
-                <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Gender</Label>
-                <select
-                  id="gender"
-                  className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value as Gender)}
-                >
-                  <option value={Gender.MALE}>male</option>
-                  <option value={Gender.FEMALE}>female</option>
-                  <option value={Gender.BINARY}>binary</option>
-                </select>
+              <Label htmlFor="gender" className="text-sm font-semibold text-slate-100">
+                {copy.profile.gender}
+              </Label>
+              <select
+                id="gender"
+                className="w-full rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-slate-100 shadow-sm"
+                value={gender}
+                onChange={(e) => setGender(e.target.value as Gender)}
+              >
+                <option value={Gender.MALE}>{copy.profile.genderOptions.male}</option>
+                <option value={Gender.FEMALE}>{copy.profile.genderOptions.female}</option>
+                <option value={Gender.BINARY}>{copy.profile.genderOptions.binary}</option>
+              </select>
             </div>
-            <div className="flex items-center justify-between border rounded-md p-3">
-              <div>
-                <Label htmlFor="weekly-summary" className="font-medium">Weekly summary emails</Label>
-                <p className="text-xs text-gray-500">Receive a Sunday recap of your accomplishments.</p>
+            <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+              <div className="space-y-1">
+                <Label htmlFor="weekly-summary" className="font-semibold text-slate-200">
+                  {copy.profile.weeklyLabel}
+                </Label>
+                <p className="text-xs text-slate-400">
+                  {copy.profile.weeklyDesc}
+                </p>
               </div>
-              <Switch id="weekly-summary" checked={!weeklySummaryOptOut} onCheckedChange={(v) => setWeeklySummaryOptOut(!v)} />
+              <Switch
+                id="weekly-summary"
+                checked={!weeklySummaryOptOut}
+                onCheckedChange={(v) => setWeeklySummaryOptOut(!v)}
+              />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="timeZone" className="text-sm font-medium text-gray-700">Timezone</Label>
-                {tzList.length > 0 ? (
-                  <select
-                    id="timeZone"
-                    className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-                    value={timeZone}
-                    onChange={(e) => setTimeZone(e.target.value)}
-                  >
-                    {tzList.map(tz => (
-                      <option key={tz} value={tz}>{tz}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <Input id="timeZone" type="text" value={timeZone} onChange={(e) => setTimeZone(e.target.value)} />
-                )}
-                <p className="text-xs text-gray-500 mt-1">Used to format deadlines in emails and reminders.</p>
+              <Label htmlFor="timeZone" className="text-sm font-semibold text-slate-100">
+                {copy.profile.timeZone}
+              </Label>
+              {tzList.length > 0 ? (
+                <select
+                  id="timeZone"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-slate-100 shadow-sm"
+                  value={timeZone}
+                  onChange={(e) => setTimeZone(e.target.value)}
+                >
+                  {tzList.map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  id="timeZone"
+                  type="text"
+                  value={timeZone}
+                  onChange={(e) => setTimeZone(e.target.value)}
+                  className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
+                />
+              )}
+              <p className="text-xs text-slate-500 mt-1">{copy.profile.timeZoneHint}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="uiLanguage" className="text-sm font-semibold text-slate-100">
+                {copy.profile.uiLanguageLabel}
+              </Label>
+              <select
+                id="uiLanguage"
+                className="w-full rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-slate-100 shadow-sm"
+                value={uiLanguage}
+                onChange={(e) =>
+                  setUiLanguage(e.target.value as UiLanguagePreference)
+                }
+              >
+                <option value="device">{copy.profile.uiOptions.device}</option>
+                <option value="en">{copy.profile.uiOptions.en}</option>
+                <option value="it">{copy.profile.uiOptions.it}</option>
+              </select>
+              <p className="text-xs text-slate-500 mt-1">{copy.profile.uiLanguageHint}</p>
             </div>
             {user?.role === Role.STUDENT && (
               <div className="space-y-2">
-                <Label htmlFor="student-bio" className="text-sm font-medium text-gray-700">Bio</Label>
+                <Label htmlFor="student-bio" className="text-sm font-semibold text-slate-100">
+                  {copy.profile.bioLabel}
+                </Label>
                 <Textarea
                   id="student-bio"
                   value={studentBio}
                   onChange={(e) => setStudentBio(e.target.value)}
                   rows={4}
-                  placeholder="Share a fun fact, learning goal, or what motivates you."
+                  placeholder={copy.profile.bioPlaceholder}
+                  className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
                 />
-                <p className="text-xs text-gray-500 mt-1">Shown on your leaderboard profile so classmates can get to know you.</p>
+                <p className="text-xs text-slate-500 mt-1">{copy.profile.bioHint}</p>
               </div>
             )}
-            <Button type="submit" disabled={isSubmittingProfile || isUploading}>
-                {isSubmittingProfile ? 'Saving...' : 'Save Profile Changes'}
+            <Button
+              type="submit"
+              disabled={isSubmittingProfile || isUploading}
+              className="border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] hover:brightness-110"
+            >
+              {isSubmittingProfile ? copy.profile.saving : copy.profile.save}
             </Button>
-            </form>
+          </form>
         </div>
       </TabsContent>
       {user?.role === Role.TEACHER && (
         <TabsContent value="about" className="mt-4">
-          <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
-            <h2 className="mb-4 text-2xl font-semibold">About Me</h2>
+          <div className="mt-2 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
+            <h2 className="mb-4 text-2xl font-semibold text-slate-100">{copy.about.title}</h2>
             <form onSubmit={handleTeacherBioSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="teacher-bio">Share something with your students</Label>
+                <Label htmlFor="teacher-bio" className="text-sm font-semibold text-slate-100">
+                  {copy.about.label}
+                </Label>
                 <Textarea
                   id="teacher-bio"
                   value={teacherBio}
                   onChange={(e) => setTeacherBio(e.target.value)}
                   rows={6}
-                  placeholder="Introduce yourself, highlight your teaching style, or share what students can expect from your lessons."
+                  placeholder={copy.about.placeholder}
+                  className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
                 />
-                <p className="text-xs text-gray-500">
-                  This message appears on the teachers directory for all logged-in students.
+                <p className="text-xs text-slate-500">
+                  {copy.about.hint}
                 </p>
               </div>
-              <Button type="submit" disabled={isSubmittingBio}>
-                {isSubmittingBio ? 'Saving...' : 'Save About Me'}
+              <Button
+                type="submit"
+                disabled={isSubmittingBio}
+                className="border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] hover:brightness-110"
+              >
+                {isSubmittingBio ? copy.about.saving : copy.about.save}
               </Button>
             </form>
           </div>
@@ -398,43 +551,58 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
 
       {user?.role === Role.STUDENT && (
         <TabsContent value="status" className="mt-4">
-          <div className="mt-4 space-y-4">
-            <div className="rounded-lg border bg-white p-6 shadow-md space-y-4">
+          <div className="mt-2 space-y-4">
+            <div className="space-y-4 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold">Current Plan</h2>
-                  <p className="text-sm text-gray-500">Your plan includes HUB Guides.</p>
+                  <h2 className="text-xl font-semibold text-slate-100">{copy.billing.title}</h2>
+                  <p className="text-sm text-slate-400">{copy.billing.subtitle}</p>
                 </div>
-                <Badge variant={isPaying ? 'success' : 'destructive'}>
-                  {isPaying ? 'Active' : 'Inactive'}
+                <Badge
+                  variant={isPaying ? "success" : "default"}
+                  className={
+                    isPaying
+                      ? undefined
+                      : "bg-yellow-100 text-yellow-800 border border-yellow-300"
+                  }
+                >
+                  {isPaying ? copy.billing.badgeActive : copy.billing.badgeFree}
                 </Badge>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-slate-200">
                 {isPaying
-                  ? 'Your plan has premium content sponsored by your assigned teacher.'
-                  : 'Unlock Hub Guides by subscribing through your teacher or redeeming a prepaid coupon.'}
+                  ? copy.billing.descriptionActive
+                  : copy.billing.descriptionFree}
               </p>
-              <div className="rounded-md border border-dashed p-4">
-                <form onSubmit={handleRedeemCoupon} className="flex flex-col gap-3 sm:flex-row">
+              <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/60 p-4">
+                <form
+                  onSubmit={handleRedeemCoupon}
+                  className="flex flex-col gap-3 sm:flex-row"
+                >
                   <Input
                     type="text"
-                    placeholder="Enter coupon code"
+                    placeholder={copy.billing.couponPlaceholder}
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
-                    className="flex-1"
+                    className="flex-1 rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
                   />
-                  <Button type="submit" disabled={isRedeemingCoupon}>
-                    {isRedeemingCoupon ? 'Redeeming…' : 'Redeem'}
+                  <Button
+                    type="submit"
+                    disabled={isRedeemingCoupon}
+                    className="border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] hover:brightness-110"
+                  >
+                    {isRedeemingCoupon ? copy.billing.redeeming : copy.billing.redeem}
                   </Button>
                 </form>
-                <p className="mt-2 text-xs text-gray-500">
-                  Received a code from your teacher or the billing team? Enter it above to activate your plan.
-                </p>
+                <p className="mt-2 text-xs text-slate-500">{copy.billing.couponHint}</p>
               </div>
-              <p className="text-xs text-gray-500">
-                Need help with billing? Email{' '}
-                <a href="mailto:billing@quantifythis.com" className="underline">
-                  billing@quantifythis.com
+              <p className="text-xs text-slate-500">
+                {copy.billing.support}{" "}
+                <a
+                  href={`mailto:${copy.billing.supportEmail}`}
+                  className="underline text-teal-200"
+                >
+                  {copy.billing.supportEmail}
                 </a>
                 .
               </p>
@@ -446,60 +614,91 @@ export default function ProfileForm({ userToEdit, isAdmin = false }: ProfileForm
       {!isAdmin && (
         <>
           <TabsContent value="password" className="mt-4">
-            <div className="mt-4 rounded-lg border bg-white p-6 shadow-md">
-                <h2 className="mb-4 text-2xl font-semibold">Change Password</h2>
-                <form onSubmit={handlePasswordSubmit} className="space-y-5">
+            <div className="mt-2 rounded-2xl border border-slate-800/70 bg-slate-950/80 p-6 shadow-2xl backdrop-blur">
+              <h2 className="mb-4 text-2xl font-semibold text-slate-100">{copy.password.title}</h2>
+              <form onSubmit={handlePasswordSubmit} className="space-y-5">
                 <div className="form-field">
-                    <Label htmlFor="newPassword">New Password</Label>
-                    <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                  <Label htmlFor="newPassword" className="text-slate-100 text-base">{copy.password.newLabel}</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
+                  />
                 </div>
                 <div className="form-field">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                  <Label htmlFor="confirmPassword" className="text-slate-100 text-base">{copy.password.confirmLabel}</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
+                  />
                 </div>
-                <Button type="submit" disabled={isSubmittingPassword}>
-                    {isSubmittingPassword ? 'Saving...' : 'Change Password'}
+                <Button
+                  type="submit"
+                  disabled={isSubmittingPassword}
+                  className="group relative overflow-hidden rounded-xl border border-emerald-300/50 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-[0_16px_40px_rgba(16,185,129,0.35)] transition hover:brightness-110"
+                >
+                  <span className="absolute inset-0 bg-emerald-400/30 blur-2xl opacity-0 transition-opacity group-hover:opacity-100" />
+                  <span className="relative">
+                    {isSubmittingPassword ? copy.password.saving : copy.password.change}
+                  </span>
                 </Button>
-                </form>
+              </form>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="delete" className="mt-4">
-            <div className="rounded-lg border bg-white p-6 shadow-md mb-4">
-                <h2 className="text-xl font-semibold mb-4">Take a break</h2>
-                <div className="flex items-center justify-between">
-                    <div>
-                    <p className="text-sm text-gray-500">
-                        Pause all lesson assignments on your dashboard. While on a break you charged only 20% of the current assigned plan. We have cost to run the show too.
-                    </p>
-                    </div>
-                    <Switch
-                    id="taking-a-break"
-                    checked={isTakingBreak}
-                    onCheckedChange={handleToggleBreak}
-                    />
-                </div>
-            </div>
-            <div className="rounded-lg border border-red-200 bg-red-50 p-6 shadow-md">
-                <h2 className="text-2xl font-semibold text-red-800 mb-4">Delete Account</h2>
-                <p className="text-red-700 mb-4">
-                This action is irreversible. All your lessons, assignments, and personal data will be permanently deleted.
-                </p>
-                <form onSubmit={handleDeleteSubmit} className="space-y-4">
+            <div className="mb-4 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
+              <h2 className="text-xl font-semibold mb-4 text-slate-100">{copy.breakTab.title}</h2>
+              <div className="flex items-center justify-between">
                 <div>
-                    <Label htmlFor="deleteConfirmation">To confirm, please type: &quot;{confirmationText}&quot;</Label>
-                    <Input 
-                    id="deleteConfirmation" 
-                    type="text" 
-                    value={deleteConfirmation} 
-                    onChange={(e) => setDeleteConfirmation(e.target.value)} 
-                    required 
-                    />
+                  <p className="text-sm text-slate-400">{copy.breakTab.description}</p>
                 </div>
-                <Button type="submit" variant="destructive" disabled={isDeleting || deleteConfirmation !== confirmationText}>
-                    {isDeleting ? 'Deleting...' : 'Delete My Account'}
+                <Switch
+                  id="taking-a-break"
+                  checked={isTakingBreak}
+                  onCheckedChange={handleToggleBreak}
+                />
+              </div>
+            </div>
+            <div className="rounded-2xl border border-red-500/30 bg-gradient-to-b from-red-950/80 via-red-950/60 to-slate-950/80 p-6 shadow-2xl">
+              <h2 className="text-2xl font-semibold text-red-50 mb-4">
+                {copy.breakTab.deleteTitle}
+              </h2>
+              <p className="text-red-100 mb-4">
+                {copy.breakTab.deleteDescription}
+              </p>
+              <form onSubmit={handleDeleteSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="deleteConfirmation" className="text-red-50">
+                    {copy.breakTab.confirmLabel.replace("{text}", confirmationText)}
+                  </Label>
+                  <Input
+                    id="deleteConfirmation"
+                    type="text"
+                    value={deleteConfirmation}
+                    onChange={(e) => setDeleteConfirmation(e.target.value)}
+                    required
+                    className="rounded-xl border-red-500/50 bg-red-950/80 text-red-50 placeholder:text-red-200"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  disabled={
+                    isDeleting || deleteConfirmation !== confirmationText
+                  }
+                  className="bg-red-600 text-white hover:bg-red-500"
+                >
+                  {isDeleting ? copy.breakTab.deleting : copy.breakTab.delete}
                 </Button>
-                </form>
+              </form>
             </div>
           </TabsContent>
         </>

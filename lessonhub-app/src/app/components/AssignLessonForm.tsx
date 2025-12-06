@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +23,7 @@ interface AssignLessonFormProps {
   lesson: Omit<Lesson, 'price'> & { price: number };
   students: StudentWithStats[];
   existingAssignments: Assignment[];
+  calendarAssignments?: Pick<Assignment, 'deadline' | 'lessonId'>[];
   classes?: { id: string; name: string; isActive: boolean }[];
 }
 
@@ -64,6 +65,7 @@ export default function AssignLessonForm({
   lesson,
   students,
   existingAssignments = [],
+  calendarAssignments = [],
   classes = [],
 }: AssignLessonFormProps) {
   const router = useRouter();
@@ -137,14 +139,16 @@ export default function AssignLessonForm({
     });
   }, [notificationOption, selectedStudents]);
 
+  const assignmentsForCalendar = calendarAssignments.length > 0 ? calendarAssignments : existingAssignments;
+
   const assignmentCountsByDate = useMemo(() => {
     const counts = new Map<string, number>();
-    existingAssignments.forEach((assignment) => {
+    assignmentsForCalendar.forEach((assignment) => {
       const dateKey = new Date(assignment.deadline).toLocaleDateString('en-CA');
       counts.set(dateKey, (counts.get(dateKey) ?? 0) + 1);
     });
     return counts;
-  }, [existingAssignments]);
+  }, [assignmentsForCalendar]);
 
   const calendarDays = useMemo(() => {
     const firstOfMonth = new Date(calendarMonth);
@@ -327,7 +331,10 @@ export default function AssignLessonForm({
         </div>
         <div className="space-y-2">
             <Label htmlFor="search">Search Students</Label>
-            <Input id="search" type="search" placeholder="Filter by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+              <Input id="search" type="search" placeholder="Filter by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+            </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="class-filter">Filter by Class</Label>

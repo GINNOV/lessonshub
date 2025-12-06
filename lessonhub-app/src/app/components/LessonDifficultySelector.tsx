@@ -41,14 +41,14 @@ export function LessonDifficultySelector({
     <div className={cn('space-y-3', className)}>
       <div className="flex items-end justify-between gap-3">
         <div>
-          <Label className="text-sm font-semibold text-gray-800">
-            Difficulty <span className="text-xs font-normal text-gray-500">(required)</span>
+          <Label className="text-sm font-semibold text-slate-100">
+            Difficulty <span className="text-xs font-normal text-slate-400">(required)</span>
           </Label>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-slate-400">
             One dash = super simple. Five dashes = advanced.
           </p>
         </div>
-        <span className="text-sm font-semibold text-gray-700">
+        <span className="text-sm font-semibold text-slate-100">
           <span className={DIFFICULTY_OPTIONS[normalizedValue - 1].text}>
             {DIFFICULTY_OPTIONS[normalizedValue - 1].label}
           </span>

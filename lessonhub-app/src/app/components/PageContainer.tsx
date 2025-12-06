@@ -14,7 +14,7 @@ export default function PageContainer({ children }: { children: ReactNode }) {
       className={cn(
         isLanding
           ? 'min-h-full'
-          : 'container mx-auto px-4 sm:px-6 lg:px-8 py-8'
+          : 'container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 text-slate-100'
       )}
     >
       <TimezoneSync />

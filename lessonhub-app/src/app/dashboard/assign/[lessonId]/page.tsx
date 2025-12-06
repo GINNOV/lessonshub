@@ -27,9 +27,18 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
   };
 
   
-  const [students, existingAssignments, classes] = await Promise.all([
+  const [students, existingAssignments, calendarAssignments, classes] = await Promise.all([
     getStudentsWithStats(session.user.id),
     prisma.assignment.findMany({ where: { lessonId } }),
+    prisma.assignment.findMany({
+      where: {
+        lesson: { teacherId: session.user.id },
+      },
+      select: {
+        deadline: true,
+        lessonId: true,
+      },
+    }),
     getClassesForTeacher(),
   ]);
 
@@ -42,7 +51,8 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
         <AssignLessonForm 
           lesson={serializableLesson} 
           students={students as any} 
-          existingAssignments={existingAssignments} 
+          existingAssignments={existingAssignments}
+          calendarAssignments={calendarAssignments}
           classes={(classes || []).map((c: any) => ({ id: c.id, name: c.name, isActive: c.isActive }))}
         />
       </div>

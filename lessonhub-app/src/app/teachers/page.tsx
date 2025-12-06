@@ -77,7 +77,7 @@ export default async function TeachersPage() {
               <CardContent className="space-y-4">
                 <div>
                   <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">About</h2>
-                  <p className="mt-1 whitespace-pre-line text-sm text-gray-700">
+                  <p className="mt-1 whitespace-pre-line text-sm text-slate-100">
                     {teacher.about ? teacher.about : 'This teacher has not shared any details yet.'}
                   </p>
                 </div>

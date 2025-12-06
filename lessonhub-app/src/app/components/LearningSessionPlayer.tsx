@@ -215,7 +215,12 @@ export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSe
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button type="button" variant="outline" onClick={() => handleFlip(true)}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => handleFlip(true)}
+          className="border-emerald-300/60 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_30px_rgba(34,197,94,0.35)] hover:brightness-110 hover:shadow-[0_14px_36px_rgba(34,197,94,0.4)]"
+        >
           <RotateCw className="mr-2 h-4 w-4" />
           Flip card
         </Button>

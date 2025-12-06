@@ -55,7 +55,7 @@ async function safeJson(response: Response) {
   }
 }
 
-const OptionalIndicator = () => <Info className="text-gray-400 ml-1 h-4 w-4" />;
+const OptionalIndicator = () => <Info className="ml-1 h-4 w-4 text-muted-foreground" />;
 
 export default function LessonForm({ lesson, teacherPreferences, instructionBooklets = [] }: LessonFormProps) {
   const router = useRouter();
@@ -370,12 +370,20 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-lg space-y-6">
-      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
+      {error && (
+        <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-destructive">
+          {error}
+        </p>
+      )}
       
       <div className="form-field">
         <Label htmlFor="title">
             Lesson Title 
-            {isEditMode && lesson && <span className="text-gray-400 font-normal ml-2">({getWeekAndDay(new Date(lesson.createdAt))})</span>}
+            {isEditMode && lesson && (
+              <span className="ml-2 font-normal text-muted-foreground">
+                ({getWeekAndDay(new Date(lesson.createdAt))})
+              </span>
+            )}
         </Label>
         <Input type="text" id="title" placeholder="e.g., Introduction to Algebra" value={title} onChange={(e) => setTitle(e.target.value)} required disabled={isLoading} />
       </div>
@@ -389,7 +397,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         <Label htmlFor="price">Price (€)</Label>
         <Input id="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} disabled={isLoading} />
       </div>
-      <div className="flex items-start justify-between rounded-lg border p-4">
+      <div className="flex items-start justify-between rounded-lg border bg-card/60 p-4">
         <div>
           <p className="text-sm font-semibold">Make this lesson free for everyone</p>
           <p className="text-xs text-muted-foreground">
@@ -417,7 +425,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
             />
             <ImageBrowser onSelectImage={setAssignmentImageUrl} />
         </div>
-        {isUploading && <p className="text-sm text-gray-500">Uploading...</p>}
+        {isUploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
         {assignmentImageUrl && <Image src={assignmentImageUrl} alt="Uploaded preview" width={500} height={300} className="mt-4 w-full h-auto rounded-md border" />}
       </div>
       
@@ -440,15 +448,15 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
           disabled={isLoading}
         />
         {soundcloudUrl && (
-          <p className="text-xs text-gray-500">{getProviderHint()}</p>
+          <p className="text-xs text-muted-foreground">{getProviderHint()}</p>
         )}
-        {feedError && <p className="text-sm text-red-600">{feedError}</p>}
+        {feedError && <p className="text-sm text-destructive">{feedError}</p>}
         {feedTracks.length > 0 && (
           <div className="flex items-center gap-2">
             <Label htmlFor="soundcloudFeedSelect" className="text-sm">Select from feed</Label>
             <select
               id="soundcloudFeedSelect"
-              className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="w-full rounded-md border border-border bg-card/70 p-2 text-foreground shadow-sm"
               onChange={(e) => setSoundcloudUrl(e.target.value)}
               value={feedTracks.find(t => t.link === soundcloudUrl) ? soundcloudUrl : ''}
             >
@@ -460,7 +468,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
           </div>
         )}
         {!!soundcloudUrl && !isYouTube(soundcloudUrl) && !isSoundCloud(soundcloudUrl) && (
-          <p className="text-xs text-red-600 mt-1">Unsupported audio URL. Please use YouTube or SoundCloud.</p>
+          <p className="mt-1 text-xs text-destructive">Unsupported audio URL. Please use YouTube or SoundCloud.</p>
         )}
         {(isYouTube(soundcloudUrl) && getYouTubeId(soundcloudUrl)) && (
           <div className="mt-3 aspect-video w-full overflow-hidden rounded-md border">
@@ -501,7 +509,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
               <select
                 value={selectedBookletId}
                 onChange={(e) => setSelectedBookletId(e.target.value)}
-                className="rounded-md border border-gray-300 p-2 text-sm shadow-sm"
+                className="rounded-md border border-border bg-card/70 p-2 text-sm text-foreground shadow-sm"
               >
                 <option value="">Insert from booklet…</option>
                 {instructionBooklets.map((booklet) => (
@@ -544,7 +552,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
           )}
         </div>
         <Textarea id="assignmentText" placeholder="Describe the main task for the student." value={assignmentText} onChange={(e) => setAssignmentText(e.target.value)} required disabled={isLoading} className="min-h-[100px]" />
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Need reusable sets?{' '}
           <ManageInstructionBookletsLink />
         </p>
@@ -557,7 +565,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
             Add Question
           </Button>
         </div>
-        <div className="rounded-lg border bg-gray-50 p-3 space-y-3">
+        <div className="rounded-lg border border-border bg-card/50 p-3 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <Label htmlFor="questionsCsv" className="text-sm">Import CSV (question, expected answer)</Label>
             <Button
@@ -581,9 +589,9 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
             />
           </div>
             {questions.map((question, index) => (
-            <div key={index} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
+            <div key={index} className="space-y-2 rounded-md border border-border bg-card/80 p-3 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-slate-500">Question {index + 1}</span>
+                <span className="text-xs font-semibold text-muted-foreground">Question {index + 1}</span>
                 <div className="flex gap-1">
                   <Button type="button" size="icon" onClick={handleAddQuestion} disabled={isLoading}>+</Button>
                   <Button type="button" size="icon" onClick={() => handleRemoveQuestion(index)} disabled={isLoading || questions.length <= 1} variant="destructive">-</Button>
@@ -632,7 +640,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
           </Button>
         </div>
         {recentUrls.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-500">
+          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
             Recent:
             {recentUrls.map(url => (
               <button key={url} type="button" className="underline" onClick={() => setAttachmentUrl(url)}>{new URL(url).hostname}</button>
@@ -656,7 +664,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
           value={assignmentNotification}
           onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
           disabled={isLoading}
-          className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
+          className="w-full rounded-md border border-border bg-card/70 p-2 text-foreground shadow-sm"
         >
           <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
           <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
@@ -675,7 +683,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
             onChange={e => setScheduledDate(e.target.value)}
             required
             disabled={isLoading}
-            className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
+            className="w-full"
           />
         </div>
       )}

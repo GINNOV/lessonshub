@@ -159,7 +159,7 @@ export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDia
           <div className="space-y-4 rounded-lg border border-dashed p-4">
             {ratingFields.map((field) => (
               <div key={field.key} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm font-medium text-gray-700">{field.label}</span>
+                <span className="text-sm font-medium text-slate-100">{field.label}</span>
                 <Rating
                   initialRating={scores[field.key]}
                   onRatingChange={(value) => handleScoreChange(field.key, value)}
@@ -168,8 +168,8 @@ export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDia
                 />
               </div>
             ))}
-            <div className="text-right text-xs text-gray-500">
-              Overall impression: <span className="font-semibold text-gray-700">{averageScore}/5</span>
+            <div className="text-right text-xs text-slate-400">
+              Overall impression: <span className="font-semibold text-slate-100">{averageScore}/5</span>
             </div>
           </div>
 

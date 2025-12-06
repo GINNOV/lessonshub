@@ -549,7 +549,22 @@ export async function getLessonsForTeacher(teacherId: string) {
   try {
     const lessons = await prisma.lesson.findMany({
       where: { teacherId: teacherId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        price: true,
+        isFreeForAll: true,
+        guideIsFreeForAll: true,
+        guideIsVisible: true,
+        lesson_preview: true,
+        difficulty: true,
+        assignment_text: true,
+        createdAt: true,
+        updatedAt: true,
+        scheduled_assignment_date: true,
+        guideCardImage: true,
+        teacherId: true,
         assignments: {
           select: {
             status: true,
@@ -571,8 +586,7 @@ export async function getLessonsForTeacher(teacherId: string) {
                 },
               },
             },
-          }
-          ,
+          },
           orderBy: {
             deadline: 'asc',
           },
@@ -746,6 +760,7 @@ export async function getAssignmentsForStudent(studentId: string) {
             public_share_id: true,
             price: true,
             difficulty: true,
+            guideIsFreeForAll: true,
             assignments: {
                 select: {
                     status: true,
@@ -764,7 +779,9 @@ export async function getAssignmentsForStudent(studentId: string) {
         } as const;
 
         const fetchAssignments = async (includeFreeFlag: boolean) => {
-            const lessonSelect = includeFreeFlag ? { ...baseLessonSelect, isFreeForAll: true } : baseLessonSelect;
+            const lessonSelect = includeFreeFlag
+                ? { ...baseLessonSelect, isFreeForAll: true }
+                : baseLessonSelect;
 
             return prisma.assignment.findMany({
                 where: {
@@ -805,8 +822,8 @@ export async function getAssignmentsForStudent(studentId: string) {
             return await fetchAssignments(true);
         } catch (err: unknown) {
             const message = (err as Error)?.message || '';
-            if (message.includes('isFreeForAll')) {
-                console.warn('Lesson.isFreeForAll column missing; falling back without select.');
+            if (message.includes('isFreeForAll') || message.includes('guideIsFreeForAll')) {
+                console.warn('Lesson free flags missing; falling back without select.');
                 return fetchAssignments(false);
             }
             throw err;

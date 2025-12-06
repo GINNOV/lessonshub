@@ -16,6 +16,7 @@ declare module "next-auth" {
       hasAdminPortalAccess: boolean;
       impersonating?: boolean;
       originalUserId?: string;
+      uiLanguage?: string;
     } & DefaultSession["user"];
   }
 
@@ -25,5 +26,6 @@ declare module "next-auth" {
     isSuspended: boolean; // And also here
     isTakingBreak: boolean;
     hasAdminPortalAccess: boolean;
+    uiLanguage?: string;
   }
 }

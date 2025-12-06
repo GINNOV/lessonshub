@@ -36,4 +36,6 @@ yarn-error.log*
 next-env.d.ts
 folder_structure.txt
 lessonhub-app/.npm-cache
-UserInterfaceState.xcuserstate
+lessonhub-app/.genkit
+firebase-debug.log
+lessonhub-app/supporting

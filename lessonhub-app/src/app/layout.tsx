@@ -1,6 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Sora } from 'next/font/google';
 import Providers from './components/Providers';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -8,7 +8,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import PageContainer from './components/PageContainer';
 
-const inter = Inter({ subsets: ['latin'] });
+const sora = Sora({ subsets: ['latin'], variable: '--font-sora' });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://lessonshub.vercel.app'),
@@ -45,8 +45,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full bg-gray-50">
-      <body className={`${inter.className} h-full flex flex-col`}>
+    <html lang="en" className="h-full">
+      <body
+        suppressHydrationWarning
+        className={`${sora.className} h-full flex flex-col antialiased`}
+      >
         <Providers>
           <Navbar />
           <main className="flex-grow">

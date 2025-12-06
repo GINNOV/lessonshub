@@ -85,7 +85,27 @@ export default function GradingForm({ assignment }: GradingFormProps) {
   const questions = Array.isArray(assignment.lesson?.questions)
     ? (assignment.lesson?.questions as any[])
     : [];
-  const studentAnswers: string[] | null = Array.isArray(assignment.answers) ? (assignment.answers as string[]) : null;
+  const extractStudentAnswer = (value: unknown): string => {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object') {
+      const candidateFields = ['answer', 'studentAnswer', 'response', 'value', 'text'];
+      for (const key of candidateFields) {
+        const candidate = (value as any)[key];
+        if (typeof candidate === 'string') return candidate;
+      }
+    }
+    return '';
+  };
+  const studentAnswers: string[] | null = (() => {
+    const raw = assignment.answers as any;
+    if (Array.isArray(raw)) {
+      return raw.map(extractStudentAnswer);
+    }
+    if (raw && typeof raw === 'object') {
+      return Object.values(raw as Record<string, unknown>).map(extractStudentAnswer);
+    }
+    return null;
+  })();
   // Normalize existing comments: support array or object from DB
   const existingMap: Record<number, string> = (() => {
     const src = assignment.teacherAnswerComments as any;
@@ -163,12 +183,12 @@ export default function GradingForm({ assignment }: GradingFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Top: scoring + general notes (full width) */}
-      <div className="space-y-4 rounded-lg border bg-white p-4 shadow-sm">
+      <div className="space-y-4 rounded-lg border border-slate-800 bg-slate-900/70 p-4 shadow-lg">
         <div className="flex items-center justify-between">
-          <Label className="text-base font-medium text-gray-900">Score</Label>
+          <Label className="text-base font-medium text-slate-100">Score</Label>
           {existingScore !== null && (
-            <span className="text-sm text-gray-600">
-              Current grade: <span className="font-semibold">{existingScore}</span>/10
+            <span className="text-sm text-slate-300">
+              Current grade: <span className="font-semibold text-slate-100">{existingScore}</span>/10
             </span>
           )}
         </div>
@@ -182,12 +202,12 @@ export default function GradingForm({ assignment }: GradingFormProps) {
               setScoreValue(null);
             }
           }}
-          className="mt-2 space-y-2"
+          className="mt-2 space-y-2 text-slate-100"
         >
           {scoreOptions.map((option) => (
             <div key={option.value} className="flex items-center space-x-2">
               <RadioGroupItem value={option.value} id={option.label} />
-              <Label htmlFor={option.label}>
+              <Label htmlFor={option.label} className="text-slate-100">
                 {option.label} ({option.value} points)
               </Label>
             </div>
@@ -195,7 +215,7 @@ export default function GradingForm({ assignment }: GradingFormProps) {
         </RadioGroup>
 
         <div className="space-y-2">
-          <Label htmlFor="custom-score">Custom Score (Overrides Above)</Label>
+          <Label htmlFor="custom-score" className="text-slate-100">Custom Score (Overrides Above)</Label>
           <select
             id="custom-score"
             value={scoreValue ?? ''}
@@ -208,7 +228,7 @@ export default function GradingForm({ assignment }: GradingFormProps) {
                 setScoreError(null);
               }
             }}
-            className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+            className="w-full rounded-md border border-slate-700 bg-slate-900/70 p-2 text-slate-100 shadow-sm"
           >
             <option value="">Select a score</option>
             {Array.from({ length: 11 }, (_, i) => i).map((value) => (
@@ -218,25 +238,26 @@ export default function GradingForm({ assignment }: GradingFormProps) {
             ))}
           </select>
           {scoreError && (
-            <p className="mt-2 text-sm text-red-600">{scoreError}</p>
+            <p className="mt-2 text-sm text-red-400">{scoreError}</p>
           )}
         </div>
 
         <div>
-          <Label htmlFor="comments">Comments (Markdown supported)</Label>
+          <Label htmlFor="comments" className="text-slate-100">Comments (Markdown supported)</Label>
           <Textarea
             id="comments"
             value={teacherComments}
             onChange={(e) => setTeacherComments(e.target.value)}
             placeholder="Provide feedback for the student... You can use markdown for **bold**, *italics*, etc."
+            className="border-slate-700 bg-slate-900/70 text-slate-100 placeholder:text-slate-400"
           />
         </div>
       </div>
 
       {/* Bottom: single column with question + student answer + expected + comment control */}
       {isStandard && questions.length > 0 && (
-        <div className="space-y-3 rounded-lg border bg-white p-4 shadow-sm">
-          <p className="text-sm font-semibold text-gray-800">Student&apos;s Response</p>
+        <div className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/70 p-4 shadow-lg">
+          <p className="text-sm font-semibold text-slate-100">Student&apos;s Response</p>
           {questions.map((q, i) => {
             const questionText = (() => {
               const candidate = (q as any)?.question ?? (q as any)?.prompt ?? q;
@@ -259,23 +280,25 @@ export default function GradingForm({ assignment }: GradingFormProps) {
                 : false;
             const studentBg = expectedText
               ? answerMatches
-                ? 'bg-[#e6eefc] border-blue-300'
-                : 'bg-amber-50 border-amber-300'
-              : 'bg-[#e6eefc] border-blue-300';
+                ? 'border-emerald-400/60 bg-emerald-500/15 text-emerald-50'
+                : 'border-amber-400/70 bg-amber-500/15 text-amber-50'
+              : 'border-sky-300/60 bg-sky-500/15 text-sky-50';
 
             return (
-              <div key={i} className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
-                <p className="text-sm font-semibold text-gray-900">
+              <div key={i} className="space-y-2 rounded-md border border-slate-800 bg-slate-900 p-3">
+                <p className="text-sm font-semibold text-slate-100">
                   Q{i + 1}❓ {questionText}
                 </p>
-                <div className={`rounded-md border-l-4 px-3 py-2 text-sm text-gray-800 ${studentBg} flex items-start gap-2`}>
-                  <User className="mt-0.5 h-4 w-4 text-gray-600" />
-                  <span>{studentAnswer || <span className="italic text-gray-500">No answer provided.</span>}</span>
+                <div className={`rounded-md border-l-4 px-3 py-2 text-sm ${studentBg} flex items-start gap-2`}>
+                  <User className="mt-0.5 h-4 w-4 text-white/80" />
+                  <span className="text-slate-100">
+                    {studentAnswer || <span className="italic text-slate-400">No answer provided.</span>}
+                  </span>
                 </div>
                 {expectedText && (
-                  <div className="rounded-md border-l-4 border-green-300 bg-green-50 px-3 py-2 text-xs text-gray-700 flex items-center gap-2">
-                    <CheckSquare className="h-4 w-4 text-green-600" />
-                    <span className="font-semibold">{expectedText}</span>
+                  <div className="rounded-md border-l-4 border-emerald-300/70 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-50 flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-emerald-200" />
+                    <span className="font-semibold text-emerald-50">{expectedText}</span>
                   </div>
                 )}
                 {!openEditors[i] ? (
@@ -291,7 +314,7 @@ export default function GradingForm({ assignment }: GradingFormProps) {
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <Label htmlFor={`answer-comment-${i}`}>Comment for Q{i + 1} (optional)</Label>
+                    <Label htmlFor={`answer-comment-${i}`} className="text-slate-100">Comment for Q{i + 1} (optional)</Label>
                     <Textarea
                       id={`answer-comment-${i}`}
                       value={answerComments[i] || ''}
@@ -304,6 +327,7 @@ export default function GradingForm({ assignment }: GradingFormProps) {
                         });
                       }}
                       placeholder="Your feedback on this specific answer..."
+                      className="border-slate-700 bg-slate-900/70 text-slate-100 placeholder:text-slate-400"
                     />
                   </div>
                 )}

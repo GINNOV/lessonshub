@@ -532,38 +532,38 @@ export default function LyricLessonPlayer({
       : 'Read Along';
 
   const scoreBadge = submission && (
-    <Badge className="border-green-200 bg-green-50 text-green-800">
+    <Badge className="border-emerald-300/60 bg-emerald-500/15 text-emerald-100">
       Score {submission.scorePercent.toFixed(1)}%
     </Badge>
   );
 
   const attemptBadge = !submission && existingAttempt && existingAttempt.scorePercent !== null && (
-    <Badge className="border-slate-200 bg-slate-50 text-slate-700">
+    <Badge className="border-slate-700 bg-slate-900/70 text-slate-100">
       Prev {existingAttempt.scorePercent.toFixed(1)}% · {formatDuration(existingAttempt.timeTakenSeconds ?? null)}
     </Badge>
   );
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 shadow-xl">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-700">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-500/15 text-teal-200 border border-teal-300/40">
               <Volume2 className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Lyric lesson</p>
-              <p className="text-lg font-semibold text-slate-900">Read &amp; fill</p>
+              <p className="text-xs uppercase tracking-wide text-slate-400">Lyric lesson</p>
+              <p className="text-lg font-semibold text-slate-100">Read &amp; fill</p>
               <div className="flex flex-wrap gap-2">
                 {scoreBadge}
                 {attemptBadge}
                 {submission && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="border-slate-700 text-slate-100">
                     Time {formatDuration(submission.timeTakenSeconds)}
                   </Badge>
                 )}
                 {submission && submission.readModeSwitchesUsed !== null && (
-                  <Badge variant="outline" className="border-indigo-200 text-indigo-700">
+                  <Badge variant="outline" className="border-indigo-300/50 text-indigo-100 bg-indigo-500/10">
                     Read-along {submission.readModeSwitchesUsed}
                   </Badge>
                 )}
@@ -572,11 +572,16 @@ export default function LyricLessonPlayer({
           </div>
 
           <div className="flex flex-1 flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-end">
-            <div className="grid w-full grid-cols-1 gap-2 text-sm sm:flex sm:min-w-[240px] sm:overflow-hidden sm:rounded-full sm:border sm:border-slate-200 sm:bg-slate-50 md:w-auto">
+            <div className="grid w-full grid-cols-1 gap-2 text-sm sm:flex sm:min-w-[240px] sm:overflow-hidden sm:rounded-full sm:border sm:border-slate-700 sm:bg-slate-900/70 md:w-auto">
               <Button
                 type="button"
                 variant={mode === 'read' ? 'default' : 'ghost'}
-                className="w-full sm:flex-1 sm:rounded-full"
+                className={cn(
+                  "w-full sm:flex-1 sm:rounded-full",
+                  mode === 'read'
+                    ? "border border-teal-300/60 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_10px_30px_rgba(45,212,191,0.35)] hover:brightness-110"
+                    : "border-slate-700 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white"
+                )}
                 disabled={readModeDisabled}
                 onClick={() => handleModeChange('read')}
               >
@@ -585,7 +590,12 @@ export default function LyricLessonPlayer({
               <Button
                 type="button"
                 variant={mode === 'fill' ? 'default' : 'ghost'}
-                className="w-full sm:flex-1 sm:rounded-full"
+                className={cn(
+                  "w-full sm:flex-1 sm:rounded-full",
+                  mode === 'fill'
+                    ? "border border-teal-300/60 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_10px_30px_rgba(45,212,191,0.35)] hover:brightness-110"
+                    : "border-slate-700 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white"
+                )}
                 onClick={() => handleModeChange('fill')}
                 disabled={status !== AssignmentStatus.PENDING && !existingAttempt}
               >
@@ -593,7 +603,7 @@ export default function LyricLessonPlayer({
               </Button>
             </div>
             {bonusReadRemaining > 0 && baseReadRemaining !== null && (
-              <p className="text-[11px] text-emerald-700">
+              <p className="text-[11px] text-emerald-200">
                 Includes +{bonusReadRemaining} guide boost{bonusReadRemaining === 1 ? '' : 's'}.
               </p>
             )}
@@ -602,7 +612,7 @@ export default function LyricLessonPlayer({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="flex-1 whitespace-nowrap md:flex-none"
+                className="flex-1 whitespace-nowrap border-slate-700 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white md:flex-none"
                 onClick={handleSaveDraft}
                 disabled={isSavingDraft || isSubmitting}
               >
@@ -613,10 +623,10 @@ export default function LyricLessonPlayer({
           </div>
         </div>
         {hasAudio && (
-          <audio ref={audioRef} className="mt-4 w-full rounded-lg border bg-slate-100" src={safeAudioUrl} controls preload="metadata" />
+          <audio ref={audioRef} className="mt-4 w-full rounded-lg border border-slate-800 bg-slate-900/70 text-slate-100" src={safeAudioUrl} controls preload="metadata" />
         )}
         {referenceTrackUrl && (
-          <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm text-indigo-900">
+          <div className="mt-3 rounded-lg border border-indigo-300/40 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-100">
             Use the reference track for playback.
           </div>
         )}
@@ -624,7 +634,7 @@ export default function LyricLessonPlayer({
 
       <div
         ref={containerRef}
-        className="max-h-[520px] space-y-4 overflow-y-auto rounded-2xl border bg-white p-4 shadow-sm"
+        className="max-h-[520px] space-y-4 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950/80 p-4 shadow-xl"
       >
         {preparedLines.map((line, index) => {
           const isActive = line.id === activeLineId;
@@ -637,12 +647,14 @@ export default function LyricLessonPlayer({
               data-line-id={line.id}
               className={cn(
                 'rounded-xl border p-4 transition-all',
-                isActive ? 'border-indigo-400 bg-indigo-50 shadow-sm' : 'border-slate-200'
+                isActive
+                  ? 'border-teal-300/60 bg-teal-500/10 shadow-[0_12px_30px_rgba(45,212,191,0.25)]'
+                  : 'border-slate-700 bg-slate-900/70'
               )}
             >
-              <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 text-xs text-slate-300 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-600">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 font-semibold text-slate-100">
                     {displayIndex}
                   </span>
                   <span>
@@ -651,11 +663,11 @@ export default function LyricLessonPlayer({
                 </div>
                 {hasAudio && (
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => playFromLine(line)} className="h-8">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => playFromLine(line)} className="h-8 border-slate-700 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white">
                       <Play className="mr-2 h-4 w-4" />
                       Play
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={stopPlayback} className="h-8">
+                    <Button type="button" variant="ghost" size="sm" onClick={stopPlayback} className="h-8 border-slate-700 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white">
                       <Pause className="mr-2 h-4 w-4" />
                       Pause
                     </Button>
@@ -706,7 +718,7 @@ export default function LyricLessonPlayer({
       </div>
 
       {mode === 'fill' && status === AssignmentStatus.PENDING && (
-        <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl border bg-slate-950/80 p-4 shadow-xl border-slate-800 sm:flex-row sm:items-center sm:justify-between">
           <Button
             type="button"
             onClick={handleSubmit}
@@ -753,8 +765,8 @@ export default function LyricLessonPlayer({
       )}
 
       {status !== AssignmentStatus.PENDING && !submission && existingAttempt && existingAttempt.scorePercent !== null && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm text-slate-600">
+        <div className="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 p-4">
+          <p className="text-sm text-slate-300">
             Previous attempt: {existingAttempt.scorePercent.toFixed(1)}% ·{' '}
             {formatDuration(existingAttempt.timeTakenSeconds ?? null)}
             {typeof existingAttempt.readModeSwitchesUsed === 'number' && (
