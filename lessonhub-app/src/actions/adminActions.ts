@@ -502,6 +502,46 @@ interface DashboardSettings {
     referralRewardMonthlyAmount?: number;
 }
 
+export async function getAiSettings() {
+  const session = await auth();
+  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
+    return null;
+  }
+
+  const config = await prisma.appConfig.findUnique({
+    where: { id: 1 },
+    select: { geminiApiKey: true },
+  });
+
+  return {
+    geminiApiKey: config?.geminiApiKey ?? null,
+  };
+}
+
+export async function updateAiSettings(input: { geminiApiKey?: string | null }) {
+  const session = await auth();
+  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const geminiApiKey = input.geminiApiKey?.trim() || null;
+
+  try {
+    await prisma.appConfig.upsert({
+      where: { id: 1 },
+      update: { geminiApiKey },
+      create: { id: 1, geminiApiKey },
+    });
+    revalidatePath("/admin");
+    revalidatePath("/admin/settings");
+    revalidatePath("/speechpractice");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update AI settings:", error);
+    return { success: false, error: "Unable to save AI settings." };
+  }
+}
+
 export async function toggleTakingABreakForUser(userId: string) {
     const session = await auth();
     if (!session?.user?.id || !hasAdminPrivileges(session.user)) {

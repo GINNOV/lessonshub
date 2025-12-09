@@ -102,7 +102,7 @@ const STORAGE_KEY = 'teacher-dashboard-filters';
 
 type StatusFilterValue = AssignmentStatus | 'all' | 'past_due' | 'empty_class' | 'free';
 type OrderViewValue = 'deadline' | 'week' | 'available';
-type LessonTypeFilterValue = 'all' | 'guides' | LessonType;
+type LessonTypeFilterValue = 'all' | LessonType;
 const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   'all',
   'past_due',
@@ -113,18 +113,10 @@ const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   AssignmentStatus.GRADED,
   AssignmentStatus.FAILED,
 ];
-const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = [
-  'all',
-  'guides',
-  LessonType.STANDARD,
-  LessonType.FLASHCARD,
-  LessonType.MULTI_CHOICE,
-  LessonType.LEARNING_SESSION,
-  LessonType.LYRIC,
-];
+const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = ['all', LessonType.STANDARD, LessonType.FLASHCARD, LessonType.MULTI_CHOICE, LessonType.LEARNING_SESSION, LessonType.LYRIC];
 const normalizeLessonTypeFilter = (value: string | null | undefined): LessonTypeFilterValue => {
   if (!value) return 'all';
-  if (value === 'guide') return 'guides';
+  if (value === 'guide' || value === 'guides') return LessonType.LEARNING_SESSION;
   if (LESSON_TYPE_FILTER_VALUES.includes(value as LessonTypeFilterValue)) {
     return value as LessonTypeFilterValue;
   }
@@ -233,7 +225,7 @@ const FILTER_LEGEND = [
   },
   {
     label: 'Lesson Type Filter',
-    description: 'Narrow the list down to a specific lesson format like standard, flashcard, lyric, or guides.',
+    description: 'Narrow the list down to a specific lesson format like standard, flashcard, lyric, or guide.',
   },
   {
     label: 'Order',
@@ -454,9 +446,6 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       .filter(lesson => lesson.title.toLowerCase().includes(searchTerm.toLowerCase()))
       .filter(lesson => {
         if (lessonTypeFilter === 'all') return true;
-        if (lessonTypeFilter === 'guides') {
-          return lesson.type === LessonType.LEARNING_SESSION;
-        }
         return lesson.type === lessonTypeFilter;
       })
       .filter(lesson => {
@@ -963,8 +952,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               className="h-11 appearance-none rounded-xl border border-slate-800 bg-slate-900/70 pl-10 pr-4 text-sm font-semibold text-slate-100 shadow-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
             >
               <option value="all">All lesson types</option>
-              <option value="guides">🧠 Guides</option>
-              {LESSON_TYPE_FILTER_VALUES.filter((value): value is LessonType => value !== 'all' && value !== 'guides').map((type) => (
+              {LESSON_TYPE_FILTER_VALUES.filter((value): value is LessonType => value !== 'all').map((type) => (
                 <option key={type} value={type}>
                   {lessonTypeEmojis[type]} {lessonTypeLabels[type]}
                 </option>

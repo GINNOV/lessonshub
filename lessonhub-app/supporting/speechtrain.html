@@ -1,450 +1,920 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>American Pronunciation Coach for Italians</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap");
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8;
-            color: #1e293b;
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f0f4f8;
+        color: #1e293b;
+      }
+
+      /* --- SVG Styles (Reverted to Line Drawing) --- */
+      .face-outline {
+        fill: none;
+        stroke: #334155;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .face-part {
+        fill: #cbd5e1; /* Neutral Gray */
+        stroke: #94a3b8;
+        stroke-width: 1;
+        transition: all 0.3s ease;
+      }
+
+      .teeth-line {
+        stroke: #334155;
+        stroke-width: 3;
+        stroke-linecap: round;
+      }
+
+      /* --- Animation Keyframes --- */
+
+      /* 1. Lips: Pucker */
+      @keyframes mechanic-lips {
+        0%,
+        100% {
+          transform: scale(1) translateX(0);
         }
-
-        /* SVG Styles */
-        .face-part {
-            fill: #cbd5e1;
-            transition: all 0.4s ease;
+        50% {
+          transform: scale(0.8) translateX(-5px);
         }
+      }
 
-        .highlight-lips { fill: #ef4444 !important; filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.5)); }
-        .highlight-tongue { fill: #f59e0b !important; filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.5)); }
-        .highlight-teeth { fill: #3b82f6 !important; filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5)); }
-        .highlight-throat { fill: #a855f7 !important; filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.5)); }
-
-        .mic-pulse {
-            animation: pulse-red 1.5s infinite;
+      /* 2. Tongue: Alveolar Tap (Up/Down) */
+      @keyframes mechanic-tongue-tap {
+        0%,
+        100% {
+          transform: translateY(0) rotate(0);
         }
-
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        40% {
+          transform: translateY(-3px) translateX(2px) rotate(-5deg);
         }
+      }
 
-        .typing-cursor::after {
-            content: '|';
-            animation: blink 1s step-start infinite;
+      /* 3. Tongue: Interdental (Forward for TH) */
+      @keyframes mechanic-tongue-th {
+        0%,
+        100% {
+          transform: translateX(0);
         }
-
-        @keyframes blink {
-            50% { opacity: 0; }
+        50% {
+          transform: translateX(5px) translateY(-2px);
         }
+      }
 
-        /* Custom scrollbar for word list */
-        .word-list::-webkit-scrollbar { width: 6px; }
-        .word-list::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+      /* 4. Throat/Tongue Root: Retraction */
+      @keyframes mechanic-throat {
+        0%,
+        100% {
+          transform: translateX(0) scale(1);
+        }
+        50% {
+          transform: translateX(-3px) scale(0.95);
+        }
+      }
+
+      /* --- Highlight & Animate States --- */
+
+      /* Lips Highlight */
+      .highlight-lips path {
+        fill: #fca5a5 !important;
+        stroke: #ef4444 !important;
+        filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.4));
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: mechanic-lips 2s infinite ease-in-out;
+      }
+
+      /* Tongue Highlight */
+      .highlight-tongue path {
+        fill: #fcd34d !important;
+        stroke: #d97706 !important;
+        filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.4));
+        transform-box: fill-box;
+        transform-origin: bottom center;
+        animation: mechanic-tongue-tap 1.5s infinite ease-in-out;
+      }
+
+      /* Teeth Highlight (Static Blue) */
+      .highlight-teeth path {
+        stroke: #2563eb !important;
+        filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.4));
+      }
+
+      /* Teeth Context: Animate Tongue for TH */
+      .highlight-teeth-action #part-tongue path {
+        animation: mechanic-tongue-th 2s infinite ease-in-out;
+        transform-box: fill-box;
+        transform-origin: bottom center;
+        fill: #fcd34d !important;
+        stroke: #d97706 !important;
+      }
+
+      /* Throat Highlight */
+      .highlight-throat path {
+        fill: #d8b4fe !important;
+        stroke: #9333ea !important;
+        filter: drop-shadow(0 0 5px rgba(147, 51, 234, 0.4));
+      }
+
+      /* Throat Context: Animate Tongue Retraction */
+      .highlight-throat-action #part-tongue path {
+        animation: mechanic-throat 2s infinite ease-in-out;
+        transform-box: fill-box;
+        transform-origin: center;
+        fill: #fcd34d !important;
+        stroke: #d97706 !important;
+      }
+
+      .mic-pulse {
+        animation: pulse-red 1.5s infinite;
+      }
+
+      @keyframes pulse-red {
+        0% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+      }
+
+      .typing-cursor::after {
+        content: "";
+        display: inline-block;
+        width: 3px;
+        height: 0.8em;
+        background-color: #94a3b8;
+        margin-left: 4px;
+        vertical-align: baseline;
+        animation: blink 1s step-start infinite;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      .word-list::-webkit-scrollbar {
+        width: 6px;
+      }
+      .word-list::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 4px;
+      }
+
+      /* Loading Spinner */
+      .loader {
+        border: 3px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 3px solid #3b82f6;
+        width: 20px;
+        height: 20px;
+        -webkit-animation: spin 1s linear infinite; /* Safari */
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
     </style>
-</head>
-<body class="h-screen flex flex-col items-center justify-center p-4">
-
+  </head>
+  <body
+    class="min-h-screen flex flex-col items-center justify-center p-3 md:p-4"
+  >
     <!-- Main Card -->
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-full md:h-[650px]">
+    <div
+      class="bg-white rounded-2xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row shadow-slate-200/50"
+    >
+      <!-- LEFT PANEL: Word Selection & Controls -->
+      <div
+        class="w-full md:w-1/2 p-6 md:p-8 flex flex-col border-b md:border-b-0 md:border-r border-gray-100 relative"
+      >
+        <div
+          class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"
+        ></div>
 
-        <!-- LEFT PANEL: Word Selection & Controls -->
-        <div class="w-full md:w-1/2 p-8 flex flex-col border-r border-gray-100 relative">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+        <header class="mb-4 md:mb-6">
+          <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <i class="ph-fill ph-translate text-blue-600"></i> Accent Coach
+          </h1>
+          <p class="text-slate-500 text-sm">
+            Perfect your American English pronunciation.
+          </p>
+        </header>
 
-            <header class="mb-6">
-                <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <i class="ph-fill ph-translate text-blue-600"></i> Accent Coach
-                </h1>
-                <p class="text-slate-500 text-sm">Perfect your American English pronunciation.</p>
-            </header>
+        <!-- Current Word Display -->
+        <div class="flex-grow flex flex-col items-center justify-center mb-6">
+          <div
+            id="current-word"
+            class="text-4xl md:text-6xl font-extrabold text-slate-800 mb-2 text-center tracking-tight transition-all duration-300"
+          >
+            Select Word
+          </div>
+          <div
+            id="phonetic"
+            class="text-lg md:text-xl font-mono text-slate-400 mb-6"
+          >
+            /select/
+          </div>
 
-            <!-- Current Word Display -->
-            <div class="flex-grow flex flex-col items-center justify-center mb-6">
-                <div id="current-word" class="text-5xl md:text-6xl font-extrabold text-slate-800 mb-2 text-center tracking-tight">Select Word</div>
-                <div id="phonetic" class="text-xl font-mono text-slate-400 mb-6">/select/</div>
-
-                <!-- Tips Box -->
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg w-full">
-                    <p class="text-sm text-blue-800 font-semibold mb-1">🇺🇸 Tip:</p>
-                    <p id="tip-en" class="text-slate-700 text-sm mb-3 italic">Choose a word from the list to start.</p>
-                    <p class="text-sm text-green-700 font-semibold mb-1">🇮🇹 Per Italiani:</p>
-                    <p id="tip-it" class="text-slate-700 text-sm italic">Scegli una parola dalla lista per iniziare.</p>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="grid grid-cols-2 gap-4 mt-auto">
-                <button onclick="playAudio()" class="flex items-center justify-center gap-2 py-3 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-all active:scale-95 group">
-                    <i class="ph-fill ph-speaker-high text-xl group-hover:text-blue-600"></i>
-                    Listen
-                </button>
-                <button id="record-btn" onclick="toggleRecording()" class="flex items-center justify-center gap-2 py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-200 active:scale-95">
-                    <i class="ph-fill ph-microphone text-xl"></i>
-                    <span id="record-text">Speak</span>
-                </button>
-            </div>
-
-            <!-- Compatibility Warning -->
-            <div id="browser-warning" class="hidden mt-4 text-xs text-center text-red-500 bg-red-50 p-2 rounded">
-                Please use Chrome, Edge or Safari for speech recognition.
-            </div>
+          <!-- Tips Box -->
+          <div
+            class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg w-full"
+          >
+            <p class="text-sm text-blue-800 font-semibold mb-1">🇺🇸 Tip:</p>
+            <p id="tip-en" class="text-slate-700 text-sm mb-3 italic">
+              Choose a word from the list to start.
+            </p>
+            <p class="text-sm text-green-700 font-semibold mb-1">
+              🇮🇹 Per Italiani:
+            </p>
+            <p id="tip-it" class="text-slate-700 text-sm italic">
+              Scegli una parola dalla lista per iniziare.
+            </p>
+          </div>
         </div>
 
-        <!-- RIGHT PANEL: Visuals & Validation -->
-        <div class="w-full md:w-1/2 bg-slate-50 p-8 flex flex-col">
-
-            <!-- Visualization Toggle -->
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-semibold text-slate-700">Mouth Mechanics</h3>
-                <div class="flex gap-2">
-                    <span class="text-xs px-2 py-1 rounded bg-white border border-slate-200 text-slate-500">Focus Area Highlighted</span>
-                </div>
-            </div>
-
-            <!-- SVG Visualizer -->
-            <div class="relative bg-white rounded-2xl shadow-sm border border-slate-200 h-64 flex items-center justify-center mb-6 overflow-hidden">
-                <svg viewBox="0 0 200 200" class="h-full w-full max-w-[250px]">
-                    <!-- Head Outline -->
-                    <path d="M60,180 Q40,180 40,150 L40,80 Q40,20 100,20 Q160,20 160,80 L160,130" fill="none" stroke="#94a3b8" stroke-width="2"/>
-                    <path d="M160,80 L190,100 L165,110" fill="none" stroke="#94a3b8" stroke-width="2"/>
-
-                    <!-- Throat (Palate area) -->
-                    <path id="part-throat" class="face-part" d="M90,140 Q80,140 80,120 L80,100 Q100,100 110,120" />
-
-                    <!-- Tongue -->
-                    <path id="part-tongue" class="face-part" d="M90,140 Q110,140 120,130 Q140,120 135,115" />
-
-                    <!-- Teeth -->
-                    <path id="part-teeth" class="face-part" d="M138,92 L138,108 M144,92 L144,108" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-
-                    <!-- Lips -->
-                    <path id="part-lips" class="face-part" d="M160,105 Q172,105 172,115 Q160,125 150,115" />
-
-                    <!-- Labels (Hidden by default, could toggle) -->
-                </svg>
-
-                <!-- Legend -->
-                <div class="absolute bottom-2 right-2 flex flex-col gap-1 text-[10px] text-slate-400">
-                    <div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-red-500"></div> Lips</div>
-                    <div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-amber-500"></div> Tongue</div>
-                    <div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-blue-500"></div> Teeth</div>
-                    <div class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-purple-500"></div> Throat/R</div>
-                </div>
-            </div>
-
-            <!-- Interactive Typing / Result Area -->
-            <div class="flex-grow flex flex-col">
-                <h3 class="font-semibold text-slate-700 mb-2 flex justify-between">
-                    <span>Validation</span>
-                    <span id="status-badge" class="text-xs font-normal px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">Waiting...</span>
-                </h3>
-
-                <div class="bg-slate-900 rounded-xl p-4 flex-grow font-mono text-green-400 relative overflow-hidden shadow-inner">
-                    <div class="absolute top-2 left-2 text-xs text-slate-500 select-none">TERMINAL > SPEECH_TO_TEXT</div>
-                    <div class="mt-6 text-lg leading-relaxed">
-                        <span class="text-slate-500 select-none">$ </span>
-                        <span id="transcript" class="typing-cursor">...</span>
-                    </div>
-
-                    <!-- Result Overlay -->
-                    <div id="result-overlay" class="absolute inset-0 bg-black/80 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
-                        <div class="text-center transform scale-90 transition-transform duration-300" id="result-content">
-                            <div id="result-icon" class="text-6xl mb-2"></div>
-                            <div id="result-text" class="text-xl font-bold text-white"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Word List -->
-            <div class="mt-6">
-                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Select Word to Practice</label>
-                <div class="flex gap-2 overflow-x-auto word-list pb-2" id="word-chips">
-                    <!-- Chips injected by JS -->
-                </div>
-            </div>
+        <!-- AI Input Section -->
+        <div class="mb-6 relative">
+          <label
+            class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2 block"
+            >✨ AI Custom Word</label
+          >
+          <div class="flex gap-2">
+            <input
+              type="text"
+              id="custom-word-input"
+              placeholder="Type any word (e.g. Jewelry)"
+              class="flex-grow px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-700 placeholder-slate-400"
+            />
+            <button
+              onclick="analyzeCustomWord()"
+              id="analyze-btn"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2"
+            >
+              <span>Analyze</span>
+              <i class="ph-fill ph-sparkle"></i>
+            </button>
+          </div>
+          <div
+            id="ai-loading"
+            class="hidden absolute top-full left-0 mt-2 text-xs text-indigo-500 flex items-center gap-2"
+          >
+            <div class="loader"></div>
+            Analyzing mouth mechanics...
+          </div>
         </div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-4 mt-auto">
+          <button
+            onclick="playAudio()"
+            class="flex items-center justify-center gap-2 py-3 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-all active:scale-95 group"
+          >
+            <i
+              class="ph-fill ph-speaker-high text-xl group-hover:text-blue-600"
+            ></i>
+            Listen
+          </button>
+          <button
+            id="record-btn"
+            onclick="toggleRecording()"
+            class="flex items-center justify-center gap-2 py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-200 active:scale-95"
+          >
+            <i class="ph-fill ph-microphone text-xl"></i>
+            <span id="record-text">Speak</span>
+          </button>
+        </div>
+
+        <!-- Compatibility Warning -->
+        <div
+          id="browser-warning"
+          class="hidden mt-4 text-xs text-center text-red-500 bg-red-50 p-2 rounded"
+        >
+          Please use Chrome, Edge or Safari for speech recognition.
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: Visuals & Validation -->
+      <div class="w-full md:w-1/2 bg-slate-50 p-6 md:p-8 flex flex-col">
+        <!-- Visualization Toggle -->
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-semibold text-slate-700">Vocal Tract Mechanics</h3>
+          <div class="flex gap-2">
+            <span
+              class="text-xs px-2 py-1 rounded bg-white border border-slate-200 text-slate-500 flex items-center gap-1"
+            >
+              <span class="relative flex h-2 w-2">
+                <span
+                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"
+                ></span>
+                <span
+                  class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"
+                ></span>
+              </span>
+              Live Animation
+            </span>
+          </div>
+        </div>
+
+        <!-- SVG Visualizer (RESTORED TO ORIGINAL CLEAN STYLE) -->
+        <div
+          id="vocal-tract"
+          class="relative bg-white rounded-2xl shadow-sm border border-slate-200 h-56 md:h-64 flex items-center justify-center mb-6 overflow-hidden"
+        >
+          <svg viewBox="0 0 200 200" class="h-full w-full max-w-[300px]">
+            <!-- Head Outline -->
+            <path
+              class="face-outline"
+              d="M60,180 Q40,180 40,150 L40,80 Q40,20 100,20 Q160,20 160,80 L160,130"
+            />
+            <!-- Nose -->
+            <path class="face-outline" d="M160,80 L190,100 L165,110" />
+
+            <!-- Throat (Abstract) -->
+            <g id="part-throat" class="face-part-group">
+              <path
+                class="face-part"
+                d="M90,140 Q80,140 80,120 L80,100 Q100,100 110,120"
+              />
+            </g>
+
+            <!-- Tongue (Abstract) -->
+            <g id="part-tongue" class="face-part-group">
+              <path
+                class="face-part"
+                d="M90,140 Q110,140 120,130 Q140,120 135,115"
+              />
+            </g>
+
+            <!-- Teeth (Lines) -->
+            <g id="part-teeth" class="face-part-group">
+              <!-- Upper and Lower teeth represented as lines -->
+              <path class="teeth-line" d="M140,95 L140,105" />
+              <path class="teeth-line" d="M145,95 L145,105" />
+            </g>
+
+            <!-- Lips (Abstract) -->
+            <g id="part-lips" class="face-part-group">
+              <path
+                class="face-part"
+                d="M160,105 Q170,105 170,115 Q160,125 150,115"
+              />
+            </g>
+          </svg>
+
+          <!-- Legend -->
+          <div
+            class="absolute bottom-2 right-2 flex flex-col gap-1 text-[10px] text-slate-400 bg-white/80 p-2 rounded backdrop-blur-sm"
+          >
+            <div class="flex items-center gap-1">
+              <div class="w-2 h-2 rounded-full bg-red-400"></div>
+              Lips
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+              Tongue
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="w-2 h-2 rounded-full bg-blue-600"></div>
+              Teeth
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="w-2 h-2 rounded-full bg-purple-400"></div>
+              Throat
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+              Neutral
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Typing / Result Area -->
+        <div class="flex-grow flex flex-col">
+          <h3 class="font-semibold text-slate-700 mb-2 flex justify-between">
+            <span>Validation</span>
+            <span
+              id="status-badge"
+              class="text-xs font-normal px-2 py-0.5 rounded-full bg-slate-200 text-slate-600"
+              >Waiting...</span
+            >
+          </h3>
+
+          <div
+            class="bg-indigo-50/50 rounded-2xl p-6 flex-grow relative overflow-hidden border-2 border-indigo-50 flex flex-col items-center justify-center text-center"
+          >
+            <div
+              class="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4"
+            >
+              I heard you say
+            </div>
+            <div
+              class="text-3xl md:text-4xl font-bold text-slate-700 leading-tight"
+            >
+              <span id="transcript" class="typing-cursor">...</span>
+            </div>
+
+            <!-- Result Overlay -->
+            <div
+              id="result-overlay"
+              class="absolute inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-10"
+            >
+              <div
+                class="text-center transform scale-90 transition-transform duration-300"
+                id="result-content"
+              >
+                <div
+                  id="result-icon"
+                  class="text-6xl mb-2 drop-shadow-sm"
+                ></div>
+                <div
+                  id="result-text"
+                  class="text-2xl font-bold text-slate-800"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Sentence Box -->
+          <div
+            id="ai-sentence-box"
+            class="hidden mt-4 bg-white border border-indigo-100 rounded-xl p-3 text-sm text-slate-600 shadow-sm animate-fade-in"
+          >
+            <strong class="text-indigo-500">✨ Practice:</strong>
+            <span id="ai-sentence-text"></span>
+          </div>
+        </div>
+
+        <!-- Quick Word List -->
+        <div class="mt-6">
+          <label
+            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block"
+            >Select Word to Practice</label
+          >
+          <div
+            class="flex gap-2 overflow-x-auto word-list pb-2"
+            id="word-chips"
+          >
+            <!-- Chips injected by JS -->
+          </div>
+        </div>
+      </div>
     </div>
 
-    <script>
-        // --- DATA ---
-        const words = [
-            {
-                id: 'squirrel',
-                text: "Squirrel",
-                phonetic: "/ˈskwɜːr.əl/",
-                part: "throat",
-                tipEn: "Don't roll the R. Bunch the tongue back like you have a potato in your mouth.",
-                tipIt: "Non arrotolare la R! È un suono gutturale. La 'Qui' si dice come 'Kwu'.",
-                keywords: ['squirrel', 'swirl', 'square']
-            },
-            {
-                id: 'thorough',
-                text: "Thorough",
-                phonetic: "/ˈθɜːr.oʊ/",
-                part: "teeth",
-                tipEn: "Stick your tongue between your teeth for the TH, then pull it back immediately.",
-                tipIt: "Lingua tra i denti per il 'TH'. Non dire 'T' o 'D'. Fai sentire l'aria.",
-                keywords: ['thorough', 'furrow', 'sorrow']
-            },
-            {
-                id: 'literature',
-                text: "Literature",
-                phonetic: "/ˈlɪt̬.ɚ.ə.tʃɚ/",
-                part: "tongue",
-                tipEn: "The middle T is a 'flap T', it sounds like a soft D.",
-                tipIt: "In Americano la T centrale suona come una D veloce (come in 'vedo').",
-                keywords: ['literature']
-            },
-            {
-                id: 'colonel',
-                text: "Colonel",
-                phonetic: "/ˈkɜːr.nəl/",
-                part: "throat",
-                tipEn: "It sounds exactly like 'Kernel'. The first L is silent and changed to R.",
-                tipIt: "Si pronuncia 'Kernel'. La prima 'o' e la 'l' sono mute e diventano una R.",
-                keywords: ['colonel', 'kernel']
-            },
-            {
-                id: 'comfortable',
-                text: "Comfortable",
-                phonetic: "/ˈkʌmf.tə.bəl/",
-                part: "lips",
-                tipEn: "Smash the middle. Comf-ter-bul. Not Com-for-ta-ble.",
-                tipIt: "Mangia le lettere! Non dire 'com-for-ta-ble', ma 'Comf-t'bl'.",
-                keywords: ['comfortable']
-            },
-            {
-                id: 'schedule',
-                text: "Schedule",
-                phonetic: "/ˈskedʒ.uːl/",
-                part: "teeth",
-                tipEn: "Start with a hard K sound (sk), not a 'sh' sound.",
-                tipIt: "Inizia con SK (come 'Scheletro'), non con SC (come 'Scena').",
-                keywords: ['schedule']
-            },
-            {
-                id: 'world',
-                text: "World",
-                phonetic: "/wɜːrld/",
-                part: "tongue",
-                tipEn: "The hardest combo. Curl tongue for R, then lift tip for L.",
-                tipIt: "Il mostro finale. Fai una R americana scura, poi alza subito la punta per la L.",
-                keywords: ['world', 'whirled', 'word']
-            }
-        ];
+    <script type="module">
+      import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        let currentWordIndex = 0;
-        let recognition;
-        let isRecording = false;
+      // --- GEMINI SETUP ---
+      const apiKey = ""; // System will inject key
+      let genAI;
+      let model;
 
-        // --- INIT ---
-        function init() {
-            renderWordChips();
-            loadWord(0);
-            setupSpeechRecognition();
+      try {
+        genAI = new GoogleGenerativeAI(apiKey);
+        model = genAI.getGenerativeModel({
+          model: "gemini-2.5-flash-preview-09-2025",
+        });
+      } catch (e) {
+        console.warn("Gemini init failed (likely no key yet)", e);
+      }
+
+      window.analyzeCustomWord = async function () {
+        const input = document.getElementById("custom-word-input");
+        const word = input.value.trim();
+        const btn = document.getElementById("analyze-btn");
+        const loader = document.getElementById("ai-loading");
+
+        if (!word) return;
+        if (!model) {
+          alert(
+            "Gemini API not initialized. Please ensure API key is provided.",
+          );
+          return;
         }
 
-        // --- VISUAL LOGIC ---
-        function renderWordChips() {
-            const container = document.getElementById('word-chips');
-            container.innerHTML = words.map((w, index) => `
+        // UI Loading State
+        btn.disabled = true;
+        btn.classList.add("opacity-75");
+        loader.classList.remove("hidden");
+
+        const prompt = `Analyze the English word "${word}" for an Italian speaker learning American pronunciation.
+            Return a JSON object with NO markdown formatting. The JSON must have these keys:
+            - phonetic: The IPA transcription.
+            - italianPhonetic: A "faux-netic" transcription easy for Italians to read (e.g. "SKWER-ol").
+            - focusPart: One of "lips", "tongue", "teeth", "throat" representing the most difficult mechanical part.
+            - tipEn: A short tip in English about the mechanic.
+            - tipIt: A short tip in Italian about the mechanic.
+            - keywords: Array of 3 similar sounding English words for fuzzy matching.
+            - sentence: A simple practice sentence containing the word.
+            `;
+
+        try {
+          const result = await model.generateContent(prompt);
+          const response = await result.response;
+          const text = response.text();
+
+          // Clean markdown if present
+          const jsonStr = text
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          const data = JSON.parse(jsonStr);
+
+          // Add to words array
+          const newId = "custom-" + Date.now();
+          const newWordObj = {
+            id: newId,
+            text: word.charAt(0).toUpperCase() + word.slice(1), // Capitalize
+            phonetic: data.italianPhonetic || data.phonetic,
+            part: data.focusPart,
+            tipEn: data.tipEn,
+            tipIt: data.tipIt,
+            keywords: [word.toLowerCase(), ...data.keywords],
+            sentence: data.sentence,
+          };
+
+          words.unshift(newWordObj); // Add to top of list
+          init(); // Re-render list
+          loadWord(0); // Load the new word
+
+          // Clear input
+          input.value = "";
+        } catch (error) {
+          console.error("Gemini Error:", error);
+          alert("Could not analyze word. Please try again.");
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove("opacity-75");
+          loader.classList.add("hidden");
+        }
+      };
+    </script>
+
+    <script>
+      // --- DATA ---
+      const words = [
+        {
+          id: "squirrel",
+          text: "Squirrel",
+          phonetic: "SKWER-ol",
+          part: "throat",
+          tipEn:
+            "Don't roll the R. Bunch the tongue back like you have a potato in your mouth.",
+          tipIt:
+            "Non arrotolare la R! È un suono gutturale. La 'Qui' si dice come 'Kwu'.",
+          keywords: ["squirrel", "swirl", "square"],
+          sentence: "The squirrel ran up the tree.",
+        },
+        {
+          id: "thorough",
+          text: "Thorough",
+          phonetic: "/ˈθɜːr.oʊ/",
+          part: "teeth",
+          tipEn:
+            "Stick your tongue between your teeth for the TH, then pull it back immediately.",
+          tipIt:
+            "Lingua tra i denti per il 'TH'. Non dire 'T' o 'D'. Fai sentire l'aria.",
+          keywords: ["thorough", "furrow", "sorrow"],
+          sentence: "She did a thorough job cleaning.",
+        },
+        {
+          id: "literature",
+          text: "Literature",
+          phonetic: "/ˈlɪt̬.ɚ.ə.tʃɚ/",
+          part: "tongue",
+          tipEn: "The middle T is a 'flap T', it sounds like a soft D.",
+          tipIt:
+            "In Americano la T centrale suona come una D veloce (come in 'vedo').",
+          keywords: ["literature"],
+          sentence: "He studies English literature.",
+        },
+        {
+          id: "colonel",
+          text: "Colonel",
+          phonetic: "/ˈkɜːr.nəl/",
+          part: "throat",
+          tipEn:
+            "It sounds exactly like 'Kernel'. The first L is silent and changed to R.",
+          tipIt:
+            "Si pronuncia 'Kernel'. La prima 'o' e la 'l' sono mute e diventano una R.",
+          keywords: ["colonel", "kernel"],
+          sentence: "The colonel gave an order.",
+        },
+        {
+          id: "comfortable",
+          text: "Comfortable",
+          phonetic: "/ˈkʌmf.tə.bəl/",
+          part: "lips",
+          tipEn: "Smash the middle. Comf-ter-bul. Not Com-for-ta-ble.",
+          tipIt:
+            "Mangia le lettere! Non dire 'com-for-ta-ble', ma 'Comf-t'bl'.",
+          keywords: ["comfortable"],
+          sentence: "This chair is very comfortable.",
+        },
+        {
+          id: "schedule",
+          text: "Schedule",
+          phonetic: "/ˈskedʒ.uːl/",
+          part: "teeth",
+          tipEn: "Start with a hard K sound (sk), not a 'sh' sound.",
+          tipIt: "Inizia con SK (come 'Scheletro'), non con SC (come 'Scena').",
+          keywords: ["schedule"],
+          sentence: "Check the train schedule.",
+        },
+        {
+          id: "world",
+          text: "World",
+          phonetic: "/wɜːrld/",
+          part: "tongue",
+          tipEn: "The hardest combo. Curl tongue for R, then lift tip for L.",
+          tipIt:
+            "Il mostro finale. Fai una R americana scura, poi alza subito la punta per la L.",
+          keywords: ["world", "whirled", "word"],
+          sentence: "He traveled around the world.",
+        },
+      ];
+
+      let currentWordIndex = 0;
+      let recognition;
+      let isRecording = false;
+
+      // --- INIT ---
+      function init() {
+        renderWordChips();
+        // Note: We don't automatically loadWord(0) here to avoid resetting selection on re-render
+        // unless it's the very first load.
+        // The module script calls loadWord(0) explicitly after adding a new word.
+      }
+
+      // --- VISUAL LOGIC ---
+      function renderWordChips() {
+        const container = document.getElementById("word-chips");
+        container.innerHTML = words
+          .map(
+            (w, index) => `
                 <button onclick="loadWord(${index})"
-                    class="whitespace-nowrap px-4 py-2 rounded-full border ${index === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400'} transition-all text-sm font-medium"
+                    class="whitespace-nowrap px-4 py-2 rounded-full border ${currentWordIndex === index ? "bg-blue-600 text-white border-blue-600 shadow-md" : "bg-white text-slate-600 border-slate-200 hover:border-blue-400"} transition-all text-sm font-medium"
                     id="chip-${index}">
                     ${w.text}
                 </button>
-            `).join('');
+            `,
+          )
+          .join("");
+
+        // Re-highlight the current button if array didn't shift
+        // (Handled by className logic above, but depends on global index)
+      }
+
+      window.loadWord = function (index) {
+        currentWordIndex = index;
+        const w = words[index];
+
+        // Update Text
+        document.getElementById("current-word").innerText = w.text;
+        document.getElementById("phonetic").innerText = w.phonetic;
+        document.getElementById("tip-en").innerText = w.tipEn;
+        document.getElementById("tip-it").innerText = w.tipIt;
+
+        // Update AI Sentence
+        const sentenceBox = document.getElementById("ai-sentence-box");
+        const sentenceText = document.getElementById("ai-sentence-text");
+        if (w.sentence) {
+          sentenceText.innerText = w.sentence;
+          sentenceBox.classList.remove("hidden");
+        } else {
+          sentenceBox.classList.add("hidden");
         }
 
-        function loadWord(index) {
-            currentWordIndex = index;
-            const w = words[index];
+        // Update Chips
+        renderWordChips(); // Re-render to update active state
 
-            // Update Text
-            document.getElementById('current-word').innerText = w.text;
-            document.getElementById('phonetic').innerText = w.phonetic;
-            document.getElementById('tip-en').innerText = w.tipEn;
-            document.getElementById('tip-it').innerText = w.tipIt;
+        // Update SVG Highlight & Animation
+        resetFace();
+        const partId = `part-${w.part}`;
+        const element = document.getElementById(partId);
+        const container = document.getElementById("vocal-tract");
 
-            // Update Chips
-            document.querySelectorAll('#word-chips button').forEach((btn, idx) => {
-                if(idx === index) {
-                    btn.className = "whitespace-nowrap px-4 py-2 rounded-full border bg-blue-600 text-white border-blue-600 shadow-md transition-all text-sm font-medium scale-105";
-                } else {
-                    btn.className = "whitespace-nowrap px-4 py-2 rounded-full border bg-white text-slate-600 border-slate-200 hover:border-blue-400 transition-all text-sm font-medium";
-                }
-            });
+        if (element) {
+          // Apply color highlight to the specific part
+          element.classList.add(`highlight-${w.part}`);
 
-            // Update SVG Highlight
-            resetFace();
-            const partId = `part-${w.part}`;
-            const element = document.getElementById(partId);
-            if(element) {
-                element.classList.add(`highlight-${w.part}`);
+          // Add action class to the container to trigger complex interactions
+          // (e.g., if teeth are highlighted, the TONGUE needs to move, not the teeth)
+          container.classList.add(`highlight-${w.part}-action`);
+        }
+
+        // Reset Terminal
+        resetTerminal();
+      };
+
+      function resetFace() {
+        // Remove highlight classes from parts
+        const parts = ["lips", "tongue", "teeth", "throat"];
+        parts.forEach((part) => {
+          const el = document.getElementById(`part-${part}`);
+          if (el) el.classList.remove(`highlight-${part}`);
+        });
+
+        // Remove action classes from container
+        const container = document.getElementById("vocal-tract");
+        container.classList.remove(
+          "highlight-lips-action",
+          "highlight-tongue-action",
+          "highlight-teeth-action",
+          "highlight-throat-action",
+        );
+      }
+
+      function resetTerminal() {
+        document.getElementById("transcript").innerText = "...";
+        const overlay = document.getElementById("result-overlay");
+        overlay.classList.remove("opacity-100", "pointer-events-auto");
+        overlay.classList.add("opacity-0", "pointer-events-none");
+        document.getElementById("status-badge").innerText = "Waiting...";
+        document.getElementById("status-badge").className =
+          "text-xs font-normal px-2 py-0.5 rounded-full bg-slate-200 text-slate-600";
+      }
+
+      // --- AUDIO LOGIC ---
+      window.playAudio = function () {
+        const w = words[currentWordIndex];
+        const utterance = new SpeechSynthesisUtterance(w.text);
+        utterance.lang = "en-US";
+        utterance.rate = 0.8; // Slightly slower for learning
+        window.speechSynthesis.speak(utterance);
+      };
+
+      window.toggleRecording = function () {
+        if (!recognition) {
+          setupSpeechRecognition();
+          if (!recognition) return; // Still failed
+        }
+        if (isRecording) {
+          recognition.stop();
+        } else {
+          resetTerminal();
+          recognition.start();
+        }
+      };
+
+      function setupSpeechRecognition() {
+        if (
+          "webkitSpeechRecognition" in window ||
+          "SpeechRecognition" in window
+        ) {
+          const SpeechRecognition =
+            window.SpeechRecognition || window.webkitSpeechRecognition;
+          recognition = new SpeechRecognition();
+          recognition.lang = "en-US";
+          recognition.continuous = false;
+          recognition.interimResults = true;
+
+          recognition.onstart = () => {
+            isRecording = true;
+            updateRecordBtnState(true);
+            document.getElementById("status-badge").innerText = "Listening...";
+            document.getElementById("status-badge").className =
+              "text-xs font-normal px-2 py-0.5 rounded-full bg-red-100 text-red-600 animate-pulse";
+            document.getElementById("transcript").innerText = "";
+          };
+
+          recognition.onend = () => {
+            isRecording = false;
+            updateRecordBtnState(false);
+          };
+
+          recognition.onresult = (event) => {
+            const transcript = Array.from(event.results)
+              .map((result) => result[0].transcript)
+              .join("");
+
+            document.getElementById("transcript").innerText = transcript;
+
+            if (event.results[0].isFinal) {
+              validatePronunciation(transcript);
             }
+          };
 
-            // Reset Terminal
-            resetTerminal();
+          recognition.onerror = (event) => {
+            console.error("Speech recognition error", event.error);
+            document.getElementById("status-badge").innerText = "Error";
+            isRecording = false;
+            updateRecordBtnState(false);
+          };
+        } else {
+          document.getElementById("browser-warning").classList.remove("hidden");
+          document.getElementById("record-btn").disabled = true;
+          document
+            .getElementById("record-btn")
+            .classList.add("opacity-50", "cursor-not-allowed");
+        }
+      }
+
+      function updateRecordBtnState(recording) {
+        const btn = document.getElementById("record-btn");
+        const text = document.getElementById("record-text");
+
+        if (recording) {
+          btn.classList.add("bg-red-600", "hover:bg-red-700", "mic-pulse");
+          btn.classList.remove("bg-blue-600", "hover:bg-blue-700");
+          text.innerText = "Stop";
+        } else {
+          btn.classList.remove("bg-red-600", "hover:bg-red-700", "mic-pulse");
+          btn.classList.add("bg-blue-600", "hover:bg-blue-700");
+          text.innerText = "Speak";
+        }
+      }
+
+      // --- VALIDATION LOGIC ---
+      function validatePronunciation(spokenText) {
+        const target = words[currentWordIndex];
+        const cleanSpoken = spokenText
+          .toLowerCase()
+          .trim()
+          .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+        const cleanTarget = target.text.toLowerCase();
+
+        // Fuzzy match logic
+        // We check the main word AND the keywords provided by Gemini
+        const isMatch =
+          cleanSpoken.includes(cleanTarget) ||
+          (target.keywords &&
+            target.keywords.some((k) => cleanSpoken.includes(k)));
+
+        showResult(isMatch, cleanSpoken);
+      }
+
+      function showResult(success, text) {
+        const overlay = document.getElementById("result-overlay");
+        const icon = document.getElementById("result-icon");
+        const resultText = document.getElementById("result-text");
+        const badge = document.getElementById("status-badge");
+
+        overlay.classList.remove("opacity-0", "pointer-events-none");
+        overlay.classList.add("opacity-100", "pointer-events-auto");
+
+        const content = document.getElementById("result-content");
+        content.classList.remove("scale-90");
+        content.classList.add("scale-100");
+
+        if (success) {
+          icon.innerHTML = "🎉";
+          resultText.innerText = "Perfect!";
+          resultText.className = "text-2xl font-bold text-green-600";
+          badge.innerText = "Success";
+          badge.className =
+            "text-xs font-normal px-2 py-0.5 rounded-full bg-green-100 text-green-600";
+        } else {
+          icon.innerHTML = "🤔";
+          resultText.innerText = "Try Again";
+          resultText.className = "text-2xl font-bold text-amber-600";
+          badge.innerText = "Missed";
+          badge.className =
+            "text-xs font-normal px-2 py-0.5 rounded-full bg-amber-100 text-amber-600";
         }
 
-        function resetFace() {
-            document.querySelectorAll('.face-part').forEach(el => {
-                el.classList.remove('highlight-lips', 'highlight-tongue', 'highlight-teeth', 'highlight-throat');
-            });
-        }
+        // Auto hide overlay after 2 seconds
+        setTimeout(() => {
+          overlay.classList.remove("opacity-100", "pointer-events-auto");
+          overlay.classList.add("opacity-0", "pointer-events-none");
+          content.classList.remove("scale-100");
+          content.classList.add("scale-90");
+        }, 2000);
+      }
 
-        function resetTerminal() {
-            document.getElementById('transcript').innerText = "...";
-            const overlay = document.getElementById('result-overlay');
-            overlay.classList.remove('opacity-100', 'pointer-events-auto');
-            overlay.classList.add('opacity-0', 'pointer-events-none');
-            document.getElementById('status-badge').innerText = "Waiting...";
-            document.getElementById('status-badge').className = "text-xs font-normal px-2 py-0.5 rounded-full bg-slate-200 text-slate-600";
-        }
-
-        // --- AUDIO LOGIC ---
-        function playAudio() {
-            const w = words[currentWordIndex];
-            const utterance = new SpeechSynthesisUtterance(w.text);
-            utterance.lang = 'en-US';
-            utterance.rate = 0.8; // Slightly slower for learning
-            window.speechSynthesis.speak(utterance);
-        }
-
-        function setupSpeechRecognition() {
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                recognition = new SpeechRecognition();
-                recognition.lang = 'en-US';
-                recognition.continuous = false;
-                recognition.interimResults = true;
-
-                recognition.onstart = () => {
-                    isRecording = true;
-                    updateRecordBtnState(true);
-                    document.getElementById('status-badge').innerText = "Listening...";
-                    document.getElementById('status-badge').className = "text-xs font-normal px-2 py-0.5 rounded-full bg-red-100 text-red-600 animate-pulse";
-                    document.getElementById('transcript').innerText = "";
-                };
-
-                recognition.onend = () => {
-                    isRecording = false;
-                    updateRecordBtnState(false);
-                    // Don't reset status immediately so user sees result
-                };
-
-                recognition.onresult = (event) => {
-                    const transcript = Array.from(event.results)
-                        .map(result => result[0].transcript)
-                        .join('');
-
-                    document.getElementById('transcript').innerText = transcript;
-
-                    if (event.results[0].isFinal) {
-                        validatePronunciation(transcript);
-                    }
-                };
-
-                recognition.onerror = (event) => {
-                    console.error("Speech recognition error", event.error);
-                    document.getElementById('status-badge').innerText = "Error";
-                    isRecording = false;
-                    updateRecordBtnState(false);
-                };
-            } else {
-                document.getElementById('browser-warning').classList.remove('hidden');
-                document.getElementById('record-btn').disabled = true;
-                document.getElementById('record-btn').classList.add('opacity-50', 'cursor-not-allowed');
-            }
-        }
-
-        function toggleRecording() {
-            if (!recognition) return;
-            if (isRecording) {
-                recognition.stop();
-            } else {
-                resetTerminal();
-                recognition.start();
-            }
-        }
-
-        function updateRecordBtnState(recording) {
-            const btn = document.getElementById('record-btn');
-            const text = document.getElementById('record-text');
-
-            if (recording) {
-                btn.classList.add('bg-red-600', 'hover:bg-red-700', 'mic-pulse');
-                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                text.innerText = "Stop";
-            } else {
-                btn.classList.remove('bg-red-600', 'hover:bg-red-700', 'mic-pulse');
-                btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                text.innerText = "Speak";
-            }
-        }
-
-        // --- VALIDATION LOGIC ---
-        function validatePronunciation(spokenText) {
-            const target = words[currentWordIndex];
-            const cleanSpoken = spokenText.toLowerCase().trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-            const cleanTarget = target.text.toLowerCase();
-
-            // Check if spoken word is in target or keywords list (fuzzy match)
-            const isMatch = cleanSpoken.includes(cleanTarget) || target.keywords.some(k => cleanSpoken.includes(k));
-
-            showResult(isMatch, cleanSpoken);
-        }
-
-        function showResult(success, text) {
-            const overlay = document.getElementById('result-overlay');
-            const icon = document.getElementById('result-icon');
-            const resultText = document.getElementById('result-text');
-            const badge = document.getElementById('status-badge');
-
-            overlay.classList.remove('opacity-0', 'pointer-events-none');
-            overlay.classList.add('opacity-100', 'pointer-events-auto');
-
-            const content = document.getElementById('result-content');
-            content.classList.remove('scale-90');
-            content.classList.add('scale-100');
-
-            if (success) {
-                icon.innerHTML = "🎉";
-                resultText.innerText = "Perfect!";
-                resultText.className = "text-xl font-bold text-green-400";
-                badge.innerText = "Success";
-                badge.className = "text-xs font-normal px-2 py-0.5 rounded-full bg-green-100 text-green-600";
-            } else {
-                icon.innerHTML = "🤔";
-                resultText.innerText = "Try Again";
-                resultText.className = "text-xl font-bold text-amber-400";
-                badge.innerText = "Missed";
-                badge.className = "text-xs font-normal px-2 py-0.5 rounded-full bg-amber-100 text-amber-600";
-            }
-
-            // Auto hide overlay after 2 seconds
-            setTimeout(() => {
-                overlay.classList.remove('opacity-100', 'pointer-events-auto');
-                overlay.classList.add('opacity-0', 'pointer-events-none');
-                content.classList.remove('scale-100');
-                content.classList.add('scale-90');
-            }, 2000);
-        }
-
-        // Start
-        init();
-
+      // Start
+      init();
+      loadWord(0);
     </script>
-</body>
+  </body>
 </html>
