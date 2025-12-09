@@ -246,7 +246,8 @@ export default function SpeechPracticePage() {
   }, []);
 
   useEffect(() => {
-    const detected = typeof navigator !== "undefined" ? navigator.languages : [];
+    const detected =
+      typeof navigator !== "undefined" ? [...navigator.languages] : [];
     const loadLocale = async () => {
       let preference: UiLanguagePreference | null = null;
       try {
