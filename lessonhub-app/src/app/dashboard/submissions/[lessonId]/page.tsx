@@ -66,35 +66,35 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
       <p className="mt-1 text-gray-600">{classLabel}: {classSummary}</p>
 
       <div className="mt-6">
-        <div className="hidden md:block bg-white shadow-md rounded-lg overflow-hidden">
+        <div className="hidden md:block bg-card shadow-md rounded-lg overflow-hidden border border-border">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted/50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reminder Sent</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Student</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Due Date</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Score</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Reminder Sent</th>
                   <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {submissions.map((sub) => {
                   const isPastDue = new Date() > new Date(sub.deadline) && sub.status === AssignmentStatus.PENDING;
                   const displayStatus = isPastDue ? "PAST DUE" : sub.status;
 
                   return (
                     <tr key={sub.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sub.student.name || sub.student.email}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{sub.student.name || sub.student.email}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyles(sub.status, isPastDue)}`}>
                           {displayStatus}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><LocaleDate date={sub.deadline} /></td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.score ?? 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground"><LocaleDate date={sub.deadline} /></td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{sub.score ?? 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                         {sub.reminderSentAt ? <LocaleDate date={sub.reminderSentAt} /> : 'No'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -126,7 +126,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
               </tbody>
             </table>
           </div>
-          {submissions.length === 0 && <p className="p-6 text-center text-gray-500">No students have been assigned this lesson yet.</p>}
+          {submissions.length === 0 && <p className="p-6 text-center text-muted-foreground">No students have been assigned this lesson yet.</p>}
         </div>
 
         <div className="md:hidden space-y-4">
@@ -135,11 +135,11 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
             const displayStatus = isPastDue ? "PAST DUE" : sub.status;
 
             return (
-              <div key={sub.id} className="bg-white shadow-sm rounded-lg border border-gray-100 p-4 space-y-3">
+              <div key={sub.id} className="bg-card shadow-sm rounded-lg border border-border p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-base font-semibold text-gray-900">{sub.student.name || sub.student.email}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-base font-semibold text-foreground">{sub.student.name || sub.student.email}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Due: <LocaleDate date={sub.deadline} />
                     </p>
                   </div>
@@ -148,14 +148,14 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">Score</p>
-                    <p className="font-medium text-gray-800">{sub.score ?? 'N/A'}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Score</p>
+                    <p className="font-medium text-foreground">{sub.score ?? 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">Reminder Sent</p>
-                    <p className="font-medium text-gray-800">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Reminder Sent</p>
+                    <p className="font-medium text-foreground">
                       {sub.reminderSentAt ? <LocaleDate date={sub.reminderSentAt} /> : 'No'}
                     </p>
                   </div>
@@ -187,7 +187,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
           })}
 
           {submissions.length === 0 && (
-            <p className="text-center text-gray-500">No students have been assigned this lesson yet.</p>
+            <p className="text-center text-muted-foreground">No students have been assigned this lesson yet.</p>
           )}
         </div>
       </div>

@@ -75,8 +75,7 @@ const serializableTeacher = {
         </p>
       </div>
       <TeacherPreferences teacher={serializableTeacher as any} instructionBooklets={instructionBooklets} />
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-semibold">Instruction Booklets</h2>
+                <div className="rounded-lg border bg-card p-6 shadow-sm">        <h2 className="text-2xl font-semibold">Instruction Booklets</h2>
         <p className="mt-2 text-gray-600">
           Create reusable instruction sets once and drop them into any lesson. Manage them without
           opening the lesson creator.

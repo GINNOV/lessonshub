@@ -685,7 +685,7 @@ export default async function GradeSubmissionPage({
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
-          <div className="space-y-6 rounded-lg border bg-white p-6 shadow-md">
+          <div className="space-y-6 rounded-lg border bg-card p-6 shadow-md">
             <div>
               <h2 className="border-b pb-2 text-xl font-semibold">
                 Student&apos;s Response
@@ -695,7 +695,7 @@ export default async function GradeSubmissionPage({
               <div className="mt-4 space-y-3">
                 {flashcards.length > 0 ? (
                   <>
-                    <div className="flex justify-around rounded-md bg-gray-50 p-3">
+                    <div className="flex justify-around rounded-md bg-muted/50 p-3">
                       <div className="text-center">
                         <p className="text-2xl font-bold text-green-600">{correctCount}</p>
                         <p className="text-sm text-gray-500">Marked Correct</p>
@@ -779,7 +779,7 @@ export default async function GradeSubmissionPage({
               <div className="mt-4 space-y-3">
                 {multiChoiceDetails.length > 0 ? (
                   <>
-                    <div className="flex flex-wrap justify-around gap-4 rounded-md bg-gray-50 p-3">
+                    <div className="flex flex-wrap justify-around gap-4 rounded-md bg-muted/50 p-3">
                       <div className="min-w-[90px] text-center">
                         <p className="text-2xl font-bold text-green-600">{multiChoiceSummary.correct}</p>
                         <p className="text-sm text-gray-500">Correct</p>
@@ -837,7 +837,7 @@ export default async function GradeSubmissionPage({
                                   isSelected && isCorrect === true && "border-green-500 bg-green-50",
                                   isSelected && isCorrect !== true && "border-red-500 bg-red-50",
                                   !isSelected && isCorrectOption && "border-green-200 bg-green-50",
-                                  !isSelected && !isCorrectOption && "border-gray-200 bg-white"
+                                  !isSelected && !isCorrectOption && "border-border bg-card"
                                 );
                                 return (
                                   <div key={option.id} className={optionClasses}>
@@ -880,8 +880,8 @@ export default async function GradeSubmissionPage({
               <div className="mt-4 space-y-3 rounded-lg border bg-slate-50 p-4">
                 {lyricExistingAttempt ? (
                   <>
-                    <p className="text-sm font-semibold text-slate-900">Filled blanks (read-only)</p>
-                    <div className="max-h-[520px] space-y-3 overflow-y-auto rounded-md border bg-white p-3 text-sm text-slate-800">
+                    <p className="text-sm font-semibold text-foreground">Filled blanks (read-only)</p>
+                    <div className="max-h-[520px] space-y-3 overflow-y-auto rounded-md border bg-card p-3 text-sm text-foreground">
                       {lyricPreparedLines.map((line, index) => {
                         const answers = (lyricExistingAttempt.answers ?? {}) as Record<string, string[]>;
                         const replacements = answers[line.id] ?? [];
@@ -947,7 +947,7 @@ export default async function GradeSubmissionPage({
             </div>
           </div>
 
-          <div className="rounded-lg border bg-white p-6 shadow-md">
+          <div className="rounded-lg border bg-card p-6 shadow-md">
             <GradingForm assignment={serializableSubmission} />
           </div>
         </div>
@@ -958,15 +958,15 @@ export default async function GradeSubmissionPage({
             <AccordionItem value="lesson-content">
                 <AccordionTrigger>View Original Lesson Content</AccordionTrigger>
                 <AccordionContent>
-                    <div className="p-4 border rounded-md bg-gray-50">
+                    <div className="p-4 border rounded-md bg-muted/50">
                         <LessonContentView lesson={serializableSubmission.lesson} />
                         {submission.lesson.type === LessonType.FLASHCARD && flashcards.length > 0 && (
                           <div className="mt-6 space-y-3">
-                            <h3 className="text-lg font-semibold text-gray-800">Flashcard Deck</h3>
+                            <h3 className="text-lg font-semibold text-foreground">Flashcard Deck</h3>
                             {flashcards.map(card => (
-                              <div key={card.id} className="rounded-md border border-gray-200 bg-white p-3 shadow-sm">
+                              <div key={card.id} className="rounded-md border border-border bg-card p-3 shadow-sm">
                                 <div>
-                                  <p className="text-xs font-semibold uppercase text-gray-500">Front</p>
+                                  <p className="text-xs font-semibold uppercase text-muted-foreground">Front</p>
                                   <p className="text-base font-medium text-gray-900">{card.term}</p>
                                   {card.termImageUrl && (
                                     <div className="mt-2">

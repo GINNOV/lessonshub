@@ -32,7 +32,7 @@ export default async function CustomEmailPage({ params }: { params: Promise<{ le
                     <Link href="/dashboard">&larr; Back to Dashboard</Link>
                 </Button>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md border">
+            <div className="bg-card p-6 rounded-lg shadow-md border">
                 <CustomEmailForm lessonId={lesson.id} />
             </div>
         </div>
