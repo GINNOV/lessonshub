@@ -49,12 +49,12 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
   const classSummary = orderedClassNames.join(', ');
 
   const getStatusStyles = (status: AssignmentStatus | string, isPastDue: boolean) => {
-    if (isPastDue) return 'bg-red-100 text-red-800';
-    if (status === AssignmentStatus.PENDING) return 'bg-yellow-100 text-yellow-800';
-    if (status === AssignmentStatus.COMPLETED) return 'bg-blue-100 text-blue-800';
-    if (status === AssignmentStatus.GRADED) return 'bg-green-100 text-green-800';
-    if (status === AssignmentStatus.FAILED) return 'bg-red-200 text-red-900';
-    return 'bg-gray-100 text-gray-700';
+    if (isPastDue) return 'bg-red-700 text-red-100'; // Darker red for past due
+    if (status === AssignmentStatus.PENDING) return 'bg-yellow-700 text-yellow-100'; // Darker yellow for pending
+    if (status === AssignmentStatus.COMPLETED) return 'bg-blue-700 text-blue-100'; // Darker blue for completed
+    if (status === AssignmentStatus.GRADED) return 'bg-green-700 text-green-100'; // Darker green for graded
+    if (status === AssignmentStatus.FAILED) return 'bg-red-800 text-red-100'; // Even darker red for failed
+    return 'bg-gray-700 text-gray-100'; // Darker gray default
   };
 
   return (
