@@ -24,7 +24,7 @@ export default async function CouponManagementPage() {
     <div className="p-6 space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Coupon Management</h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           Create and monitor coupon codes for prepaid access, bundles, and promotions.
         </p>
       </div>
@@ -36,7 +36,7 @@ export default async function CouponManagementPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{totals.active}</p>
-            <p className="text-sm text-gray-500">Currently redeemable</p>
+            <p className="text-sm text-muted-foreground">Currently redeemable</p>
           </CardContent>
         </Card>
         <Card>
@@ -45,7 +45,7 @@ export default async function CouponManagementPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{totals.expiringSoon}</p>
-            <p className="text-sm text-gray-500">Within the next 7 days</p>
+            <p className="text-sm text-muted-foreground">Within the next 7 days</p>
           </CardContent>
         </Card>
         <Card>
@@ -54,7 +54,7 @@ export default async function CouponManagementPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{totals.totalRedemptions}</p>
-            <p className="text-sm text-gray-500">All time</p>
+            <p className="text-sm text-muted-foreground">All time</p>
           </CardContent>
         </Card>
       </div>
@@ -113,37 +113,37 @@ export default async function CouponManagementPage() {
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {coupons.length === 0 ? (
-            <p className="text-sm text-gray-500">No coupons yet. Create one above to get started.</p>
+            <p className="text-sm text-muted-foreground">No coupons yet. Create one above to get started.</p>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border text-sm">
+              <thead className="bg-muted/50">
                 <tr>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Code</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Details</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Usage</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Status</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Actions</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Code</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Details</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Usage</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Status</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border">
                 {coupons.map((coupon) => {
                   const remaining =
                     coupon.maxRedemptions - coupon.redemptionCount > 0
                       ? coupon.maxRedemptions - coupon.redemptionCount
                       : 0;
                   return (
-                    <tr key={coupon.id} className="bg-white">
+                    <tr key={coupon.id} className="bg-card">
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-gray-900">{coupon.code}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="font-semibold text-foreground">{coupon.code}</div>
+                        <div className="text-xs text-muted-foreground">
                           Created{" "}
                           {formatDistanceToNow(new Date(coupon.createdAt), { addSuffix: true })}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-4 py-3 text-foreground">
                         {coupon.description || "—"}
                         {coupon.expiresAt && (
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             Expires{" "}
                             {formatDistanceToNow(new Date(coupon.expiresAt), {
                               addSuffix: true,
@@ -151,16 +151,16 @@ export default async function CouponManagementPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-4 py-3 text-foreground">
                         {coupon.redemptionCount}/{coupon.maxRedemptions}
-                        <div className="text-xs text-gray-500">{remaining} remaining</div>
+                        <div className="text-xs text-muted-foreground">{remaining} remaining</div>
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-4 py-3 text-foreground">
                         <span
                           className={`rounded-full px-2 py-1 text-xs font-semibold ${
                             coupon.isActive
                               ? "bg-emerald-50 text-emerald-700"
-                              : "bg-gray-100 text-gray-500"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {coupon.isActive ? "Active" : "Inactive"}

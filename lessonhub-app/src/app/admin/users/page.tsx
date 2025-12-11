@@ -32,7 +32,7 @@ export default async function UserManagementPage({
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">User Management</h1>
-      <div className="bg-white p-6 rounded-lg shadow-md border">
+      <div className="bg-card p-6 rounded-lg shadow-md border border-border">
         <UserTable users={serializableUsers} searchTerm={searchTerm} />
       </div>
     </div>

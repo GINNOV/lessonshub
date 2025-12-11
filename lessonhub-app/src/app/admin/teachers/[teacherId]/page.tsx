@@ -56,7 +56,7 @@ export default async function AssignStudentsPage({ params }: { params: { teacher
                     <Link href="/admin/users">&larr; Back to User Management</Link>
                 </Button>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md border">
+            <div className="bg-card p-6 rounded-lg shadow-md border border-border">
                 <AssignStudentsForm
                     teacherId={teacher.id}
                     allStudents={serializableAllStudents}

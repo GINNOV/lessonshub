@@ -13,7 +13,7 @@ type TrendPoint = {
 
 function TrendSparkline({ points }: { points: TrendPoint[] }) {
   if (points.length === 0) {
-    return <span className="text-xs text-gray-400">No trend yet</span>;
+    return <span className="text-xs text-muted-foreground">No trend yet</span>;
   }
 
   const ordered = [...points].sort(
@@ -37,7 +37,7 @@ function TrendSparkline({ points }: { points: TrendPoint[] }) {
   const latest = sliced[sliced.length - 1]?.score ?? 0;
 
   return (
-    <div className="flex items-center gap-3 text-xs text-gray-500">
+    <div className="flex items-center gap-3 text-xs text-muted-foreground">
       <svg viewBox="0 0 100 40" className="h-9 w-20">
         <polyline
           fill="none"
@@ -53,7 +53,7 @@ function TrendSparkline({ points }: { points: TrendPoint[] }) {
           </linearGradient>
         </defs>
       </svg>
-      <span className="font-semibold text-gray-700">{latest.toFixed(1)}/5</span>
+      <span className="font-semibold text-foreground">{latest.toFixed(1)}/5</span>
     </div>
   );
 }
@@ -232,7 +232,7 @@ export default async function FeedbackAnalyticsPage() {
 
   const TrendChart = () => {
     if (weeklyTrend.length === 0) {
-      return <p className="text-sm text-gray-500">No trend data yet.</p>;
+      return <p className="text-sm text-muted-foreground">No trend data yet.</p>;
     }
     const values = weeklyTrend.map((point) => point.value);
     const min = Math.min(...values);
@@ -276,7 +276,7 @@ export default async function FeedbackAnalyticsPage() {
             );
           })}
         </svg>
-        <div className="flex justify-between text-xs text-gray-500">
+        <div className="flex justify-between text-xs text-muted-foreground">
           {weeklyTrend.map((point) => (
             <span key={point.date.toISOString()}>
               {point.date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -291,7 +291,7 @@ export default async function FeedbackAnalyticsPage() {
     <div className="p-6 space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Feedback & Analytics</h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           Review anonymous student sentiments and track how each teacher is performing.
         </p>
       </div>
@@ -303,7 +303,7 @@ export default async function FeedbackAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{totalRatings}</p>
-            <p className="text-sm text-gray-500">Since ratings launched</p>
+            <p className="text-sm text-muted-foreground">Since ratings launched</p>
           </CardContent>
         </Card>
         <Card>
@@ -312,7 +312,7 @@ export default async function FeedbackAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{globalAverage}/5</p>
-            <p className="text-sm text-gray-500">Overall satisfaction</p>
+            <p className="text-sm text-muted-foreground">Overall satisfaction</p>
           </CardContent>
         </Card>
         <Card>
@@ -321,7 +321,7 @@ export default async function FeedbackAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{teacherAnalytics.length}</p>
-            <p className="text-sm text-gray-500">Active in the past 90 days</p>
+            <p className="text-sm text-muted-foreground">Active in the past 90 days</p>
           </CardContent>
         </Card>
       </div>
@@ -342,12 +342,12 @@ export default async function FeedbackAnalyticsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {topTeachers.length === 0 && (
-              <p className="text-sm text-gray-500">No ratings yet.</p>
+              <p className="text-sm text-muted-foreground">No ratings yet.</p>
             )}
             {topTeachers.map(({ teacher, averages, total, trend, referralCount }) => (
               <div
                 key={teacher.id}
-                className="rounded-lg border bg-white/60 p-4 space-y-3"
+                className="rounded-lg border bg-card p-4 space-y-3"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -358,16 +358,16 @@ export default async function FeedbackAnalyticsPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold text-gray-900">{teacher.name ?? 'Teacher'}</p>
-                      <p className="text-xs text-gray-500">{teacher.email ?? 'No email on file'}</p>
-                      <p className="text-xs text-gray-400">
-                        Referrals: <span className="font-semibold text-gray-700">{referralCount}</span>
+                      <p className="font-semibold text-foreground">{teacher.name ?? 'Teacher'}</p>
+                      <p className="text-xs text-muted-foreground">{teacher.email ?? 'No email on file'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Referrals: <span className="font-semibold text-foreground">{referralCount}</span>
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-lg">{averages.overall}/5</p>
-                    <p className="text-xs text-gray-500">{total} responses</p>
+                    <p className="text-xs text-muted-foreground">{total} responses</p>
                   </div>
                 </div>
                 <TrendSparkline points={trend} />
@@ -382,11 +382,11 @@ export default async function FeedbackAnalyticsPage() {
           </CardHeader>
           <CardContent className="space-y-4 max-h-[360px] overflow-y-auto pr-2">
             {latestComments.length === 0 && (
-              <p className="text-sm text-gray-500">No written comments yet.</p>
+              <p className="text-sm text-muted-foreground">No written comments yet.</p>
             )}
             {latestComments.map((feedback) => (
-              <div key={feedback.id} className="rounded-lg border bg-white/70 p-3">
-                <div className="flex items-center justify-between text-xs text-gray-500">
+              <div key={feedback.id} className="rounded-lg border bg-card p-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>
                     {feedback.teacherName} · <span className="font-medium">{feedback.studentName}</span>
                   </span>
@@ -394,11 +394,11 @@ export default async function FeedbackAnalyticsPage() {
                     {formatDistanceToNow(feedback.createdAt, { addSuffix: true })}
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-400 mb-1">
+                <p className="text-[11px] text-muted-foreground mb-1">
                   Student email: {feedback.studentEmail}
                 </p>
-                <p className="mt-2 text-sm text-gray-800">{feedback.comment}</p>
-                <p className="mt-1 text-xs text-gray-500">Score: {feedback.score}/5</p>
+                <p className="mt-2 text-sm text-foreground">{feedback.comment}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Score: {feedback.score}/5</p>
               </div>
             ))}
           </CardContent>
@@ -411,37 +411,37 @@ export default async function FeedbackAnalyticsPage() {
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {teacherAnalytics.length === 0 ? (
-            <p className="text-sm text-gray-500">No ratings to display yet.</p>
+            <p className="text-sm text-muted-foreground">No ratings to display yet.</p>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border text-sm">
+              <thead className="bg-muted/50">
                 <tr>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Teacher</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Responses</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Content</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Helpful</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Communication</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Value</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Overall</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Referrals</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Teacher</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Responses</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Content</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Helpful</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Communication</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Value</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Overall</th>
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Referrals</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border">
                 {teacherAnalytics.map(({ teacher, averages, total, referralCount }) => (
-                  <tr key={teacher.id} className="bg-white">
+                  <tr key={teacher.id} className="bg-card">
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-semibold text-gray-900">{teacher.name ?? 'Teacher'}</p>
-                        <p className="text-xs text-gray-500">{teacher.email ?? '—'}</p>
+                        <p className="font-semibold text-foreground">{teacher.name ?? 'Teacher'}</p>
+                        <p className="text-xs text-muted-foreground">{teacher.email ?? '—'}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{total}</td>
-                    <td className="px-4 py-3 text-gray-700">{averages.contentQuality}</td>
-                    <td className="px-4 py-3 text-gray-700">{averages.helpfulness}</td>
-                    <td className="px-4 py-3 text-gray-700">{averages.communication}</td>
-                    <td className="px-4 py-3 text-gray-700">{averages.valueForMoney}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900">{averages.overall}</td>
-                    <td className="px-4 py-3 text-gray-700">{referralCount}</td>
+                    <td className="px-4 py-3 text-foreground">{total}</td>
+                    <td className="px-4 py-3 text-foreground">{averages.contentQuality}</td>
+                    <td className="px-4 py-3 text-foreground">{averages.helpfulness}</td>
+                    <td className="px-4 py-3 text-foreground">{averages.communication}</td>
+                    <td className="px-4 py-3 text-foreground">{averages.valueForMoney}</td>
+                    <td className="px-4 py-3 font-semibold text-foreground">{averages.overall}</td>
+                    <td className="px-4 py-3 text-foreground">{referralCount}</td>
                   </tr>
                 ))}
               </tbody>
