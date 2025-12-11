@@ -430,46 +430,46 @@ export default function AssignLessonForm({
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted/50">
             <tr>
-              <th className="px-4 py-3 text-left">
+              <th className="px-3 py-3 text-left w-10">
                 <span className="sr-only">Select student</span>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Class</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Start Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Due Date</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Email</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Class</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-48">Start Date</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-48">Due Date</th>
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border">
             {filteredStudents.map((student) => (
               <tr key={student.id}>
-                <td className="px-4 py-4">
+                <td className="px-3 py-4">
                   <Checkbox
                     id={`desktop-${student.id}`}
                     checked={selectedStudents.includes(student.id)}
                     onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)}
                   />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{student.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{student.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                <td className="px-3 py-4 text-sm font-medium text-foreground max-w-[150px] truncate" title={student.name || ''}>{student.name}</td>
+                <td className="px-3 py-4 text-sm text-muted-foreground max-w-[200px] truncate" title={student.email || ''}>{student.email}</td>
+                <td className="px-3 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {student.currentClassName ?? (student.currentClassId ? 'Unknown class' : 'No class')}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-4 whitespace-nowrap">
                   <Input
                     type="datetime-local"
                     value={startDates[student.id] || ''}
                     onChange={(e) => setStartDates((prev) => ({ ...prev, [student.id]: e.target.value }))}
-                    className="text-sm"
+                    className="text-xs h-8 w-full min-w-[160px]"
                     disabled={notificationOption === 'none'}
                   />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 py-4 whitespace-nowrap">
                   <Input
                     type="datetime-local"
                     value={deadlines[student.id] || ''}
                     onChange={(e) => setDeadlines((prev) => ({ ...prev, [student.id]: e.target.value }))}
-                    className="text-sm"
+                    className="text-xs h-8 w-full min-w-[160px]"
                   />
                 </td>
               </tr>
