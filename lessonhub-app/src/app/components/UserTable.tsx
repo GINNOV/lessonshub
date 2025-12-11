@@ -126,33 +126,33 @@ export default function UserTable({
           />
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-muted-foreground">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-muted-foreground">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-muted-foreground">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-muted-foreground">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+            <tbody className="divide-y divide-border bg-card">
               {filteredUsers.map((user) => (
-                <tr key={user.id} className={cn(user.isSuspended && 'bg-red-50 opacity-60')}>
+                <tr key={user.id} className={cn(user.isSuspended && 'bg-destructive/10 opacity-60')}>
                   <td className="whitespace-nowrap px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-foreground">
                       {user.name}
                     </div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
+                    <div className="text-sm text-muted-foreground">{user.email}</div>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                     {user.role}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
@@ -170,7 +170,7 @@ export default function UserTable({
                       </Label>
                     </div>
                     {user.hasAdminPortalAccess && user.role === Role.TEACHER && (
-                      <span className="mt-2 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+                      <span className="mt-2 inline-flex rounded-full bg-indigo-500/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-400">
                         Admin Portal
                       </span>
                     )}
