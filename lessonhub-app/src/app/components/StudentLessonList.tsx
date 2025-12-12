@@ -82,16 +82,16 @@ export default function StudentLessonList({ assignments, copy }: StudentLessonLi
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-border bg-card p-4 shadow-lg backdrop-blur-sm">
+      <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4 shadow-lg backdrop-blur-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <div className="relative w-full md:max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
             <Input
               type="search"
               placeholder={copy?.searchPlaceholder || "Search by title or teacher..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-input bg-background/60 pl-10 text-foreground placeholder:text-muted-foreground focus:border-teal-400 focus:ring-2 focus:ring-teal-500/50"
+              className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-10 text-slate-100 placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/50"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
@@ -108,26 +108,26 @@ export default function StudentLessonList({ assignments, copy }: StudentLessonLi
                   'px-4 py-2 text-sm font-semibold rounded-lg border transition-all duration-150',
                   filter === key
                     ? (
-                        key === 'pending' ? 'border-amber-300/60 bg-amber-400/20 text-amber-700 dark:text-amber-100 shadow-[0_10px_25px_rgba(251,191,36,0.15)]' :
-                        key === 'graded'  ? 'border-emerald-400/60 bg-emerald-400/15 text-emerald-700 dark:text-emerald-100 shadow-[0_10px_25px_rgba(52,211,153,0.18)]' :
-                        key === 'failed'  ? 'border-rose-400/60 bg-rose-400/15 text-rose-700 dark:text-rose-100 shadow-[0_10px_25px_rgba(248,113,113,0.18)]' :
-                                            'border-teal-300/60 bg-teal-400/20 text-teal-700 dark:text-teal-50 shadow-[0_10px_25px_rgba(45,212,191,0.18)]'
+                        key === 'pending' ? 'border-amber-300/60 bg-amber-400/20 text-amber-100 shadow-[0_10px_25px_rgba(251,191,36,0.15)]' :
+                        key === 'graded'  ? 'border-emerald-400/60 bg-emerald-400/15 text-emerald-100 shadow-[0_10px_25px_rgba(52,211,153,0.18)]' :
+                        key === 'failed'  ? 'border-rose-400/60 bg-rose-400/15 text-rose-100 shadow-[0_10px_25px_rgba(248,113,113,0.18)]' :
+                                            'border-teal-300/60 bg-teal-400/20 text-teal-50 shadow-[0_10px_25px_rgba(45,212,191,0.18)]'
                       )
-                    : 'border-border bg-muted/70 text-muted-foreground hover:border-teal-500/50 hover:text-foreground'
+                    : 'border-slate-800 bg-slate-800/70 text-slate-300 hover:border-teal-500/50 hover:text-white'
                 ].join(' ')}
                 type="button"
               >
                 {label}
               </button>
             ))}
-            <label className="ml-1 inline-flex items-center gap-2 rounded-xl border border-border bg-muted/70 px-3 py-2 text-sm font-semibold text-muted-foreground shadow-sm">
+            <label className="ml-1 inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-sm font-semibold text-slate-200 shadow-sm">
               <Switch
                 checked={showFreeOnly}
                 onCheckedChange={setShowFreeOnly}
-                className="data-[state=checked]:bg-teal-400 data-[state=unchecked]:bg-slate-400 dark:data-[state=unchecked]:bg-slate-700 h-5 w-10"
+                className="data-[state=checked]:bg-teal-400 data-[state=unchecked]:bg-slate-700 h-5 w-10"
                 aria-label={copy?.freeToggle || 'Free lessons only'}
               />
-              <span className="text-muted-foreground">
+              <span className="text-slate-200">
                 {copy?.freeToggle || 'Free lessons only'}
               </span>
             </label>
@@ -136,12 +136,12 @@ export default function StudentLessonList({ assignments, copy }: StudentLessonLi
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card/60 p-8 text-center text-muted-foreground shadow-inner">
+        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-8 text-center text-slate-300 shadow-inner">
           <p>{copy?.empty || "You have no assignments yet."}</p>
           <div className="mt-3 text-sm">
             <Link
               href="/teachers"
-              className="font-semibold text-teal-600 dark:text-teal-300 underline decoration-dotted underline-offset-4 hover:text-teal-500 dark:hover:text-teal-200"
+              className="font-semibold text-teal-300 underline decoration-dotted underline-offset-4 hover:text-teal-200"
             >
               {copy?.browseTeachers || "Browse teachers directory"}
             </Link>

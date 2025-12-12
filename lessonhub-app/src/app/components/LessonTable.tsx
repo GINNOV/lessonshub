@@ -133,36 +133,36 @@ export default function LessonTable({
         )}
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-border">
-          <thead className="bg-muted/50">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
             <tr>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
               >
                 Title
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
               >
                 Type
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
               >
                 Price (€)
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
               >
                 Assigned Teacher
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
               >
                 # Students Assigned
               </th>
@@ -171,29 +171,29 @@ export default function LessonTable({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border bg-card">
+          <tbody className="divide-y divide-gray-200 bg-white">
             {filteredLessons.map((lesson) => {
               const isPending = pendingLessonId === lesson.id;
               return (
                 <tr key={lesson.id}>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-foreground">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                     {lesson.title}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     {lesson.type}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     <LessonPriceEditor
                       lessonId={lesson.id}
                       initialPrice={lesson.price}
                     />
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     {lesson.teacher?.name || lesson.teacher?.email || (
-                      <span className="italic text-muted-foreground/70">Unassigned</span>
+                      <span className="italic text-gray-400">Unassigned</span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     {lesson.assignments.length}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">

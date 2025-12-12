@@ -66,7 +66,7 @@ export default function TeacherPreferences({ teacher, instructionBooklets = [] }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 border rounded-lg bg-card">
+    <form onSubmit={handleSubmit} className="p-6 border rounded-lg bg-white">
       <h2 className="text-xl font-semibold mb-4">Teacher Preferences</h2>
       <div className="space-y-4">
         <div className="space-y-1">
@@ -96,7 +96,7 @@ export default function TeacherPreferences({ teacher, instructionBooklets = [] }
                 <select
                   value={selectedBookletId}
                   onChange={(e) => setSelectedBookletId(e.target.value)}
-                  className="rounded-md border border-input bg-background p-2 text-sm shadow-sm"
+                  className="rounded-md border border-gray-300 p-2 text-sm shadow-sm"
                 >
                   <option value="">Insert from booklet…</option>
                   {instructionBooklets.map((booklet) => (
@@ -143,7 +143,7 @@ export default function TeacherPreferences({ teacher, instructionBooklets = [] }
             placeholder="e.g., Instructions for the student..."
           />
           {hasBooklets && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">
               Need to edit or add more templates? <ManageInstructionBookletsLink />
             </p>
           )}

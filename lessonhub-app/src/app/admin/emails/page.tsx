@@ -19,13 +19,13 @@ export default async function EmailTemplatesPage() {
     return (
         <div>
             <h1 className="text-3xl font-bold mb-6">Email Template Editor</h1>
-            <div className="bg-card p-6 rounded-lg shadow-md border border-border">
-                <ul className="divide-y divide-border">
+            <div className="bg-white p-6 rounded-lg shadow-md border">
+                <ul className="divide-y divide-gray-200">
                     {templates.map(template => (
                         <li key={template.id} className="py-4 flex justify-between items-center">
                             <div>
-                                <p className="text-lg font-semibold capitalize text-foreground">{template.name.replace(/_/g, ' ')}</p>
-                                <p className="text-sm text-muted-foreground">{template.subject}</p>
+                                <p className="text-lg font-semibold capitalize">{template.name.replace(/_/g, ' ')}</p>
+                                <p className="text-sm text-gray-500">{template.subject}</p>
                             </div>
                             <Button asChild>
                                 <Link href={`/admin/emails/edit/${template.name}`}>Edit</Link>

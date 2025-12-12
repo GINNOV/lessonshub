@@ -67,23 +67,23 @@ const StatItem = ({
   label: string;
   tone: 'slate' | 'amber' | 'indigo' | 'emerald' | 'orange' | 'red';
 }) => (
-  <div className="rounded-xl border border-border bg-muted/50 p-4 text-center shadow-sm">
+  <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 p-4 text-center shadow-sm">
     <div
       className={`mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-lg ${
         {
-          slate: 'bg-slate-100 text-slate-700 dark:bg-slate-800/80 dark:text-slate-200',
-          amber: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200 ring-1 ring-amber-500/40',
-          indigo: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200 ring-1 ring-indigo-500/30',
-          emerald: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-100 ring-1 ring-emerald-400/40',
-          orange: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-200 ring-1 ring-orange-500/40',
-          red: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200 ring-1 ring-rose-500/40',
+          slate: 'bg-slate-800/80 text-slate-200',
+          amber: 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-500/40',
+          indigo: 'bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-500/30',
+          emerald: 'bg-emerald-500/15 text-emerald-100 ring-1 ring-emerald-400/40',
+          orange: 'bg-orange-500/15 text-orange-200 ring-1 ring-orange-500/40',
+          red: 'bg-rose-500/15 text-rose-200 ring-1 ring-rose-500/40',
         }[tone]
       }`}
     >
       <Icon className="h-5 w-5" />
     </div>
-    <p className="text-2xl font-bold text-foreground">{value}</p>
-    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+    <p className="text-2xl font-bold text-slate-50">{value}</p>
+    <p className="text-[11px] uppercase tracking-wide text-slate-400">{label}</p>
   </div>
 );
 
@@ -160,12 +160,12 @@ export default function StudentStatsHeader({
         </div>
       </div>
 
-      <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6 shadow-xl lg:col-span-2">
+      <div className="flex flex-col justify-between rounded-2xl border border-slate-800/80 bg-slate-900/70 p-6 shadow-xl lg:col-span-2">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-card-foreground">
+          <h3 className="text-lg font-semibold text-slate-100">
             {copy?.assignmentSummary || 'Assignment Summary'}
           </h3>
-          <span className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="rounded-full border border-slate-700 bg-slate-800/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-300">
             Dashboard
           </span>
         </div>
@@ -208,7 +208,7 @@ export default function StudentStatsHeader({
           />
         </div>
         {settings?.assignmentSummaryFooter && (
-          <div className="mt-4 border-t border-border pt-4 text-sm text-muted-foreground">
+          <div className="mt-4 border-t border-slate-800 pt-4 text-sm text-slate-400">
             {settings.assignmentSummaryFooter}
           </div>
         )}

@@ -41,7 +41,7 @@ export default async function LessonManagementPage({
   return (
     <div>
       <h1 className="mb-6 text-3xl font-bold">Lesson Management</h1>
-      <div className="rounded-lg border border-border bg-card p-6 shadow-md">
+      <div className="rounded-lg border bg-white p-6 shadow-md">
         <LessonTable
           lessons={serializableLessons}
           teachers={serializableTeachers}

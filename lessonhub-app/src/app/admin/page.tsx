@@ -25,7 +25,7 @@ export default async function AdminLandingPage() {
     <div className="p-6">
       <WhatsNewDialog notes={whatsNewNotes} />
       <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-      <p className="text-muted-foreground mb-8">Quick access to admin tools.</p>
+      <p className="text-gray-600 mb-8">Quick access to admin tools.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {ADMIN_TILES.map(({ href, label, icon: Icon, color }) => (
           <Link

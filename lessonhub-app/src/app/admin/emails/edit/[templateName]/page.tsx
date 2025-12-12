@@ -43,7 +43,7 @@ export default async function EditEmailTemplatePage({ params }: { params: Promis
                     <Link href="/admin/emails">&larr; Back to Templates</Link>
                 </Button>
             </div>
-            <div className="bg-card p-6 rounded-lg shadow-md border border-border">
+            <div className="bg-white p-6 rounded-lg shadow-md border">
                 <EmailTemplateForm template={template} />
             </div>
         </div>
