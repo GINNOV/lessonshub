@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { createStudentBannerAction, toggleStudentBannerAction } from "@/actions/adminActions";
+import { createStudentBannerAction, toggleStudentBannerAction, updateStudentBannerAction } from "@/actions/adminActions";
 
 export default async function StudentBannersPage() {
   const session = await auth();
@@ -117,6 +117,49 @@ export default async function StudentBannersPage() {
                 <p className="mt-2 text-lg font-semibold text-slate-50">{banner.title}</p>
                 <p className="text-sm text-slate-200">{banner.body}</p>
                 <p className="mt-2 text-xs text-slate-400">CTA: {banner.ctaText} → {banner.ctaHref}</p>
+                <details className="mt-3 rounded border border-emerald-800/50 bg-emerald-950/30 p-3">
+                  <summary className="cursor-pointer text-sm font-semibold text-emerald-200">Edit banner</summary>
+                  <form
+                    action={async (formData) => {
+                      "use server";
+                      await updateStudentBannerAction(formData);
+                    }}
+                    className="mt-3 grid grid-cols-1 gap-3"
+                  >
+                    <input type="hidden" name="id" value={banner.id} />
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <label className="text-xs text-emerald-100" htmlFor={`kicker-${banner.id}`}>Kicker</label>
+                        <Input id={`kicker-${banner.id}`} name="kicker" defaultValue={banner.kicker ?? ""} className="border-emerald-900 bg-emerald-950/60 text-slate-50" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-emerald-100" htmlFor={`order-${banner.id}`}>Order</label>
+                        <Input id={`order-${banner.id}`} name="order" type="number" defaultValue={banner.order} className="border-emerald-900 bg-emerald-950/60 text-slate-50" />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-emerald-100" htmlFor={`title-${banner.id}`}>Title</label>
+                      <Input id={`title-${banner.id}`} name="title" defaultValue={banner.title} className="border-emerald-900 bg-emerald-950/60 text-slate-50" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-emerald-100" htmlFor={`body-${banner.id}`}>Body</label>
+                      <Textarea id={`body-${banner.id}`} name="body" defaultValue={banner.body} className="min-h-[80px] border-emerald-900 bg-emerald-950/60 text-slate-50" />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <label className="text-xs text-emerald-100" htmlFor={`ctaText-${banner.id}`}>CTA Text</label>
+                        <Input id={`ctaText-${banner.id}`} name="ctaText" defaultValue={banner.ctaText} className="border-emerald-900 bg-emerald-950/60 text-slate-50" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-emerald-100" htmlFor={`ctaHref-${banner.id}`}>CTA Link</label>
+                        <Input id={`ctaHref-${banner.id}`} name="ctaHref" defaultValue={banner.ctaHref} className="border-emerald-900 bg-emerald-950/60 text-slate-50" />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button type="submit" size="sm" className="bg-emerald-600 text-white hover:bg-emerald-500">Save changes</Button>
+                    </div>
+                  </form>
+                </details>
               </div>
             ))}
           </div>
@@ -150,6 +193,49 @@ export default async function StudentBannersPage() {
                 <p className="mt-2 text-lg font-semibold text-slate-50">{banner.title}</p>
                 <p className="text-sm text-slate-200">{banner.body}</p>
                 <p className="mt-2 text-xs text-slate-400">CTA: {banner.ctaText} → {banner.ctaHref}</p>
+                <details className="mt-3 rounded border border-slate-800/70 bg-slate-900/60 p-3">
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-200">Edit banner</summary>
+                  <form
+                    action={async (formData) => {
+                      "use server";
+                      await updateStudentBannerAction(formData);
+                    }}
+                    className="mt-3 grid grid-cols-1 gap-3"
+                  >
+                    <input type="hidden" name="id" value={banner.id} />
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-200" htmlFor={`kicker-${banner.id}`}>Kicker</label>
+                        <Input id={`kicker-${banner.id}`} name="kicker" defaultValue={banner.kicker ?? ""} className="border-slate-800 bg-slate-950/80 text-slate-50" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-200" htmlFor={`order-${banner.id}`}>Order</label>
+                        <Input id={`order-${banner.id}`} name="order" type="number" defaultValue={banner.order} className="border-slate-800 bg-slate-950/80 text-slate-50" />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-200" htmlFor={`title-${banner.id}`}>Title</label>
+                      <Input id={`title-${banner.id}`} name="title" defaultValue={banner.title} className="border-slate-800 bg-slate-950/80 text-slate-50" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-200" htmlFor={`body-${banner.id}`}>Body</label>
+                      <Textarea id={`body-${banner.id}`} name="body" defaultValue={banner.body} className="min-h-[80px] border-slate-800 bg-slate-950/80 text-slate-50" />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-200" htmlFor={`ctaText-${banner.id}`}>CTA Text</label>
+                        <Input id={`ctaText-${banner.id}`} name="ctaText" defaultValue={banner.ctaText} className="border-slate-800 bg-slate-950/80 text-slate-50" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-200" htmlFor={`ctaHref-${banner.id}`}>CTA Link</label>
+                        <Input id={`ctaHref-${banner.id}`} name="ctaHref" defaultValue={banner.ctaHref} className="border-slate-800 bg-slate-950/80 text-slate-50" />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button type="submit" size="sm" className="bg-slate-200 text-slate-900 hover:bg-slate-100">Save changes</Button>
+                    </div>
+                  </form>
+                </details>
               </div>
             ))}
           </div>

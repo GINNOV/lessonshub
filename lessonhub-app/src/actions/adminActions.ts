@@ -322,6 +322,39 @@ export async function toggleStudentBannerAction(bannerId: string, isActive: bool
   }
 }
 
+export async function updateStudentBannerAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user || !hasAdminPrivileges(session.user)) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  const kicker = String(formData.get("kicker") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  const ctaText = String(formData.get("ctaText") ?? "").trim();
+  const ctaHref = String(formData.get("ctaHref") ?? "").trim() || "/profile?tab=status";
+  const orderValue = Number(formData.get("order") ?? 0);
+  const order = Number.isFinite(orderValue) ? orderValue : 0;
+
+  if (!id || !kicker || !title || !body || !ctaText) {
+    return { success: false, error: "All fields are required." };
+  }
+
+  try {
+    await prisma.studentBanner.update({
+      where: { id },
+      data: { kicker, title, body, ctaText, ctaHref, order },
+    });
+    revalidatePath("/admin/banners");
+    revalidatePath("/my-lessons");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update banner", error);
+    return { success: false, error: "Unable to update banner. Try again." };
+  }
+}
+
 
 /**
  * Fetches all email templates.
