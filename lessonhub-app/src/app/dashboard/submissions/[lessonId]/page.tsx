@@ -83,7 +83,11 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                 {submissions.map((sub) => {
                   const isPastDue = new Date() > new Date(sub.deadline) && sub.status === AssignmentStatus.PENDING;
                   const isGradedByTeacher = (sub as any).gradedByTeacher === true;
-                  const baseStatus = isGradedByTeacher ? sub.status : AssignmentStatus.COMPLETED;
+                  const baseStatus = isGradedByTeacher
+                    ? sub.status
+                    : sub.status === AssignmentStatus.GRADED
+                      ? AssignmentStatus.COMPLETED
+                      : sub.status;
                   const displayStatus = isPastDue ? "PAST DUE" : baseStatus;
 
                   return (
@@ -110,8 +114,8 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                               <ExtendDeadlineButton assignmentId={sub.id} />
                             </>
                           )}
-                          {(sub.status === AssignmentStatus.COMPLETED || !isGradedByTeacher) && (
-                            <Button asChild>
+                          {baseStatus === AssignmentStatus.COMPLETED && (
+                            <Button asChild size="sm">
                               <Link href={`/dashboard/grade/${sub.id}`}>Grade</Link>
                             </Button>
                           )}
@@ -135,7 +139,11 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
           {submissions.map((sub) => {
             const isPastDue = new Date() > new Date(sub.deadline) && sub.status === AssignmentStatus.PENDING;
             const isGradedByTeacher = (sub as any).gradedByTeacher === true;
-            const baseStatus = isGradedByTeacher ? sub.status : AssignmentStatus.COMPLETED;
+            const baseStatus = isGradedByTeacher
+              ? sub.status
+              : sub.status === AssignmentStatus.GRADED
+                ? AssignmentStatus.COMPLETED
+                : sub.status;
             const displayStatus = isPastDue ? "PAST DUE" : baseStatus;
 
             return (
@@ -175,7 +183,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                       <ExtendDeadlineButton assignmentId={sub.id} />
                     </>
                   )}
-                  {(sub.status === AssignmentStatus.COMPLETED || !isGradedByTeacher) && (
+                  {baseStatus === AssignmentStatus.COMPLETED && (
                     <Button asChild size="sm">
                       <Link href={`/dashboard/grade/${sub.id}`}>Grade</Link>
                     </Button>

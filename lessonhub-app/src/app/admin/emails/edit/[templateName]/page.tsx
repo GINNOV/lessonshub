@@ -20,9 +20,9 @@ export default async function EditEmailTemplatePage({ params }: { params: Promis
 
     if (!template) {
         return (
-            <div>
+            <div className="text-slate-100">
                 <h1 className="text-2xl font-bold">Template Not Found</h1>
-                <p>The email template &quot;{templateName}&quot; could not be found.</p>
+                <p className="text-slate-300">The email template &quot;{templateName}&quot; could not be found.</p>
                 <Button variant="outline" asChild className="mt-4">
                     <Link href="/admin/emails">&larr; Back to Templates</Link>
                 </Button>
@@ -31,8 +31,8 @@ export default async function EditEmailTemplatePage({ params }: { params: Promis
     }
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
+        <div className="space-y-6 text-slate-100">
+            <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold">Edit Email Template</h1>
                     <p className="text-muted-foreground capitalize">
@@ -43,7 +43,7 @@ export default async function EditEmailTemplatePage({ params }: { params: Promis
                     <Link href="/admin/emails">&larr; Back to Templates</Link>
                 </Button>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md border">
+            <div className="rounded-xl border border-slate-800/70 bg-slate-900/70 p-6 shadow-xl backdrop-blur">
                 <EmailTemplateForm template={template} />
             </div>
         </div>

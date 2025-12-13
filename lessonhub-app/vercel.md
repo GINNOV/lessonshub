@@ -50,6 +50,7 @@ This repository carries a few conventions and helper scripts that make it easier
 - Tailwind, 2-space indent, TypeScript, React 19.
 - Components in `src/components`; shared UI primitives under `src/components/ui`.
 - App Router routes under `src/app`, kebab-case folder names.
+- Prefer non-blocking toasts for feedback (shadcn `toast` + `<Toaster />`) instead of native `alert`/`confirm` dialogs.
 
 ## Common Pitfalls (project-specific)
 - Don’t mix student/teacher flows; keep `StudentLessonList` read-only.

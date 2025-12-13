@@ -2,7 +2,7 @@
 'use server';
 
 import prisma from "@/lib/prisma";
-import { Role } from "@prisma/client";
+import { BadgeCategory, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { sendEmail, createButton } from "@/lib/email-templates";
 import { auth } from "@/auth";
@@ -179,6 +179,146 @@ export async function setAdminPortalAccess(userId: string, enabled: boolean) {
   } catch (error) {
     console.error("Failed to update admin portal access:", error);
     return { success: false, error: "Unable to update admin portal access." };
+  }
+}
+
+export async function createBadgeAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user || !hasAdminPrivileges(session.user)) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const name = String(formData.get("name") ?? "").trim();
+  const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
+  const description = String(formData.get("description") ?? "").trim();
+  const icon = String(formData.get("icon") ?? "").trim();
+  const categoryInput = String(formData.get("category") ?? "").trim().toUpperCase();
+  const category: BadgeCategory = (Object.values(BadgeCategory) as string[]).includes(categoryInput)
+    ? (categoryInput as BadgeCategory)
+    : BadgeCategory.PROGRESSION;
+
+  if (!name || !slug) {
+    return { success: false, error: "Name and slug are required." };
+  }
+
+  try {
+    await prisma.badge.create({
+      data: {
+        name,
+        slug,
+        description,
+        icon: icon || null,
+        category,
+      },
+    });
+    revalidatePath("/admin/awards");
+    return { success: true };
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return { success: false, error: "A badge with this slug already exists." };
+    }
+    console.error("Failed to create badge", error);
+    return { success: false, error: "Unable to create badge. Try again." };
+  }
+}
+
+export async function createStudentBannerAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user || !hasAdminPrivileges(session.user)) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const kicker = String(formData.get("kicker") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  const ctaText = String(formData.get("ctaText") ?? "").trim();
+  const ctaHref = String(formData.get("ctaHref") ?? "").trim() || "/profile?tab=status";
+  const orderValue = Number(formData.get("order") ?? 0);
+  const order = Number.isFinite(orderValue) ? orderValue : 0;
+
+  if (!kicker || !title || !body || !ctaText) {
+    return { success: false, error: "All fields are required." };
+  }
+
+  try {
+    await prisma.studentBanner.create({
+      data: {
+        kicker,
+        title,
+        body,
+        ctaText,
+        ctaHref,
+        order,
+      },
+    });
+    revalidatePath("/admin/banners");
+    revalidatePath("/my-lessons");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to create student banner", error);
+    return { success: false, error: "Unable to create banner. Try again." };
+  }
+}
+
+export async function updateBadgeAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user || !hasAdminPrivileges(session.user)) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
+  const description = String(formData.get("description") ?? "").trim();
+  const icon = String(formData.get("icon") ?? "").trim();
+  const categoryInput = String(formData.get("category") ?? "").trim().toUpperCase();
+  const category: BadgeCategory = (Object.values(BadgeCategory) as string[]).includes(categoryInput)
+    ? (categoryInput as BadgeCategory)
+    : BadgeCategory.PROGRESSION;
+
+  if (!id || !name || !slug) {
+    return { success: false, error: "Name and slug are required." };
+  }
+
+  try {
+    await prisma.badge.update({
+      where: { id },
+      data: {
+        name,
+        slug,
+        description,
+        icon: icon || null,
+        category,
+      },
+    });
+    revalidatePath("/admin/awards");
+    return { success: true };
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return { success: false, error: "Slug already in use by another badge." };
+    }
+    console.error("Failed to update badge", error);
+    return { success: false, error: "Unable to update badge. Try again." };
+  }
+}
+
+export async function toggleStudentBannerAction(bannerId: string, isActive: boolean) {
+  const session = await auth();
+  if (!session?.user || !hasAdminPrivileges(session.user)) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await prisma.studentBanner.update({
+      where: { id: bannerId },
+      data: { isActive },
+    });
+    revalidatePath("/admin/banners");
+    revalidatePath("/my-lessons");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update banner", error);
+    return { success: false, error: "Unable to update banner." };
   }
 }
 

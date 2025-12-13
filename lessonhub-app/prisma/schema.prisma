@@ -465,6 +465,19 @@ enum AssignmentStatus {
   FAILED
 }
 
+model StudentBanner {
+  id        String   @id @default(cuid())
+  kicker    String
+  title     String
+  body      String
+  ctaText   String
+  ctaHref   String   @default("/profile?tab=status")
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum BadgeCategory {
   PROGRESSION
   PERFORMANCE

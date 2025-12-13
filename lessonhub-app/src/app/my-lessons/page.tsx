@@ -250,6 +250,17 @@ export default async function MyLessonsPage() {
     fallback: "en",
   }) as StudentDashboardLocale;
   const copy = studentDashboardCopy[locale];
+  const activeBanners = await prisma.studentBanner.findMany({
+    where: { isActive: true },
+    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+  });
+  const bannerCopies = activeBanners.map((banner) => ({
+    bannerKicker: banner.kicker,
+    bannerTitle: banner.title,
+    bannerBody: banner.body,
+    bannerCta: banner.ctaText,
+    bannerHref: banner.ctaHref || "/profile?tab=status",
+  }));
 
   return (
     <div>
@@ -267,7 +278,7 @@ export default async function MyLessonsPage() {
         copy={copy.stats}
       />
       <section className="mt-10 space-y-6">
-        <HubGuideBanner guideCount={guidesForTab.length} copy={copy.guides} />
+        <HubGuideBanner guideCount={guidesForTab.length} copy={copy.guides} banners={bannerCopies} />
         {isPaying ? (
           <Tabs defaultValue="lessons" className="space-y-6">
             <TabsList className="mb-2 flex w-full flex-wrap items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 px-2 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">

@@ -174,7 +174,7 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="body">Body (HTML)</Label>
-              <div className="flex items-center gap-2 rounded-md border bg-slate-50 p-1">
+              <div className="flex items-center gap-2 rounded-md border border-slate-800/70 bg-slate-900/70 p-1">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm">
@@ -244,9 +244,9 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
         </form>
 
         <div className="space-y-6">
-          <div className="rounded-lg border bg-gray-50 p-4">
-            <h3 className="mb-2 font-semibold">Live Preview</h3>
-            <div className="h-[400px] w-full rounded-md border bg-white shadow-inner">
+          <div className="rounded-lg border border-slate-800/70 bg-slate-900/70 p-4">
+            <h3 className="mb-2 font-semibold text-slate-100">Live Preview</h3>
+            <div className="h-[400px] w-full rounded-md border border-slate-800 bg-slate-950 shadow-inner">
               <iframe
                 srcDoc={previewHtml}
                 className="h-full w-full"
@@ -254,8 +254,8 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
               />
             </div>
           </div>
-          <div className="rounded-lg border bg-gray-50 p-4">
-            <h3 className="mb-2 font-semibold">Send Test Email</h3>
+          <div className="rounded-lg border border-slate-800/70 bg-slate-900/70 p-4">
+            <h3 className="mb-2 font-semibold text-slate-100">Send Test Email</h3>
             <div className="space-y-2">
               <Input
                 type="email"

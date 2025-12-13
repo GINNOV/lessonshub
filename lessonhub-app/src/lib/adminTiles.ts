@@ -8,6 +8,8 @@ import {
   BarChart3,
   Ticket,
   Gift,
+  Award,
+  LayoutPanelTop,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -27,6 +29,8 @@ export const ADMIN_TILES: AdminTile[] = [
   { href: '/admin/cron', label: 'Cron Test Page', icon: Timer, color: 'bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 border border-slate-800 text-slate-100 hover:border-rose-400/60 hover:shadow-[0_10px_30px_rgba(251,113,133,0.18)]' },
   { href: '/admin/coupons', label: 'Coupon Management', icon: Ticket, color: 'bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 border border-slate-800 text-slate-100 hover:border-cyan-400/60 hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]' },
   { href: '/admin/feedback', label: 'Feedback & Analytics', icon: BarChart3, color: 'bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 border border-slate-800 text-slate-100 hover:border-indigo-400/60 hover:shadow-[0_10px_30px_rgba(99,102,241,0.18)]' },
+  { href: '/admin/banners', label: 'Student Banner', icon: LayoutPanelTop, color: 'bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 border border-slate-800 text-slate-100 hover:border-sky-400/60 hover:shadow-[0_10px_30px_rgba(56,189,248,0.18)]' },
+  { href: '/admin/awards', label: 'Awards & Badges', icon: Award, color: 'bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 border border-slate-800 text-slate-100 hover:border-amber-400/70 hover:shadow-[0_10px_30px_rgba(251,191,36,0.18)]' },
   { href: '/admin/referrals', label: 'Referral Dashboard', icon: Gift, color: 'bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 border border-slate-800 text-slate-100 hover:border-emerald-400/60 hover:shadow-[0_10px_30px_rgba(52,211,153,0.18)]' },
   { href: '/profile', label: 'Profile', icon: UserCircle2, color: 'bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 border border-slate-800 text-slate-100 hover:border-slate-400/60 hover:shadow-[0_10px_30px_rgba(148,163,184,0.18)]', primary: true },
 ];
