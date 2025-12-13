@@ -278,6 +278,8 @@ model Assignment {
   reminderSentAt      DateTime?
   milestoneNotified   Boolean          @default(false)
   notifyOnStartDate   Boolean          @default(true) // New field for scheduled notifications
+  pastDueWarningSentAt DateTime?
+  gradedByTeacher     Boolean          @default(false)
   lessonId            String
   studentId           String
   lesson              Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)

@@ -245,6 +245,18 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     `,
     buttonColor: '#f59e0b',
   },
+  past_due_warning: {
+    subject: '⏳ Action needed: "{{lessonTitle}}" is overdue',
+    body: `
+      <h1 style="color:#b45309;font-size:30px;font-weight:800;margin:24px 0;">Your assignment is overdue</h1>
+      <p style="color:#4b5563;font-size:16px;line-height:24px;">Hi {{studentName}},</p>
+      <p style="color:#4b5563;font-size:16px;line-height:24px;">Your lesson <strong>{{lessonTitle}}</strong> is past its deadline ({{deadline}}). You still have <strong>{{hoursLeft}} hours</strong> to request an extension before it is automatically failed.</p>
+      <p style="color:#4b5563;font-size:16px;line-height:24px;">Auto-fail time: <strong>{{failAt}}</strong> (CEST)</p>
+      {{button}}
+      <p style="color:#4b5563;font-size:15px;line-height:22px;margin-top:16px;">If you need more time, request an extension now to keep this assignment active.</p>
+    `,
+    buttonColor: '#f59e0b',
+  },
   weekly_summary: {
     subject: '🌟 Your Week on LessonHUB ({{weekRange}})',
     body: `

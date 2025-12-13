@@ -395,9 +395,8 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
             where: { id: assignmentId },
             data: {
                 answers: processedAnswers,
-                status: AssignmentStatus.GRADED,
+                status: AssignmentStatus.COMPLETED,
                 score: score,
-                gradedAt: new Date(),
                 rating: rating,
                 draftAnswers: Prisma.JsonNull,
                 draftRating: null,
@@ -1468,6 +1467,7 @@ export async function gradeAssignment(
             status: AssignmentStatus.GRADED,
             gradedAt: now,
             pointsAwarded,
+            gradedByTeacher: true,
           },
         });
       } catch (err) {
@@ -1486,6 +1486,7 @@ export async function gradeAssignment(
             status: AssignmentStatus.GRADED,
             gradedAt: now,
             pointsAwarded,
+            gradedByTeacher: true,
           },
         });
       }

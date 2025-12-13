@@ -675,7 +675,7 @@ export default async function GradeSubmissionPage({
         </Link>
       </Button>
       <h1 className="text-3xl font-bold">Grade Submission</h1>
-      <p className="mt-1 text-gray-600">
+      <p className="mt-1 text-slate-300">
         Student: {submission.student.name || submission.student.email}
       </p>
 
@@ -685,9 +685,9 @@ export default async function GradeSubmissionPage({
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2">
-          <div className="space-y-6 rounded-lg border bg-card p-6 shadow-md">
+          <div className="space-y-6 rounded-lg border border-slate-800/70 bg-slate-950/70 p-6 text-slate-100 shadow-md">
             <div>
-              <h2 className="border-b pb-2 text-xl font-semibold">
+              <h2 className="border-b border-slate-800 pb-2 text-xl font-semibold text-slate-100">
                 Student&apos;s Response
               </h2>
 
@@ -695,14 +695,14 @@ export default async function GradeSubmissionPage({
               <div className="mt-4 space-y-3">
                 {flashcards.length > 0 ? (
                   <>
-                    <div className="flex justify-around rounded-md bg-muted/50 p-3">
+                    <div className="flex justify-around rounded-md border border-slate-800/70 bg-slate-900/70 p-3">
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-green-600">{correctCount}</p>
-                        <p className="text-sm text-gray-500">Marked Correct</p>
+                        <p className="text-2xl font-bold text-emerald-300">{correctCount}</p>
+                        <p className="text-sm text-slate-400">Marked Correct</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-red-600">{incorrectCount}</p>
-                        <p className="text-sm text-gray-500">Marked Incorrect</p>
+                        <p className="text-2xl font-bold text-rose-300">{incorrectCount}</p>
+                        <p className="text-sm text-slate-400">Marked Incorrect</p>
                       </div>
                     </div>
                     <div className="space-y-3">
@@ -712,15 +712,16 @@ export default async function GradeSubmissionPage({
                           <div
                             key={flashcard.id}
                             className={cn(
-                              "space-y-3 rounded-md border p-3 transition-colors",
-                              result === 'correct' && 'border-green-200 bg-green-50',
-                              result === 'incorrect' && 'border-red-200 bg-red-50'
+                              "space-y-3 rounded-md border p-3 transition-colors text-slate-100",
+                              "border-slate-800/70 bg-slate-900/70",
+                              result === 'correct' && 'border-emerald-400/60 bg-emerald-900/40',
+                              result === 'incorrect' && 'border-rose-400/60 bg-rose-900/40'
                             )}
                           >
                             <div className="flex items-center justify-between">
                               <div className="max-w-md">
-                                <p className="text-sm font-semibold uppercase text-gray-500">Front</p>
-                                <p className="text-base font-semibold text-gray-900">{flashcard.term}</p>
+                                <p className="text-sm font-semibold uppercase text-slate-400">Front</p>
+                                <p className="text-base font-semibold text-slate-100">{flashcard.term}</p>
                                 {flashcard.termImageUrl && (
                                   <div className="mt-2">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -733,24 +734,24 @@ export default async function GradeSubmissionPage({
                                 )}
                               </div>
                               {result === 'correct' ? (
-                                <div className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
+                                <div className="flex items-center gap-1 rounded-full bg-emerald-900/40 px-3 py-1 text-sm font-semibold text-emerald-100 border border-emerald-400/60">
                                   <CheckCircle2 className="h-4 w-4" />
                                   <span>Right</span>
                                 </div>
                               ) : result === 'incorrect' ? (
-                                <div className="flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-700">
+                                <div className="flex items-center gap-1 rounded-full bg-rose-900/40 px-3 py-1 text-sm font-semibold text-rose-100 border border-rose-400/60">
                                   <XCircle className="h-4 w-4" />
                                   <span>Wrong</span>
                                 </div>
                               ) : (
-                                <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-500">
+                                <div className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-300">
                                   Not Reviewed
                                 </div>
                               )}
                             </div>
                             <div className="max-w-md">
-                              <p className="text-sm font-semibold uppercase text-gray-500">Back</p>
-                              <p className="text-base text-gray-800">{flashcard.definition}</p>
+                              <p className="text-sm font-semibold uppercase text-slate-400">Back</p>
+                              <p className="text-base text-slate-100">{flashcard.definition}</p>
                               {flashcard.definitionImageUrl && (
                                 <div className="mt-2">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -768,7 +769,7 @@ export default async function GradeSubmissionPage({
                     </div>
                   </>
                 ) : (
-                  <p className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                  <p className="rounded-md border border-dashed border-slate-700 bg-slate-900 p-4 text-sm text-slate-300">
                     This lesson does not have any flashcards configured yet.
                   </p>
                 )}
@@ -779,18 +780,18 @@ export default async function GradeSubmissionPage({
               <div className="mt-4 space-y-3">
                 {multiChoiceDetails.length > 0 ? (
                   <>
-                    <div className="flex flex-wrap justify-around gap-4 rounded-md bg-muted/50 p-3">
+                    <div className="flex flex-wrap justify-around gap-4 rounded-md border border-slate-800/70 bg-slate-900/70 p-3">
                       <div className="min-w-[90px] text-center">
-                        <p className="text-2xl font-bold text-green-600">{multiChoiceSummary.correct}</p>
-                        <p className="text-sm text-gray-500">Correct</p>
+                        <p className="text-2xl font-bold text-emerald-300">{multiChoiceSummary.correct}</p>
+                        <p className="text-sm text-slate-400">Correct</p>
                       </div>
                       <div className="min-w-[90px] text-center">
-                        <p className="text-2xl font-bold text-red-600">{multiChoiceSummary.incorrect}</p>
-                        <p className="text-sm text-gray-500">Incorrect</p>
+                        <p className="text-2xl font-bold text-rose-300">{multiChoiceSummary.incorrect}</p>
+                        <p className="text-sm text-slate-400">Incorrect</p>
                       </div>
                       <div className="min-w-[90px] text-center">
-                        <p className="text-2xl font-bold text-gray-600">{multiChoiceUnanswered}</p>
-                        <p className="text-sm text-gray-500">Unanswered</p>
+                        <p className="text-2xl font-bold text-slate-200">{multiChoiceUnanswered}</p>
+                        <p className="text-sm text-slate-400">Unanswered</p>
                       </div>
                     </div>
                     <div className="space-y-4">
@@ -811,16 +812,16 @@ export default async function GradeSubmissionPage({
                                 : null;
                         const statusBadgeClasses = cn(
                           'rounded-full px-3 py-1 text-xs font-semibold',
-                          statusLabel === 'Correct' && 'border-green-200 bg-green-50 text-green-700',
-                          statusLabel === 'Incorrect' && 'border-red-200 bg-red-50 text-red-700',
-                          statusLabel === 'No answer' && 'border-gray-200 bg-gray-50 text-gray-600'
+                          statusLabel === 'Correct' && 'border border-emerald-400/60 bg-emerald-900/40 text-emerald-100',
+                          statusLabel === 'Incorrect' && 'border border-rose-400/60 bg-rose-900/40 text-rose-100',
+                          statusLabel === 'No answer' && 'border border-slate-700 bg-slate-900 text-slate-200'
                         );
                         return (
-                          <div key={question.id} className="space-y-3 rounded-md border p-4">
+                          <div key={question.id} className="space-y-3 rounded-md border border-slate-800/70 bg-slate-900/70 p-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                               <div>
-                                <p className="text-sm font-semibold uppercase text-gray-500">Question {questionIndex + 1}</p>
-                                <p className="text-base text-gray-900">{question.question}</p>
+                                <p className="text-sm font-semibold uppercase text-slate-400">Question {questionIndex + 1}</p>
+                                <p className="text-base text-slate-100">{question.question}</p>
                               </div>
                               {statusLabel && (
                                 <Badge variant="outline" className={statusBadgeClasses}>
@@ -834,27 +835,28 @@ export default async function GradeSubmissionPage({
                                 const isCorrectOption = Boolean(correctOption && option.id === correctOption.id);
                                 const optionClasses = cn(
                                   "flex flex-col gap-2 rounded-md border p-3 text-sm transition-colors md:flex-row md:items-center md:justify-between",
-                                  isSelected && isCorrect === true && "border-green-500 bg-green-50",
-                                  isSelected && isCorrect !== true && "border-red-500 bg-red-50",
-                                  !isSelected && isCorrectOption && "border-green-200 bg-green-50",
-                                  !isSelected && !isCorrectOption && "border-border bg-card"
+                                  "border-slate-800/70 bg-slate-900/70 text-slate-100",
+                                  isSelected && isCorrect === true && "border-emerald-400/70 bg-emerald-900/40 text-emerald-100",
+                                  isSelected && isCorrect !== true && "border-rose-400/70 bg-rose-900/40 text-rose-100",
+                                  !isSelected && isCorrectOption && "border-emerald-400/50 bg-emerald-950/40 text-emerald-100",
+                                  !isSelected && !isCorrectOption && "border-slate-800/70 bg-slate-900/70"
                                 );
                                 return (
                                   <div key={option.id} className={optionClasses}>
-                                    <span className="text-gray-800">{option.text}</span>
+                                    <span className="text-slate-100">{option.text}</span>
                                     <div className="flex flex-wrap gap-2">
                                       {isSelected && (
                                         <span
                                           className={cn(
                                             "rounded-full px-2 py-1 text-xs font-semibold",
-                                            isCorrect === true ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"
+                                            isCorrect === true ? "bg-emerald-900/40 text-emerald-100 border border-emerald-400/60" : "bg-rose-900/40 text-rose-100 border border-rose-400/60"
                                           )}
                                         >
                                           Your selection
                                         </span>
                                       )}
                                       {isCorrectOption && (
-                                        <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
+                                        <span className="rounded-full border border-emerald-400/60 bg-emerald-900/40 px-2 py-1 text-xs font-semibold text-emerald-100">
                                           Correct answer
                                         </span>
                                       )}
@@ -869,7 +871,7 @@ export default async function GradeSubmissionPage({
                     </div>
                   </>
                 ) : (
-                  <p className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                  <p className="rounded-md border border-dashed border-slate-700 bg-slate-900 p-4 text-sm text-slate-300">
                     This lesson does not include any multiple choice questions yet.
                   </p>
                 )}
@@ -967,7 +969,7 @@ export default async function GradeSubmissionPage({
                               <div key={card.id} className="rounded-md border border-border bg-card p-3 shadow-sm">
                                 <div>
                                   <p className="text-xs font-semibold uppercase text-muted-foreground">Front</p>
-                                  <p className="text-base font-medium text-gray-900">{card.term}</p>
+                                  <p className="text-base font-medium text-slate-100">{card.term}</p>
                                   {card.termImageUrl && (
                                     <div className="mt-2">
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -980,8 +982,8 @@ export default async function GradeSubmissionPage({
                                   )}
                                 </div>
                                 <div className="mt-4">
-                                  <p className="text-xs font-semibold uppercase text-gray-500">Back</p>
-                                  <p className="text-base text-gray-800">{card.definition}</p>
+                                  <p className="text-xs font-semibold uppercase text-slate-400">Back</p>
+                                  <p className="text-base text-slate-100">{card.definition}</p>
                                   {card.definitionImageUrl && (
                                     <div className="mt-2">
                                       {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -116,43 +116,43 @@ export default function UserTable({
     <TooltipProvider>
       <div>
         <div className="relative mb-4">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
           <Input
             type="search"
             placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 border-slate-800 bg-slate-900/70 text-slate-100 placeholder:text-slate-500"
           />
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="overflow-x-auto rounded-xl border border-slate-800/70 bg-slate-950/70 shadow-xl">
+          <table className="min-w-full divide-y divide-slate-800">
+            <thead className="bg-slate-900/80">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-400">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-400">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-400">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-400">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+            <tbody className="divide-y divide-slate-800 bg-slate-950/60">
               {filteredUsers.map((user) => (
-                <tr key={user.id} className={cn(user.isSuspended && 'bg-red-50 opacity-60')}>
+                <tr key={user.id} className={cn(user.isSuspended && 'bg-rose-950/30 opacity-70')}>
                   <td className="whitespace-nowrap px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-slate-100">
                       {user.name}
                     </div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
+                    <div className="text-sm text-slate-400">{user.email}</div>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-300">
                     {user.role}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
@@ -165,17 +165,17 @@ export default function UserTable({
                         }
                         disabled={user.role === Role.ADMIN}
                       />
-                      <Label htmlFor={`paying-${user.id}`}>
+                      <Label htmlFor={`paying-${user.id}`} className="text-slate-200">
                         {user.isPaying ? 'Paying' : 'Not Paying'}
                       </Label>
                     </div>
                     {user.hasAdminPortalAccess && user.role === Role.TEACHER && (
-                      <span className="mt-2 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+                      <span className="mt-2 inline-flex rounded-full border border-indigo-500/50 bg-indigo-900/40 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-100">
                         Admin Portal
                       </span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-100">
                     <div className="flex flex-wrap items-center gap-2">
                       {user.role === Role.STUDENT && (
                         <Tooltip>

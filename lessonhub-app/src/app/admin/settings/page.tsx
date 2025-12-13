@@ -1,4 +1,5 @@
 // file: src/app/admin/settings/page.tsx
+import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
@@ -16,15 +17,31 @@ export default async function SettingsPage() {
   const settings = await getDashboardSettings();
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Dashboard Settings</h1>
-      <div className="bg-white p-6 rounded-lg shadow-md border mb-8">
+    <div className="space-y-6 text-slate-100">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h1 className="text-3xl font-bold">Dashboard Settings</h1>
+        <div className="flex gap-2">
+          <Link
+            href="/admin"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100 hover:border-teal-400/60"
+          >
+            ← Admin home
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100 hover:border-teal-400/60"
+          >
+            ← Teacher dashboard
+          </Link>
+        </div>
+      </div>
+      <div className="rounded-xl border border-slate-800/70 bg-slate-900/70 p-6 shadow-xl backdrop-blur">
         <SettingsForm initialSettings={settings} />
       </div>
 
-      <h2 className="text-2xl font-bold mb-4 text-red-600">Danger Zone</h2>
-      <div className="bg-red-50 p-6 rounded-lg shadow-md border border-red-200">
-        <p className="mb-4 text-gray-700">
+      <div className="rounded-xl border border-rose-500/50 bg-rose-900/40 p-6 shadow-xl">
+        <h2 className="text-2xl font-bold mb-3 text-rose-100">Danger Zone</h2>
+        <p className="mb-4 text-rose-100/80">
           Actions here can cause significant disruption. Please be certain.
         </p>
         <SignOutAllUsersButton />

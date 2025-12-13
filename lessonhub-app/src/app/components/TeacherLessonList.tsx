@@ -157,17 +157,17 @@ const STATUS_LEGEND = [
 const CARD_STATE_LEGEND = [
   {
     label: 'No students assigned',
-    swatchClass: 'bg-red-50 border border-red-200',
+    swatchClass: 'bg-red-950/70 border border-red-500/40',
     description: 'Lessons with zero assignments are highlighted to show they still need students.',
   },
   {
     label: 'Grading complete',
-    swatchClass: 'bg-blue-50 border border-blue-200',
+    swatchClass: 'bg-blue-950/70 border border-blue-500/40',
     description: 'All students have been graded or marked failed for this lesson.',
   },
   {
     label: 'Mixed progress',
-    swatchClass: 'bg-slate-50 border border-slate-200',
+    swatchClass: 'bg-slate-900/70 border border-slate-700',
     description: 'Some students still require attention—keep working through the list.',
   },
 ] as const;
@@ -767,11 +767,11 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       <div
         key={key ?? `lesson-${lesson.id}`}
         className={cn(
-          "p-4 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center",
-          isFree && "bg-purple-50 border-purple-200",
-          !isFree && totalAssignments === 0 && "bg-red-50 border-red-200",
-          !isFree && allStudentsProcessed && totalAssignments > 0 && "bg-blue-50 border-blue-200",
-          !isFree && totalAssignments > 0 && !allStudentsProcessed && index % 2 !== 0 && "bg-slate-50"
+          "p-4 rounded-xl border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center",
+          isFree && "border-purple-400/50 bg-purple-950/60",
+          !isFree && totalAssignments === 0 && "border-red-500/40 bg-red-950/60",
+          !isFree && allStudentsProcessed && totalAssignments > 0 && "border-blue-400/50 bg-blue-950/60",
+          !isFree && totalAssignments > 0 && !allStudentsProcessed && index % 2 !== 0 && "bg-slate-900/90"
         )}
       >
         <div className="flex-1 mb-4 sm:mb-0">
@@ -787,7 +787,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
               </div>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-1 flex flex-wrap gap-2">
+          <p className="text-xs text-slate-300 mt-1 flex flex-wrap gap-2">
             <span>Lesson {getWeekAndDay(new Date(lesson.createdAt))}</span>
             <span>| Available: {lesson.availableDate ? <LocaleDate date={lesson.availableDate} options={{ year: 'numeric', month: 'numeric', day: 'numeric' }} /> : '—'}</span>
             <span>| Deadline: {firstDeadline ? <LocaleDate date={firstDeadline} options={{ year: 'numeric', month: 'numeric', day: 'numeric' }} /> : '—'}</span>

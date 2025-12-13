@@ -22,16 +22,16 @@ export default async function AdminLandingPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-2 sm:p-0 text-slate-100">
       <WhatsNewDialog notes={whatsNewNotes} />
       <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-      <p className="text-gray-600 mb-8">Quick access to admin tools.</p>
+      <p className="text-slate-400 mb-8">Quick access to admin tools.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {ADMIN_TILES.map(({ href, label, icon: Icon, color }) => (
           <Link
             key={href}
             href={href}
-            className={`block rounded-xl border ${color} p-8 text-center shadow-sm hover:shadow-lg transition-shadow`}
+            className={`block rounded-2xl p-8 text-center shadow-lg transition-all ${color}`}
           >
             <div className="flex flex-col items-center gap-3">
               <Icon className="h-10 w-10" />
@@ -39,6 +39,14 @@ export default async function AdminLandingPage() {
             </div>
           </Link>
         ))}
+      </div>
+      <div className="mt-8 flex justify-start">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center rounded-xl border border-teal-400/60 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-100 shadow-lg hover:border-teal-300 hover:text-white"
+        >
+          ← Back to Teacher Dashboard
+        </Link>
       </div>
     </div>
   );

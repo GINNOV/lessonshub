@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
-import { sendStartDateNotifications } from '@/actions/cronActions';
+import { failExpiredAssignments, sendStartDateNotifications } from '@/actions/cronActions';
 
 export async function GET() {
   try {
-    const result = await sendStartDateNotifications(undefined, 60);
-    return NextResponse.json({ ok: true, result });
+    const [startResult, failResult] = await Promise.all([
+      sendStartDateNotifications(undefined, 60),
+      failExpiredAssignments(),
+    ]);
+    return NextResponse.json({ ok: true, startResult, failResult });
   } catch (error) {
     console.error('Start-date cron job failed:', error);
     return NextResponse.json(

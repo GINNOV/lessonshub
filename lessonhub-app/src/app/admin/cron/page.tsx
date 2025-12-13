@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import Link from 'next/link';
 
 type CronTestAction = 'test-email' | 'deadline' | 'start-date' | 'weekly' | 'payment';
 
@@ -109,18 +110,35 @@ export default function CronTestPage() {
   }, []);
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <Card>
+    <div className="max-w-2xl mx-auto text-slate-100 space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h1 className="text-2xl font-bold">Cron Job Test</h1>
+        <div className="flex gap-2">
+          <Link
+            href="/admin"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100 hover:border-teal-400/60"
+          >
+            ← Admin home
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100 hover:border-teal-400/60"
+          >
+            ← Teacher dashboard
+          </Link>
+        </div>
+      </div>
+      <Card className="border-slate-800/70 bg-slate-900/70 shadow-xl">
         <CardHeader>
-          <CardTitle>Cron Job Test</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-slate-100">Cron Job Test</CardTitle>
+          <CardDescription className="text-slate-400">
             This page tests the email sending functionality used by the cron job. Click {"'Start Test'"} to send an email to your admin account every 30 seconds.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-4 border rounded-md p-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Start Date Notifications</h3>
+            <div className="space-y-4 border border-slate-800 rounded-md p-4 bg-slate-950/60">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Start Date Notifications</h3>
               <div className="space-y-2">
                 <Label htmlFor="simulate-start-date">Available On (simulate)</Label>
                 <Input
@@ -129,15 +147,15 @@ export default function CronTestPage() {
                   value={simulateStartDate}
                   onChange={(event) => setSimulateStartDate(event.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-400">
                   Pick a past time to fire emails immediately or a future time to verify that no notifications are sent.
                 </p>
               </div>
               <Button onClick={triggerStartDateNotifications}>Send start-date notifications</Button>
             </div>
 
-            <div className="space-y-4 border rounded-md p-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Deadline &amp; Payments</h3>
+            <div className="space-y-4 border border-slate-800 rounded-md p-4 bg-slate-950/60">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Deadline &amp; Payments</h3>
               <div className="space-y-3">
                 <Button onClick={triggerDeadlineReminders} className="w-full">
                   Send deadline reminders
@@ -149,8 +167,8 @@ export default function CronTestPage() {
             </div>
           </div>
 
-          <div className="border rounded-md p-4 space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Weekly Summaries</h3>
+          <div className="border border-slate-800 rounded-md p-4 space-y-4 bg-slate-950/60">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Weekly Summaries</h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="simulate-weekly-date">Reference date (optional)</Label>
@@ -160,7 +178,7 @@ export default function CronTestPage() {
                   value={simulateWeeklyDate}
                   onChange={(event) => setSimulateWeeklyDate(event.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-400">
                   Defaults to now; choose a Sunday to mimic production timing.
                 </p>
               </div>
@@ -170,7 +188,7 @@ export default function CronTestPage() {
                   checked={forceWeekly}
                   onCheckedChange={(checked) => setForceWeekly(Boolean(checked))}
                 />
-                <Label htmlFor="force-weekly" className="text-sm text-muted-foreground">
+                <Label htmlFor="force-weekly" className="text-sm text-slate-400">
                   Force run even if not Sunday
                 </Label>
               </div>
@@ -189,12 +207,12 @@ export default function CronTestPage() {
             </Button>
           </div>
 
-          <div className="bg-gray-900 text-white font-mono text-sm rounded-md p-4 h-64 overflow-y-auto">
+          <div className="bg-slate-950 text-slate-50 font-mono text-sm rounded-md p-4 h-64 overflow-y-auto border border-slate-800">
             {logs.length === 0 ? (
-              <p className="text-gray-400">Test logs will appear here...</p>
+              <p className="text-slate-500">Test logs will appear here...</p>
             ) : (
               logs.map((log, index) => (
-                <p key={index} className={log.startsWith('[') && log.includes('ERROR') ? 'text-red-400' : 'text-green-400'}>
+                <p key={index} className={log.startsWith('[') && log.includes('ERROR') ? 'text-red-400' : 'text-emerald-300'}>
                   {log}
                 </p>
               ))

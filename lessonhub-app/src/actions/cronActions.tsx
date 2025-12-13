@@ -4,13 +4,72 @@
 import prisma from "@/lib/prisma";
 import { AssignmentStatus, Role } from "@prisma/client";
 import { getEmailTemplateByName } from '@/actions/adminActions';
-import { createButton, sendEmail } from '@/lib/email-templates';
+import { createButton, defaultEmailTemplates, sendEmail } from '@/lib/email-templates';
 import { auth } from "@/auth";
 import { hasAdminPrivileges } from "@/lib/authz";
 
 export async function failExpiredAssignments(graceHours: number = 24) {
   try {
-    const cutoff = new Date(Date.now() - graceHours * 60 * 60 * 1000);
+    const now = new Date();
+    const warningWindowStart = new Date(now.getTime() - graceHours * 60 * 60 * 1000);
+    const warningCandidates = await prisma.assignment.findMany({
+      where: {
+        status: AssignmentStatus.PENDING,
+        deadline: { lte: now, gt: warningWindowStart },
+        pastDueWarningSentAt: null,
+      },
+      include: {
+        student: true,
+        lesson: { include: { teacher: true } },
+      },
+    });
+
+    if (warningCandidates.length > 0) {
+      const template =
+        (await getEmailTemplateByName('past_due_warning')) ??
+        defaultEmailTemplates.past_due_warning;
+
+      for (const assignment of warningCandidates) {
+        if (!assignment.student?.email || !assignment.lesson?.teacher) continue;
+        const failAt = new Date(assignment.deadline.getTime() + graceHours * 60 * 60 * 1000);
+        const hoursLeft = Math.max(1, Math.round((failAt.getTime() - now.getTime()) / (60 * 60 * 1000)));
+        const formatCEST = (date: Date) => {
+          try {
+            return new Intl.DateTimeFormat('en-GB', {
+              timeZone: 'Europe/Berlin',
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            }).format(date) + ' (CEST)';
+          } catch {
+            return `${date.toLocaleString()} CEST`;
+          }
+        };
+
+        const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
+        await sendEmail({
+          to: assignment.student.email,
+          templateName: 'past_due_warning',
+          data: {
+            studentName: assignment.student.name || 'student',
+            lessonTitle: assignment.lesson.title,
+            deadline: formatCEST(new Date(assignment.deadline)),
+            failAt: formatCEST(failAt),
+            hoursLeft: String(hoursLeft),
+            button: createButton('Request Extension', assignmentUrl, template.buttonColor || undefined),
+          },
+        });
+      }
+
+      const warnedIds = warningCandidates.map((a) => a.id);
+      if (warnedIds.length > 0) {
+        await prisma.assignment.updateMany({
+          where: { id: { in: warnedIds } },
+          data: { pastDueWarningSentAt: new Date() },
+        });
+      }
+    }
+
+    const cutoff = new Date(now.getTime() - graceHours * 60 * 60 * 1000);
     const expired = await prisma.assignment.findMany({
       where: {
         status: AssignmentStatus.PENDING,
