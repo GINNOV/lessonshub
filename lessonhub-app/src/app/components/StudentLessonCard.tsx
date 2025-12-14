@@ -218,6 +218,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
             alt={lesson.title}
             fill
             priority={index < 3}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 60vw, 480px"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-black/40 to-transparent" />

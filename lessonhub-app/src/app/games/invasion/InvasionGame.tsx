@@ -81,6 +81,7 @@ const translations: Record<
     tryAgain: string;
     gameOverTitle: string;
     endGame: string;
+    cloudSpeedUp: string;
   }
 > = {
   en: {
@@ -105,6 +106,7 @@ const translations: Record<
     tryAgain: "TRY AGAIN",
     gameOverTitle: "GAME OVER",
     endGame: "End Game",
+    cloudSpeedUp: "Cloud river speeding up!",
   },
   it: {
     titleLine1: "VOCABOLARIO",
@@ -128,6 +130,7 @@ const translations: Record<
     tryAgain: "RIPROVA",
     gameOverTitle: "GAME OVER",
     endGame: "Termina partita",
+    cloudSpeedUp: "Il fiume di nuvole accelera!",
   },
 };
 
@@ -153,6 +156,7 @@ function InvasionGame() {
   const endGameRef = useRef<HTMLButtonElement | null>(null);
   const ttsRateRef = useRef<HTMLInputElement | null>(null);
   const ttsRateDisplayRef = useRef<HTMLSpanElement | null>(null);
+  const toastRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const preference = ((session?.user as any)?.uiLanguage as UiLanguagePreference) ?? "device";
@@ -189,6 +193,7 @@ function InvasionGame() {
     const endGameBtn = endGameRef.current;
     const rateSlider = ttsRateRef.current;
     const rateDisplay = ttsRateDisplayRef.current;
+    const toastEl = toastRef.current;
 
     if (
       !canvas ||
@@ -207,7 +212,8 @@ function InvasionGame() {
       !restartBtn ||
       !endGameBtn ||
       !rateSlider ||
-      !rateDisplay
+      !rateDisplay ||
+      !toastEl
     ) {
       return;
     }
@@ -223,6 +229,7 @@ function InvasionGame() {
     let ttsSlowRate = 0.5;
     let rafId: number | undefined;
     let spawnTimer: number | undefined;
+    let toastTimer: number | undefined;
 
     let currentTargetPair: WordPair | null = null;
 
@@ -231,6 +238,20 @@ function InvasionGame() {
     let enemies: Enemy[] = [];
     let particles: Particle[] = [];
     let stars: Star[] = [];
+    let clearLanes: { start: number; end: number }[] = [];
+    let correctHits = 0;
+    let isMobileScreen = false;
+
+    const refreshDeviceProfile = () => {
+      isMobileScreen = window.matchMedia("(max-width: 900px), (pointer: coarse)").matches;
+    };
+
+    const getBaseStarSpeed = () => (isMobileScreen ? 3 : 4.5);
+    const getStarSpeedIncrement = () => (isMobileScreen ? 0.6 : 0.8);
+    const getMaxStarSpeed = () => (isMobileScreen ? 8 : 10);
+    const getBaseStarCount = () => (isMobileScreen ? 8 : 12);
+    const getMinStarCount = () => (isMobileScreen ? 4 : 6);
+    let currentStarSpeed = getBaseStarSpeed();
 
     let input = { x: 0, isDown: false, tapped: false };
     let lastTapTime = 0;
@@ -239,12 +260,54 @@ function InvasionGame() {
       ctx: null as AudioContext | null,
       ttsTimer: null as number | null,
       ttsStage: 0,
+      musicBuffer: null as AudioBuffer | null,
+      musicSource: null as AudioBufferSourceNode | null,
+      musicGain: null as GainNode | null,
+      musicLoading: false,
       init: () => {
         const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
         if (AudioCtx) {
           AudioSys.ctx = new AudioCtx();
         }
         window.speechSynthesis.cancel();
+      },
+      loadMusic: async () => {
+        if (AudioSys.musicBuffer || AudioSys.musicLoading) return;
+        if (!AudioSys.ctx) return;
+        AudioSys.musicLoading = true;
+        try {
+          const res = await fetch("/games/space1_1.mp3");
+          const arrayBuffer = await res.arrayBuffer();
+          AudioSys.musicBuffer = await AudioSys.ctx.decodeAudioData(arrayBuffer);
+        } catch (error) {
+          console.warn("Failed to load music track", error);
+        } finally {
+          AudioSys.musicLoading = false;
+        }
+      },
+      playMusic: () => {
+        if (!AudioSys.ctx || !AudioSys.musicBuffer) return;
+        AudioSys.stopMusic();
+        const source = AudioSys.ctx.createBufferSource();
+        source.buffer = AudioSys.musicBuffer;
+        source.loop = true;
+        const gain = AudioSys.musicGain ?? AudioSys.ctx.createGain();
+        gain.gain.value = 0.18;
+        source.connect(gain);
+        gain.connect(AudioSys.ctx.destination);
+        source.start();
+        AudioSys.musicSource = source;
+        AudioSys.musicGain = gain;
+      },
+      stopMusic: () => {
+        if (AudioSys.musicSource) {
+          try {
+            AudioSys.musicSource.stop();
+          } catch (error) {
+            console.warn("Music stop failed", error);
+          }
+        }
+        AudioSys.musicSource = null;
       },
       playTone: (freq: number, type: OscillatorType, duration: number) => {
         if (!AudioSys.ctx) return;
@@ -302,21 +365,116 @@ function InvasionGame() {
       },
     };
 
+    const isInClearLane = (y: number) => clearLanes.some((lane) => y >= lane.start && y <= lane.end);
+
+    const computeClearLanes = () => {
+      const gapHeight = Math.max(isMobileScreen ? 140 : 110, canvas.height * (isMobileScreen ? 0.16 : 0.14));
+      const padding = isMobileScreen ? 24 : 20;
+      const laneCenters = [0.3, 0.5, 0.7]; // three vertical corridors
+      clearLanes = laneCenters.map((ratio) => {
+        const center = canvas.height * ratio;
+        const start = Math.max(0, center - gapHeight - padding);
+        const end = Math.min(canvas.height, center + gapHeight + padding);
+        return { start, end };
+      });
+    };
+
+    const getLaneIndex = (x: number) => {
+      const laneWidth = Math.max(80, canvas.width / 6);
+      return Math.max(0, Math.floor(x / laneWidth));
+    };
+
+    const laneHasSpace = (laneIndex: number, existing: Star[], ignore?: Star) => {
+      const count = existing.reduce((acc, s) => (s !== ignore && getLaneIndex(s.x) === laneIndex ? acc + 1 : acc), 0);
+      return count < 5;
+    };
+
+    const applyStarSpeed = () => {
+      stars.forEach((s) => {
+        // keep clouds moving together at the same pace
+        s.speed = currentStarSpeed;
+      });
+    };
+
+    const adjustStarDensity = () => {
+      const speedLevel = Math.max(0, Math.round((currentStarSpeed - getBaseStarSpeed()) / getStarSpeedIncrement()));
+      const targetCount = Math.max(getMinStarCount(), getBaseStarCount() - speedLevel * 12);
+      if (stars.length > targetCount) {
+        stars.splice(targetCount);
+      } else if (stars.length < targetCount) {
+        const needed = targetCount - stars.length;
+        for (let i = 0; i < needed; i += 1) {
+          stars.push(spawnStar(stars));
+        }
+      }
+    };
+
+    const showSpeedToast = (message: string) => {
+      toastEl.textContent = message;
+      toastEl.classList.add("show");
+      if (toastTimer) window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => {
+        toastEl.classList.remove("show");
+      }, 2500);
+    };
+
+    const increaseStarSpeed = () => {
+      const baseSpeed = getBaseStarSpeed();
+      const nextSpeed = Math.min(getMaxStarSpeed(), currentStarSpeed + getStarSpeedIncrement());
+      if (nextSpeed > currentStarSpeed) {
+        currentStarSpeed = nextSpeed;
+        applyStarSpeed();
+        adjustStarDensity();
+        const percentIncrease = Math.max(0, Math.round(((currentStarSpeed - baseSpeed) / baseSpeed) * 100));
+        showSpeedToast(`${copyRef.current.cloudSpeedUp} +${percentIncrease}%`);
+      }
+    };
+
+    const spawnStar = (existing: Star[] = stars) => {
+      const minGap = isMobileScreen ? 55 : 70;
+      let y = Math.random() * canvas.height;
+      let x = Math.random() * canvas.width;
+      let attempts = 0;
+
+      const collides = (nx: number, ny: number) =>
+        existing.some((s) => Math.hypot(s.x - nx, s.y - ny) < minGap);
+
+      while (attempts < 25) {
+        const laneIndex = getLaneIndex(x);
+        if (!isInClearLane(y) && !collides(x, y) && laneHasSpace(laneIndex, existing)) break;
+        y = Math.random() * canvas.height;
+        x = Math.random() * canvas.width;
+        attempts += 1;
+      }
+
+      return {
+        x,
+        y,
+        size: Math.random() * 2 + 0.3,
+        speed: currentStarSpeed,
+      };
+    };
+
     const initStars = () => {
-      stars = Array.from({ length: 100 }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        size: Math.random() * 2,
-        speed: Math.random() * 0.5 + 0.1,
-      }));
+      const targetCount = getBaseStarCount();
+
+      stars = [];
+      for (let i = 0; i < targetCount; i += 1) {
+        stars.push(spawnStar(stars));
+      }
     };
 
     const resize = () => {
+      refreshDeviceProfile();
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       player.y = canvas.height - 80;
       player.x = canvas.width / 2;
+      currentStarSpeed = Math.max(currentStarSpeed, getBaseStarSpeed());
+      computeClearLanes();
       initStars();
+      applyStarSpeed();
+      adjustStarDensity();
     };
 
     const updateUI = () => {
@@ -328,12 +486,12 @@ function InvasionGame() {
       currentTargetPair = VOCABULARY[Math.floor(Math.random() * VOCABULARY.length)];
 
       if (gameMode === "VISUAL") {
-        targetLabel.textContent = copyRef.current.translateLabel;
+        targetLabel.textContent = "";
         currentTargetEl.textContent = currentTargetPair.it.toUpperCase();
         currentTargetEl.classList.remove("audio-mode");
         AudioSys.stopTTS();
       } else {
-        targetLabel.textContent = copyRef.current.listenLabel;
+        targetLabel.textContent = "";
         currentTargetEl.textContent = copyRef.current.listenCTA;
         currentTargetEl.classList.add("audio-mode");
         AudioSys.startTTSLoop(currentTargetPair.en);
@@ -361,7 +519,12 @@ function InvasionGame() {
       const laneCount = Math.floor(canvas.width / enemyWidth);
       const lanes = Array.from({ length: laneCount }, (_, i) => i);
 
-      const count = Math.min(lanes.length, Math.floor(Math.random() * 2) + 1);
+      const maxSpawnable = Math.max(1, laneCount - 1); // keep at least one lane untouched
+      const count = Math.min(maxSpawnable, Math.floor(Math.random() * 2) + 1);
+      const enemyLaneCapacity = 2;
+      const enemyVerticalSpacing = 220;
+      const laneOffset = (canvas.width - laneCount * enemyWidth) / 2;
+      const safeLaneIndex = Math.max(0, Math.floor(laneCount / 2));
 
       for (let i = lanes.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -370,11 +533,24 @@ function InvasionGame() {
         lanes[j] = temp;
       }
 
+      const recentlyUsed = new Set<string>();
+      const existingWords = enemies.map((enemy) => enemy.word);
+      existingWords.forEach((word) => recentlyUsed.add(word));
+
       let correctSpawned = enemies.some((enemy) => enemy.word === currentTargetPair?.en);
 
-      for (let i = 0; i < count; i += 1) {
+      let spawned = 0;
+      for (let i = 0; i < lanes.length && spawned < count; i += 1) {
         const laneIndex = lanes[i];
-        const x = laneIndex * enemyWidth + enemyWidth / 2 + (canvas.width - laneCount * enemyWidth) / 2;
+        if (laneIndex === safeLaneIndex) continue;
+        const laneEnemies = enemies.filter((enemy) => Math.floor((enemy.x - laneOffset) / enemyWidth) === laneIndex);
+        if (laneEnemies.length >= enemyLaneCapacity) continue;
+
+        const spawnY = -50 - Math.random() * 100;
+        const tooClose = laneEnemies.some((enemy) => Math.abs(enemy.y - spawnY) < enemyVerticalSpacing);
+        if (tooClose) continue;
+
+        const x = laneIndex * enemyWidth + enemyWidth / 2 + laneOffset;
 
         let word = "";
         let isTarget = false;
@@ -387,13 +563,15 @@ function InvasionGame() {
           let randomPair: WordPair;
           do {
             randomPair = VOCABULARY[Math.floor(Math.random() * VOCABULARY.length)];
-          } while (randomPair.en === currentTargetPair.en);
+          } while (randomPair.en === currentTargetPair.en || recentlyUsed.has(randomPair.en));
           word = randomPair.en;
         }
 
+        recentlyUsed.add(word);
+
         enemies.push({
           x,
-          y: -50 - Math.random() * 100,
+          y: spawnY,
           width: 70,
           height: 40,
           word,
@@ -401,6 +579,7 @@ function InvasionGame() {
           speed: (Math.random() * 50 + 50) * (1 + score / 500),
           color: isTarget ? "#f472b6" : "#a78bfa",
         });
+        spawned += 1;
       }
 
       const spawnDelay = Math.max(1000, 3000 - score * 5);
@@ -416,14 +595,22 @@ function InvasionGame() {
       gameState = "START";
       stopTimers();
       AudioSys.stopTTS();
+      AudioSys.stopMusic();
       bullets = [];
       enemies = [];
       particles = [];
+      correctHits = 0;
+      currentStarSpeed = getBaseStarSpeed();
+      applyStarSpeed();
+      adjustStarDensity();
+      toastEl.classList.remove("show");
+      toastEl.textContent = "";
+      if (toastTimer) window.clearTimeout(toastTimer);
       score = 0;
       lives = 3;
       updateUI();
       currentTargetEl.textContent = "---";
-      targetLabel.textContent = copyRef.current.translateLabel;
+      targetLabel.textContent = "";
       startScreen.classList.remove("hidden");
       gameOverScreen.classList.add("hidden");
       hud.classList.add("hidden");
@@ -438,6 +625,7 @@ function InvasionGame() {
       gameState = "GAMEOVER";
       AudioSys.error();
       AudioSys.stopTTS();
+      AudioSys.stopMusic();
       stopTimers();
       finalScoreEl.textContent = `${score}`;
       gameOverScreen.classList.remove("hidden");
@@ -456,6 +644,12 @@ function InvasionGame() {
       bullets = [];
       enemies = [];
       particles = [];
+      correctHits = 0;
+      currentStarSpeed = getBaseStarSpeed();
+      applyStarSpeed();
+      adjustStarDensity();
+      AudioSys.ctx?.resume?.();
+      void AudioSys.loadMusic().then(() => AudioSys.playMusic());
 
       updateUI();
       pickNewTarget();
@@ -535,6 +729,8 @@ function InvasionGame() {
 
             if (e.isTarget) {
               score += 10;
+              correctHits += 1;
+              if (correctHits % 3 === 0) increaseStarSpeed();
               AudioSys.success();
               pickNewTarget();
               spawnEnemyWave();
@@ -560,8 +756,29 @@ function InvasionGame() {
 
       stars.forEach((s) => {
         const star = s;
-        star.y += star.speed;
-        if (star.y > canvas.height) star.y = 0;
+        star.speed = currentStarSpeed;
+        star.y += star.speed * dt;
+        if (isInClearLane(star.y)) {
+          const lane = clearLanes.find((l) => star.y >= l.start && star.y <= l.end);
+          if (lane) {
+            star.y = lane.end + star.size + 1; // nudge below lane to keep it clear
+          }
+        }
+        if (star.y > canvas.height + star.size) {
+          let attempts = 0;
+          const minGap = isMobileScreen ? 55 : 70;
+          let nx = Math.random() * canvas.width;
+          let ny = -star.size;
+          const collides = () => stars.some((other) => other !== star && Math.hypot(other.x - nx, other.y - ny) < minGap);
+          while ((isInClearLane(ny) || collides() || !laneHasSpace(getLaneIndex(nx), stars, star)) && attempts < 25) {
+            nx = Math.random() * canvas.width;
+            ny = -star.size;
+            attempts += 1;
+          }
+          star.x = nx;
+          star.y = ny;
+          star.speed = currentStarSpeed;
+        }
       });
     };
 
@@ -571,6 +788,8 @@ function InvasionGame() {
 
       ctx.fillStyle = "#ffffff";
       stars.forEach((s) => {
+        // skip drawing inside the navigation lanes to keep paths clear
+        if (clearLanes.some((lane) => s.y >= lane.start && s.y <= lane.end)) return;
         ctx.globalAlpha = Math.random() * 0.5 + 0.3;
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
@@ -708,6 +927,7 @@ function InvasionGame() {
       if (rafId) cancelAnimationFrame(rafId);
       if (spawnTimer) clearTimeout(spawnTimer);
       AudioSys.stopTTS();
+      AudioSys.stopMusic();
       window.removeEventListener("resize", resize);
       canvas.removeEventListener("mousedown", handleInputStart);
       canvas.removeEventListener("mousemove", handleInputMove);
@@ -720,6 +940,7 @@ function InvasionGame() {
       restartBtn.removeEventListener("click", handleRestart);
       endGameBtn.removeEventListener("click", exitToMenu);
       rateSlider.removeEventListener("input", rateInputHandler);
+      if (toastTimer) window.clearTimeout(toastTimer);
     };
 
     const startVisualHandler = () => startGame("VISUAL");
@@ -737,25 +958,29 @@ function InvasionGame() {
 
     canvas.addEventListener("touchstart", handleInputStart, { passive: false });
     canvas.addEventListener("touchmove", handleInputMove, { passive: false });
-    canvas.addEventListener("touchend", handleInputEnd, { passive: false });
+      canvas.addEventListener("touchend", handleInputEnd, { passive: false });
 
-    startVisualBtn.addEventListener("click", startVisualHandler);
-    startAudioBtn.addEventListener("click", startAudioHandler);
-    restartBtn.addEventListener("click", handleRestart);
-    endGameBtn.addEventListener("click", exitToMenu);
-    rateSlider.addEventListener("input", rateInputHandler);
+      startVisualBtn.addEventListener("click", startVisualHandler);
+      startAudioBtn.addEventListener("click", startAudioHandler);
+      restartBtn.addEventListener("click", handleRestart);
+      endGameBtn.addEventListener("click", exitToMenu);
+      rateSlider.addEventListener("input", rateInputHandler);
 
-    handleRateChange(rateSlider.value);
-    resize();
-    player.x = canvas.width / 2;
-    input.x = player.x;
+      handleRateChange(rateSlider.value);
+      resize();
+      player.x = canvas.width / 2;
+      input.x = player.x;
 
-    return handleCleanup;
-  }, []);
+      return handleCleanup;
+    }, []);
 
   return (
-    <div className="relative min-h-screen w-full text-white bg-slate-900">
-      <div id="game-container" className="relative h-screen w-screen overflow-hidden" aria-label="Vocabolario Invaders game area">
+    <div className="relative min-h-[100dvh] w-full text-white bg-slate-900">
+      <div
+        id="game-container"
+        className="relative h-[100dvh] min-h-[100dvh] w-full max-w-full overflow-hidden"
+        aria-label="Vocabolario Invaders game area"
+      >
         <div ref={hudRef} id="hud" className="hud hidden pointer-events-auto">
           <div>
             {copy.scoreLabel}: <span ref={scoreRef}>0</span>
@@ -775,9 +1000,7 @@ function InvasionGame() {
         </div>
 
         <div ref={targetDisplayRef} id="target-display" className="target-display hidden">
-          <div ref={targetLabelRef} className="text-sm text-gray-400 mb-1">
-            {copy.translateLabel}
-          </div>
+          <div ref={targetLabelRef} className="text-sm text-gray-400 mb-1" aria-hidden="true" />
           <div ref={currentTargetRef} id="current-target" className="target-word">
             ---
           </div>
@@ -789,20 +1012,22 @@ function InvasionGame() {
           {copy.controlsHint}
         </div>
 
+        <div ref={toastRef} className="speed-toast" aria-live="polite" />
+
         <div ref={startScreenRef} id="start-screen" className="overlay">
-          <h1 className="pixel-font text-4xl text-yellow-400 mb-4 neon-text leading-snug text-center">
+          <h1 className="pixel-font text-4xl text-yellow-400 mb-4 neon-text leading-snug text-center start-title">
             {copy.titleLine1}
             <br />
             {copy.titleLine2}
           </h1>
-          <p className="text-gray-300 mb-6 max-w-md text-center">
+          <p className="text-gray-300 mb-6 max-w-md text-center start-tagline">
             {copy.tagline}
             <br />
             <br />
             {copy.doubleTap}
           </p>
 
-          <div className="flex flex-col gap-4 w-full max-w-xs">
+          <div className="flex flex-col gap-4 w-full max-w-xs start-actions">
             <button
               ref={startVisualRef}
               id="start-btn-visual"
@@ -814,7 +1039,7 @@ function InvasionGame() {
               <span className="text-[10px] opacity-70 font-sans">{copy.visualSub}</span>
             </button>
 
-            <div className="bg-slate-800 p-4 rounded-xl border border-pink-900/50 shadow-lg mt-2">
+            <div className="bg-slate-800 p-4 rounded-xl border border-pink-900/50 shadow-lg mt-2 start-panel">
               <button
                 ref={startAudioRef}
                 id="start-btn-audio"
@@ -878,6 +1103,9 @@ function InvasionGame() {
 
         #game-container {
           position: relative;
+          min-height: 100dvh;
+          width: 100%;
+          max-width: 100vw;
         }
 
         canvas {
@@ -916,10 +1144,13 @@ function InvasionGame() {
 
         .hud {
           position: absolute;
-          top: 10px;
+          top: calc(env(safe-area-inset-top, 0) + 10px);
           width: 100%;
           display: flex;
           justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
           padding: 0 20px;
           pointer-events: none;
           z-index: 5;
@@ -932,9 +1163,15 @@ function InvasionGame() {
           pointer-events: auto;
         }
 
+        .hud .flex {
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: flex-end;
+        }
+
         .target-display {
           position: absolute;
-          top: 50px;
+          top: calc(env(safe-area-inset-top, 0) + 50px);
           width: 100%;
           text-align: center;
           pointer-events: none;
@@ -975,12 +1212,36 @@ function InvasionGame() {
 
         #controls-hint {
           position: absolute;
-          bottom: 20px;
+          bottom: calc(env(safe-area-inset-bottom, 0) + 20px);
           width: 100%;
           text-align: center;
           color: rgba(255, 255, 255, 0.3);
           font-size: 12px;
           pointer-events: none;
+        }
+
+        .speed-toast {
+          position: fixed;
+          left: 50%;
+          top: calc(env(safe-area-inset-top, 0) + 10px);
+          transform: translate(-50%, -12px);
+          background: rgba(15, 23, 42, 0.95);
+          color: #fbbf24;
+          padding: 10px 14px;
+          border-radius: 12px;
+          font-family: "Press Start 2P", cursive;
+          font-size: 12px;
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), 0 0 18px rgba(250, 204, 21, 0.38);
+          border: 1px solid rgba(250, 204, 21, 0.6);
+          opacity: 0;
+          transition: opacity 0.2s ease, transform 0.2s ease;
+          z-index: 50;
+          pointer-events: none;
+        }
+
+        .speed-toast.show {
+          opacity: 1;
+          transform: translate(-50%, 0);
         }
 
         input[type="range"] {
@@ -1029,6 +1290,52 @@ function InvasionGame() {
 
         input[type="range"]:focus {
           outline: none;
+        }
+
+        @media (max-width: 640px) {
+          .overlay {
+            padding: 16px;
+          }
+
+          .start-title {
+            font-size: 2rem;
+            line-height: 1.2;
+          }
+
+          .start-tagline {
+            font-size: 0.95rem;
+          }
+
+          .start-actions {
+            max-width: 100%;
+          }
+
+          .start-panel {
+            padding: 12px;
+          }
+
+          .hud {
+            top: calc(env(safe-area-inset-top, 0) + 6px);
+            padding: 0 12px;
+            font-size: 11px;
+            gap: 6px;
+            flex-direction: row;
+            justify-content: space-between;
+          }
+
+          .target-display {
+            top: calc(env(safe-area-inset-top, 0) + 32px);
+          }
+
+          .target-word {
+            font-size: 1.35rem;
+            padding: 6px 12px;
+          }
+
+          #controls-hint {
+            font-size: 10px;
+            padding: 0 12px;
+          }
         }
       `}</style>
     </div>

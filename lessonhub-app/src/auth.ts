@@ -1,5 +1,6 @@
 // file: src/auth.ts
 import NextAuth from "next-auth";
+import type { LoggerInstance } from "@auth/core/types";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import ResendProvider from "next-auth/providers/resend";
@@ -164,4 +165,21 @@ export const {
       }
     },
   },
+  logger: {
+    error(error) {
+      console.error("AUTH_ERROR", error);
+    },
+    warn(code) {
+      // Suppressed to keep browser console clean
+      void code;
+    },
+    debug(message, metadata) {
+      // Suppressed to keep browser console clean
+      void message;
+      void metadata;
+    },
+    info() {
+      // Suppressed to keep browser console clean
+    },
+  } satisfies Partial<LoggerInstance>,
 });

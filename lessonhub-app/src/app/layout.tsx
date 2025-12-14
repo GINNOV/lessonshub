@@ -8,7 +8,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import PageContainer from './components/PageContainer';
 
-const sora = Sora({ subsets: ['latin'], variable: '--font-sora' });
+const sora = Sora({ subsets: ['latin'], variable: '--font-sora', preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://lessonshub.vercel.app'),
