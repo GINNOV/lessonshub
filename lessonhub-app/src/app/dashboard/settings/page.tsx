@@ -66,17 +66,18 @@ const serializableTeacher = {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 text-slate-100">
       <WhatsNewDialog notes={whatsNewNotes} defaultLocale="us" />
       <div>
         <h1 className="text-3xl font-bold">Lesson Defaults</h1>
-        <p className="mt-1 text-gray-600">
+        <p className="mt-1 text-slate-400">
           Set the values that pre-fill when you create new lessons across every lesson type.
         </p>
       </div>
       <TeacherPreferences teacher={serializableTeacher as any} instructionBooklets={instructionBooklets} />
-                <div className="rounded-lg border bg-card p-6 shadow-sm">        <h2 className="text-2xl font-semibold">Instruction Booklets</h2>
-        <p className="mt-2 text-gray-600">
+      <div className="rounded-lg border border-slate-800 bg-slate-900/70 p-6 shadow-lg">
+        <h2 className="text-2xl font-semibold">Instruction Booklets</h2>
+        <p className="mt-2 text-slate-400">
           Create reusable instruction sets once and drop them into any lesson. Manage them without
           opening the lesson creator.
         </p>

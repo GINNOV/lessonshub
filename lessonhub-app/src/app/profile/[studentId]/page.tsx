@@ -74,9 +74,9 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-10">
-      <div className="rounded-xl border bg-white p-6 shadow-sm sm:p-8">
+      <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-50 text-2xl font-semibold text-indigo-800">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full border border-slate-700 bg-slate-800/80 text-2xl font-semibold text-slate-100">
             {profile.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -89,14 +89,14 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
             )}
           </div>
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-slate-900">{profile.name}</h1>
-            <p className="text-sm text-slate-500">Classmate spotlight</p>
+            <h1 className="text-3xl font-bold text-slate-50">{profile.name}</h1>
+            <p className="text-sm text-slate-400">Classmate spotlight</p>
           </div>
           {profile.isSelf && (
             <div className="sm:ml-auto">
               <Link
                 href="/profile"
-                className="inline-flex items-center rounded-md border border-indigo-200 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+                className="inline-flex items-center rounded-md border border-teal-500/50 bg-teal-500/10 px-3 py-1.5 text-sm font-medium text-teal-200 transition hover:bg-teal-500/20"
               >
                 Edit your profile
               </Link>
@@ -105,12 +105,12 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
         </div>
 
         <div className="mt-6">
-          <h2 className="text-lg font-semibold text-slate-900">Bio</h2>
-          <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{bioContent}</p>
+          <h2 className="text-lg font-semibold text-slate-50">Bio</h2>
+          <p className="mt-2 whitespace-pre-line text-sm text-slate-200">{bioContent}</p>
           {!profile.studentBio && profile.isSelf && (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-slate-400">
               You can add or change this from{" "}
-              <Link href="/profile" className="text-indigo-600 underline">
+              <Link href="/profile" className="text-teal-300 underline">
                 your profile settings
               </Link>
               .
@@ -120,32 +120,32 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Progress snapshot</h3>
+        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg">
+          <h3 className="text-lg font-semibold text-slate-50">Progress snapshot</h3>
           <dl className="mt-4 grid grid-cols-2 gap-4">
             {statBlocks.map((stat) => (
-              <div key={stat.label} className="rounded-lg border p-4">
-                <dt className="text-xs uppercase tracking-wide text-slate-500">{stat.label}</dt>
-                <dd className="mt-2 text-2xl font-semibold text-slate-900">{stat.value}</dd>
+              <div key={stat.label} className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+                <dt className="text-xs uppercase tracking-wide text-slate-400">{stat.label}</dt>
+                <dd className="mt-2 text-2xl font-semibold text-slate-50">{stat.value}</dd>
               </div>
             ))}
           </dl>
         </div>
 
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Recent badges</h3>
+        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg">
+          <h3 className="text-lg font-semibold text-slate-50">Recent badges</h3>
           {profile.recentBadges.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500">No badges yet—complete lessons to start unlocking them.</p>
+            <p className="mt-4 text-sm text-slate-400">No badges yet—complete lessons to start unlocking them.</p>
           ) : (
             <div className="mt-4 flex flex-wrap gap-3">
               {profile.recentBadges.map((badge) => (
                 <div
                   key={badge.slug}
-                  className="flex flex-col items-center rounded-lg border px-4 py-3 text-center shadow-sm"
+                  className="flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 text-center shadow-sm"
                   title={badge.name}
                 >
                   <span className="text-3xl">{badge.icon ?? "🎖️"}</span>
-                  <span className="mt-2 text-xs font-medium text-slate-600">{badge.name}</span>
+                  <span className="mt-2 text-xs font-medium text-slate-200">{badge.name}</span>
                 </div>
               ))}
             </div>
