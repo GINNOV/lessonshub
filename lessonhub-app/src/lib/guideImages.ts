@@ -1,10 +1,22 @@
 export const guideImageOptions = [
   {
-    "label": "defaultcard",
-    "value": "/my-guides/defaultcard.png"
+    label: "Default",
+    value: "/my-guides/defaultcard.png",
   },
   {
-    "label": "singer",
-    "value": "/my-guides/singer.jpg"
-  }
+    label: "Singer",
+    value: "/my-guides/singer.jpg",
+  },
+  {
+    label: "Scientist",
+    value: "/my-guides/scientist.jpg",
+  },
+  {
+    label: "Scientist (alt)",
+    value: "/my-guides/scientist2.jpg",
+  },
+  {
+    label: "Travel",
+    value: "/my-guides/travel.jpg",
+  },
 ] as const;
