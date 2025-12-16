@@ -11,7 +11,7 @@ import PageContainer from './components/PageContainer';
 const sora = Sora({ subsets: ['latin'], variable: '--font-sora', preload: false });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://lessonshub.vercel.app'),
+  metadataBase: new URL('https://quantifythis.com'),
   title: 'LessonHUB',
   description: 'Create and manage lessons, engage with students, and track their progress with an intuitive, modern platform.',
   // Add favicon configuration here
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'LessonHUB: Education Made Engaging',
     description: 'Simplify teaching and enhance learning with intuitive tools and captivating content.',
-    url: 'https://lessonshub.vercel.app', 
+    url: 'https://quantifythis.com', 
     siteName: 'LessonHUB',
     images: [
       {

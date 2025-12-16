@@ -64,7 +64,7 @@ export default function StudentFreeLessonCard({ lesson }: StudentFreeLessonCardP
   const coverImage = lesson.assignment_image_url?.trim() || lessonTypeImages[lesson.type];
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
       <div className="relative h-36 w-full sm:h-40">
         <Image
           src={coverImage}
@@ -83,10 +83,10 @@ export default function StudentFreeLessonCard({ lesson }: StudentFreeLessonCardP
       <div className="flex flex-1 flex-col gap-4 p-4">
         <div className="space-y-2">
           <div className="flex justify-between items-start">
-             <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{lesson.title}</h3>
+             <h3 className="text-lg font-semibold text-foreground line-clamp-2">{lesson.title}</h3>
           </div>
           
-          <p className="text-sm text-gray-500 line-clamp-3">
+          <p className="text-sm text-muted-foreground line-clamp-3">
             {lesson.lesson_preview || "No preview available."}
           </p>
         </div>
@@ -100,10 +100,10 @@ export default function StudentFreeLessonCard({ lesson }: StudentFreeLessonCardP
                                 <AvatarImage src={lesson.teacher.image || ''} />
                                 <AvatarFallback>{getInitials(lesson.teacher.name)}</AvatarFallback>
                             </Avatar>
-                            <span className="text-xs text-gray-600 font-medium">{lesson.teacher.name}</span>
+                            <span className="text-xs text-muted-foreground font-medium">{lesson.teacher.name}</span>
                         </div>
                     ) : (
-                         <span className="text-xs text-gray-400">Unassigned</span>
+                         <span className="text-xs text-muted-foreground">Unassigned</span>
                     )}
                 </div>
             </div>

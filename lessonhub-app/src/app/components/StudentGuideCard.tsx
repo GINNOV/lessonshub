@@ -37,7 +37,7 @@ export default function StudentGuideCard({ guide }: StudentGuideCardProps) {
   const priceLabel = currencyFormatter.format(Math.max(guide.price, 0));
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
       <div className="relative h-36 w-full sm:h-40">
         <Image
           src={imageSrc}
@@ -56,25 +56,25 @@ export default function StudentGuideCard({ guide }: StudentGuideCardProps) {
 
       <div className="flex flex-1 flex-col gap-4 p-4">
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-gray-900">{guide.title}</h3>
+          <h3 className="text-lg font-semibold text-foreground">{guide.title}</h3>
           {previewHtml ? (
             <div
-              className="prose prose-sm max-w-none text-gray-600 line-clamp-4 [&_*]:text-gray-600 [&_*]:text-sm [&>p]:my-1"
+              className="prose prose-sm prose-invert max-w-none text-muted-foreground line-clamp-4 [&_*]:text-muted-foreground [&_*]:text-sm [&>p]:my-1"
               dangerouslySetInnerHTML={{ __html: previewHtml }}
             />
           ) : (
-            <p className="text-sm text-gray-500 line-clamp-3">{preview}</p>
+            <p className="text-sm text-muted-foreground line-clamp-3">{preview}</p>
           )}
         </div>
 
         <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-gray-900">{priceLabel}</span>
-          <span className="text-gray-400">Updated {updated}</span>
+          <span className="font-semibold text-foreground">{priceLabel}</span>
+          <span className="text-muted-foreground">Updated {updated}</span>
         </div>
         <LessonDifficultyIndicator value={guide.difficulty} size="sm" className="mt-2" />
 
         {guide.guideIsFreeForAll && (
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+          <span className="rounded-full border border-emerald-400/40 bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-100">
             Free access
           </span>
         )}

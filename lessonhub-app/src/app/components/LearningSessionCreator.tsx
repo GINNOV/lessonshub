@@ -395,7 +395,7 @@ export default function LearningSessionCreator({
         <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
           <select
             id="guideCardImage"
-            className="rounded-md border border-gray-300 p-2 shadow-sm"
+            className="rounded-md border border-input bg-background text-foreground p-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             value={guideCardImage}
             onChange={(event) => setGuideCardImage(event.target.value)}
           >
@@ -415,7 +415,7 @@ export default function LearningSessionCreator({
             />
           </div>
         </div>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Add more card backgrounds under <code>/public/my-guides</code> to expand this list.
         </p>
       </div>
@@ -430,7 +430,7 @@ export default function LearningSessionCreator({
               <select
                 value={selectedBookletId}
                 onChange={(e) => setSelectedBookletId(e.target.value)}
-                className="rounded-md border border-gray-300 p-2 text-sm shadow-sm"
+                className="rounded-md border border-input bg-background text-foreground p-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">Insert from booklet…</option>
                 {instructionBooklets.map((booklet) => (
@@ -469,7 +469,7 @@ export default function LearningSessionCreator({
           onChange={(e) => setAssignmentText(e.target.value)}
           rows={5}
         />
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Need reusable sets? <ManageInstructionBookletsLink />
         </p>
       </div>
@@ -481,7 +481,7 @@ export default function LearningSessionCreator({
           value={assignmentNotification}
           onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
           disabled={isLoading}
-          className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+          className="w-full rounded-md border border-input bg-background text-foreground p-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
           <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
@@ -514,7 +514,7 @@ export default function LearningSessionCreator({
                 Download template
               </Button>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Columns: content1, content2, content3, content4, extra (optional).
             </p>
           </div>
@@ -526,12 +526,12 @@ export default function LearningSessionCreator({
             className="md:w-72"
           />
         </div>
-        {isImporting && <p className="text-sm text-gray-500">Parsing CSV…</p>}
+        {isImporting && <p className="text-sm text-muted-foreground">Parsing CSV…</p>}
       </div>
 
       <div className="space-y-4">
         {cards.map((card, index) => (
-          <div key={index} className="rounded-lg border p-4 shadow-sm space-y-4 bg-white">
+          <div key={index} className="rounded-lg border border-border bg-card p-4 shadow-sm space-y-4">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <h3 className="font-semibold text-lg">Card {index + 1}</h3>
               <Button
@@ -605,7 +605,7 @@ export default function LearningSessionCreator({
             Preview
           </Button>
         </div>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {validCards.length} / {totalCards} cards ready
         </p>
       </div>
@@ -624,7 +624,7 @@ export default function LearningSessionCreator({
           {previewableCards.length > 0 ? (
             <LearningSessionPlayer cards={previewableCards} lessonTitle={title || 'Preview'} />
           ) : (
-            <p className="text-sm text-gray-500">Add at least one card to preview the session.</p>
+            <p className="text-sm text-muted-foreground">Add at least one card to preview the session.</p>
           )}
         </DialogContent>
       </Dialog>

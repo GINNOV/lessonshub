@@ -41,7 +41,7 @@ export default function StudentGuideList({ guides, copy }: StudentGuideListProps
   return (
     <div className="space-y-4">
       <div className="relative w-full sm:max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
         <Input
           type="search"
           placeholder={copy?.searchPlaceholder || "Search Hub Guides..."}
@@ -52,7 +52,7 @@ export default function StudentGuideList({ guides, copy }: StudentGuideListProps
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
+        <div className="rounded-2xl border border-dashed p-6 text-center text-muted-foreground">
           {copy?.emptyPaid || "No Hub Guides available yet. New guides will appear here automatically."}
         </div>
       ) : (
