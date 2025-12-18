@@ -7,7 +7,6 @@ import { Assignment, Lesson, Flashcard as PrismaFlashcard } from '@prisma/client
 import { Button } from '@/components/ui/button';
 import { RotateCw, Send, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { marked } from 'marked';
 import { submitFlashcardAssignment } from '@/actions/lessonActions';
 import Rating from '@/app/components/Rating';
 import { useRouter } from 'next/navigation';
@@ -48,16 +47,6 @@ export default function FlashcardPlayer({
   const flashcards = useMemo(() => {
     return [...assignment.lesson.flashcards].sort(() => Math.random() - 0.5);
   }, [assignment.lesson.flashcards]);
-
-  const instructionsHtml = useMemo(() => {
-    const rawText = assignment.lesson.assignment_text || '';
-    const cleanedText = rawText.replace(/👉🏼 INSTRUCTIONS:/i, '').trim();
-    return cleanedText ? marked.parse(cleanedText) : '';
-  }, [assignment.lesson.assignment_text]);
-  const additionalInfoHtml = useMemo(() => {
-    const raw = assignment.lesson.context_text || '';
-    return raw ? marked.parse(raw) : '';
-  }, [assignment.lesson.context_text]);
 
   // Audio material support (SoundCloud or YouTube) using the lesson.soundcloud_url field
   const audioUrl = assignment.lesson.soundcloud_url || '';
@@ -142,7 +131,7 @@ export default function FlashcardPlayer({
     return (
       <div className="space-y-6">
         {audioUrl && (
-          <div className="rounded-lg border bg-white p-3">
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-3 shadow-lg">
             {isYouTubeUrl(audioUrl) ? (
               (() => {
                 const vid = getYouTubeId(audioUrl);
@@ -177,19 +166,9 @@ export default function FlashcardPlayer({
             )}
           </div>
         )}
-        <div className="rounded-lg border bg-gray-50 p-4">
-            <h2 className="text-xl font-semibold">👉🏼 INSTRUCTIONS</h2>
-            {instructionsHtml && (
-              <div className="prose max-w-none mt-4" dangerouslySetInnerHTML={{ __html: instructionsHtml as string }} />
-            )}
-            {additionalInfoHtml && (
-              <>
-                <h3 className="mt-4 text-lg font-semibold">Additional Information</h3>
-                <div className="prose max-w-none mt-2" dangerouslySetInnerHTML={{ __html: additionalInfoHtml as string }} />
-              </>
-            )}
-        </div>
-        <p className="text-sm text-gray-500">Tap the card to flip between front and back. After flipping, choose whether you were right or wrong.</p>
+        <p className="text-sm text-slate-400">
+          Tap the card to flip between front and back. After flipping, choose whether you were right or wrong.
+        </p>
         <Button onClick={() => setIsStarted(true)} className="w-full">Start</Button>
       </div>
     );
@@ -197,19 +176,19 @@ export default function FlashcardPlayer({
 
   if (showResults) {
     return (
-        <div className="text-center p-8 border rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Results</h2>
-            <p className="text-green-600 font-semibold">Correct: {correctCount}</p>
-            <p className="text-red-600 font-semibold">Incorrect: {incorrectCount}</p>
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center text-slate-100 shadow-xl">
+            <h2 className="mb-4 text-2xl font-bold">Results</h2>
+            <p className="font-semibold text-emerald-300">Correct: {correctCount}</p>
+            <p className="font-semibold text-rose-300">Incorrect: {incorrectCount}</p>
             {!isPractice && (
               <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-2">Rate this lesson</h3>
+                <h3 className="mb-2 text-lg font-semibold">Rate this lesson</h3>
                 <div className="flex justify-center">
                   <Rating onRatingChange={setRating} disabled={isSubmissionLocked} />
                 </div>
               </div>
             )}
-            <div className="flex flex-wrap justify-center gap-4 mt-6">
+            <div className="mt-6 flex flex-wrap justify-center gap-4">
               <Button onClick={handleRestart} variant="outline">
                   <RotateCw className="mr-2 h-4 w-4" /> Restart
               </Button>
@@ -230,7 +209,7 @@ export default function FlashcardPlayer({
   return (
     <div className="space-y-6">
         {audioUrl && (
-          <div className="rounded-lg border bg-white p-3">
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-3 shadow-lg">
             {isYouTubeUrl(audioUrl) ? (
               (() => {
                 const vid = getYouTubeId(audioUrl);
@@ -267,7 +246,7 @@ export default function FlashcardPlayer({
         )}
         <div className="relative h-96 w-full cursor-pointer [perspective:1000px]" onClick={handleFlip}>
             <div className={`relative h-full w-full rounded-lg transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                <div className="absolute h-full w-full rounded-lg border p-4 flex flex-col bg-white [backface-visibility:hidden]">
+                <div className="absolute flex h-full w-full flex-col rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-slate-100 shadow-lg [backface-visibility:hidden]">
                     {flashcards[currentIndex].termImageUrl ? (
                       <>
                         <div className="relative flex-grow w-full">
@@ -286,7 +265,7 @@ export default function FlashcardPlayer({
                       </div>
                     )}
                 </div>
-                <div className="absolute h-full w-full rounded-lg border p-4 flex flex-col bg-gray-100 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                <div className="absolute flex h-full w-full flex-col rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-slate-100 shadow-lg [backface-visibility:hidden] [transform:rotateY(180deg)]">
                   {flashcards[currentIndex].definitionImageUrl ? (
                     <>
                       <div className="relative flex-grow w-full">
@@ -319,16 +298,16 @@ export default function FlashcardPlayer({
           </Button>
         </div>
         {assignment.lesson.notes && (
-          <div className="rounded-lg border bg-gray-50 p-3 text-sm text-gray-700">
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-200 shadow-lg">
             <h3 className="font-semibold mb-1">Notes</h3>
             <p>{assignment.lesson.notes}</p>
           </div>
         )}
-        <div className="flex justify-center items-center text-sm text-gray-600">
+        <div className="flex items-center justify-center text-sm text-slate-400">
             <span>{currentIndex + 1} / {flashcards.length}</span>
         </div>
          {isFlipped && (
-            <div className="flex justify-center gap-4 pt-4 border-t">
+            <div className="flex justify-center gap-4 border-t border-slate-800 pt-4">
                 <Button onClick={() => handleAnswer(false)} variant="destructive">I was wrong</Button>
                 <Button onClick={() => handleAnswer(true)} className="bg-green-600 hover:bg-green-700">I was right</Button>
             </div>

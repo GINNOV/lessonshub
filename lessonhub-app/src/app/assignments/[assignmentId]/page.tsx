@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import prisma from "@/lib/prisma";
 import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
 import StudentExtensionRequest from "@/app/components/StudentExtensionRequest";
+import { EXTENSION_POINT_COST } from "@/lib/lessonExtensions";
 
 marked.setOptions({
   gfm: true,
@@ -175,6 +176,17 @@ export default async function AssignmentPage({
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : null;
   const notesHtml = lesson.notes ? ((await marked.parse(lesson.notes)) as string) : null;
   const instructionsHtml = lesson.assignment_text ? ((await marked.parse(lesson.assignment_text)) as string) : null;
+  const studentExtensionUsed = Boolean(
+    await prisma.pointTransaction.findFirst({
+      where: {
+        assignmentId: serializableAssignment.id,
+        userId: serializableAssignment.studentId,
+        points: -EXTENSION_POINT_COST,
+        note: { contains: "Lesson extension" },
+      },
+      select: { id: true },
+    }),
+  );
 
   const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
   const showResultsArea = serializableAssignment.status === AssignmentStatus.GRADED || serializableAssignment.status === AssignmentStatus.FAILED;
@@ -489,7 +501,7 @@ export default async function AssignmentPage({
       {canRequestExtension && (
         <StudentExtensionRequest
           assignmentId={serializableAssignment.id}
-          disabled={hasExtendedDeadline}
+          disabled={studentExtensionUsed}
         />
       )}
       {isPastDue && (

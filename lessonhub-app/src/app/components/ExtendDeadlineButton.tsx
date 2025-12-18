@@ -20,7 +20,7 @@ export default function ExtendDeadlineButton({ assignmentId }: ExtendDeadlineBut
     setIsLoading(true);
     const result = await extendDeadline(assignmentId);
     if (result.success) {
-      toast.success('Deadline extended successfully and 200 points were deducted from the student.');
+      toast.success('Deadline extended successfully and €200 were deducted from the student.');
     } else {
       toast.error(result.error || 'An unknown error occurred.');
     }
@@ -37,14 +37,14 @@ export default function ExtendDeadlineButton({ assignmentId }: ExtendDeadlineBut
         disabled={isLoading}
       >
         <Clock className="mr-2 h-4 w-4" />
-        {isLoading ? 'Extending...' : 'Extend (-200 pts)'}
+        {isLoading ? 'Extending...' : 'Extend (-€200)'}
       </Button>
       <ConfirmDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         title="Extend deadline?"
-        description="Adds 48 hours to the current deadline and deducts 200 points from the student. Only one extension is allowed."
-        confirmLabel="Extend for -200 pts"
+        description="Adds 48 hours to the current deadline and deducts €200 from the student. Only one extension is allowed."
+        confirmLabel="Extend for -€200"
         pendingLabel="Extending..."
         confirmVariant="default"
         isConfirming={isLoading}

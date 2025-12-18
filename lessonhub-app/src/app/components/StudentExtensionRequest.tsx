@@ -23,7 +23,7 @@ export default function StudentExtensionRequest({
     startTransition(async () => {
       const result = await requestStudentExtension(assignmentId);
       if (result.success) {
-        toast.success('Extension granted. 200 points deducted.', {
+        toast.success('Extension granted. €200 deducted.', {
           description: 'Your deadline has been pushed back by 48 hours.',
         });
         router.refresh();
@@ -42,7 +42,7 @@ export default function StudentExtensionRequest({
         <div className="flex-1 space-y-1 min-w-[220px]">
           <p className="font-semibold">Need more time?</p>
           <p className="text-xs text-indigo-800">
-            Request a 48-hour deadline extension for 200 points. One extension per lesson.
+            Request a 48-hour deadline extension for €200. One extension per lesson.
           </p>
         </div>
         <Button
@@ -52,12 +52,12 @@ export default function StudentExtensionRequest({
           disabled={disabled || isPending}
         >
           <Clock className="mr-2 h-4 w-4" />
-          {isPending ? 'Requesting…' : 'Extend (-200 pts)'}
+          {isPending ? 'Requesting…' : 'Extend (-€200)'}
         </Button>
       </div>
       {disabled && (
         <p className="mt-2 text-xs text-indigo-700">
-          You&apos;ve already used your extension for this lesson.
+          An extension has already been used for this lesson.
         </p>
       )}
     </div>

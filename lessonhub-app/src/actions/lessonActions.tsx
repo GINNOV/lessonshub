@@ -1333,13 +1333,19 @@ async function applyDeadlineExtension(assignmentId: string, actor: ExtensionActo
       return { success: false, error: notFoundMessage };
     }
 
-    const alreadyExtended =
-      assignment.originalDeadline &&
-      assignment.originalDeadline.getTime() !== assignment.deadline.getTime();
-    if (alreadyExtended) {
+    const existingExtensionTransaction = await prisma.pointTransaction.findFirst({
+      where: {
+        assignmentId,
+        userId: assignment.studentId,
+        points: -EXTENSION_POINT_COST,
+        note: { contains: "Lesson extension" },
+      },
+      select: { id: true },
+    });
+    if (existingExtensionTransaction) {
       return {
         success: false,
-        error: "This lesson has already been extended.",
+        error: "This lesson has already used its extension.",
       };
     }
 
