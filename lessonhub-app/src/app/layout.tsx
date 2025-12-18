@@ -20,16 +20,21 @@ const facebookDomainVerification = process.env.NEXT_PUBLIC_FACEBOOK_DOMAIN_VERIF
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: { default: 'LessonHUB', template: '%s | LessonHUB' },
-  description: 'Create and manage lessons, engage with students, and track their progress with an intuitive, modern platform.',
+  title: {
+    default: "LessonHUB: Impara l'inglese per solo €10 euro al mese!",
+    template: '%s | LessonHUB',
+  },
+  description:
+    'Il minimo di grammatica possibile. Impara da situazioni reali. Per essere fluente nel leggere notizie o conversare con americani come le persone normali.',
+  manifest: '/favicon/site.webmanifest',
   icons: {
     icon: [
-      { url: '/favicon.ico' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon/favicon.ico' },
+      { url: '/favicon/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/favicon/favicon.svg', type: 'image/svg+xml' },
     ],
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/favicon/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
   robots: isIndexable
@@ -52,26 +57,28 @@ export const metadata: Metadata = {
       : {}),
   },
   openGraph: {
-    title: 'LessonHUB: Education Made Engaging',
-    description: 'Simplify teaching and enhance learning with intuitive tools and captivating content.',
+    title: "LessonHUB: Impara l'inglese per solo €10 euro al mese!",
+    description:
+      'Il minimo di grammatica possibile. Impara da situazioni reali. Per essere fluente nel leggere notizie o conversare con americani come le persone normali. "The book is on the table" va bene nei libri, nella vita quotidiana la gente non parla così...',
     url: '/',
     siteName: 'LessonHUB',
     images: [
       {
-        url: '/hero_signin.png', 
+        url: '/social/facebookOG.png',
         width: 1200,
-        height: 630,
-        alt: 'An engaging learning environment with a teacher and students.',
+        height: 628,
+        alt: 'Lesson HUB, dove la lingua American si impara veramente ad un costo irrisorio.',
       },
     ],
-    locale: 'en_US',
+    locale: 'it_IT',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'LessonHUB',
-    description: 'Create and manage lessons, engage with students, and track progress with a modern platform.',
-    images: ['/hero_signin.png'],
+    title: "LessonHUB: Impara l'inglese per solo €10 euro al mese!",
+    description:
+      'Il minimo di grammatica possibile. Impara da situazioni reali. Per essere fluente nel leggere notizie o conversare con americani come le persone normali. "The book is on the table" va bene nei libri, nella vita quotidiana la gente non parla così...',
+    images: ['/social/facebookOG.png'],
   },
 };
 
