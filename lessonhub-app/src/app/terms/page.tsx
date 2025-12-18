@@ -1,5 +1,13 @@
 // file: src/app/terms/page.tsx
 
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description: 'LessonHUB terms of service governing use of the platform.',
+  alternates: { canonical: '/terms' },
+}
+
 export default function TermsOfServicePage() {
   return (
     <div className="max-w-4xl mx-auto prose prose-lg">

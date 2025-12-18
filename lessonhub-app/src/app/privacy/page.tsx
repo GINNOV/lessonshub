@@ -1,5 +1,13 @@
 // file: src/app/privacy/page.tsx
 
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: 'LessonHUB privacy policy describing how we collect and use personal information.',
+  alternates: { canonical: '/privacy' },
+}
+
 export default function PrivacyPage() {
   return (
     <div className="max-w-4xl mx-auto prose prose-lg">

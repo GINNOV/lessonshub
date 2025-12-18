@@ -1,4 +1,5 @@
 // file: src/app/page.tsx
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
@@ -16,6 +17,10 @@ import { redirect } from 'next/navigation'
 import { Role } from '@prisma/client'
 import { Lexend, Lora } from 'next/font/google'
 import { headers } from 'next/headers'
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+}
 
 const lexend = Lexend({ subsets: ['latin'], variable: '--font-lexend' })
 const lora = Lora({ subsets: ['latin'], variable: '--font-lora' })

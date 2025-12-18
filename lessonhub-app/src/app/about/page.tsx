@@ -1,9 +1,17 @@
 // file: src/app/about/page.tsx
 
+import type { Metadata } from 'next'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from 'next/image';
 import { Target, Eye, Users } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'About',
+  description:
+    'Learn about LessonHUB’s mission and the team building an engaging, modern platform for teachers and students.',
+  alternates: { canonical: '/about' },
+}
 
 // Team members data
 const teamMembers = [

@@ -1,11 +1,18 @@
 // file: src/app/contact/page.tsx
 
+import type { Metadata } from 'next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: 'Contact',
+  description: 'Contact LessonHUB for support, feedback, or general inquiries.',
+  alternates: { canonical: '/contact' },
+}
 
 export default function ContactPage() {
   const contactEmail = "contact@lessonhub.com"; // Replace with your actual contact email
