@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Assignment, LessonType } from '@prisma/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,7 +25,6 @@ interface GradingFormProps {
 
 const scoreOptions = [
   { label: 'Good', value: '10' },
-  { label: 'Almost Right', value: '2' },
   { label: 'Bad', value: '-1' },
 ];
 
@@ -81,6 +81,11 @@ export default function GradingForm({ assignment }: GradingFormProps) {
     assignment.teacherComments || ''
   );
   const [scoreError, setScoreError] = useState<string | null>(null);
+  const [extraPointsError, setExtraPointsError] = useState<string | null>(null);
+  const [extraPointsValue, setExtraPointsValue] = useState<string>(() => {
+    const extra = typeof assignment.extraPoints === 'number' ? assignment.extraPoints : 0;
+    return extra.toString();
+  });
   const isStandard = assignment.lesson?.type === 'STANDARD';
   const questions = Array.isArray(assignment.lesson?.questions)
     ? (assignment.lesson?.questions as any[])
@@ -146,6 +151,13 @@ export default function GradingForm({ assignment }: GradingFormProps) {
       setIsLoading(false);
       return;
     }
+    const parsedExtra = extraPointsValue === '' ? 0 : Number(extraPointsValue);
+    if (!Number.isFinite(parsedExtra) || parsedExtra < 0 || !Number.isInteger(parsedExtra)) {
+      setExtraPointsError('Extra points must be a non-negative whole number.');
+      toast.error('Extra points must be a non-negative whole number.');
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       // Only send non-empty comments
@@ -162,6 +174,7 @@ export default function GradingForm({ assignment }: GradingFormProps) {
       const result = await gradeAssignment(assignment.id, {
         score: numericScore,
         teacherComments,
+        extraPoints: parsedExtra,
         answerComments: isStandard && Object.keys(cleaned).length > 0 ? cleaned : undefined,
       });
 
@@ -239,6 +252,26 @@ export default function GradingForm({ assignment }: GradingFormProps) {
           </select>
           {scoreError && (
             <p className="mt-2 text-sm text-red-400">{scoreError}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="extra-points" className="text-slate-100">Extra Points (Bonus)</Label>
+          <Input
+            id="extra-points"
+            type="number"
+            min={0}
+            step={1}
+            value={extraPointsValue}
+            onChange={(event) => {
+              setExtraPointsValue(event.target.value);
+              setExtraPointsError(null);
+            }}
+            placeholder="0"
+            className="border-slate-700 bg-slate-900/70 text-slate-100 placeholder:text-slate-400"
+          />
+          {extraPointsError && (
+            <p className="mt-2 text-sm text-red-400">{extraPointsError}</p>
           )}
         </div>
 

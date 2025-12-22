@@ -7,6 +7,7 @@ import { getEmailTemplateByName } from '@/actions/adminActions';
 import { createButton, defaultEmailTemplates, sendEmail } from '@/lib/email-templates';
 import { auth } from "@/auth";
 import { hasAdminPrivileges } from "@/lib/authz";
+import { convertExtraPointsToEuro } from "@/lib/points";
 
 export async function failExpiredAssignments(graceHours: number = 24) {
   try {
@@ -341,14 +342,14 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
     const gradedCount = weekAssignments.filter(a=>a.status===AssignmentStatus.GRADED).length
     const failedCount = weekAssignments.filter(a=>a.status===AssignmentStatus.FAILED).length
     let savingsWeek=0
-    for (const a of weekAssignments){ const price=a.lesson?.price? Number(a.lesson.price.toString()):0; if (a.status===AssignmentStatus.FAILED) savingsWeek-=price; else if (a.status===AssignmentStatus.GRADED && (a.score??0)>=0) savingsWeek+=price }
+    for (const a of weekAssignments){ const price=a.lesson?.price? Number(a.lesson.price.toString()):0; if (a.status===AssignmentStatus.FAILED) savingsWeek-=price; else if (a.status===AssignmentStatus.GRADED && (a.score??0)>=0) { savingsWeek+=price; } if (a.status===AssignmentStatus.GRADED && a.extraPoints) savingsWeek+=convertExtraPointsToEuro(a.extraPoints); }
 
     const allResults = await (await import('@/lib/prisma')).default.assignment.findMany({
       where: { studentId: s.id, status: { in: [AssignmentStatus.GRADED, AssignmentStatus.FAILED] } },
       include: { lesson: { select: { price: true } } },
     })
     let savingsTotal=0
-    for (const a of allResults){ const price=a.lesson?.price? Number(a.lesson.price.toString()):0; if (a.status===AssignmentStatus.FAILED) savingsTotal-=price; else if ((a.score??0)>=0) savingsTotal+=price }
+    for (const a of allResults){ const price=a.lesson?.price? Number(a.lesson.price.toString()):0; if (a.status===AssignmentStatus.FAILED) savingsTotal-=price; else if ((a.score??0)>=0) { savingsTotal+=price; } if (a.status===AssignmentStatus.GRADED && a.extraPoints) savingsTotal+=convertExtraPointsToEuro(a.extraPoints); }
 
     const itemsHtml = weekAssignments.length ? '<ul style="padding-left:18px;color:#1d1c1d;">'+weekAssignments.map(a=>`<li style="margin:6px 0;">${a.lesson?.title||'Lesson'} — <strong>${a.status}</strong>${a.status==='GRADED'&&a.score!==null?` (score: ${a.score}/10)`:''}</li>`).join('')+'</ul>' : '<p style="color:#8898aa;">No graded activity this week — a fresh start awaits! 💪</p>'
     const encouragement = gradedCount>=3 ? 'Fantastic week! Your consistency is building real momentum.' : gradedCount>=1 ? 'Great job — keep that rhythm going into next week!' : 'New week, new start. Even one lesson makes a difference!'

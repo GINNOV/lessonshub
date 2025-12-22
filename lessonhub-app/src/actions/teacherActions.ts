@@ -9,6 +9,7 @@ import { sendEmail, createButton } from "@/lib/email-templates";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 import { ensureBadgeCatalog } from "@/lib/gamification";
 import { getEmailTemplateByName } from "@/actions/adminActions";
+import { convertExtraPointsToEuro, GOLD_STAR_POINTS, GOLD_STAR_VALUE_EURO } from "@/lib/points";
 
 /**
  * Fetches the preferences for the currently logged-in teacher.
@@ -112,8 +113,6 @@ export async function sendGoldStar(studentId: string, message: string) {
 
   await ensureBadgeCatalog();
 
-  const GOLD_STAR_POINTS = 11;
-  const GOLD_STAR_VALUE = 200;
   const goldStarBadge = await prisma.badge.findUnique({ where: { slug: 'gold-star' } });
 
   try {
@@ -123,7 +122,7 @@ export async function sendGoldStar(studentId: string, message: string) {
           studentId,
           teacherId: teacher.id,
           message: trimmedMessage || null,
-          amountEuro: GOLD_STAR_VALUE,
+          amountEuro: GOLD_STAR_VALUE_EURO,
           points: GOLD_STAR_POINTS,
         },
       });
@@ -172,7 +171,7 @@ export async function sendGoldStar(studentId: string, message: string) {
           studentName: student.name || 'Student',
           teacherName: teacher.name || 'Your teacher',
           message: trimmedMessage,
-          amount: `€${GOLD_STAR_VALUE}`,
+          amount: `€${GOLD_STAR_VALUE_EURO}`,
           points: GOLD_STAR_POINTS.toString(),
           button: createButton('View your profile', profileUrl, template.buttonColor || undefined),
         },
@@ -257,6 +256,7 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
             status: true,
             score: true,
             pointsAwarded: true,
+            extraPoints: true,
             deadline: true,
             originalDeadline: true,
             lesson: { select: { price: true } },
@@ -280,6 +280,9 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
         for (const a of student.assignments) {
           const price = a.lesson?.price ? Number(a.lesson.price.toString()) : 0;
           if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score >= 0) savings += price;
+          if (a.status === AssignmentStatus.GRADED && a.extraPoints) {
+            savings += convertExtraPointsToEuro(a.extraPoints);
+          }
           if (a.status === AssignmentStatus.FAILED) savings -= price;
 
           if (isExtendedDeadline(a.deadline, a.originalDeadline)) {

@@ -275,6 +275,7 @@ model Assignment {
   teacherComments     String?
   teacherAnswerComments Json?
   pointsAwarded        Int       @default(0)
+  extraPoints          Int       @default(0)
   reminderSentAt      DateTime?
   milestoneNotified   Boolean          @default(false)
   notifyOnStartDate   Boolean          @default(true) // New field for scheduled notifications

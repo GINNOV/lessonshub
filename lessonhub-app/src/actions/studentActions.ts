@@ -7,6 +7,7 @@ import { Role, AssignmentStatus } from "@prisma/client";
 import { sendEmail, createButton } from "@/lib/email-templates";
 import { getStudentGamificationSnapshot } from "@/lib/gamification";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
+import { convertExtraPointsToEuro } from "@/lib/points";
 
 /**
  * Sends a feedback message from the current student to all teachers.
@@ -235,6 +236,7 @@ export async function getLeaderboardData() {
             status: true,
             score: true,
             pointsAwarded: true,
+            extraPoints: true,
             gradedAt: true,
             assignedAt: true,
             deadline: true,
@@ -272,6 +274,9 @@ export async function getLeaderboardData() {
       student.assignments.forEach(a => {
         const price = a.lesson?.price ? Number(a.lesson.price.toString()) : 0;
         if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score >= 0) savings += price;
+        if (a.status === AssignmentStatus.GRADED && a.extraPoints) {
+          savings += convertExtraPointsToEuro(a.extraPoints);
+        }
         if (a.status === AssignmentStatus.FAILED) savings -= price;
 
         if (isExtendedDeadline(a.deadline, a.originalDeadline)) {
@@ -364,6 +369,7 @@ export async function getStudentLeaderboardProfile(studentId: string) {
             status: true,
             score: true,
             pointsAwarded: true,
+            extraPoints: true,
             gradedAt: true,
             assignedAt: true,
             deadline: true,
@@ -442,6 +448,9 @@ export async function getStudentLeaderboardProfile(studentId: string) {
       const price = assignment.lesson?.price ? Number(assignment.lesson.price.toString()) : 0;
       if (assignment.status === AssignmentStatus.GRADED && assignment.score !== null && assignment.score >= 0) {
         savings += price;
+      }
+      if (assignment.status === AssignmentStatus.GRADED && assignment.extraPoints) {
+        savings += convertExtraPointsToEuro(assignment.extraPoints);
       }
       if (assignment.status === AssignmentStatus.FAILED) {
         savings -= price;

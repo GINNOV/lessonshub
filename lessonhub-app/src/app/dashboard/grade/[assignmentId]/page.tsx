@@ -7,6 +7,7 @@ import { getSubmissionForGrading } from "@/actions/lessonActions";
 import { LessonType, Role } from "@prisma/client";
 import GradingForm from "@/app/components/GradingForm";
 import LessonContentView from "@/app/components/LessonContentView";
+import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
 import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -666,6 +667,39 @@ export default async function GradeSubmissionPage({
     multiChoiceDetails.length - (multiChoiceSummary.correct + multiChoiceSummary.incorrect),
     0
   );
+  const standardQuestions = Array.isArray(serializableSubmission.lesson.questions)
+    ? (serializableSubmission.lesson.questions as unknown[]).map((item) => {
+        if (typeof item === 'string') {
+          return { question: item.trim(), expectedAnswer: '' };
+        }
+        if (item && typeof item === 'object') {
+          const record = item as Record<string, unknown>;
+          const questionText =
+            typeof record.question === 'string'
+              ? record.question
+              : typeof record.prompt === 'string'
+              ? record.prompt
+              : '';
+          const expectedText = typeof record.expectedAnswer === 'string' ? record.expectedAnswer : '';
+          return {
+            question: formatContent(questionText).trim(),
+            expectedAnswer: formatContent(expectedText).trim(),
+          };
+        }
+        return { question: formatContent(item).trim(), expectedAnswer: '' };
+      }).filter((item) => item.question)
+    : [];
+  const learningSessionCards = Array.isArray((serializableSubmission.lesson as any).learningSessionCards)
+    ? ((serializableSubmission.lesson as any).learningSessionCards as Array<{
+        id: string;
+        orderIndex: number;
+        content1: string | null;
+        content2: string | null;
+        content3?: string | null;
+        content4?: string | null;
+        extra?: string | null;
+      }>)
+    : [];
 
   return (
     <div>
@@ -962,6 +996,52 @@ export default async function GradeSubmissionPage({
                 <AccordionContent>
                     <div className="p-4 border rounded-md bg-muted/50">
                         <LessonContentView lesson={serializableSubmission.lesson} />
+                        {submission.lesson.type === LessonType.STANDARD && standardQuestions.length > 0 && (
+                          <div className="mt-6 space-y-3">
+                            <h3 className="text-lg font-semibold text-foreground">Lesson Questions</h3>
+                            {standardQuestions.map((item, index) => (
+                              <div key={`standard-question-${index}`} className="rounded-md border border-border bg-card p-3 shadow-sm">
+                                <p className="text-xs font-semibold uppercase text-muted-foreground">Q{index + 1}</p>
+                                <p className="text-base font-medium text-foreground">{item.question}</p>
+                                {item.expectedAnswer && (
+                                  <p className="mt-2 text-sm text-muted-foreground">
+                                    <span className="font-semibold text-foreground">Expected:</span> {item.expectedAnswer}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {submission.lesson.type === LessonType.MULTI_CHOICE && multiChoiceQuestions.length > 0 && (
+                          <div className="mt-6 space-y-3">
+                            <h3 className="text-lg font-semibold text-foreground">Lesson Questions</h3>
+                            {multiChoiceQuestions.map((question, index) => (
+                              <div key={question.id} className="rounded-md border border-border bg-card p-3 shadow-sm">
+                                <p className="text-xs font-semibold uppercase text-muted-foreground">Q{index + 1}</p>
+                                <p className="text-base font-medium text-foreground">{question.question}</p>
+                                <div className="mt-2 space-y-2 text-sm">
+                                  {question.options.map((option) => {
+                                    const isCorrect = option.isCorrect;
+                                    return (
+                                      <div
+                                        key={option.id}
+                                        className={cn(
+                                          "rounded-md border px-2 py-1",
+                                          isCorrect
+                                            ? "border-emerald-400/60 bg-emerald-900/40 text-emerald-100"
+                                            : "border-slate-700 bg-slate-900/70 text-slate-200"
+                                        )}
+                                      >
+                                        {option.text}
+                                        {isCorrect ? " (correct)" : ""}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         {submission.lesson.type === LessonType.FLASHCARD && flashcards.length > 0 && (
                           <div className="mt-6 space-y-3">
                             <h3 className="text-lg font-semibold text-foreground">Flashcard Deck</h3>
@@ -997,6 +1077,12 @@ export default async function GradeSubmissionPage({
                                 </div>
                               </div>
                             ))}
+                          </div>
+                        )}
+                        {submission.lesson.type === LessonType.LEARNING_SESSION && learningSessionCards.length > 0 && (
+                          <div className="mt-6">
+                            <h3 className="text-lg font-semibold text-foreground">Learning Session</h3>
+                            <LearningSessionPlayer cards={learningSessionCards} lessonTitle={submission.lesson.title} />
                           </div>
                         )}
                     </div>

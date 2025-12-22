@@ -12,6 +12,7 @@ import { checkAndSendMilestoneEmail } from "./studentActions";
 import { awardBadgesForStudent, calculateAssignmentPoints } from "@/lib/gamification";
 import { hasAdminPrivileges } from "@/lib/authz";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
+import { convertExtraPointsToEuro } from "@/lib/points";
 
 export async function getUploadedImages() {
   try {
@@ -1010,6 +1011,7 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
                 lesson: {
                     include: {
                         flashcards: true,
+                        learningSessionCards: true,
                         multiChoiceQuestions: {
                             include: {
                                 options: true,
@@ -1072,6 +1074,7 @@ export async function getStudentStats(studentId: string) {
           status: true,
           score: true,
           pointsAwarded: true,
+          extraPoints: true,
           deadline: true,
           originalDeadline: true,
           lesson: { select: { price: true } },
@@ -1094,6 +1097,9 @@ export async function getStudentStats(studentId: string) {
         totalValue -= price;
       } else if (a.status === AssignmentStatus.GRADED && a.score !== null && a.score >= 0) {
         totalValue += price;
+      }
+      if (a.status === AssignmentStatus.GRADED && a.extraPoints) {
+        totalValue += convertExtraPointsToEuro(a.extraPoints);
       }
 
       if (isExtended) {
@@ -1420,7 +1426,12 @@ export async function requestStudentExtension(assignmentId: string) {
 
 export async function gradeAssignment(
   assignmentId: string,
-  data: { score: number; teacherComments: string; answerComments?: Record<number, string> }
+  data: {
+    score: number;
+    teacherComments: string;
+    extraPoints?: number;
+    answerComments?: Record<number, string>;
+  }
 ) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== Role.TEACHER) {
@@ -1429,6 +1440,13 @@ export async function gradeAssignment(
 
   if (typeof data.score !== 'number' || Number.isNaN(data.score) || !Number.isFinite(data.score)) {
     return { success: false, error: "Score is required to grade this assignment." };
+  }
+  const extraPoints =
+    typeof data.extraPoints === 'number' && Number.isFinite(data.extraPoints)
+      ? Math.trunc(data.extraPoints)
+      : 0;
+  if (extraPoints < 0) {
+    return { success: false, error: "Extra points must be zero or greater." };
   }
 
   try {
@@ -1450,13 +1468,14 @@ export async function gradeAssignment(
     }
 
     const now = new Date();
-    const pointsAwarded = calculateAssignmentPoints({
+    const basePoints = calculateAssignmentPoints({
       score: data.score,
       difficulty: assignment.lesson?.difficulty ?? null,
       deadline: assignment.deadline,
       gradedAt: now,
       assignedAt: assignment.assignedAt,
     });
+    const pointsAwarded = Math.max(0, basePoints + extraPoints);
 
     const gradingOutcome = await prisma.$transaction(async (tx) => {
       let updatedAssignment;
@@ -1473,6 +1492,7 @@ export async function gradeAssignment(
             status: AssignmentStatus.GRADED,
             gradedAt: now,
             pointsAwarded,
+            extraPoints,
             gradedByTeacher: true,
           },
         });
@@ -1492,6 +1512,7 @@ export async function gradeAssignment(
             status: AssignmentStatus.GRADED,
             gradedAt: now,
             pointsAwarded,
+            extraPoints,
             gradedByTeacher: true,
           },
         });
@@ -1516,7 +1537,9 @@ export async function gradeAssignment(
             assignmentId,
             points: pointsDelta,
             reason: PointReason.ASSIGNMENT_GRADED,
-            note: `Scored ${data.score}/10 on ${assignment.lesson.title}`,
+            note: `Scored ${data.score}/10 on ${assignment.lesson.title}${
+              extraPoints > 0 ? ` (+${extraPoints} bonus points)` : ''
+            }`,
           },
         });
       }
