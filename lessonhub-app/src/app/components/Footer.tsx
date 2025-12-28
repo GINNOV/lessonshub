@@ -8,6 +8,16 @@ export default function Footer() {
   // This will now be directly provided by Vercel.
   const rawSha = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || '';
   const buildVersion = rawSha ? rawSha.substring(0, 7) : 'dev';
+  const rawTimestamp = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_TIMESTAMP || '';
+  const lastUpdate = (() => {
+    if (!rawTimestamp) return 'unknown';
+    const numeric = Number(rawTimestamp);
+    if (!Number.isFinite(numeric)) return 'unknown';
+    const ms = rawTimestamp.length <= 10 ? numeric * 1000 : numeric;
+    const date = new Date(ms);
+    if (Number.isNaN(date.getTime())) return 'unknown';
+    return date.toISOString().slice(0, 10);
+  })();
   const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || '';
 
   return (
@@ -17,6 +27,8 @@ export default function Footer() {
           <span>© {currentYear} Garage Innovation LLC</span>
           <span className="text-slate-700">|</span>
           <span>Build: {buildVersion}</span>
+          <span className="text-slate-700">|</span>
+          <span>Last update {lastUpdate}</span>
         </div>
         <nav className="flex flex-wrap items-center gap-4">
           <Link href="/about" className="hover:text-slate-200 transition-colors">About Us</Link>
