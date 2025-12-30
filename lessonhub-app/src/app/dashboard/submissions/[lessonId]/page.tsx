@@ -57,6 +57,12 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
     return 'bg-gray-700 text-gray-100'; // Darker gray default
   };
 
+  const getLatestReminderDate = (reminderSentAt: Date | null, pastDueWarningSentAt: Date | null) => {
+    if (!reminderSentAt) return pastDueWarningSentAt;
+    if (!pastDueWarningSentAt) return reminderSentAt;
+    return reminderSentAt > pastDueWarningSentAt ? reminderSentAt : pastDueWarningSentAt;
+  };
+
   return (
     <div>
       <Button variant="link" asChild className="mb-4">
@@ -89,6 +95,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                       ? AssignmentStatus.COMPLETED
                       : sub.status;
                   const displayStatus = isPastDue ? "PAST DUE" : baseStatus;
+                  const reminderDate = getLatestReminderDate(sub.reminderSentAt ?? null, sub.pastDueWarningSentAt ?? null);
 
                   return (
                     <tr key={sub.id}>
@@ -101,7 +108,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground"><LocaleDate date={sub.deadline} /></td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{sub.score ?? 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                        {sub.reminderSentAt ? <LocaleDate date={sub.reminderSentAt} /> : 'No'}
+                        {reminderDate ? <LocaleDate date={reminderDate} /> : 'No'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-2 flex-wrap">
@@ -145,6 +152,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                 ? AssignmentStatus.COMPLETED
                 : sub.status;
             const displayStatus = isPastDue ? "PAST DUE" : baseStatus;
+            const reminderDate = getLatestReminderDate(sub.reminderSentAt ?? null, sub.pastDueWarningSentAt ?? null);
 
             return (
               <div key={sub.id} className="bg-card shadow-sm rounded-lg border border-border p-4 space-y-3">
@@ -168,7 +176,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ le
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Reminder Sent</p>
                     <p className="font-medium text-foreground">
-                      {sub.reminderSentAt ? <LocaleDate date={sub.reminderSentAt} /> : 'No'}
+                      {reminderDate ? <LocaleDate date={reminderDate} /> : 'No'}
                     </p>
                   </div>
                 </div>
