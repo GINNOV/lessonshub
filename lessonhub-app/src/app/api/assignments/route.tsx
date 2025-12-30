@@ -2,7 +2,8 @@
 import { auth } from "@/auth";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { sendEmail, createButton } from "@/lib/email-templates";
+import { createButton } from "@/lib/email-templates";
+import { sendEmail } from "@/lib/email-templates.server";
 import { AssignmentScheduleEntry, getImmediateStartStudentIds } from "@/lib/assignmentNotifications";
 
 export async function PATCH(req: Request) {

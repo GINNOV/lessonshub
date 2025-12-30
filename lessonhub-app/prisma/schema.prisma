@@ -311,6 +311,8 @@ model EmailTemplate {
   subject     String
   body        String
   buttonColor String?
+  description String?
+  category    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -464,6 +466,22 @@ enum AssignmentStatus {
   COMPLETED
   GRADED
   FAILED
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+}
+
+model NotificationLog {
+  id          String              @id @default(cuid())
+  createdAt   DateTime            @default(now())
+  templateName String
+  to          String
+  subject     String
+  body        String              @db.Text
+  status      NotificationStatus
+  errorMessage String?
 }
 
 model StudentBanner {

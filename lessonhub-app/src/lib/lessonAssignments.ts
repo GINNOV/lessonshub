@@ -1,7 +1,8 @@
 // file: src/lib/lessonAssignments.ts
 import prisma from '@/lib/prisma';
 import { AssignmentNotification, Role } from '@prisma/client';
-import { createButton, sendEmail } from '@/lib/email-templates';
+import { createButton } from '@/lib/email-templates';
+import { sendEmail } from '@/lib/email-templates.server';
 
 type AutoAssignOptions = {
   lessonId: string;

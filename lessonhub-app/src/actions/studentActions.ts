@@ -4,7 +4,8 @@
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { Role, AssignmentStatus } from "@prisma/client";
-import { sendEmail, createButton } from "@/lib/email-templates";
+import { createButton } from "@/lib/email-templates";
+import { sendEmail } from "@/lib/email-templates.server";
 import { getStudentGamificationSnapshot } from "@/lib/gamification";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 import { convertExtraPointsToEuro } from "@/lib/points";

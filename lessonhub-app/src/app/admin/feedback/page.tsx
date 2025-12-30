@@ -232,6 +232,11 @@ export default async function FeedbackAnalyticsPage() {
     }))
     .slice(-8);
 
+  const notificationLogs = await prisma.notificationLog.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 25,
+  });
+
   const TrendChart = () => {
     if (weeklyTrend.length === 0) {
       return <p className="text-sm text-slate-400">No trend data yet.</p>;
@@ -416,6 +421,49 @@ export default async function FeedbackAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border border-slate-800/70 bg-slate-900/70 text-slate-100">
+        <CardHeader>
+          <CardTitle>Notification log (latest 25)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {notificationLogs.length === 0 ? (
+            <p className="text-sm text-slate-400">No notifications logged yet.</p>
+          ) : (
+            notificationLogs.map((log) => (
+              <div key={log.id} className="rounded-lg border border-slate-800/70 bg-slate-950/60 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                  <span>
+                    {log.templateName} · {log.to}
+                  </span>
+                  <span>
+                    {formatDistanceToNow(log.createdAt, { addSuffix: true })}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-slate-100">{log.subject || 'No subject'}</p>
+                  <span
+                    className={`text-xs font-semibold ${
+                      log.status === 'SENT' ? 'text-emerald-300' : 'text-rose-300'
+                    }`}
+                  >
+                    {log.status}
+                  </span>
+                </div>
+                {log.errorMessage && (
+                  <p className="mt-1 text-xs text-rose-300">Error: {log.errorMessage}</p>
+                )}
+                <details className="mt-2 text-xs text-slate-400">
+                  <summary className="cursor-pointer">View message</summary>
+                  <div className="mt-2 max-h-48 overflow-y-auto rounded border border-slate-800/70 bg-slate-900/70 p-2">
+                    <pre className="whitespace-pre-wrap text-[11px] text-slate-200">{log.body}</pre>
+                  </div>
+                </details>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border border-slate-800/70 bg-slate-900/70 text-slate-100">
         <CardHeader>

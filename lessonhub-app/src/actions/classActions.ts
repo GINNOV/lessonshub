@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/auth';
 import { Role } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
-import { sendEmail } from '@/lib/email-templates';
+import { sendEmail } from '@/lib/email-templates.server';
 
 export async function getClassesForTeacher() {
   const session = await auth();

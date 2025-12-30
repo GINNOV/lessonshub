@@ -8,7 +8,8 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
-import { sendEmail, createButton } from "@/lib/email-templates";
+import { createButton } from "@/lib/email-templates";
+import { sendEmail } from "@/lib/email-templates.server";
 
 if (!process.env.AUTH_SECRET) throw new Error("Missing AUTH_SECRET");
 if (!process.env.EMAIL_FROM) throw new Error("Missing EMAIL_FROM");

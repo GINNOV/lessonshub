@@ -1,10 +1,9 @@
 // file: src/lib/email-templates.ts
-import prisma from "@/lib/prisma";
-import { getEmailTemplateByName } from "@/actions/adminActions";
-
-export const defaultEmailTemplates: Record<string, { subject: string; body: string, buttonColor?: string }> = {
+export const defaultEmailTemplates: Record<string, { subject: string; body: string; buttonColor?: string; description?: string; category?: string }> = {
     welcome: {
         subject: '🌸 Welcome to LessonHUB, {{userName}}!',
+        description: 'Sent after a new user signs up to welcome them and explain how to get started.',
+        category: 'Onboarding',
         body: `<h1 style="color: #1d1c1d; font-size: 36px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Welcome to LessonHUB!</h1>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{userName}},</p>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Welcome to LessonHUB! We’re excited to have you as part of our learning community. As a student, you can now:</p>
@@ -31,6 +30,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     new_assignment: {
         subject: '🏄🏼‍♂️ New Assignment: {{lessonTitle}}',
+        description: 'Sent when a lesson is assigned and notification is enabled (immediate or scheduled start date).',
+        category: 'Assignments',
         body: `<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">New Assignment!</h1>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{studentName}},</p>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Your teacher, {{teacherName}}, has assigned you a new lesson: <strong>{{lessonTitle}}</strong>.</p>
@@ -43,6 +44,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     graded: {
         subject: '👩🏼‍🏫 Your assignment has been graded',
+        description: 'Sent after a teacher grades an assignment and a score is recorded.',
+        category: 'Assignments',
         body: `🇺🇸
 <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Graded!</h1>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{studentName}},</p>
@@ -62,6 +65,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     failed: {
         subject: '❌ Update on your assignment: "{{lessonTitle}}"',
+        description: 'Sent when an assignment is marked failed after missing the deadline.',
+        category: 'Assignments',
         body: `<h1 style="color: #dc2626; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Failed</h1>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{studentName}},</p>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Your submission for the lesson, <strong>{{lessonTitle}}</strong>, is past the due date and has been marked as failed.</p>
@@ -74,6 +79,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     manual_reminder: {
         subject: '🚨 Reminder: Your assignment "{{lessonTitle}}"',
+        description: 'Sent manually by a teacher from the submissions page for a pending assignment.',
+        category: 'Reminders',
         body: `<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Reminder</h1>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{studentName}},</p>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">This is a friendly reminder from your teacher, {{teacherName}}, to complete the assignment: <strong>{{lessonTitle}}</strong>.</p>
@@ -85,6 +92,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     deadline_reminder: {
         subject: '🔔 Reminder: Assignment "{{lessonTitle}}" is due soon',
+        description: 'Sent by the deadline reminder job 24–48 hours before due date (legacy endpoint).',
+        category: 'Reminders',
         body: `🇺🇸
 <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Reminder</h1>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{studentName}},</p>
@@ -102,6 +111,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     submission_notification: {
         subject: '👀 New Submission: {{studentName}} completed their work',
+        description: 'Sent to a teacher when a student submits an assignment.',
+        category: 'Submissions',
         body: `<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">New Submission</h1>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{teacherName}},</p>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">{{studentName}} has just submitted their response for the lesson: <strong>{{lessonTitle}}</strong>.</p>
@@ -112,6 +123,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     new_user_admin: {
         subject: '🪪 [LessonHUB] New User Sign-Up: {{newUserName}}',
+        description: 'Sent to admins when a new user registers.',
+        category: 'Admin',
         body: `
             <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">New User Sign-Up</h1>
             <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{adminName}},</p>
@@ -126,6 +139,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     user_deleted_admin: {
         subject: '🪪 [LessonHUB] User Account Deleted: {{deletedUserName}}',
+        description: 'Sent to admins when a user deletes their account.',
+        category: 'Admin',
         body: `
             <h1 style="color: #d9534f; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">User Account Deleted</h1>
             <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{adminName}},</p>
@@ -140,6 +155,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     forgot_password: {
         subject: '🎫 Reset password for LessonHUB',
+        description: 'Sent when a user requests a password reset / magic link.',
+        category: 'Auth',
         body: `🇺🇸
 <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Get back in to LessonHUB</h1>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{userName}},</p>
@@ -157,6 +174,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     student_feedback: {
         subject: '[LessonHUB] You have new feedback from {{studentName}}',
+        description: 'Sent to a teacher when a student submits feedback via the feedback dialog.',
+        category: 'Feedback',
         body: `
             <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">New Student Feedback</h1>
             <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{teacherName}},</p>
@@ -168,6 +187,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     milestone_celebration: {
     subject: '🎉 Congratulations on completing 10 lessons!',
+    description: 'Sent every 10 completed/graded lessons when the latest milestone assignment has not been notified yet.',
+    category: 'Milestones',
     body: `
         🇺🇸
         <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">You're on a Roll!</h1>
@@ -188,6 +209,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     student_assigned_to_teacher: {
         subject: '👥 You have new students!',
+        description: 'Sent to a teacher when students are assigned to their class.',
+        category: 'Admin',
         body: `
             <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">New Student Assignment</h1>
             <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{teacherName}},</p>
@@ -200,6 +223,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     payment_reminder: {
         subject: '💰 Your LessonHUB Subscription Fee is Due',
+        description: 'Sent monthly to paying users who have not received a payment reminder in the current month.',
+        category: 'Billing',
         body: `<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Payment Reminder</h1>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{userName}},</p>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px;">This is a friendly reminder that your monthly subscription fee is due. Please click the button below to complete your payment and continue your learning journey.</p>
@@ -209,6 +234,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
   deadline_extended: {
     subject: "Good News! Your deadline has been extended",
+    description: 'Sent when a teacher or student extends an assignment deadline.',
+    category: 'Assignments',
     body: `
       <p>Hi {{studentName}},</p>
       <p>Good news! Your teacher has extended the deadline for the lesson: <strong>{{lessonTitle}}</strong>.</p>
@@ -220,6 +247,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
   },
   gold_star: {
     subject: '⭐ You earned a Gold Star!',
+    description: 'Sent when a teacher awards a gold star badge, optionally with a personal note.',
+    category: 'Milestones',
     body: `
         🇺🇸
         <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">You're on a Roll!</h1>
@@ -247,6 +276,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
   },
   past_due_warning: {
     subject: '⏳ Action needed: "{{lessonTitle}}" is overdue',
+    description: 'Sent after deadline when within the grace period before auto-fail.',
+    category: 'Reminders',
     body: `
       <h1 style="color:#b45309;font-size:30px;font-weight:800;margin:24px 0;">Your assignment is overdue</h1>
       <p style="color:#4b5563;font-size:16px;line-height:24px;">Hi {{studentName}},</p>
@@ -259,6 +290,8 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
   },
   weekly_summary: {
     subject: '🌟 Your Week on LessonHUB ({{weekRange}})',
+    description: 'Sent on Sundays (or forced) to students who have not opted out of weekly summaries.',
+    category: 'Summaries',
     body: `
       <h1 style="color:#1d1c1d;font-size:32px;font-weight:700;margin:20px 0;">Your Weekly Wins</h1>
       <p style="color:#525f7f;font-size:16px;line-height:24px;">Hi {{studentName}}, here’s a beautiful wrap‑up of your week ({{weekRange}}):</p>
@@ -294,69 +327,4 @@ export function createButton(text: string, url: string, color: string = '#007bff
             ${text}
         </a>
     `;
-}
-
-// --- Centralized Email Sending Function ---
-interface SendEmailOptions {
-    to: string;
-    templateName: string;
-    data: Record<string, string>;
-    subjectPrefix?: string;
-    override?: { subject: string; body: string };
-}
-export async function sendEmail({ to, templateName, data, subjectPrefix = '', override }: SendEmailOptions) {
-    try {
-        const template = override ? null : await getEmailTemplateByName(templateName);
-
-        if (!template && !override) {
-            console.error(`Email template "${templateName}" not found and could not be created.`);
-            return;
-        }
-
-        const subject = override ? override.subject : template!.subject;
-        const body = override ? override.body : template!.body;
-
-        const finalSubject = subjectPrefix + replacePlaceholders(subject, data);
-        const finalBody = replacePlaceholders(body, data);
-
-        const emailHtml = `
-            <html lang="en">
-            <head>
-                <style>
-                body { margin: 0; background-color: #f6f9fc; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif; }
-                .container { background-color: #ffffff; margin: 0 auto; padding: 20px 0 48px; margin-bottom: 64px; border: 1px solid #f0f0f0; border-radius: 8px; max-width: 560px; }
-                .box { padding: 0 48px; }
-                .hr { border-color: #e6ebf1; margin: 20px 0; }
-                .footer { color: #8898aa; font-size: 12px; line-height: 16px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                <div class="box">
-                    ${finalBody}
-                    <hr class="hr" />
-                    <p class="footer">LessonHUB — The modern platform for modern learning.</p>
-                </div>
-                </div>
-            </body>
-            </html>
-        `;
-
-        await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                from: process.env.EMAIL_FROM,
-                to,
-                subject: finalSubject,
-                html: emailHtml,
-            }),
-        });
-
-    } catch (error) {
-        console.error(`Failed to send email "${templateName}" to ${to}:`, error);
-    }
 }

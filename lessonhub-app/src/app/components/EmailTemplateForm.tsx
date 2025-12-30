@@ -34,6 +34,8 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [subject, setSubject] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [body, setBody] = useState('');
   const [buttonColor, setButtonColor] = useState('');
   const [testEmail, setTestEmail] = useState('');
@@ -46,6 +48,8 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
   useEffect(() => {
     if (template) {
       setSubject(template.subject);
+      setDescription(template.description ?? '');
+      setCategory(template.category ?? '');
       setBody(template.body);
       setButtonColor(template.buttonColor || '#5e6ad2');
     }
@@ -106,6 +110,8 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
       subject,
       body,
       buttonColor,
+      description,
+      category,
     });
     if (result.success) {
       toast.success('Template updated successfully!');
@@ -169,6 +175,22 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
             <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} disabled={isLoading} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Input id="category" value={category} onChange={(e) => setCategory(e.target.value)} disabled={isLoading} />
           </div>
 
           <div className="space-y-2">

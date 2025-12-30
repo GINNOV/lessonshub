@@ -4,7 +4,8 @@
 import prisma from "@/lib/prisma";
 import { AssignmentStatus, Role } from "@prisma/client";
 import { getEmailTemplateByName } from '@/actions/adminActions';
-import { createButton, defaultEmailTemplates, sendEmail } from '@/lib/email-templates';
+import { createButton, defaultEmailTemplates } from '@/lib/email-templates';
+import { sendEmail } from '@/lib/email-templates.server';
 import { auth } from "@/auth";
 import { hasAdminPrivileges } from "@/lib/authz";
 import { convertExtraPointsToEuro } from "@/lib/points";
@@ -355,7 +356,8 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
     const encouragement = gradedCount>=3 ? 'Fantastic week! Your consistency is building real momentum.' : gradedCount>=1 ? 'Great job — keep that rhythm going into next week!' : 'New week, new start. Even one lesson makes a difference!'
     const quote = quotes[Math.floor(Math.random()*quotes.length)]
 
-    const { createButton, sendEmail } = await import('@/lib/email-templates')
+    const { createButton } = await import('@/lib/email-templates')
+    const { sendEmail } = await import('@/lib/email-templates.server')
     const button = createButton('Go to My Lessons', `${process.env.AUTH_URL}/my-lessons`, template.buttonColor || undefined)
 
     await sendEmail({

@@ -5,7 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { getEmailTemplateByName } from "@/actions/adminActions";
-import { createButton, sendEmail } from "@/lib/email-templates";
+import { createButton } from "@/lib/email-templates";
+import { sendEmail } from "@/lib/email-templates.server";
 import { Role } from '@prisma/client';
 import { verifyRegisterChallenge } from '@/lib/registerChallenge';
 

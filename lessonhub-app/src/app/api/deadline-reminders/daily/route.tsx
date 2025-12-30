@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { AssignmentStatus } from '@prisma/client';
 import { getEmailTemplateByName } from '@/actions/adminActions';
-import { replacePlaceholders, createButton, sendEmail } from '@/lib/email-templates';
+import { createButton } from '@/lib/email-templates';
+import { sendEmail } from '@/lib/email-templates.server';
 
 export async function GET() {
     console.log("Daily deadline reminder cron job started.");

@@ -4,7 +4,8 @@
 import prisma from "@/lib/prisma";
 import { BadgeCategory, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { sendEmail, createButton } from "@/lib/email-templates";
+import { createButton } from "@/lib/email-templates";
+import { sendEmail } from "@/lib/email-templates.server";
 import { auth } from "@/auth";
 import { hasAdminPrivileges } from "@/lib/authz";
 
@@ -373,10 +374,26 @@ export async function getAllEmailTemplates() {
           subject: (defaultEmailTemplates as any)[n].subject,
           body: (defaultEmailTemplates as any)[n].body,
           buttonColor: (defaultEmailTemplates as any)[n].buttonColor,
+          description: (defaultEmailTemplates as any)[n].description ?? null,
+          category: (defaultEmailTemplates as any)[n].category ?? null,
         })),
         skipDuplicates: true,
       });
     }
+    await Promise.all(
+      Object.entries(defaultEmailTemplates).map(([name, template]) =>
+        prisma.emailTemplate.updateMany({
+          where: {
+            name,
+            OR: [{ description: null }, { category: null }],
+          },
+          data: {
+            description: template.description ?? null,
+            category: template.category ?? null,
+          },
+        }),
+      ),
+    );
     const templates = await prisma.emailTemplate.findMany({ orderBy: { name: 'asc' } });
     return templates;
   } catch (error) {
@@ -399,7 +416,29 @@ export async function getEmailTemplateByName(name: string) {
       const { defaultEmailTemplates } = await import('@/lib/email-templates');
       const def = (defaultEmailTemplates as any)[name];
       if (def) {
-        template = await prisma.emailTemplate.create({ data: { name, subject: def.subject, body: def.body, buttonColor: def.buttonColor } });
+        template = await prisma.emailTemplate.create({
+          data: {
+            name,
+            subject: def.subject,
+            body: def.body,
+            buttonColor: def.buttonColor,
+            description: def.description ?? null,
+            category: def.category ?? null,
+          },
+        });
+      }
+    }
+    if (template && (template.description === null || template.category === null)) {
+      const { defaultEmailTemplates } = await import('@/lib/email-templates');
+      const def = (defaultEmailTemplates as any)[name];
+      if (def) {
+        template = await prisma.emailTemplate.update({
+          where: { name },
+          data: {
+            description: template.description ?? def.description ?? null,
+            category: template.category ?? def.category ?? null,
+          },
+        });
       }
     }
     return template;
@@ -415,7 +454,10 @@ export async function getEmailTemplateByName(name: string) {
  * @param data The data to update.
  * @returns An object indicating success or failure.
  */
-export async function updateEmailTemplate(name: string, data: { subject?: string; body?: string; buttonColor?: string }) {
+export async function updateEmailTemplate(
+  name: string,
+  data: { subject?: string; body?: string; buttonColor?: string; description?: string; category?: string },
+) {
     try {
         await prisma.emailTemplate.update({
             where: { name },

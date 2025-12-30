@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { getEmailTemplates } from "@/actions/adminActions";
 import { Role } from "@prisma/client";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import EmailTemplateList from "@/components/EmailTemplateList";
 
 export default async function EmailTemplatesPage() {
     const session = await auth();
@@ -36,19 +36,7 @@ export default async function EmailTemplatesPage() {
                 </div>
             </div>
             <div className="rounded-xl border border-slate-800/70 bg-slate-900/70 p-6 shadow-xl backdrop-blur">
-                <ul className="divide-y divide-slate-800">
-                    {templates.map(template => (
-                        <li key={template.id} className="py-4 flex justify-between items-center">
-                            <div>
-                                <p className="text-lg font-semibold capitalize text-slate-100">{template.name.replace(/_/g, ' ')}</p>
-                                <p className="text-sm text-slate-400">{template.subject}</p>
-                            </div>
-                            <Button asChild variant="secondary" className="border-slate-700 bg-slate-800 text-slate-100 hover:border-teal-400/60">
-                                <Link href={`/admin/emails/edit/${template.name}`}>Edit</Link>
-                            </Button>
-                        </li>
-                    ))}
-                </ul>
+                <EmailTemplateList templates={templates} />
             </div>
         </div>
     );

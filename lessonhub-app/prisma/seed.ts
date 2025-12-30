@@ -43,6 +43,8 @@ async function main() {
         subject: template.subject,
         body: template.body,
         buttonColor: template.buttonColor || null,
+        description: template.description || null,
+        category: template.category || null,
       },
     });
   }
