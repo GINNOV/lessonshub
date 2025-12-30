@@ -231,19 +231,22 @@ export default async function DashboardPage({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/create">Create topic</Link>
+              <Link href="/dashboard/create">Topic</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/create/flashcard">Create flashcard</Link>
+              <Link href="/dashboard/create/flashcard">Flashcard</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/create/multi-choice">Create multi choice</Link>
+              <Link href="/dashboard/create/multi-choice">Multi choice</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/create/lyric">Create lyric</Link>
+              <Link href="/dashboard/create/composer">Composer</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/create/learning-session">Create guide</Link>
+              <Link href="/dashboard/create/lyric">Lyric</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/create/learning-session">Guide</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

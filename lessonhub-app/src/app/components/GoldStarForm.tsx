@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { sendGoldStar } from '@/actions/teacherActions';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -15,14 +16,21 @@ interface GoldStarFormProps {
 
 export default function GoldStarForm({ studentId, studentName }: GoldStarFormProps) {
   const [message, setMessage] = useState('');
+  const [amount, setAmount] = useState('200');
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = () => {
     startTransition(async () => {
-      const result = await sendGoldStar(studentId, message);
+      const amountValue = Number(amount);
+      const result = await sendGoldStar(
+        studentId,
+        message,
+        Number.isFinite(amountValue) ? amountValue : undefined,
+      );
       if (result.success) {
         toast.success(`Gold star sent to ${studentName}!`);
         setMessage('');
+        setAmount('200');
       } else {
         toast.error(result.error || 'Unable to send gold star right now.');
       }
@@ -38,7 +46,7 @@ export default function GoldStarForm({ studentId, studentName }: GoldStarFormPro
         <div className="space-y-1">
           <p className="text-sm font-semibold text-slate-50">Send a gold star</p>
           <p className="text-xs text-slate-400">
-            Rewards the student with €200, 11 points, and a Gold Star badge.
+            Rewards the student with a custom euro amount, 11 points, and a Gold Star badge.
           </p>
           <Badge variant="outline" className="border-emerald-300/50 bg-emerald-400/10 text-emerald-100">
             Instant email notification
@@ -47,6 +55,20 @@ export default function GoldStarForm({ studentId, studentName }: GoldStarFormPro
       </div>
 
       <div className="mt-4 space-y-3">
+        <div className="space-y-2">
+          <label htmlFor="goldStarAmount" className="text-xs uppercase tracking-wide text-slate-400">
+            Gold Star Value (€)
+          </label>
+          <Input
+            id="goldStarAmount"
+            type="number"
+            min="0"
+            step="1"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="border-slate-800 bg-slate-950 text-slate-100"
+          />
+        </div>
         <Textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}

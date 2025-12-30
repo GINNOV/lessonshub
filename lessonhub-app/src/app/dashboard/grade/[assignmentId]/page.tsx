@@ -911,6 +911,40 @@ export default async function GradeSubmissionPage({
                 )}
               </div>
               )}
+
+              {submission.lesson.type === LessonType.COMPOSER && Array.isArray(submission.answers) && (
+              <div className="mt-4 space-y-4">
+                {submission.answers.map((answer: any, index: number) => {
+                  const isCorrect = Boolean(answer?.isCorrect);
+                  return (
+                    <div
+                      key={`${answer?.index ?? index}`}
+                      className={cn(
+                        "rounded-md border p-4",
+                        isCorrect
+                          ? "border-emerald-400/60 bg-emerald-900/40 text-emerald-100"
+                          : "border-rose-400/60 bg-rose-900/40 text-rose-100"
+                      )}
+                    >
+                      <p className="text-sm font-semibold uppercase text-slate-400">
+                        Composer Q{index + 1}
+                      </p>
+                      <p className="text-base text-slate-100">{answer?.prompt || 'Composer prompt'}</p>
+                      <div className="mt-3 grid gap-2 text-sm text-slate-100 sm:grid-cols-2">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-400">Selected</p>
+                          <p className="font-semibold">{answer?.selectedWord || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-400">Correct word</p>
+                          <p className="font-semibold">{answer?.correctWord || '—'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              )}
               
               {submission.lesson.type === LessonType.LYRIC && lyricLessonConfig && (
               <div className="mt-4 space-y-3 rounded-lg border bg-slate-50 p-4">
@@ -1040,6 +1074,28 @@ export default async function GradeSubmissionPage({
                                 </div>
                               </div>
                             ))}
+                          </div>
+                        )}
+                        {submission.lesson.type === LessonType.COMPOSER && submission.lesson.composerConfig && (
+                          <div className="mt-6 space-y-3">
+                            <h3 className="text-lg font-semibold text-foreground">Composer Setup</h3>
+                            <div className="rounded-md border border-border bg-card p-3 shadow-sm">
+                              <p className="text-xs font-semibold uppercase text-muted-foreground">Hidden sentence</p>
+                              <p className="text-base font-medium text-foreground">
+                                {submission.lesson.composerConfig.hiddenSentence}
+                              </p>
+                            </div>
+                            <div className="space-y-3">
+                              {(submission.lesson.composerConfig.questionBank as any[]).map((question, index) => (
+                                <div key={question.id ?? index} className="rounded-md border border-border bg-card p-3 shadow-sm">
+                                  <p className="text-xs font-semibold uppercase text-muted-foreground">Q{index + 1}</p>
+                                  <p className="text-base font-medium text-foreground">{question.prompt}</p>
+                                  <p className="mt-2 text-sm text-muted-foreground">
+                                    <span className="font-semibold text-foreground">Answer:</span> {question.answer}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                         {submission.lesson.type === LessonType.FLASHCARD && flashcards.length > 0 && (

@@ -12,6 +12,7 @@ import { Lesson, AssignmentNotification } from '@prisma/client';
 import ImageBrowser from './ImageBrowser'; 
 import { getWeekAndDay } from '@/lib/utils';
 import { Info, Upload } from 'lucide-react';
+import { parseCsv } from '@/lib/csv';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import FileUploadButton from '@/components/FileUploadButton';
@@ -103,8 +104,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
-  const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
-  const [scheduledDate, setScheduledDate] = useState('');
+  const assignmentNotification = AssignmentNotification.NOT_ASSIGNED;
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
   const [selectedBookletId, setSelectedBookletId] = useState('');
   const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
@@ -150,12 +150,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
       setSoundcloudUrl(lesson.soundcloud_url || '');
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
-      setAssignmentNotification(lesson.assignment_notification);
-      if (lesson.scheduled_assignment_date) {
-        const d = new Date(lesson.scheduled_assignment_date);
-        const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-        setScheduledDate(formattedDate);
-      }
+      // Standard lessons always save as "Save only" (NOT_ASSIGNED).
       setDifficulty(lesson.difficulty ?? 3);
       setIsFreeForAll(Boolean((lesson as any).isFreeForAll));
     }
@@ -265,30 +260,29 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
   };
 
   const handleQuestionsCsv = async (file?: File | null) => {
-  if (!file) return;
-  const text = await file.text();
-  const rows = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-  if (rows.length === 0) {
-    setError('CSV appears to be empty.');
-    return;
-  }
-  const nextQuestions: string[] = [];
-  const nextExpected: string[] = [];
-  rows.forEach((row, idx) => {
-    const parts = row.split(',').map((part) => part.trim().replace(/^"|"$/g, ''));
-    // Skip header row if present
-    if (idx === 0 && parts[0]?.toLowerCase() === 'question' && parts[1]?.toLowerCase() === 'answer') {
+    if (!file) return;
+    const text = await file.text();
+    const rows = parseCsv(text);
+    if (rows.length === 0) {
+      setError('CSV appears to be empty.');
       return;
     }
-    const question = parts[0] || '';
-    const expected = parts[1] || '';
-    if (!question) return;
-    nextQuestions.push(question);
-    nextExpected.push(expected);
-  });
+    const nextQuestions: string[] = [];
+    const nextExpected: string[] = [];
+    rows.forEach((row, idx) => {
+      const questionRaw = row[0]?.trim() ?? '';
+      const expectedRaw = row[1]?.trim() ?? '';
+      if (idx === 0) {
+        const first = questionRaw.toLowerCase();
+        const second = expectedRaw.toLowerCase();
+        if (first === 'question' && (second === 'answer' || second === 'expected answer')) {
+          return;
+        }
+      }
+      if (!questionRaw) return;
+      nextQuestions.push(questionRaw);
+      nextExpected.push(expectedRaw);
+    });
     if (nextQuestions.length === 0) {
       setError('No questions found in the CSV (expected columns: question, expected answer).');
       return;
@@ -320,10 +314,6 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
       setError('You must include at least one question.');
       return;
     }
-    if (assignmentNotification === 'ASSIGN_ON_DATE' && !scheduledDate) {
-        setError('Please select a date and time to schedule the assignment.');
-        return;
-    }
     if (!difficulty || difficulty < 1 || difficulty > 5) {
       setError('Please choose a difficulty level for this lesson.');
       return;
@@ -350,7 +340,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
           attachment_url: attachmentUrl,
           notes,
           assignment_notification: assignmentNotification,
-          scheduled_assignment_date: assignmentNotification === 'ASSIGN_ON_DATE' ? new Date(scheduledDate) : null,
+          scheduled_assignment_date: null,
           isFreeForAll,
         }),
       });
@@ -657,36 +647,7 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} disabled={isLoading} rows={3} />
       </div>
 
-      <div className="form-field">
-        <Label htmlFor="assignmentNotification">Assignment Status</Label>
-        <select
-          id="assignmentNotification"
-          value={assignmentNotification}
-          onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
-          disabled={isLoading}
-          className="w-full rounded-md border border-border bg-card/70 p-2 text-foreground shadow-sm"
-        >
-          <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
-          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
-          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign to All and Notify Now</option>
-          <option value={AssignmentNotification.ASSIGN_ON_DATE}>Assign on a Specific Date</option>
-        </select>
-      </div>
-
-      {assignmentNotification === "ASSIGN_ON_DATE" && (
-        <div className="form-field animate-fade-in-up">
-          <Label htmlFor="scheduledDate">Scheduled Assignment Date & Time</Label>
-          <Input
-            type="datetime-local"
-            id="scheduledDate"
-            value={scheduledDate}
-            onChange={e => setScheduledDate(e.target.value)}
-            required
-            disabled={isLoading}
-            className="w-full"
-          />
-        </div>
-      )}
+      {/* Standard lessons always save as "Save only" (NOT_ASSIGNED). */}
       
       <Button type="submit" disabled={isLoading || isUploading} className="w-full">
         {isLoading ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create Lesson')}

@@ -8,6 +8,7 @@ import {
   completeFlashcardAssignment,
   submitMultiChoiceAssignment,
   submitStandardAssignment,
+  submitComposerAssignment,
 } from "@/actions/lessonActions";
 import { LessonType, Role } from "@prisma/client";
 
@@ -67,6 +68,17 @@ export async function POST(
         const result = await submitStandardAssignment(assignmentId, session.user.id, { answers, studentNotes, rating });
         if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
         return NextResponse.json(result.data);
+    }
+
+    if (lessonType === LessonType.COMPOSER) {
+      const { answers, rating, tries } = body;
+      const result = await submitComposerAssignment(assignmentId, session.user.id, {
+        answers,
+        tries,
+        rating,
+      });
+      if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
+      return NextResponse.json(result.data);
     }
 
     return new NextResponse(JSON.stringify({ error: "This lesson type cannot be submitted this way." }), { status: 400 });

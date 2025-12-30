@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { getUploadedImages } from '@/actions/lessonActions';
 
 interface ImageBrowserProps {
   onSelectImage: (imageUrl: string) => void;
@@ -19,9 +18,13 @@ export default function ImageBrowser({ onSelectImage }: ImageBrowserProps) {
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true);
-      getUploadedImages()
-        .then((imageUrls) => {
-          setImages(imageUrls);
+      fetch('/api/lessons/images')
+        .then((response) => response.json())
+        .then((data) => {
+          setImages(Array.isArray(data?.images) ? data.images : []);
+        })
+        .catch(() => {
+          setImages([]);
         })
         .finally(() => {
           setIsLoading(false);

@@ -9,6 +9,7 @@ import LessonContentView from "@/app/components/LessonContentView";
 import LessonInstructionsGate from "@/app/components/LessonInstructionsGate";
 import MultiChoicePlayer from "@/app/components/MultiChoicePlayer";
 import FlashcardPlayer from "@/app/components/FlashcardPlayer";
+import ComposerLessonPlayer from "@/app/components/ComposerLessonPlayer";
 import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
 import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
 import { marked } from "marked";
@@ -195,6 +196,9 @@ export default async function AssignmentPage({
     new Date(serializableAssignment.deadline).getTime() < Date.now();
   const isStudentOwner = session.user.id === serializableAssignment.studentId;
   const canRequestExtension = isStudentOwner && serializableAssignment.status === AssignmentStatus.PENDING;
+  const canRevealAnswers =
+    serializableAssignment.status === AssignmentStatus.GRADED ||
+    serializableAssignment.status === AssignmentStatus.FAILED;
 
   const isMultiChoice = lesson.type === LessonType.MULTI_CHOICE;
   const isFlashcard = lesson.type === LessonType.FLASHCARD;
@@ -202,6 +206,7 @@ export default async function AssignmentPage({
   const lyricAudioUrl = lesson.lyricConfig?.audioUrl ?? null;
   const lyricAudioStorageKey = lesson.lyricConfig?.audioStorageKey ?? null;
   const isLearningSession = lesson.type === LessonType.LEARNING_SESSION;
+  const isComposer = lesson.type === LessonType.COMPOSER;
   const showConfetti = serializableAssignment.score === 10;
   const hasExtendedDeadline = Boolean(
     serializableAssignment.originalDeadline &&
@@ -278,6 +283,8 @@ export default async function AssignmentPage({
             <FlashcardPlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
           ) : isMultiChoice ? (
             <MultiChoicePlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
+          ) : isComposer && lesson.composerConfig ? (
+            <ComposerLessonPlayer assignment={serializableAssignment as any} isSubmissionLocked={isPastDue} />
           ) : isLyric && lesson.lyricConfig ? (
             <LyricLessonPlayer
               assignmentId={serializableAssignment.id}
@@ -371,23 +378,79 @@ export default async function AssignmentPage({
                       <div className="mt-2 space-y-2">
                         {q.options.map(opt => {
                           const isSelected = studentAnswer?.selectedAnswerId === opt.id;
-                          const isCorrect = opt.isCorrect;
+                          const isCorrect = canRevealAnswers && opt.isCorrect;
                           return (
                             <div key={opt.id} className={cn(
                               "flex items-center gap-2 rounded-md p-2 border border-transparent",
-                              isSelected && !isCorrect && "border-rose-400/50 bg-rose-500/10 text-rose-100",
-                              isCorrect && "border-emerald-300/50 bg-emerald-500/10"
+                              isSelected && canRevealAnswers && !isCorrect && "border-rose-400/50 bg-rose-500/10 text-rose-100",
+                              isCorrect && "border-emerald-300/50 bg-emerald-500/10",
+                              isSelected && !canRevealAnswers && "border-slate-700/70 bg-slate-900/70"
                             )}>
-                              {isSelected ? (isCorrect ? <Check className="h-5 w-5 text-emerald-300"/> : <X className="h-5 w-5 text-rose-300"/>) : (isCorrect ? <Check className="h-5 w-5 text-emerald-300"/> : <div className="h-5 w-5"/>)}
+                              {canRevealAnswers ? (
+                                isSelected
+                                  ? (isCorrect ? <Check className="h-5 w-5 text-emerald-300"/> : <X className="h-5 w-5 text-rose-300"/>)
+                                  : (isCorrect ? <Check className="h-5 w-5 text-emerald-300"/> : <div className="h-5 w-5"/>)
+                              ) : (
+                                <div className="h-5 w-5" />
+                              )}
                               <span className={cn(isSelected && "font-bold")}>{opt.text}</span>
                             </div>
                           )
                         })}
                       </div>
+                      {!canRevealAnswers && (
+                        <p className="mt-2 text-xs text-slate-400">
+                          Answers unlock after grading.
+                        </p>
+                      )}
                     </div>
                   )
                 })}
               </div>
+              {teacherCommentsBlock}
+            </>
+          )}
+          {lesson.type === LessonType.COMPOSER && Array.isArray(serializableAssignment.answers) && (
+            <>
+              <div className="space-y-4">
+                {serializableAssignment.answers.map((answer: any, index: number) => {
+                  const isCorrect = Boolean(answer?.isCorrect);
+                  return (
+                    <div
+                      key={`${answer?.index ?? index}`}
+                      className={cn(
+                        "rounded-2xl border p-4",
+                        canRevealAnswers
+                          ? isCorrect
+                            ? "border-emerald-300/50 bg-emerald-500/10 text-emerald-100"
+                            : "border-rose-400/50 bg-rose-500/10 text-rose-100"
+                          : "border-slate-700/70 bg-slate-900/70 text-slate-100"
+                      )}
+                    >
+                      <p className="text-sm font-semibold text-slate-100">
+                        {index + 1}. {answer?.prompt || 'Composer prompt'}
+                      </p>
+                      <div className="mt-3 grid gap-2 text-sm text-slate-100 sm:grid-cols-2">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-400">Selected</p>
+                          <p className="font-semibold">{answer?.selectedWord || '—'}</p>
+                        </div>
+                        {canRevealAnswers && (
+                          <div>
+                            <p className="text-xs uppercase tracking-wide text-slate-400">Correct word</p>
+                            <p className="font-semibold">{answer?.correctWord || '—'}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {!canRevealAnswers && (
+                <p className="mt-2 text-xs text-slate-400">
+                  Answers unlock after grading.
+                </p>
+              )}
               {teacherCommentsBlock}
             </>
           )}

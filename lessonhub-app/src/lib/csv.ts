@@ -8,14 +8,23 @@ export function parseCsv(content: string): string[][] {
 
   for (let i = 0; i < content.length; i++) {
     const char = content[i];
+    const next = content[i + 1];
 
     if (char === '"') {
-      if (inQuotes && content[i + 1] === '"') {
+      if (!inQuotes && currentField.length === 0) {
+        inQuotes = true;
+        continue;
+      }
+      if (inQuotes && next === '"') {
         currentField += '"';
         i++;
-      } else {
-        inQuotes = !inQuotes;
+        continue;
       }
+      if (inQuotes && (next === ',' || next === '\n' || next === '\r' || next === undefined)) {
+        inQuotes = false;
+        continue;
+      }
+      currentField += '"';
       continue;
     }
 

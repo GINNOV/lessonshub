@@ -14,6 +14,7 @@ import { awardBadgesForStudent, calculateAssignmentPoints } from "@/lib/gamifica
 import { hasAdminPrivileges } from "@/lib/authz";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 import { convertExtraPointsToEuro } from "@/lib/points";
+import { getComposerExtraTries, normalizeComposerWord, parseComposerSentence } from "@/lib/composer";
 
 export async function getUploadedImages() {
   try {
@@ -133,6 +134,7 @@ export async function duplicateLesson(lessonId: string) {
         },
         learningSessionCards: true,
         lyricConfig: true,
+        composerConfig: true,
       },
     });
 
@@ -209,6 +211,15 @@ export async function duplicateLesson(lessonId: string) {
                 rawLyrics: lesson.lyricConfig.rawLyrics,
                 lines: lesson.lyricConfig.lines as Prisma.InputJsonValue,
                 settings: lesson.lyricConfig.settings as Prisma.InputJsonValue | undefined,
+              },
+            }
+          : undefined,
+        composerConfig: lesson.composerConfig
+          ? {
+              create: {
+                hiddenSentence: lesson.composerConfig.hiddenSentence,
+                questionBank: lesson.composerConfig.questionBank as Prisma.InputJsonValue,
+                maxTries: lesson.composerConfig.maxTries ?? 1,
               },
             }
           : undefined,
@@ -446,6 +457,168 @@ export async function saveMultiChoiceAssignmentDraft(
   } catch (error) {
     console.error('Failed to save multi-choice draft:', error);
     return { success: false, error: 'Unable to save draft right now.' };
+  }
+}
+
+export async function saveComposerAssignmentDraft(
+  assignmentId: string,
+  studentId: string,
+  data: { answers: Record<number, string>; tries: Record<number, number>; rating?: number | undefined }
+) {
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: { id: assignmentId, studentId },
+      select: { id: true, status: true },
+    });
+    if (!assignment) {
+      return { success: false, error: 'Assignment not found or unauthorized.' };
+    }
+    if (assignment.status !== AssignmentStatus.PENDING) {
+      return { success: false, error: 'Assignment can no longer be edited.' };
+    }
+
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: {
+        draftAnswers: { answers: data.answers, tries: data.tries } as Prisma.InputJsonValue,
+        draftRating: typeof data.rating === 'number' ? data.rating : null,
+        draftUpdatedAt: new Date(),
+      },
+    });
+    revalidatePath(`/assignments/${assignmentId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save composer draft:', error);
+    return { success: false, error: 'Unable to save draft right now.' };
+  }
+}
+
+export async function submitComposerAssignment(
+  assignmentId: string,
+  studentId: string,
+  data: { answers: Array<{ index: number; word: string; prompt?: string }>; tries?: Record<number, number>; rating?: number }
+) {
+  try {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId, studentId },
+      include: {
+        student: true,
+        lesson: {
+          include: {
+            composerConfig: true,
+            teacher: true,
+          },
+        },
+      },
+    });
+    if (!assignment || assignment.lesson.type !== LessonType.COMPOSER) {
+      return { success: false, error: 'Assignment not found' };
+    }
+    if (assignment.status !== AssignmentStatus.PENDING) {
+      return { success: false, error: 'Assignment has already been submitted.' };
+    }
+    if (new Date() > new Date(assignment.deadline)) {
+      return { success: false, error: 'The deadline for this assignment has passed.' };
+    }
+    if (!assignment.lesson.composerConfig) {
+      return { success: false, error: 'Composer configuration is missing.' };
+    }
+
+    const { words } = parseComposerSentence(assignment.lesson.composerConfig.hiddenSentence);
+    if (words.length === 0) {
+      return { success: false, error: 'Composer sentence is invalid.' };
+    }
+
+    const maxTries = assignment.lesson.composerConfig.maxTries ?? 1;
+
+    const answersByIndex = new Map<number, { word: string; prompt?: string }>();
+    const tries = data.tries ?? {};
+    data.answers.forEach((answer) => {
+      if (typeof answer.index === 'number' && answer.word) {
+        answersByIndex.set(answer.index, { word: answer.word, prompt: answer.prompt });
+      }
+    });
+
+    let correctCount = 0;
+    const processedAnswers = words.map((word, index) => {
+      const selection = answersByIndex.get(index);
+      const selectedWord = selection?.word ?? '';
+      const isCorrect = normalizeComposerWord(selectedWord) === normalizeComposerWord(word);
+      if (isCorrect) correctCount += 1;
+      const attempts = Number(tries?.[index] ?? 0);
+      return {
+        index,
+        prompt: selection?.prompt ?? null,
+        selectedWord,
+        correctWord: word,
+        tries: attempts,
+        isCorrect,
+      };
+    });
+
+    const score = Math.round((correctCount / words.length) * 10);
+
+    const totalExtraTries = Object.values(tries || {}).reduce((sum, tries) => {
+      const attempts = Number(tries);
+      if (!Number.isFinite(attempts) || attempts <= maxTries) return sum;
+      return sum + (attempts - maxTries);
+    }, 0);
+
+    const pointsPenalty = totalExtraTries * 50;
+    const updatedAssignment = await prisma.$transaction(async (tx) => {
+      const updated = await tx.assignment.update({
+        where: { id: assignmentId },
+        data: {
+          answers: processedAnswers as Prisma.InputJsonValue,
+          status: AssignmentStatus.COMPLETED,
+          score,
+          rating: data.rating,
+          draftAnswers: Prisma.JsonNull,
+          draftRating: null,
+          draftUpdatedAt: null,
+        },
+      });
+
+      if (pointsPenalty > 0) {
+        const currentPoints = assignment.student?.totalPoints ?? 0;
+        await tx.user.update({
+          where: { id: studentId },
+          data: { totalPoints: currentPoints - pointsPenalty },
+        });
+        await tx.pointTransaction.create({
+          data: {
+            userId: studentId,
+            assignmentId,
+            points: -pointsPenalty,
+            reason: PointReason.MANUAL_ADJUSTMENT,
+            note: `Composer extra tries (${totalExtraTries}) — €${pointsPenalty} fee`,
+          },
+        });
+      }
+
+      return updated;
+    });
+
+    if (assignment.lesson.teacher?.email) {
+      const submissionUrl = `${process.env.AUTH_URL}/dashboard/grade/${assignment.id}`;
+      await sendEmail({
+        to: assignment.lesson.teacher.email,
+        templateName: 'submission_notification',
+        data: {
+          teacherName: assignment.lesson.teacher.name || 'teacher',
+          studentName: assignment.student?.name || 'A student',
+          lessonTitle: assignment.lesson.title,
+          button: createButton('View Submission', submissionUrl),
+        },
+      });
+    }
+
+    revalidatePath('/my-lessons');
+    await checkAndSendMilestoneEmail(studentId);
+    return { success: true, data: updatedAssignment };
+  } catch (error) {
+    console.error('Failed to submit composer assignment:', error);
+    return { success: false, error: 'Failed to submit assignment.' };
   }
 }
 
@@ -862,6 +1035,7 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
               orderBy: { orderIndex: 'asc' },
             },
             lyricConfig: true,
+            composerConfig: true,
             lyricAttempts: {
               where: { studentId },
               orderBy: { createdAt: 'desc' },
@@ -902,6 +1076,7 @@ export async function getLessonById(lessonId: string) {
           },
         },
         lyricConfig: true,
+        composerConfig: true,
       },
     });
     return lesson;
@@ -935,6 +1110,7 @@ export async function getLessonByShareId(shareId: string) {
           },
         },
         lyricConfig: true,
+        composerConfig: true,
         teacher: {
           select: {
             id: true,
@@ -1003,9 +1179,10 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
         const submission = await prisma.assignment.findFirst({
             where: {
                 id: assignmentId,
-                lesson: {
-                    teacherId: teacherId,
-                },
+                OR: [
+                  { lesson: { teacherId } },
+                  { student: { teachers: { some: { teacherId } } } },
+                ],
             },
             include: {
                 student: true,
@@ -1019,6 +1196,7 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
                             },
                         },
                         lyricConfig: true,
+                        composerConfig: true,
                     },
                 },
             },
@@ -1078,7 +1256,8 @@ export async function getStudentStats(studentId: string) {
           extraPoints: true,
           deadline: true,
           originalDeadline: true,
-          lesson: { select: { price: true } },
+          answers: true,
+          lesson: { select: { price: true, type: true, composerConfig: { select: { maxTries: true } } } },
         },
       }),
       prisma.goldStar.aggregate({
@@ -1093,6 +1272,10 @@ export async function getStudentStats(studentId: string) {
     assignments.forEach((a) => {
       const price = a.lesson.price.toNumber();
       const isExtended = isExtendedDeadline(a.deadline, a.originalDeadline);
+      if (a.lesson.type === LessonType.COMPOSER) {
+        const extraTries = getComposerExtraTries(a.answers, a.lesson.composerConfig?.maxTries ?? 1);
+        totalValue -= extraTries * 50;
+      }
 
       if (a.status === AssignmentStatus.FAILED) {
         totalValue -= price;

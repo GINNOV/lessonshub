@@ -11,6 +11,7 @@ import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions
 import { ensureBadgeCatalog } from "@/lib/gamification";
 import { getEmailTemplateByName } from "@/actions/adminActions";
 import { convertExtraPointsToEuro, GOLD_STAR_POINTS, GOLD_STAR_VALUE_EURO } from "@/lib/points";
+import { getComposerExtraTries } from "@/lib/composer";
 
 /**
  * Fetches the preferences for the currently logged-in teacher.
@@ -78,13 +79,16 @@ export async function updateTeacherPreferences(data: TeacherPreferences) {
     }
 }
 
-export async function sendGoldStar(studentId: string, message: string) {
+export async function sendGoldStar(studentId: string, message: string, amountEuro?: number) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== Role.TEACHER) {
     return { success: false, error: "Unauthorized" };
   }
 
   const trimmedMessage = message?.trim().slice(0, 500) || "";
+  const normalizedAmount = Number.isFinite(amountEuro)
+    ? Math.max(0, Math.round(amountEuro))
+    : GOLD_STAR_VALUE_EURO;
 
   const teacher = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -123,7 +127,7 @@ export async function sendGoldStar(studentId: string, message: string) {
           studentId,
           teacherId: teacher.id,
           message: trimmedMessage || null,
-          amountEuro: GOLD_STAR_VALUE_EURO,
+          amountEuro: normalizedAmount,
           points: GOLD_STAR_POINTS,
         },
       });
@@ -172,7 +176,7 @@ export async function sendGoldStar(studentId: string, message: string) {
           studentName: student.name || 'Student',
           teacherName: teacher.name || 'Your teacher',
           message: trimmedMessage,
-          amount: `€${GOLD_STAR_VALUE_EURO}`,
+          amount: `€${normalizedAmount}`,
           points: GOLD_STAR_POINTS.toString(),
           button: createButton('View your profile', profileUrl, template.buttonColor || undefined),
         },
@@ -260,7 +264,8 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
             extraPoints: true,
             deadline: true,
             originalDeadline: true,
-            lesson: { select: { price: true } },
+            answers: true,
+            lesson: { select: { price: true, type: true, composerConfig: { select: { maxTries: true } } } },
           },
         },
       },
@@ -285,6 +290,10 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
             savings += convertExtraPointsToEuro(a.extraPoints);
           }
           if (a.status === AssignmentStatus.FAILED) savings -= price;
+          if (a.lesson?.type === LessonType.COMPOSER) {
+            const extraTries = getComposerExtraTries(a.answers, a.lesson.composerConfig?.maxTries ?? 1);
+            savings -= extraTries * 50;
+          }
 
           if (isExtendedDeadline(a.deadline, a.originalDeadline)) {
             extensionSpend += EXTENSION_POINT_COST;

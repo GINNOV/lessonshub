@@ -88,6 +88,7 @@ const lessonTypeEmojis: Record<LessonType, string> = {
   [LessonType.MULTI_CHOICE]: '✅',
   [LessonType.LEARNING_SESSION]: '🧠',
   [LessonType.LYRIC]: '🎵',
+  [LessonType.COMPOSER]: '🧩',
 };
 
 const lessonTypeLabels: Record<LessonType, string> = {
@@ -96,6 +97,7 @@ const lessonTypeLabels: Record<LessonType, string> = {
   [LessonType.MULTI_CHOICE]: 'Multi-choice',
   [LessonType.LEARNING_SESSION]: 'Guide',
   [LessonType.LYRIC]: 'Lyric',
+  [LessonType.COMPOSER]: 'Composer',
 };
 
 const STORAGE_KEY = 'teacher-dashboard-filters';
@@ -113,7 +115,7 @@ const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   AssignmentStatus.GRADED,
   AssignmentStatus.FAILED,
 ];
-const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = ['all', LessonType.STANDARD, LessonType.FLASHCARD, LessonType.MULTI_CHOICE, LessonType.LEARNING_SESSION, LessonType.LYRIC];
+const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = ['all', LessonType.STANDARD, LessonType.FLASHCARD, LessonType.MULTI_CHOICE, LessonType.LEARNING_SESSION, LessonType.LYRIC, LessonType.COMPOSER];
 const normalizeLessonTypeFilter = (value: string | null | undefined): LessonTypeFilterValue => {
   if (!value) return 'all';
   if (value === 'guide' || value === 'guides') return LessonType.LEARNING_SESSION;
@@ -458,6 +460,9 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
           });
         }
         if (statusFilter === 'empty_class') {
+          if (lesson.price === 0 || !!lesson.guideIsFreeForAll || !!lesson.isFreeForAll) {
+            return false;
+          }
           return lesson.assignmentsWithDates.length === 0;
         }
         if (statusFilter === 'free') {
@@ -868,18 +873,8 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-4 shadow-xl backdrop-blur-sm md:flex-row md:items-center md:justify-between">
-        <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
-          <Input
-            type="search"
-            placeholder="Search lessons..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-xl border border-slate-800 bg-slate-900/70 pl-9 text-slate-100 placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/40"
-          />
-        </div>
-        <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-4 shadow-xl backdrop-blur-sm">
+        <div className="flex items-center justify-end gap-2 overflow-x-auto">
           <div className="relative">
             <select
               value={orderView}
@@ -989,6 +984,16 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             </span>
             <span className="sr-only">Open legend (Cmd + Shift + /)</span>
           </Button>
+        </div>
+        <div className="relative w-full max-w-xs shrink-0">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+          <Input
+            type="search"
+            placeholder="Search lessons..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-xl border border-slate-800 bg-slate-900/70 pl-9 text-slate-100 placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/40"
+          />
         </div>
       </div>
 

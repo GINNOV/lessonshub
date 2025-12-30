@@ -8,4 +8,5 @@ export const LESSON_TYPE_SHORT_LABELS: Record<LessonType, string> = {
   [LessonType.MULTI_CHOICE]: "MULTI",
   [LessonType.LEARNING_SESSION]: "SESSION",
   [LessonType.LYRIC]: "LYRIC",
+  [LessonType.COMPOSER]: "COMP",
 };

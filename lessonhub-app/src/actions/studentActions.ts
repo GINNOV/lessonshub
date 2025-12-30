@@ -3,12 +3,13 @@
 
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
-import { Role, AssignmentStatus } from "@prisma/client";
+import { Role, AssignmentStatus, LessonType } from "@prisma/client";
 import { createButton } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email-templates.server";
 import { getStudentGamificationSnapshot } from "@/lib/gamification";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 import { convertExtraPointsToEuro } from "@/lib/points";
+import { getComposerExtraTries } from "@/lib/composer";
 
 /**
  * Sends a feedback message from the current student to all teachers.
@@ -242,7 +243,8 @@ export async function getLeaderboardData() {
             assignedAt: true,
             deadline: true,
             originalDeadline: true,
-            lesson: { select: { price: true } },
+            answers: true,
+            lesson: { select: { price: true, type: true, composerConfig: { select: { maxTries: true } } } },
           },
         },
       },
@@ -279,6 +281,10 @@ export async function getLeaderboardData() {
           savings += convertExtraPointsToEuro(a.extraPoints);
         }
         if (a.status === AssignmentStatus.FAILED) savings -= price;
+        if (a.lesson?.type === LessonType.COMPOSER) {
+          const extraTries = getComposerExtraTries(a.answers, a.lesson.composerConfig?.maxTries ?? 1);
+          savings -= extraTries * 50;
+        }
 
         if (isExtendedDeadline(a.deadline, a.originalDeadline)) {
           extensionSpend += EXTENSION_POINT_COST;
@@ -375,7 +381,8 @@ export async function getStudentLeaderboardProfile(studentId: string) {
             assignedAt: true,
             deadline: true,
             originalDeadline: true,
-            lesson: { select: { price: true } },
+            answers: true,
+            lesson: { select: { price: true, type: true, composerConfig: { select: { maxTries: true } } } },
           },
           orderBy: { assignedAt: 'desc' },
         },
@@ -455,6 +462,10 @@ export async function getStudentLeaderboardProfile(studentId: string) {
       }
       if (assignment.status === AssignmentStatus.FAILED) {
         savings -= price;
+      }
+      if (assignment.lesson?.type === LessonType.COMPOSER) {
+        const extraTries = getComposerExtraTries(assignment.answers, assignment.lesson.composerConfig?.maxTries ?? 1);
+        savings -= extraTries * 50;
       }
 
       if (isExtendedDeadline(assignment.deadline, assignment.originalDeadline)) {
