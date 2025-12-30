@@ -1,14 +1,17 @@
-'use client'
-
 import Link from 'next/link';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   
-  // This will now be directly provided by Vercel.
-  const rawSha = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || '';
+  const rawSha =
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ||
+    '';
   const buildVersion = rawSha ? rawSha.substring(0, 7) : 'dev';
-  const rawTimestamp = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_TIMESTAMP || '';
+  const rawTimestamp =
+    process.env.VERCEL_GIT_COMMIT_TIMESTAMP ||
+    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_TIMESTAMP ||
+    '';
   const lastUpdate = (() => {
     if (!rawTimestamp) return 'unknown';
     const numeric = Number(rawTimestamp);
