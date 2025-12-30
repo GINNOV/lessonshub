@@ -86,7 +86,7 @@ export async function sendGoldStar(studentId: string, message: string, amountEur
   }
 
   const trimmedMessage = message?.trim().slice(0, 500) || "";
-  const normalizedAmount = Number.isFinite(amountEuro)
+  const normalizedAmount = typeof amountEuro === "number" && Number.isFinite(amountEuro)
     ? Math.max(0, Math.round(amountEuro))
     : GOLD_STAR_VALUE_EURO;
 

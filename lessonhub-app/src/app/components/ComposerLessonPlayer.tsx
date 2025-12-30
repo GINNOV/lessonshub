@@ -63,7 +63,7 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
 
   const composerConfig = assignment.lesson.composerConfig;
   const sentence = composerConfig?.hiddenSentence ?? '';
-  const questionBank = composerConfig?.questionBank ?? [];
+  const questionBank = useMemo(() => composerConfig?.questionBank ?? [], [composerConfig?.questionBank]);
   const maxTries = composerConfig?.maxTries ?? 1;
   const { tokens, words, uniqueWords } = useMemo(() => parseComposerSentence(sentence), [sentence]);
   const totalExtraTries = useMemo(() => {
