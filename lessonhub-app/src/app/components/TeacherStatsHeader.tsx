@@ -42,12 +42,51 @@ const StatCard = ({
   </div>
 );
 
+const ScheduleCard = ({
+  weekdays,
+  lessonsThisWeek,
+  selectedDay,
+  onDayClick,
+}: {
+  weekdays: string[];
+  lessonsThisWeek: number[];
+  selectedDay: string | null;
+  onDayClick: (dayIndex: number) => void;
+}) => (
+  <div className="flex h-full flex-col justify-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-900/70 px-4 py-3 shadow-lg">
+    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">This Week&apos;s Schedule</p>
+    <div className="flex flex-wrap items-center gap-2">
+      {weekdays.map((day, index) => (
+        <button
+          key={day}
+          onClick={() => onDayClick(index)}
+          className={cn(
+            'flex h-10 w-10 items-center justify-center rounded-full font-bold transition-all',
+            lessonsThisWeek.includes(index)
+              ? 'bg-emerald-500 text-emerald-50 shadow-[0_10px_30px_rgba(52,211,153,0.25)]'
+              : 'bg-slate-800 text-slate-300',
+            selectedDay === String(index) && 'ring-2 ring-offset-2 ring-teal-400 ring-offset-slate-950'
+          )}
+          title={
+            lessonsThisWeek.includes(index)
+              ? `Lessons scheduled for ${day}. Click to filter.`
+              : `No lessons for ${day}`
+          }
+          type="button"
+        >
+          {day.charAt(0)}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
 export default function TeacherStatsHeader({ stats }: TeacherStatsHeaderProps) {
   const weekdays = getWeekdays();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const selectedDay = searchParams?.get('day');
+  const selectedDay = searchParams?.get('day') ?? null;
 
   const handleDayClick = (dayIndex: number) => {
     const current = new URLSearchParams(searchParams ?? undefined);
@@ -86,31 +125,12 @@ export default function TeacherStatsHeader({ stats }: TeacherStatsHeaderProps) {
             label="Total Lessons Delivered"
             colorClassName="bg-emerald-500"
           />
-          <div>
-            <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-300">This Week&apos;s Schedule</h4>
-            <div className="flex flex-wrap items-center gap-2">
-              {weekdays.map((day, index) => (
-                <button
-                  key={day}
-                  onClick={() => handleDayClick(index)}
-                  className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-full font-bold transition-all',
-                    stats.lessonsThisWeek.includes(index)
-                      ? 'bg-emerald-500 text-emerald-50 shadow-[0_10px_30px_rgba(52,211,153,0.25)]'
-                      : 'bg-slate-800 text-slate-300',
-                    selectedDay === String(index) && 'ring-2 ring-offset-2 ring-teal-400 ring-offset-slate-950'
-                  )}
-                  title={
-                    stats.lessonsThisWeek.includes(index)
-                      ? `Lessons scheduled for ${day}. Click to filter.`
-                      : `No lessons for ${day}`
-                  }
-                >
-                  {day.charAt(0)}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ScheduleCard
+            weekdays={weekdays}
+            lessonsThisWeek={stats.lessonsThisWeek}
+            selectedDay={selectedDay}
+            onDayClick={handleDayClick}
+          />
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <StatCard

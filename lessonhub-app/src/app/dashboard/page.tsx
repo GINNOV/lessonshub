@@ -276,12 +276,14 @@ export default async function DashboardPage({
         <TeacherClassLeaderboard leaderboardData={leaderboardData} />
       </div>
       <div className="mt-8">
-        <LoginHistoryCard
-          entries={studentLoginEntries}
-          title="Student activities"
-          emptyMessage="No recent activity from your students yet."
-          getLessonHref={(lessonId) => `/dashboard/assign/${lessonId}`}
-        />
+        <CollapsibleSection title="Student activities" defaultOpen={false}>
+          <LoginHistoryCard
+            entries={studentLoginEntries}
+            title="Student activities"
+            emptyMessage="No recent activity from your students yet."
+            getLessonHref={(lessonId) => `/dashboard/assign/${lessonId}`}
+          />
+        </CollapsibleSection>
       </div>
     </div>
   );

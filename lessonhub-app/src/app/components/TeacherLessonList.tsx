@@ -468,6 +468,11 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         if (statusFilter === 'free') {
           return lesson.price === 0 || !!lesson.guideIsFreeForAll || !!lesson.isFreeForAll;
         }
+        if (statusFilter === AssignmentStatus.COMPLETED) {
+          return lesson.assignmentsWithDates.some(
+            a => a.status === AssignmentStatus.COMPLETED || a.status === AssignmentStatus.GRADED
+          );
+        }
         return lesson.assignmentsWithDates.some(a => a.status === statusFilter);
       })
       .filter(lesson => {
