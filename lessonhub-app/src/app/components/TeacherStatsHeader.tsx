@@ -53,7 +53,7 @@ const ScheduleCard = ({
   selectedDay: string | null;
   onDayClick: (dayIndex: number) => void;
 }) => (
-  <div className="flex h-full flex-col justify-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-900/70 px-4 py-3 shadow-lg">
+  <div className="flex flex-col gap-3 rounded-2xl border border-slate-800/70 bg-slate-900/70 px-4 py-3 shadow-lg">
     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">This Week&apos;s Schedule</p>
     <div className="flex flex-wrap items-center gap-2">
       {weekdays.map((day, index) => (
