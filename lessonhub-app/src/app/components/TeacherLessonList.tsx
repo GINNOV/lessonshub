@@ -879,7 +879,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-4 shadow-xl backdrop-blur-sm">
-        <div className="flex items-center justify-end gap-2 overflow-x-auto">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <div className="relative">
             <select
               value={orderView}
@@ -926,7 +926,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           </div>
           {dateFilter === 'custom' && (
-            <div className="flex items-center gap-2">
+            <div className="flex max-w-full flex-wrap items-center gap-2 min-w-0">
               <span className="text-sm font-semibold text-slate-300">From</span>
               <Input
                 type="date"

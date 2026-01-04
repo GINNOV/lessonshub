@@ -65,6 +65,7 @@ export default function ComposerLessonCreator({
   const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
   const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
   const [assignmentText, setAssignmentText] = useState(teacherPreferences?.defaultLessonInstructions || '👉🏼 INSTRUCTIONS:\n');
+  const [selectedBookletId, setSelectedBookletId] = useState('');
   const [contextText, setContextText] = useState('');
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
   const [hiddenSentence, setHiddenSentence] = useState('');
@@ -464,10 +465,56 @@ export default function ComposerLessonCreator({
       <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={isSubmitting} />
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="assignmentText">Instructions</Label>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <Label htmlFor="assignmentText" className="text-base font-semibold">Instructions</Label>
           <ManageInstructionBookletsLink />
         </div>
+        {instructionBooklets.length > 0 && (
+          <div className="flex flex-col gap-2 md:flex-row md:items-center">
+            <select
+              value={selectedBookletId}
+              onChange={(e) => setSelectedBookletId(e.target.value)}
+              className="rounded-md border border-border bg-card/70 p-2 text-sm text-foreground shadow-sm"
+            >
+              <option value="">Insert from booklet…</option>
+              {instructionBooklets.map((booklet) => (
+                <option key={booklet.id} value={booklet.id}>
+                  {booklet.title}
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!selectedBookletId || isSubmitting}
+                onClick={() => {
+                  const booklet = instructionBooklets.find((b) => b.id === selectedBookletId);
+                  if (booklet) {
+                    setAssignmentText(booklet.body);
+                  }
+                }}
+              >
+                Replace
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!selectedBookletId || isSubmitting}
+                onClick={() => {
+                  const booklet = instructionBooklets.find((b) => b.id === selectedBookletId);
+                  if (booklet) {
+                    setAssignmentText((prev) => `${prev.trim()}\n\n${booklet.body}`.trim());
+                  }
+                }}
+              >
+                Append
+              </Button>
+            </div>
+          </div>
+        )}
         <Textarea
           id="assignmentText"
           value={assignmentText}
