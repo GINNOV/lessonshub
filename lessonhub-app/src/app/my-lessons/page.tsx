@@ -8,30 +8,18 @@ import {
   getFreeForAllLessons,
 } from "@/actions/lessonActions";
 import { getDashboardSettings } from "@/actions/adminActions";
-import StudentLessonList from "@/app/components/StudentLessonList";
-import StudentGuideList, {
-  StudentGuideSummary,
-} from "@/app/components/StudentGuideList";
-import StudentFreeLessonList from "@/app/components/StudentFreeLessonList";
-import StudentStatsHeader from "../components/StudentStatsHeader";
-import Leaderboard from "../components/Leaderboard";
+import StudentLessonsDashboard from "@/app/components/StudentLessonsDashboard";
 import {
   getLeaderboardData,
   getStudentGamification,
 } from "@/actions/studentActions";
 import React from "react";
-import StudentGamificationPanel from "../components/StudentGamificationPanel";
-import HubGuideBanner from "@/app/components/HubGuideBanner";
 import WhatsNewDialog from "@/app/components/WhatsNewDialog";
 import { loadLatestUpgradeNote } from "@/lib/whatsNew";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from "@/lib/locale";
 import { studentDashboardCopy, StudentDashboardLocale } from "@/lib/studentDashboardCopy";
-import { BookOpen, Sparkles, Gift } from "lucide-react";
 
 export default async function MyLessonsPage() {
   const session = await auth();
@@ -265,109 +253,28 @@ export default async function MyLessonsPage() {
   return (
     <div>
       <WhatsNewDialog notes={whatsNewNotes} defaultLocale="us" />
-      <StudentStatsHeader
-        totalValue={stats.totalValue}
-        totalPoints={stats.totalPoints}
-        total={total}
-        pending={pending}
-        submitted={submitted}
-        graded={graded}
-        failed={failed}
-        pastDue={pastDue}
+      <StudentLessonsDashboard
+        stats={{
+          totalValue: stats.totalValue,
+          totalPoints: stats.totalPoints,
+          total,
+          pending,
+          submitted,
+          graded,
+          failed,
+          pastDue,
+        }}
         settings={settings}
-        copy={copy.stats}
+        copy={copy}
+        locale={locale}
+        isPaying={isPaying}
+        assignments={serializableAssignments}
+        guidesForTab={guidesForTab}
+        freeLessons={mergedFreeLessons}
+        bannerCopies={bannerCopies}
+        gamificationSnapshot={gamificationSnapshot}
+        leaderboardData={leaderboardData}
       />
-      <section className="mt-10 space-y-6">
-        <HubGuideBanner guideCount={guidesForTab.length} copy={copy.guides} banners={bannerCopies} />
-        {isPaying ? (
-          <Tabs defaultValue="lessons" className="space-y-6">
-            <TabsList className="mb-2 flex w-full flex-wrap items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 px-2 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-              <TabsTrigger
-                value="lessons"
-                className="flex-1 min-w-[140px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  {locale === "it" ? "Lezioni" : "Lessons"}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="guides"
-                className="flex-1 min-w-[140px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  {copy.guides.tabLabel}
-                </span>
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="lessons">
-              <StudentLessonList assignments={serializableAssignments} copy={copy.lessons} />
-            </TabsContent>
-            <TabsContent value="guides">
-              {guidesForTab.length > 0 ? (
-                <StudentGuideList guides={guidesForTab} copy={copy.guides} />
-              ) : (
-                <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
-                  {copy.guides.emptyPaid}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <Tabs defaultValue="free" className="space-y-6">
-            <TabsList className="mb-2 flex w-full flex-wrap items-stretch gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-slate-800/70">
-              <TabsTrigger
-                value="free"
-                className="flex-1 min-w-[150px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <Gift className="h-4 w-4" />
-                  {locale === "it" ? "Lezioni gratuite" : "Free Lessons"}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="lessons"
-                className="flex-1 min-w-[150px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  {locale === "it" ? "Le mie lezioni" : "My Lessons"}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="guides"
-                className="flex-1 min-w-[150px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  {copy.guides.tabLabel}
-                </span>
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="free">
-              <StudentFreeLessonList lessons={mergedFreeLessons} copy={{ searchPlaceholder: copy.guides.searchPlaceholder, emptyFree: copy.guides.emptyFree }} />
-            </TabsContent>
-            <TabsContent value="lessons">
-              <StudentLessonList assignments={serializableAssignments} copy={copy.lessons} />
-            </TabsContent>
-            <TabsContent value="guides">
-              {guidesForTab.length > 0 ? (
-                <StudentGuideList guides={guidesForTab} copy={copy.guides} />
-              ) : (
-                <div className="rounded-2xl border border-dashed p-6 text-center text-gray-600">
-                  {copy.guides.emptyFree}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        )}
-      </section>
-
-      <div className="mt-10 space-y-8">
-        <StudentGamificationPanel data={gamificationSnapshot} />
-        <Leaderboard leaderboardData={leaderboardData} />
-      </div>
     </div>
   );
 }

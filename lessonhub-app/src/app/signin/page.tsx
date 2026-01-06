@@ -180,7 +180,7 @@ export default function SignInPage() {
       </div>
       <div className="flex justify-center">
         <Image
-          src="/hero_signin.png"
+          src="/auth/hero_signin.png"
           alt="Students collaborating on a lesson"
           width="1920"
           height="1080"

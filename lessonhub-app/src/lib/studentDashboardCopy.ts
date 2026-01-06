@@ -11,6 +11,7 @@ export const studentDashboardCopy: Record<
       aboutTitle: string;
       aboutBody: string;
       assignmentSummary: string;
+      assignmentSummaryBadge: string;
       labels: {
         total: string;
         pending: string;
@@ -22,8 +23,6 @@ export const studentDashboardCopy: Record<
     };
     lessons: {
       searchPlaceholder: string;
-      filters: { all: string; pending: string; graded: string; failed: string };
-      freeToggle: string;
       empty: string;
       browseTeachers: string;
     };
@@ -51,7 +50,8 @@ export const studentDashboardCopy: Record<
       aboutTitle: 'About "My Progress"',
       aboutBody:
         "What you would have spent with a traditional teaching method. Nice savings!",
-      assignmentSummary: "Assignment Summary",
+      assignmentSummary: "MY WORK",
+      assignmentSummaryBadge: "FILTERS",
       labels: {
         total: "Total",
         pending: "Pending",
@@ -63,8 +63,6 @@ export const studentDashboardCopy: Record<
     },
     lessons: {
       searchPlaceholder: "Search by title or teacher...",
-      filters: { all: "ALL", pending: "PENDING", graded: "GRADED", failed: "FAILED" },
-      freeToggle: "Free",
       empty: "You have no assignments yet.",
       browseTeachers: "Browse teachers directory",
     },
@@ -92,7 +90,8 @@ export const studentDashboardCopy: Record<
       aboutTitle: 'Info su "I miei progressi"',
       aboutBody:
         "Quanto avresti speso con un metodo tradizionale. Ottimo risparmio!",
-      assignmentSummary: "Riepilogo compiti",
+      assignmentSummary: "IL MIO LAVORO",
+      assignmentSummaryBadge: "FILTRI",
       labels: {
         total: "Totale",
         pending: "In corso",
@@ -104,8 +103,6 @@ export const studentDashboardCopy: Record<
     },
     lessons: {
       searchPlaceholder: "Cerca per titolo o insegnante...",
-      filters: { all: "TUTTI", pending: "IN CORSO", graded: "CORRETTI", failed: "NON SUPERATI" },
-      freeToggle: "Gratis",
       empty: "Non hai ancora compiti assegnati.",
       browseTeachers: "Vai al catalogo insegnanti",
     },

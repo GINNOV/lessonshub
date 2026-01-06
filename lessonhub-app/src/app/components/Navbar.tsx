@@ -24,6 +24,7 @@ import { requestWhatsNewDialog } from "./WhatsNewDialog";
 import RateTeacherDialog from "./RateTeacherDialog";
 import { cn } from "@/lib/utils";
 import { resolveLocale, UiLanguagePreference } from "@/lib/locale";
+import { Home } from "lucide-react";
 
 type NavLocale = 'en' | 'it';
 
@@ -181,10 +182,11 @@ export default function Navbar() {
           <Link
             href={homeHref}
             className={cn(
-              "text-lg font-semibold tracking-tight text-slate-100 hover:text-teal-200",
+              "inline-flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-100 hover:text-teal-200",
               isLanding && "drop-shadow-[0_10px_30px_rgba(20,184,166,0.35)]"
             )}
           >
+            <Home className="h-5 w-5" aria-hidden="true" />
             LessonHUB
           </Link>
           <div className="hidden items-center gap-2 sm:flex">

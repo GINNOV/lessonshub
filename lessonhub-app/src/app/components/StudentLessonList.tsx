@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AssignmentStatus, LessonType } from '@prisma/client';
 import StudentLessonCard from '@/app/components/StudentLessonCard';
 import WeekDivider from '@/app/components/WeekDivider';
@@ -8,7 +8,8 @@ import { getWeekAndDay } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
-import { Switch } from '@/components/ui/switch';
+
+export type StudentLessonFilter = 'all' | 'pending' | 'submitted' | 'graded' | 'past_due' | 'failed';
 
 type SerializableUser = {
   id: string;
@@ -48,29 +49,45 @@ interface StudentLessonListProps {
   assignments: SerializableAssignment[];
   copy?: {
     searchPlaceholder: string;
-    filters: { all: string; pending: string; graded: string; failed: string };
-    freeToggle: string;
     empty: string;
     browseTeachers: string;
   };
+  filter?: StudentLessonFilter;
+  onFilterChange?: (filter: StudentLessonFilter) => void;
 }
 
-export default function StudentLessonList({ assignments, copy }: StudentLessonListProps) {
+export default function StudentLessonList({
+  assignments,
+  copy,
+  filter: externalFilter,
+  onFilterChange,
+}: StudentLessonListProps) {
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'graded' | 'failed'>('pending');
-  const [showFreeOnly, setShowFreeOnly] = useState(false);
+  const [filter, setFilter] = useState<StudentLessonFilter>(externalFilter ?? 'pending');
+  useEffect(() => {
+    if (externalFilter && externalFilter !== filter) {
+      setFilter(externalFilter);
+    }
+  }, [externalFilter, filter]);
+
+  const handleFilterChange = (nextFilter: StudentLessonFilter) => {
+    setFilter(nextFilter);
+    onFilterChange?.(nextFilter);
+  };
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
+    const now = new Date();
     return (assignments || [])
       .filter(a => {
         // Status filter (only keep the requested ones)
-        if (filter === 'pending') return a.status === AssignmentStatus.PENDING;
+        if (filter === 'pending') return a.status === AssignmentStatus.PENDING && new Date(a.deadline) > now;
+        if (filter === 'submitted') return a.status === AssignmentStatus.COMPLETED;
         if (filter === 'graded') return a.status === AssignmentStatus.GRADED;
+        if (filter === 'past_due') return a.status === AssignmentStatus.PENDING && new Date(a.deadline) <= now;
         if (filter === 'failed') return a.status === AssignmentStatus.FAILED;
         return true; // all
       })
-      .filter(a => !showFreeOnly || a.lesson.price === 0 || a.lesson.isFreeForAll || a.lesson.guideIsFreeForAll)
       .filter(a => {
         if (!term) return true;
         const title = a.lesson.title?.toLowerCase() || '';
@@ -78,7 +95,7 @@ export default function StudentLessonList({ assignments, copy }: StudentLessonLi
         return title.includes(term) || teacher.includes(term);
       })
       .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
-  }, [assignments, filter, search, showFreeOnly]);
+  }, [assignments, filter, search]);
 
   return (
     <div className="space-y-6">
@@ -93,44 +110,6 @@ export default function StudentLessonList({ assignments, copy }: StudentLessonLi
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-10 text-slate-100 placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/50"
             />
-          </div>
-          <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
-            {([
-              { key: 'all', label: copy?.filters.all || 'ALL' },
-              { key: 'pending', label: copy?.filters.pending || 'PENDING' },
-              { key: 'graded', label: copy?.filters.graded || 'GRADED' },
-              { key: 'failed', label: copy?.filters.failed || 'FAILED' },
-            ] as const).map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setFilter(key)}
-                className={[
-                  'px-4 py-2 text-sm font-semibold rounded-lg border transition-all duration-150',
-                  filter === key
-                    ? (
-                        key === 'pending' ? 'border-amber-300/60 bg-amber-400/20 text-amber-100 shadow-[0_10px_25px_rgba(251,191,36,0.15)]' :
-                        key === 'graded'  ? 'border-emerald-400/60 bg-emerald-400/15 text-emerald-100 shadow-[0_10px_25px_rgba(52,211,153,0.18)]' :
-                        key === 'failed'  ? 'border-rose-400/60 bg-rose-400/15 text-rose-100 shadow-[0_10px_25px_rgba(248,113,113,0.18)]' :
-                                            'border-teal-300/60 bg-teal-400/20 text-teal-50 shadow-[0_10px_25px_rgba(45,212,191,0.18)]'
-                      )
-                    : 'border-slate-800 bg-slate-800/70 text-slate-300 hover:border-teal-500/50 hover:text-white'
-                ].join(' ')}
-                type="button"
-              >
-                {label}
-              </button>
-            ))}
-            <label className="ml-1 inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-sm font-semibold text-slate-200 shadow-sm">
-              <Switch
-                checked={showFreeOnly}
-                onCheckedChange={setShowFreeOnly}
-                className="data-[state=checked]:bg-teal-400 data-[state=unchecked]:bg-slate-700 h-5 w-10"
-                aria-label={copy?.freeToggle || 'Free lessons only'}
-              />
-              <span className="text-slate-200">
-                {copy?.freeToggle || 'Free lessons only'}
-              </span>
-            </label>
           </div>
         </div>
       </div>

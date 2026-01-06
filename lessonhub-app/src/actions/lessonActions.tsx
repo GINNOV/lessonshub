@@ -934,7 +934,6 @@ export async function getAssignmentsForStudent(studentId: string) {
             public_share_id: true,
             price: true,
             difficulty: true,
-            guideIsFreeForAll: true,
             assignments: {
                 select: {
                     status: true,
@@ -952,11 +951,7 @@ export async function getAssignmentsForStudent(studentId: string) {
             _count: { select: { assignments: true } },
         } as const;
 
-        const fetchAssignments = async (includeFreeFlag: boolean) => {
-            const lessonSelect = includeFreeFlag
-                ? { ...baseLessonSelect, isFreeForAll: true }
-                : baseLessonSelect;
-
+        const fetchAssignments = async (lessonSelect: typeof baseLessonSelect) => {
             return prisma.assignment.findMany({
                 where: {
                     studentId: studentId,
@@ -992,13 +987,36 @@ export async function getAssignmentsForStudent(studentId: string) {
             });
         };
 
+        const lessonSelectWithFreeFlags = {
+            ...baseLessonSelect,
+            isFreeForAll: true,
+            guideIsFreeForAll: true,
+        } as const;
+        const lessonSelectWithIsFree = {
+            ...baseLessonSelect,
+            isFreeForAll: true,
+        } as const;
+
         try {
-            return await fetchAssignments(true);
+            return await fetchAssignments(lessonSelectWithFreeFlags);
         } catch (err: unknown) {
             const message = (err as Error)?.message || '';
-            if (message.includes('isFreeForAll') || message.includes('guideIsFreeForAll')) {
-                console.warn('Lesson free flags missing; falling back without select.');
-                return fetchAssignments(false);
+            if (message.includes('guideIsFreeForAll')) {
+                console.warn('Lesson guide free flag missing; falling back to isFreeForAll only.');
+                try {
+                    return await fetchAssignments(lessonSelectWithIsFree);
+                } catch (innerErr: unknown) {
+                    const innerMessage = (innerErr as Error)?.message || '';
+                    if (innerMessage.includes('isFreeForAll')) {
+                        console.warn('Lesson free flags missing; falling back without select.');
+                        return fetchAssignments(baseLessonSelect);
+                    }
+                    throw innerErr;
+                }
+            }
+            if (message.includes('isFreeForAll')) {
+                console.warn('Lesson free flag missing; falling back without select.');
+                return fetchAssignments(baseLessonSelect);
             }
             throw err;
         }

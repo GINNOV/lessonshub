@@ -44,6 +44,7 @@ interface StudentStatsHeaderProps {
     aboutTitle: string;
     aboutBody: string;
     assignmentSummary: string;
+    assignmentSummaryBadge: string;
     labels: {
       total: string;
       pending: string;
@@ -53,7 +54,11 @@ interface StudentStatsHeaderProps {
       failed: string;
     };
   };
+  activeFilter?: StudentLessonFilter | null;
+  onFilterSelect?: (filter: StudentLessonFilter) => void;
 }
+
+type StudentLessonFilter = 'all' | 'pending' | 'submitted' | 'graded' | 'past_due' | 'failed';
 
 // A sleek, reusable component for each individual stat in the summary
 const StatItem = ({
@@ -61,13 +66,24 @@ const StatItem = ({
   value,
   label,
   tone,
+  isActive,
+  onClick,
 }: {
   icon: React.ElementType;
   value: number;
   label: string;
   tone: 'slate' | 'amber' | 'indigo' | 'emerald' | 'orange' | 'red';
+  isActive: boolean;
+  onClick?: () => void;
 }) => (
-  <div className="rounded-xl border border-slate-800/70 bg-slate-900/60 p-4 text-center shadow-sm">
+  <button
+    type="button"
+    onClick={onClick}
+    aria-pressed={isActive}
+    className={`rounded-xl border border-slate-800/70 bg-slate-900/60 p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-teal-400/60 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60 ${
+      isActive ? 'ring-2 ring-teal-400/60 shadow-[0_0_0_1px_rgba(45,212,191,0.35)]' : ''
+    }`}
+  >
     <div
       className={`mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-lg ${
         {
@@ -84,7 +100,7 @@ const StatItem = ({
     </div>
     <p className="text-2xl font-bold text-slate-50">{value}</p>
     <p className="text-[11px] uppercase tracking-wide text-slate-400">{label}</p>
-  </div>
+  </button>
 );
 
 export default function StudentStatsHeader({
@@ -98,6 +114,8 @@ export default function StudentStatsHeader({
   pastDue,
   settings,
   copy,
+  activeFilter,
+  onFilterSelect,
 }: StudentStatsHeaderProps) {
   const labels = copy?.labels;
   const progressPointsLabel = (copy?.progressPoints || "{points} pts earned").replace(
@@ -166,7 +184,7 @@ export default function StudentStatsHeader({
             {copy?.assignmentSummary || 'Assignment Summary'}
           </h3>
           <span className="rounded-full border border-slate-700 bg-slate-800/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-300">
-            Dashboard
+            {copy?.assignmentSummaryBadge || 'Filters'}
           </span>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
@@ -175,36 +193,48 @@ export default function StudentStatsHeader({
             value={total}
             label={labels?.total || "Total"}
             tone="slate"
+            isActive={activeFilter === 'all'}
+            onClick={() => onFilterSelect?.('all')}
           />
           <StatItem
             icon={Clock}
             value={pending}
             label={labels?.pending || "Pending"}
             tone="amber"
+            isActive={activeFilter === 'pending'}
+            onClick={() => onFilterSelect?.('pending')}
           />
           <StatItem
             icon={CircleCheckBig}
             value={submitted}
             label={labels?.submitted || "Submitted"}
             tone="indigo"
+            isActive={activeFilter === 'submitted'}
+            onClick={() => onFilterSelect?.('submitted')}
           />
           <StatItem
             icon={FileBadge}
             value={graded}
             label={labels?.graded || "Graded"}
             tone="emerald"
+            isActive={activeFilter === 'graded'}
+            onClick={() => onFilterSelect?.('graded')}
           />
           <StatItem
             icon={Clock}
             value={pastDue}
             label={labels?.pastDue || "Past Due"}
             tone="orange"
+            isActive={activeFilter === 'past_due'}
+            onClick={() => onFilterSelect?.('past_due')}
           />
           <StatItem
             icon={XCircle}
             value={failed}
             label={labels?.failed || "Failed"}
             tone="red"
+            isActive={activeFilter === 'failed'}
+            onClick={() => onFilterSelect?.('failed')}
           />
         </div>
         {settings?.assignmentSummaryFooter && (

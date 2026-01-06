@@ -22,7 +22,7 @@
   </text>
 </svg>
 
-# Lesson Hub - Sammarcarda release
+# Sammarcarda release
 
 Welcome back! Here’s a quick look at the latest improvements rolling out across the platform.
 
@@ -35,13 +35,3 @@ Welcome back! Here’s a quick look at the latest improvements rolling out acros
 
 - **Earn points from your results** – Every graded attempt now contributes points based on your performance, helping you track progress and stay motivated over time.
 ![Student Awards Example](/upgrades/points.png)
-## 🪄 Quality of life
-
-- **Share lessons instantly** – You can now share a lesson directly, making it easier for teachers, tutors, and students to pass along exactly what needs to be studied.
-
-- **Difficulty shown on lesson cards** – Each lesson card now displays its difficulty/complexity, so students can quickly choose activities that match their current level.
-![Student Card Difficulty Example](/upgrades/difficulty.png)
-
-## 🚀 What’s next
-
-We’re polishing assignment reminders and expanding audio lesson analytics. Stay tuned—your feedback directly shapes these updates!

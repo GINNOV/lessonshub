@@ -468,7 +468,7 @@ export default function RegisterPage() {
       </div>
       <div className="hidden bg-muted lg:flex lg:flex-col lg:items-center lg:justify-center p-10 text-center">
         <Image
-          src="/hero_signin.png"
+          src="/auth/hero_signin.png"
           alt="Image"
           width="400"
           height="400"

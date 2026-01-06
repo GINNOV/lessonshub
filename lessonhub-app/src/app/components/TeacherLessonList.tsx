@@ -455,8 +455,8 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
         if (statusFilter === 'past_due') {
           return lesson.assignmentsWithDates.some(a => {
             if (!a.deadlineDate) return false;
-            // Treat any assignment that is not graded and past its deadline as past due
-            return a.deadlineDate <= today && a.status !== AssignmentStatus.GRADED;
+            // Past due only applies to pending assignments past their deadline
+            return a.deadlineDate <= today && a.status === AssignmentStatus.PENDING;
           });
         }
         if (statusFilter === 'empty_class') {
