@@ -364,6 +364,7 @@ export async function getStudentLeaderboardProfile(studentId: string) {
         id: true,
         name: true,
         image: true,
+        email: true,
         studentBio: true,
         totalPoints: true,
         teachers: { select: { teacherId: true } },
@@ -488,6 +489,7 @@ export async function getStudentLeaderboardProfile(studentId: string) {
       id: student.id,
       name: student.name ?? 'Anonymous',
       image: student.image,
+      email: student.email ?? '',
       studentBio: student.studentBio ?? '',
       stats: {
         testsTaken,

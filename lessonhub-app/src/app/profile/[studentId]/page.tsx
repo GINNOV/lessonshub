@@ -91,6 +91,9 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-slate-50">{profile.name}</h1>
             <p className="text-sm text-slate-400">Classmate spotlight</p>
+            {profile.email && (
+              <p className="text-sm text-slate-300">{profile.email}</p>
+            )}
           </div>
           {profile.isSelf && (
             <div className="sm:ml-auto">

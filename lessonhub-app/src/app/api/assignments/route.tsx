@@ -1,6 +1,6 @@
 // file: src/app/api/assignments/route.tsx
 import { auth } from "@/auth";
-import { Role } from "@prisma/client";
+import { AssignmentStatus, Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { createButton } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email-templates.server";
@@ -18,6 +18,7 @@ export async function PATCH(req: Request) {
       lessonId,
       studentIdsToAssign,
       studentIdsToUpdate,
+      studentIdsToReassign,
       studentIdsToUnassign,
       notificationOption, // 'immediate', 'on_start_date', or 'none'
     } = body;
@@ -85,6 +86,9 @@ export async function PATCH(req: Request) {
     const assignmentsToUpdate = Array.isArray(studentIdsToUpdate)
       ? (studentIdsToUpdate as AssignmentRequestPayload[])
       : [];
+    const assignmentsToReassign = Array.isArray(studentIdsToReassign)
+      ? (studentIdsToReassign as AssignmentRequestPayload[])
+      : [];
     const studentIdsToUnassignArray = Array.isArray(studentIdsToUnassign)
       ? (studentIdsToUnassign as string[])
       : [];
@@ -98,6 +102,7 @@ export async function PATCH(req: Request) {
 
     const shouldScheduleStartNotificationsForNewAssignments = notificationOption === 'on_start_date';
     const disableStartNotifications = notificationOption === 'none';
+    const shouldNotifyImmediately = notificationOption === 'immediate';
 
     // Assign new students
     if (assignmentsToAssign.length > 0) {
@@ -114,7 +119,7 @@ export async function PATCH(req: Request) {
       });
       await prisma.assignment.createMany({ data: assignmentsData });
 
-      if (notificationOption === 'immediate') {
+      if (shouldNotifyImmediately) {
          const newlyAssignedStudents = await prisma.user.findMany({
           where: { id: { in: assignmentsToAssign.map((item) => item.studentId) } },
           select: { id: true, email: true, name: true, timeZone: true },
@@ -175,6 +180,99 @@ export async function PATCH(req: Request) {
           if (idsToDisable.length > 0) {
             await prisma.assignment.updateMany({
               where: { id: { in: idsToDisable } },
+              data: { notifyOnStartDate: false },
+            });
+          }
+        }
+      }
+    }
+
+    // Reassign existing students (reset assignment state)
+    if (assignmentsToReassign.length > 0) {
+      for (const item of assignmentsToReassign) {
+        const parsedDeadline = new Date(item.deadline);
+        const parsedStartDate = new Date(item.startDate);
+        const shouldNotifyOnStartDate = shouldScheduleStartNotificationsForNewAssignments;
+
+        const reassigned = await prisma.$transaction(async (tx) => {
+          const existing = await tx.assignment.findUnique({
+            where: { lessonId_studentId: { lessonId, studentId: item.studentId } },
+            select: {
+              id: true,
+              pointsAwarded: true,
+              extraPoints: true,
+              studentId: true,
+              student: {
+                select: { totalPoints: true, email: true, name: true, timeZone: true },
+              },
+              lesson: {
+                select: { title: true, teacher: { select: { name: true } } },
+              },
+            },
+          });
+          if (!existing) return null;
+
+          const pointsToRemove = existing.pointsAwarded ?? 0;
+          if (pointsToRemove > 0) {
+            const currentTotal = existing.student?.totalPoints ?? 0;
+            await tx.user.update({
+              where: { id: existing.studentId },
+              data: { totalPoints: Math.max(0, currentTotal - pointsToRemove) },
+            });
+            await tx.pointTransaction.deleteMany({
+              where: { assignmentId: existing.id },
+            });
+          }
+
+          const updated = await tx.assignment.update({
+            where: { lessonId_studentId: { lessonId, studentId: item.studentId } },
+            data: {
+              assignedAt: new Date(),
+              startDate: parsedStartDate,
+              deadline: parsedDeadline,
+              originalDeadline: parsedDeadline,
+              status: AssignmentStatus.PENDING,
+              score: null,
+              gradedAt: null,
+              studentNotes: null,
+              rating: null,
+              answers: null,
+              draftAnswers: null,
+              draftStudentNotes: null,
+              draftRating: null,
+              draftUpdatedAt: null,
+              teacherComments: null,
+              teacherAnswerComments: null,
+              pointsAwarded: 0,
+              extraPoints: 0,
+              reminderSentAt: null,
+              milestoneNotified: false,
+              notifyOnStartDate: shouldNotifyOnStartDate,
+              pastDueWarningSentAt: null,
+              gradedByTeacher: false,
+              lyricDraftAnswers: null,
+              lyricDraftMode: null,
+              lyricDraftReadSwitches: null,
+              lyricDraftUpdatedAt: null,
+            },
+            include: {
+              student: true,
+              lesson: { include: { teacher: true } },
+            },
+          });
+
+          return updated;
+        });
+
+        if (reassigned && shouldNotifyImmediately) {
+          await sendStartAvailabilityEmail(reassigned as AssignmentWithRelations);
+        }
+
+        if (reassigned && reassigned.notifyOnStartDate && reassigned.startDate && reassigned.startDate <= new Date()) {
+          const didSend = await sendStartAvailabilityEmail(reassigned as AssignmentWithRelations);
+          if (didSend) {
+            await prisma.assignment.update({
+              where: { id: reassigned.id },
               data: { notifyOnStartDate: false },
             });
           }

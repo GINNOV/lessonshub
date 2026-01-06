@@ -180,7 +180,6 @@ export default async function AssignmentPage({
   const isResultsView = viewParam === "results";
   const viewResultsHref = `/assignments/${serializableAssignment.id}?view=results`;
 
-  const lessonPreviewHtml = lesson.lesson_preview ? await marked.parse(lesson.lesson_preview) : null;
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : null;
   const notesHtml = lesson.notes ? ((await marked.parse(lesson.notes)) as string) : null;
   const instructionsHtml = lesson.assignment_text ? ((await marked.parse(lesson.assignment_text)) as string) : null;
@@ -646,13 +645,6 @@ export default async function AssignmentPage({
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {lessonPreviewHtml && (
-        <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-lg">
-            <h2 className="text-xl font-semibold text-slate-100">👀 PREVIEW</h2>
-            <div className="prose prose-sm max-w-none mt-2 text-slate-200" dangerouslySetInnerHTML={{ __html: lessonPreviewHtml as string }} />
         </div>
       )}
 

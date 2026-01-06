@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Check, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, RotateCw, Search } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 
@@ -78,6 +78,7 @@ export default function AssignLessonForm({
   const [isSaved, setIsSaved] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [classFilter, setClassFilter] = useState<string>('all'); // 'all' | 'none' | classId
+  const [reassigningStudents, setReassigningStudents] = useState<string[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -92,6 +93,10 @@ export default function AssignLessonForm({
   const existingAssignmentsMap = useMemo(() => 
     new Map(existingAssignments.map(a => [a.studentId, a])), 
   [existingAssignments]);
+  const reassigningSet = useMemo(
+    () => new Set(reassigningStudents),
+    [reassigningStudents],
+  );
 
   useEffect(() => {
     // This effect runs once when the component mounts and props are available
@@ -227,6 +232,19 @@ export default function AssignLessonForm({
         setStartDates(newStartDates);
     }
   };
+
+  const handleQueueReassign = (studentId: string) => {
+    setSelectedStudents((prev) => (prev.includes(studentId) ? prev : [...prev, studentId]));
+    if (masterDeadline) {
+      setDeadlines((prev) => ({ ...prev, [studentId]: masterDeadline }));
+    }
+    if (masterStartDate) {
+      setStartDates((prev) => ({ ...prev, [studentId]: masterStartDate }));
+    }
+    setReassigningStudents((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId],
+    );
+  };
   
   const handleMasterDeadlineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDeadline = e.target.value;
@@ -271,8 +289,13 @@ export default function AssignLessonForm({
     }
 
     const initialAssignedStudents = new Set(existingAssignments.map(a => a.studentId));
+    const reassignStudentIds = new Set(
+      reassigningStudents.filter((id) => initialAssignedStudents.has(id)),
+    );
     
-    const studentIdsToUnassign = Array.from(initialAssignedStudents).filter(id => !selectedStudents.includes(id));
+    const studentIdsToUnassign = Array.from(initialAssignedStudents).filter(
+      (id) => !selectedStudents.includes(id),
+    );
     
     const assignmentsToProcess = assignmentsWithParsedDates.map(({ studentId, deadlineISO, startDateISO }) => ({
         studentId,
@@ -280,8 +303,15 @@ export default function AssignLessonForm({
         startDate: startDateISO as string,
     }));
     
-    const assignmentsToUpdate = assignmentsToProcess.filter(a => initialAssignedStudents.has(a.studentId));
-    const assignmentsToCreate = assignmentsToProcess.filter(a => !initialAssignedStudents.has(a.studentId));
+    const assignmentsToUpdate = assignmentsToProcess.filter(
+      (a) => initialAssignedStudents.has(a.studentId) && !reassignStudentIds.has(a.studentId),
+    );
+    const assignmentsToCreate = assignmentsToProcess.filter(
+      (a) => !initialAssignedStudents.has(a.studentId),
+    );
+    const assignmentsToReassign = assignmentsToProcess.filter((a) =>
+      reassignStudentIds.has(a.studentId),
+    );
 
     try {
       const response = await fetch('/api/assignments', {
@@ -291,6 +321,7 @@ export default function AssignLessonForm({
           lessonId: lesson.id,
           studentIdsToAssign: assignmentsToCreate,
           studentIdsToUpdate: assignmentsToUpdate,
+          studentIdsToReassign: assignmentsToReassign,
           studentIdsToUnassign,
           notificationOption,
         }),
@@ -301,11 +332,13 @@ export default function AssignLessonForm({
       const messages = [];
       if (assignmentsToCreate.length > 0) messages.push(`${assignmentsToCreate.length} assigned`);
       if (assignmentsToUpdate.length > 0) messages.push(`${assignmentsToUpdate.length} updated`);
+      if (assignmentsToReassign.length > 0) messages.push(`${assignmentsToReassign.length} reassigned`);
       if (studentIdsToUnassign.length > 0) messages.push(`${studentIdsToUnassign.length} unassigned`);
       
       toast.success(messages.length > 0 ? `Assignments updated: ${messages.join(', ')}.` : 'No changes were made.');
       setIsSaved(true);
       setLastSavedAt(new Date());
+      setReassigningStudents([]);
       setTimeout(() => setIsSaved(false), 2000);
       
       router.refresh();
@@ -434,10 +467,10 @@ export default function AssignLessonForm({
                 <span className="sr-only">Select student</span>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Email</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Class</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Start Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Due Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Reassign</th>
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border">
@@ -451,7 +484,6 @@ export default function AssignLessonForm({
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{student.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{student.email}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {student.currentClassName ?? (student.currentClassId ? 'Unknown class' : 'No class')}
                 </td>
@@ -472,6 +504,22 @@ export default function AssignLessonForm({
                     className="text-sm"
                   />
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={reassigningSet.has(student.id) ? 'default' : 'outline'}
+                    onClick={() => handleQueueReassign(student.id)}
+                    disabled={!existingAssignmentsMap.has(student.id)}
+                    className={cn(
+                      'min-w-[110px]',
+                      reassigningSet.has(student.id) && 'bg-emerald-500 text-slate-950 hover:brightness-110',
+                    )}
+                  >
+                    <RotateCw className="mr-2 h-4 w-4" />
+                    {reassigningSet.has(student.id) ? 'Queued' : 'Reassign'}
+                  </Button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -488,7 +536,6 @@ export default function AssignLessonForm({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold text-foreground">{student.name ?? 'Unnamed student'}</p>
-                  <p className="text-sm text-muted-foreground">{student.email}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Class: {student.currentClassName ?? (student.currentClassId ? 'Unknown class' : 'No class')}
                   </p>
@@ -528,6 +575,20 @@ export default function AssignLessonForm({
                   />
                 </div>
               </div>
+              <Button
+                type="button"
+                size="sm"
+                variant={reassigningSet.has(student.id) ? 'default' : 'outline'}
+                onClick={() => handleQueueReassign(student.id)}
+                disabled={!existingAssignmentsMap.has(student.id)}
+                className={cn(
+                  'w-full',
+                  reassigningSet.has(student.id) && 'bg-emerald-500 text-slate-950 hover:brightness-110',
+                )}
+              >
+                <RotateCw className="mr-2 h-4 w-4" />
+                {reassigningSet.has(student.id) ? 'Queued for reassign' : 'Reassign'}
+              </Button>
             </div>
           );
         })}

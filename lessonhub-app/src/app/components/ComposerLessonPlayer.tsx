@@ -1,7 +1,7 @@
 // file: src/app/components/ComposerLessonPlayer.tsx
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Assignment, Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -60,6 +60,8 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didAutoSaveInitRef = useRef(false);
 
   const composerConfig = assignment.lesson.composerConfig;
   const sentence = composerConfig?.hiddenSentence ?? '';
@@ -193,6 +195,32 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
       toast.error(result.error || 'Unable to save draft right now.');
     }
   };
+
+  useEffect(() => {
+    if (isSubmissionLocked || assignment.status !== 'PENDING') return;
+    if (!didAutoSaveInitRef.current) {
+      didAutoSaveInitRef.current = true;
+      return;
+    }
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(async () => {
+      await saveComposerAssignmentDraft(assignment.id, assignment.studentId, {
+        answers,
+        tries,
+        rating: rating > 0 ? rating : undefined,
+      });
+    }, 200);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [answers, tries, rating, assignment.id, assignment.status, assignment.studentId, isSubmissionLocked]);
 
   const isGraded = assignment.status === 'GRADED' || assignment.status === 'FAILED';
   const correctCount = wordQuestions.reduce((count, question) => {
