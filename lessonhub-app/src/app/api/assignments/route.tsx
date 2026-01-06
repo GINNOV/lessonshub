@@ -1,6 +1,6 @@
 // file: src/app/api/assignments/route.tsx
 import { auth } from "@/auth";
-import { AssignmentStatus, Role } from "@prisma/client";
+import { AssignmentStatus, Prisma, Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { createButton } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email-templates.server";
@@ -236,13 +236,13 @@ export async function PATCH(req: Request) {
               gradedAt: null,
               studentNotes: null,
               rating: null,
-              answers: null,
-              draftAnswers: null,
+              answers: Prisma.DbNull,
+              draftAnswers: Prisma.DbNull,
               draftStudentNotes: null,
               draftRating: null,
               draftUpdatedAt: null,
               teacherComments: null,
-              teacherAnswerComments: null,
+              teacherAnswerComments: Prisma.DbNull,
               pointsAwarded: 0,
               extraPoints: 0,
               reminderSentAt: null,
@@ -250,7 +250,7 @@ export async function PATCH(req: Request) {
               notifyOnStartDate: shouldNotifyOnStartDate,
               pastDueWarningSentAt: null,
               gradedByTeacher: false,
-              lyricDraftAnswers: null,
+              lyricDraftAnswers: Prisma.DbNull,
               lyricDraftMode: null,
               lyricDraftReadSwitches: null,
               lyricDraftUpdatedAt: null,
