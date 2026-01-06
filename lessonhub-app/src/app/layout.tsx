@@ -11,10 +11,6 @@ import PageContainer from './components/PageContainer';
 const sora = Sora({ subsets: ['latin'], variable: '--font-sora', preload: false });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://quantifythis.com';
-const isVercelPreview = process.env.VERCEL_ENV === 'preview';
-const isIndexable = process.env.NEXT_PUBLIC_ALLOW_INDEXING
-  ? process.env.NEXT_PUBLIC_ALLOW_INDEXING === 'true'
-  : !isVercelPreview;
 const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 const facebookDomainVerification = process.env.NEXT_PUBLIC_FACEBOOK_DOMAIN_VERIFICATION;
 
@@ -37,19 +33,17 @@ export const metadata: Metadata = {
       { url: '/favicon/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
-  robots: isIndexable
-    ? {
-        index: true,
-        follow: true,
-        googleBot: {
-          index: true,
-          follow: true,
-          'max-image-preview': 'large',
-          'max-snippet': -1,
-          'max-video-preview': -1,
-        },
-      }
-    : { index: false, follow: false },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
   verification: {
     ...(googleSiteVerification ? { google: googleSiteVerification } : {}),
     ...(facebookDomainVerification

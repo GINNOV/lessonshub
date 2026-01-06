@@ -57,6 +57,8 @@ export default async function AssignmentPage({
   const query = searchParams ? await searchParams : {};
   const practiceParamRaw = query?.practice;
   const practiceParam = Array.isArray(practiceParamRaw) ? practiceParamRaw[0] : practiceParamRaw;
+  const viewParamRaw = query?.view;
+  const viewParam = Array.isArray(viewParamRaw) ? viewParamRaw[0] : viewParamRaw;
   const assignment = await getAssignmentById(assignmentId, session.user.id);
 
   if (!assignment) {
@@ -164,14 +166,19 @@ export default async function AssignmentPage({
 
   const { lesson } = serializableAssignment;
   const practiceEligible =
-    serializableAssignment.status === AssignmentStatus.GRADED &&
-    (lesson.type === LessonType.MULTI_CHOICE || lesson.type === LessonType.FLASHCARD);
+    (serializableAssignment.status === AssignmentStatus.GRADED ||
+      serializableAssignment.status === AssignmentStatus.FAILED) &&
+    (lesson.type === LessonType.MULTI_CHOICE ||
+      lesson.type === LessonType.FLASHCARD ||
+      lesson.type === LessonType.STANDARD);
   const practiceModeRequested = practiceParam === "1" || practiceParam === "true";
   const practiceMode = practiceEligible && practiceModeRequested;
   const practiceToggleHref = practiceMode
     ? `/assignments/${serializableAssignment.id}`
     : `/assignments/${serializableAssignment.id}?practice=1`;
   const practiceExitHref = `/assignments/${serializableAssignment.id}`;
+  const isResultsView = viewParam === "results";
+  const viewResultsHref = `/assignments/${serializableAssignment.id}?view=results`;
 
   const lessonPreviewHtml = lesson.lesson_preview ? await marked.parse(lesson.lesson_preview) : null;
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : null;
@@ -190,7 +197,11 @@ export default async function AssignmentPage({
   );
 
   const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
-  const showResultsArea = serializableAssignment.status === AssignmentStatus.GRADED || serializableAssignment.status === AssignmentStatus.FAILED;
+  const showResultsArea =
+    (serializableAssignment.status === AssignmentStatus.GRADED ||
+      serializableAssignment.status === AssignmentStatus.FAILED) &&
+    isResultsView &&
+    !practiceMode;
   const isPastDue =
     serializableAssignment.status === AssignmentStatus.PENDING &&
     new Date(serializableAssignment.deadline).getTime() < Date.now();
@@ -315,7 +326,7 @@ export default async function AssignmentPage({
             <LessonResponseForm assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
           )}
         </div>
-      ) : (
+      ) : showResultsArea ? (
         <div className="mt-8 border-t border-slate-800 pt-6">
           <h2 className="text-2xl font-bold text-slate-100 mb-4">Review Your Submission</h2>
           {lesson.type === LessonType.STANDARD && (
@@ -512,7 +523,18 @@ export default async function AssignmentPage({
             />
           )}
         </div>
-      )}
+      ) : !practiceMode ? (
+        <div className="mt-8 border-t border-slate-800 pt-6">
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-slate-200">
+            <p className="text-sm text-slate-300">
+              Your results are hidden until you tap “View Results.”
+            </p>
+            <Button asChild size="sm" className="mt-3 border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 hover:brightness-110">
+              <Link href={viewResultsHref}>View Results</Link>
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {practiceMode && practiceEligible && (
         <div className="mt-10 rounded-2xl border border-slate-800/70 bg-slate-900/70 p-6 shadow-xl">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -528,12 +550,14 @@ export default async function AssignmentPage({
           </div>
           {lesson.type === LessonType.FLASHCARD ? (
             <FlashcardPlayer assignment={serializableAssignment as any} mode="practice" practiceExitHref={practiceExitHref} />
-          ) : (
+          ) : lesson.type === LessonType.MULTI_CHOICE ? (
             <MultiChoicePlayer
               assignment={serializableAssignment as any}
               mode="practice"
               practiceExitHref={practiceExitHref}
             />
+          ) : (
+            <LessonResponseForm assignment={serializableAssignment} practiceMode />
           )}
         </div>
       )}

@@ -29,9 +29,14 @@ type StandardAssignment = Omit<Assignment, 'lesson'> & {
 interface LessonResponseFormProps {
   assignment: StandardAssignment;
   isSubmissionLocked?: boolean;
+  practiceMode?: boolean;
 }
 
-export default function LessonResponseForm({ assignment, isSubmissionLocked = false }: LessonResponseFormProps) {
+export default function LessonResponseForm({
+  assignment,
+  isSubmissionLocked = false,
+  practiceMode = false,
+}: LessonResponseFormProps) {
   const router = useRouter();
   const [answers, setAnswers] = useState<string[]>([]);
   const [studentNotes, setStudentNotes] = useState('');
@@ -74,6 +79,15 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
   };
 
   useEffect(() => {
+    if (practiceMode) {
+      setAnswers(Array(questions.length).fill(''));
+      setStudentNotes('');
+      setRating(0);
+      setIsReadOnly(false);
+      setLastSavedAt(null);
+      return;
+    }
+
     if (assignment.status !== 'PENDING') {
       const studentAnswers = Array.isArray(assignment.answers) ? assignment.answers : [];
       setAnswers(studentAnswers);
@@ -88,7 +102,7 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
       setIsReadOnly(false);
       setLastSavedAt(assignment.draftUpdatedAt ? new Date(assignment.draftUpdatedAt) : null);
     }
-  }, [assignment, questions.length]);
+  }, [assignment, questions.length, practiceMode]);
   
   const handleAnswerChange = (index: number, value: string) => {
     const newAnswers = [...answers];
@@ -98,6 +112,9 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (practiceMode) {
+      return;
+    }
     if (isReadOnly || isSubmissionLocked) {
       if (isSubmissionLocked) {
         toast.error("The deadline has passed. Submissions are disabled for this lesson.");
@@ -129,7 +146,7 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
   };
   
   const handleSaveDraft = async () => {
-    if (isReadOnly || isSubmissionLocked) return;
+    if (practiceMode || isReadOnly || isSubmissionLocked) return;
     setIsSavingDraft(true);
     const result = await saveStandardAssignmentDraft(assignment.id, assignment.studentId, {
       answers,
@@ -149,6 +166,11 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {practiceMode && (
+        <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-100">
+          Practice mode is active. Your answers aren&apos;t saved or submitted.
+        </div>
+      )}
       {questions.map((question, index) => (
         <div key={index} className="space-y-2">
           <Label htmlFor={`question-${index}`} className="font-semibold">
@@ -177,7 +199,7 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
         />
       </div>
         
-      {!isReadOnly && (
+      {!isReadOnly && !practiceMode && (
          <div className="mt-6 border-t pt-6">
             <div className="flex items-center gap-2">
                 <Label>Rate this lesson:</Label>
@@ -186,7 +208,7 @@ export default function LessonResponseForm({ assignment, isSubmissionLocked = fa
         </div>
       )}
 
-      {!isReadOnly && (
+      {!isReadOnly && !practiceMode && (
         <>
           <div className="flex flex-col gap-3 md:flex-row">
             <Button

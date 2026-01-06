@@ -22,7 +22,7 @@
   </text>
 </svg>
 
-# Lesson Hub – Sammarcarda release
+# Sammarcarda release
 
 Bentornato! Ecco una panoramica delle ultime novità introdotte sulla piattaforma.
 
@@ -35,14 +35,3 @@ Bentornato! Ecco una panoramica delle ultime novità introdotte sulla piattaform
 
 - **Guadagna punti dai tuoi risultati** – Ogni prova completata ora ti assegna punti in base alla performance, aiutandoti a monitorare i progressi e a restare motivato nel tempo.
 ![Student Awards Example](/upgrades/points.png)
-
-## 🪄 Miglioramenti alla qualità della vita
-
-- **Condivisione immediata delle lezioni** – Ora puoi condividere una lezione direttamente, rendendo più semplice la collaborazione tra insegnanti, tutor e studenti.
-
-- **Livello di difficoltà visibile sulle schede** – Ogni scheda lezione mostra ora la difficoltà/complessità, così puoi scegliere facilmente quelle più adatte al tuo livello attuale.
-![Student Card Difficulty Example](/upgrades/difficulty.png)
-
-## 🚀 Prossimamente
-
-Stiamo perfezionando le modalità di pratica basate sui testi musicali e ampliando le analisi sui progressi relativi a punti e difficoltà. Come sempre, i tuoi feedback guidano la nostra evoluzione!

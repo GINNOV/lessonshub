@@ -81,8 +81,10 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
     ? Math.round((lesson.submittedCount / lesson.completionCount) * 100)
     : 0;
   const canPractice =
-    status === AssignmentStatus.GRADED &&
-    (lesson.type === LessonType.FLASHCARD || lesson.type === LessonType.MULTI_CHOICE);
+    (status === AssignmentStatus.GRADED || status === AssignmentStatus.FAILED) &&
+    (lesson.type === LessonType.FLASHCARD ||
+      lesson.type === LessonType.MULTI_CHOICE ||
+      lesson.type === LessonType.STANDARD);
   
   const statusMeta = (() => {
     if (status === AssignmentStatus.GRADED) {
@@ -248,18 +250,20 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
         </div>
         <p className="text-sm text-slate-400 line-clamp-2">{lesson.lesson_preview}</p>
         <LessonDifficultyIndicator value={lesson.difficulty} size="sm" className="mt-2" />
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            <span>Completion</span>
-            <span className="text-slate-100">{completionPercent}%</span>
+        {!isComplete && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              <span>Completion</span>
+              <span className="text-slate-100">{completionPercent}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-teal-400 via-lime-400 to-amber-400"
+                style={{ width: `${Math.min(completionPercent, 100)}%` }}
+              />
+            </div>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-teal-400 via-lime-400 to-amber-400"
-              style={{ width: `${Math.min(completionPercent, 100)}%` }}
-            />
-          </div>
-        </div>
+        )}
       </CardContent>
       <CardFooter className="flex flex-col gap-4 border-t border-slate-800/70 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-4 text-slate-200">
@@ -325,7 +329,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                 size="sm"
                 className="border border-teal-300/50 bg-teal-500/20 text-teal-100 hover:bg-teal-400/30"
               >
-                <Link href={`/assignments/${assignment.id}`}>View Results</Link>
+                <Link href={`/assignments/${assignment.id}?view=results`}>View Results</Link>
               </Button>
             </div>
           ) : (

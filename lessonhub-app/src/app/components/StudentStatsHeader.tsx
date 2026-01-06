@@ -68,6 +68,7 @@ const StatItem = ({
   tone,
   isActive,
   onClick,
+  valueClassName,
 }: {
   icon: React.ElementType;
   value: number;
@@ -75,6 +76,7 @@ const StatItem = ({
   tone: 'slate' | 'amber' | 'indigo' | 'emerald' | 'orange' | 'red';
   isActive: boolean;
   onClick?: () => void;
+  valueClassName?: string;
 }) => (
   <button
     type="button"
@@ -98,7 +100,7 @@ const StatItem = ({
     >
       <Icon className="h-5 w-5" />
     </div>
-    <p className="text-2xl font-bold text-slate-50">{value}</p>
+    <p className={`text-2xl font-bold text-slate-50 ${valueClassName || ''}`}>{value}</p>
     <p className="text-[11px] uppercase tracking-wide text-slate-400">{label}</p>
   </button>
 );
@@ -203,6 +205,11 @@ export default function StudentStatsHeader({
             tone="amber"
             isActive={activeFilter === 'pending'}
             onClick={() => onFilterSelect?.('pending')}
+            valueClassName={
+              pending > 0
+                ? 'animate-pulse text-rose-300/90 drop-shadow-[0_0_8px_rgba(248,113,113,0.65)]'
+                : undefined
+            }
           />
           <StatItem
             icon={CircleCheckBig}

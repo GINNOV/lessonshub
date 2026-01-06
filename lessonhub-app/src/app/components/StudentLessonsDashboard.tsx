@@ -67,7 +67,7 @@ export default function StudentLessonsDashboard({
   gamificationSnapshot,
   leaderboardData,
 }: StudentLessonsDashboardProps) {
-  const [assignmentFilter, setAssignmentFilter] = useState<StudentLessonFilter | null>(null);
+  const [assignmentFilter, setAssignmentFilter] = useState<StudentLessonFilter | null>('all');
   const [activeTab, setActiveTab] = useState(isPaying ? 'lessons' : 'free');
   const showAllContent = assignmentFilter === null || assignmentFilter === 'all';
 

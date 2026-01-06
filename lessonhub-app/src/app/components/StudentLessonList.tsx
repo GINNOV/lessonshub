@@ -63,7 +63,7 @@ export default function StudentLessonList({
   onFilterChange,
 }: StudentLessonListProps) {
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<StudentLessonFilter>(externalFilter ?? 'pending');
+  const [filter, setFilter] = useState<StudentLessonFilter>(externalFilter ?? 'all');
   useEffect(() => {
     if (externalFilter && externalFilter !== filter) {
       setFilter(externalFilter);
