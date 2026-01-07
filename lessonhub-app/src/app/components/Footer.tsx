@@ -13,13 +13,18 @@ export default function Footer() {
     process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_TIMESTAMP ||
     '';
   const lastUpdate = (() => {
-    if (!rawTimestamp) return 'unknown';
-    const numeric = Number(rawTimestamp);
-    if (!Number.isFinite(numeric)) return 'unknown';
-    const ms = rawTimestamp.length <= 10 ? numeric * 1000 : numeric;
-    const date = new Date(ms);
-    if (Number.isNaN(date.getTime())) return 'unknown';
-    return date.toISOString().slice(0, 10);
+    if (rawTimestamp) {
+      const numeric = Number(rawTimestamp);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        const ms = rawTimestamp.length <= 10 ? numeric * 1000 : numeric;
+        const date = new Date(ms);
+        if (!Number.isNaN(date.getTime())) {
+          return date.toISOString().slice(0, 10);
+        }
+      }
+    }
+    const fallback = new Date();
+    return fallback.toISOString().slice(0, 10);
   })();
   const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || '';
 
