@@ -55,6 +55,77 @@ type LyricLessonPlayerProps = {
     updatedAt: string | null;
   } | null;
   bonusReadSwitches?: number;
+  copy?: LyricLessonCopy;
+};
+
+type LyricLessonCopy = {
+  lyricLesson: string;
+  readFill: string;
+  score: string;
+  previousShort: string;
+  timeLabel: string;
+  readAlongUsed: string;
+  readAlong: string;
+  readAlongWithCount: string;
+  fillBlanks: string;
+  guideBoost: string;
+  saveDraft: string;
+  savingDraft: string;
+  referenceTrack: string;
+  play: string;
+  pause: string;
+  correctLabel: string;
+  checkAnswers: string;
+  submitting: string;
+  reset: string;
+  draftSaved: string;
+  draftNotSaved: string;
+  draftSavedToast: string;
+  draftError: string;
+  submissionSummary: string;
+  submissionDetails: string;
+  previousAttempt: string;
+  readAlongSwitchesUsed: string;
+  readAlongBoostError: string;
+  readAlongNoneRemaining: string;
+  submitError: string;
+  submitSuccess: string;
+  playbackError: string;
+};
+
+const defaultCopy: LyricLessonCopy = {
+  lyricLesson: 'Lyric lesson',
+  readFill: 'Read & fill',
+  score: 'Score',
+  previousShort: 'Prev',
+  timeLabel: 'Time',
+  readAlongUsed: 'Read-along {count}',
+  readAlong: 'Read Along',
+  readAlongWithCount: 'Read Along ({count} left)',
+  fillBlanks: 'Fill the Blanks',
+  guideBoost: 'Includes +{count} guide boost{plural}.',
+  saveDraft: 'Save Draft',
+  savingDraft: 'Saving…',
+  referenceTrack: 'Use the reference track for playback.',
+  play: 'Play',
+  pause: 'Pause',
+  correctLabel: 'Correct:',
+  checkAnswers: 'Check Answers',
+  submitting: 'Submitting…',
+  reset: 'Reset',
+  draftSaved: 'Draft saved {time}',
+  draftNotSaved: 'Draft not saved yet',
+  draftSavedToast: 'Draft saved.',
+  draftError: 'Unable to save draft right now.',
+  submissionSummary: 'You answered {percent}% correctly',
+  submissionDetails: '{correct} of {total} blanks · {time} total time',
+  previousAttempt: 'Previous attempt: {percent}% · {time}',
+  readAlongSwitchesUsed: 'Read-along switches used: {count}',
+  readAlongBoostError: 'Unable to use read-along boost right now. Please try again.',
+  readAlongNoneRemaining: 'No read-along switches remaining.',
+  submitError: 'Unable to submit answers.',
+  submitSuccess: 'Answers submitted!',
+  playbackError: 'Unable to start playback. Please check the audio source.',
 };
 
 type SubmissionState = {
@@ -190,7 +261,9 @@ export default function LyricLessonPlayer({
   lrcUrl,
   draftState,
   bonusReadSwitches = 0,
+  copy,
 }: LyricLessonPlayerProps) {
+  const t = copy ?? defaultCopy;
   const safeAudioUrl = typeof audioUrl === 'string' ? audioUrl.trim() : '';
   const safeStorageKey = typeof audioStorageKey === 'string' ? audioStorageKey.trim() : '';
   const isSpotifyLink = safeAudioUrl.includes('open.spotify.com');
@@ -384,9 +457,9 @@ export default function LyricLessonPlayer({
       })
       .catch(() => {
         setBonusReadRemaining((prev) => prev + count);
-        toast.error('Unable to use read-along boost right now. Please try again.');
+        toast.error(t.readAlongBoostError);
       });
-  }, []);
+  }, [t]);
 
   const handleModeChange = useCallback(
     (targetMode: 'read' | 'fill') => {
@@ -394,7 +467,7 @@ export default function LyricLessonPlayer({
       if (targetMode === 'read') {
         if (baseReadRemaining !== null) {
           if (baseReadRemaining <= 0 && bonusReadRemaining <= 0) {
-            toast.error('No read-along switches remaining.');
+            toast.error(t.readAlongNoneRemaining);
             return;
           }
           if (baseReadRemaining > 0) {
@@ -408,7 +481,7 @@ export default function LyricLessonPlayer({
       }
       setMode(targetMode);
     },
-    [mode, baseReadRemaining, bonusReadRemaining, spendBonusSwitch]
+    [mode, baseReadRemaining, bonusReadRemaining, spendBonusSwitch, t]
   );
 
   const handleSubmit = async () => {
@@ -435,7 +508,7 @@ export default function LyricLessonPlayer({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const message = typeof errorData?.error === 'string' ? errorData.error : 'Unable to submit answers.';
+        const message = typeof errorData?.error === 'string' ? errorData.error : t.submitError;
         throw new Error(message);
       }
 
@@ -446,7 +519,7 @@ export default function LyricLessonPlayer({
         timeTakenSeconds,
         readModeSwitchesUsed: readModeSwitchCount,
       });
-      toast.success('Answers submitted!');
+      toast.success(t.submitSuccess);
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -466,9 +539,9 @@ export default function LyricLessonPlayer({
     if (result.success) {
       const now = new Date();
       setLastSavedAt(now);
-      toast.success('Draft saved.');
+      toast.success(t.draftSavedToast);
     } else {
-      toast.error(result.error || 'Unable to save draft right now.');
+      toast.error(result.error || t.draftError);
     }
   };
 
@@ -510,8 +583,8 @@ export default function LyricLessonPlayer({
     audioEl
       .play()
       .then(() => setActiveLineId(line.id))
-      .catch(() => toast.error('Unable to start playback. Please check the audio source.'));
-  }, [preparedLines, hasAudio]);
+      .catch(() => toast.error(t.playbackError));
+  }, [preparedLines, hasAudio, t]);
 
   const stopPlayback = useCallback(() => {
     if (!hasAudio) return;
@@ -528,18 +601,18 @@ export default function LyricLessonPlayer({
     totalReadSwitchesRemaining !== null && totalReadSwitchesRemaining <= 0;
   const readModeLabel =
     totalReadSwitchesRemaining !== null
-      ? `Read Along (${Math.max(totalReadSwitchesRemaining, 0)} left)`
-      : 'Read Along';
+      ? t.readAlongWithCount.replace('{count}', Math.max(totalReadSwitchesRemaining, 0).toString())
+      : t.readAlong;
 
   const scoreBadge = submission && (
     <Badge className="border-emerald-300/60 bg-emerald-500/15 text-emerald-100">
-      Score {submission.scorePercent.toFixed(1)}%
+      {t.score} {submission.scorePercent.toFixed(1)}%
     </Badge>
   );
 
   const attemptBadge = !submission && existingAttempt && existingAttempt.scorePercent !== null && (
     <Badge className="border-slate-700 bg-slate-900/70 text-slate-100">
-      Prev {existingAttempt.scorePercent.toFixed(1)}% · {formatDuration(existingAttempt.timeTakenSeconds ?? null)}
+      {t.previousShort} {existingAttempt.scorePercent.toFixed(1)}% · {formatDuration(existingAttempt.timeTakenSeconds ?? null)}
     </Badge>
   );
 
@@ -552,19 +625,19 @@ export default function LyricLessonPlayer({
               <Volume2 className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Lyric lesson</p>
-              <p className="text-lg font-semibold text-slate-100">Read &amp; fill</p>
+              <p className="text-xs uppercase tracking-wide text-slate-400">{t.lyricLesson}</p>
+              <p className="text-lg font-semibold text-slate-100">{t.readFill}</p>
               <div className="flex flex-wrap gap-2">
                 {scoreBadge}
                 {attemptBadge}
                 {submission && (
                   <Badge variant="outline" className="border-slate-700 text-slate-100">
-                    Time {formatDuration(submission.timeTakenSeconds)}
+                    {t.timeLabel} {formatDuration(submission.timeTakenSeconds)}
                   </Badge>
                 )}
                 {submission && submission.readModeSwitchesUsed !== null && (
                   <Badge variant="outline" className="border-indigo-300/50 text-indigo-100 bg-indigo-500/10">
-                    Read-along {submission.readModeSwitchesUsed}
+                    {t.readAlongUsed.replace('{count}', submission.readModeSwitchesUsed.toString())}
                   </Badge>
                 )}
               </div>
@@ -599,12 +672,14 @@ export default function LyricLessonPlayer({
                 onClick={() => handleModeChange('fill')}
                 disabled={status !== AssignmentStatus.PENDING && !existingAttempt}
               >
-                Fill the Blanks
+                {t.fillBlanks}
               </Button>
             </div>
             {bonusReadRemaining > 0 && baseReadRemaining !== null && (
               <p className="text-[11px] text-emerald-200">
-                Includes +{bonusReadRemaining} guide boost{bonusReadRemaining === 1 ? '' : 's'}.
+                {t.guideBoost
+                  .replace('{count}', bonusReadRemaining.toString())
+                  .replace('{plural}', bonusReadRemaining === 1 ? '' : 's')}
               </p>
             )}
             {status === AssignmentStatus.PENDING && (
@@ -617,7 +692,7 @@ export default function LyricLessonPlayer({
                 disabled={isSavingDraft || isSubmitting}
               >
                 <Save className="mr-2 h-4 w-4" />
-                {isSavingDraft ? 'Saving…' : 'Save Draft'}
+                {isSavingDraft ? t.savingDraft : t.saveDraft}
               </Button>
             )}
           </div>
@@ -627,7 +702,7 @@ export default function LyricLessonPlayer({
         )}
         {referenceTrackUrl && (
           <div className="mt-3 rounded-lg border border-indigo-300/40 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-100">
-            Use the reference track for playback.
+            {t.referenceTrack}
           </div>
         )}
       </div>
@@ -665,11 +740,11 @@ export default function LyricLessonPlayer({
                   <div className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant="ghost" size="sm" onClick={() => playFromLine(line)} className="h-8 border-slate-700 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white">
                       <Play className="mr-2 h-4 w-4" />
-                      Play
+                      {t.play}
                     </Button>
                     <Button type="button" variant="ghost" size="sm" onClick={stopPlayback} className="h-8 border-slate-700 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white">
                       <Pause className="mr-2 h-4 w-4" />
-                      Pause
+                      {t.pause}
                     </Button>
                   </div>
                 )}
@@ -704,7 +779,7 @@ export default function LyricLessonPlayer({
                           />
                           {submission && isIncorrect && (
                             <span className="mt-1 block text-xs text-rose-500">
-                              Correct: {expected}
+                              {t.correctLabel} {expected}
                             </span>
                           )}
                         </span>
@@ -724,7 +799,7 @@ export default function LyricLessonPlayer({
             onClick={handleSubmit}
             disabled={isSubmitting || preparedLines.every((line) => line.hiddenWords.length === 0)}
           >
-            {isSubmitting ? 'Submitting…' : 'Check Answers'}
+            {isSubmitting ? t.submitting : t.checkAnswers}
           </Button>
           <Button
             type="button"
@@ -733,12 +808,12 @@ export default function LyricLessonPlayer({
             disabled={isSubmitting}
           >
             <RefreshCw className="mr-2 h-4 w-4" />
-            Reset
+            {t.reset}
           </Button>
           <p className="text-xs text-gray-500">
             {lastSavedAt
-              ? `Draft saved ${formatDistanceToNow(lastSavedAt, { addSuffix: true })}`
-              : 'Draft not saved yet'}
+              ? t.draftSaved.replace('{time}', formatDistanceToNow(lastSavedAt, { addSuffix: true }))
+              : t.draftNotSaved}
           </p>
         </div>
       )}
@@ -749,14 +824,17 @@ export default function LyricLessonPlayer({
             <Sparkles className="h-5 w-5" />
             <div>
               <p className="font-semibold">
-                You answered {submission.scorePercent.toFixed(1)}% correctly
+                {t.submissionSummary.replace('{percent}', submission.scorePercent.toFixed(1))}
               </p>
               <p className="text-sm">
-                {submission.correct} of {submission.total} blanks · {formatDuration(submission.timeTakenSeconds)} total time
+                {t.submissionDetails
+                  .replace('{correct}', submission.correct.toString())
+                  .replace('{total}', submission.total.toString())
+                  .replace('{time}', formatDuration(submission.timeTakenSeconds))}
               </p>
               {submission.readModeSwitchesUsed !== null && (
                 <p className="text-xs">
-                  Read-along switches used: {submission.readModeSwitchesUsed}
+                  {t.readAlongSwitchesUsed.replace('{count}', submission.readModeSwitchesUsed.toString())}
                 </p>
               )}
             </div>
@@ -767,10 +845,11 @@ export default function LyricLessonPlayer({
       {status !== AssignmentStatus.PENDING && !submission && existingAttempt && existingAttempt.scorePercent !== null && (
         <div className="rounded-lg border border-slate-700 bg-slate-800 text-slate-100 p-4">
           <p className="text-sm text-slate-300">
-            Previous attempt: {existingAttempt.scorePercent.toFixed(1)}% ·{' '}
-            {formatDuration(existingAttempt.timeTakenSeconds ?? null)}
+            {t.previousAttempt
+              .replace('{percent}', existingAttempt.scorePercent.toFixed(1))
+              .replace('{time}', formatDuration(existingAttempt.timeTakenSeconds ?? null))}
             {typeof existingAttempt.readModeSwitchesUsed === 'number' && (
-              <> · Read-along switches used: {existingAttempt.readModeSwitchesUsed}</>
+              <> · {t.readAlongSwitchesUsed.replace('{count}', existingAttempt.readModeSwitchesUsed.toString())}</>
             )}
           </p>
         </div>

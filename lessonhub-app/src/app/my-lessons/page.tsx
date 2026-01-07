@@ -255,7 +255,7 @@ export default async function MyLessonsPage() {
 
   return (
     <div>
-      <WhatsNewDialog notes={whatsNewNotes} defaultLocale="us" />
+      <WhatsNewDialog notes={whatsNewNotes} defaultLocale={locale === "it" ? "it" : "us"} />
       <StudentLessonsDashboard
         stats={{
           totalValue: stats.totalValue,

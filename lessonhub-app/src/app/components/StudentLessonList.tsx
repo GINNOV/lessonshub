@@ -59,6 +59,7 @@ interface StudentLessonListProps {
     searchPlaceholder: string;
     empty: string;
     browseTeachers: string;
+    card?: React.ComponentProps<typeof StudentLessonCard>['copy'];
   };
   filter?: StudentLessonFilter;
   onFilterChange?: (filter: StudentLessonFilter) => void;
@@ -171,7 +172,7 @@ export default function StudentLessonList({
                 <WeekDivider weekNumber={group.weekNo} year={group.year} />
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {group.items.map(a => (
-                    <StudentLessonCard key={a.id} assignment={a} index={cardIndex++} />
+                    <StudentLessonCard key={a.id} assignment={a} index={cardIndex++} copy={copy?.card} />
                   ))}
                 </div>
               </div>

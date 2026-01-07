@@ -36,6 +36,7 @@ interface StudentStatsHeaderProps {
     progressCardLinkUrl?: string | null;
     assignmentSummaryFooter?: string | null;
   } | null;
+  locale?: 'en' | 'it';
   copy?: {
     progressTitle: string;
     progressPoints: string;
@@ -115,6 +116,7 @@ export default function StudentStatsHeader({
   failed,
   pastDue,
   settings,
+  locale = 'en',
   copy,
   activeFilter,
   onFilterSelect,
@@ -124,6 +126,10 @@ export default function StudentStatsHeader({
     "{points}",
     totalPoints.toLocaleString(),
   );
+  const progressTitle =
+    locale === 'it'
+      ? (copy?.progressTitle || settings?.progressCardTitle || 'My Progress')
+      : (settings?.progressCardTitle || copy?.progressTitle || 'My Progress');
 
   return (
     <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -136,7 +142,7 @@ export default function StudentStatsHeader({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-sm uppercase tracking-[0.08em] text-teal-50/90">
-                {settings?.progressCardTitle || copy?.progressTitle || 'My Progress'}
+                {progressTitle}
               </h3>
               <p className="mt-2 text-5xl font-black leading-tight drop-shadow-sm">
                 €{totalValue.toFixed(2)}

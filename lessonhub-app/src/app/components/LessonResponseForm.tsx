@@ -30,13 +30,62 @@ interface LessonResponseFormProps {
   assignment: StandardAssignment;
   isSubmissionLocked?: boolean;
   practiceMode?: boolean;
+  copy?: LessonResponseCopy;
 }
+
+type LessonResponseCopy = {
+  practiceNotice: string;
+  deadlinePassed: string;
+  submitSuccess: string;
+  submitError: string;
+  draftSaved: string;
+  draftError: string;
+  answerPlaceholder: string;
+  notesLabel: string;
+  notesPlaceholder: string;
+  rateLesson: string;
+  saveDraft: string;
+  savingDraft: string;
+  submit: string;
+  submitting: string;
+  lastSaved: string;
+  draftNotSaved: string;
+  confirmTitle: string;
+  confirmDescription: string;
+  confirmLabel: string;
+  confirmPending: string;
+};
+
+const defaultCopy: LessonResponseCopy = {
+  practiceNotice: "Practice mode is active. Your answers aren't saved or submitted.",
+  deadlinePassed: "The deadline has passed. Submissions are disabled for this lesson.",
+  submitSuccess: "Your assignment has been submitted successfully!",
+  submitError: "There was an error submitting your assignment.",
+  draftSaved: "Draft saved. You can finish later.",
+  draftError: "Unable to save draft right now.",
+  answerPlaceholder: "Your answer...",
+  notesLabel: "Notes for your teacher (optional)",
+  notesPlaceholder: "Anything you'd like to add?",
+  rateLesson: "Rate this lesson:",
+  saveDraft: "Save Draft",
+  savingDraft: "Saving draft...",
+  submit: "Submit Assignment",
+  submitting: "Submitting...",
+  lastSaved: "Last saved {time}",
+  draftNotSaved: "Draft not saved yet",
+  confirmTitle: "Submit assignment?",
+  confirmDescription: "You will not be able to edit your answers after submitting.",
+  confirmLabel: "Submit",
+  confirmPending: "Submitting...",
+};
 
 export default function LessonResponseForm({
   assignment,
   isSubmissionLocked = false,
   practiceMode = false,
+  copy,
 }: LessonResponseFormProps) {
+  const t = copy ?? defaultCopy;
   const router = useRouter();
   const [answers, setAnswers] = useState<string[]>([]);
   const [studentNotes, setStudentNotes] = useState('');
@@ -117,7 +166,7 @@ export default function LessonResponseForm({
     }
     if (isReadOnly || isSubmissionLocked) {
       if (isSubmissionLocked) {
-        toast.error("The deadline has passed. Submissions are disabled for this lesson.");
+        toast.error(t.deadlinePassed);
       }
       return;
     }
@@ -135,11 +184,11 @@ export default function LessonResponseForm({
     });
 
     if (result.success) {
-      toast.success('Your assignment has been submitted successfully!');
+      toast.success(t.submitSuccess);
       router.push('/my-lessons');
       router.refresh(); 
     } else {
-      toast.error(result.error || 'There was an error submitting your assignment.');
+      toast.error(result.error || t.submitError);
     }
     setIsDialogOpen(false);
     setIsLoading(false);
@@ -157,10 +206,10 @@ export default function LessonResponseForm({
     if (result.success) {
       const now = new Date();
       setLastSavedAt(now);
-      toast.success('Draft saved. You can finish later.');
+      toast.success(t.draftSaved);
       router.refresh();
     } else {
-      toast.error(result.error || 'Unable to save draft right now.');
+      toast.error(result.error || t.draftError);
     }
   };
 
@@ -168,7 +217,7 @@ export default function LessonResponseForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       {practiceMode && (
         <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-100">
-          Practice mode is active. Your answers aren&apos;t saved or submitted.
+          {t.practiceNotice}
         </div>
       )}
       {questions.map((question, index) => (
@@ -180,7 +229,7 @@ export default function LessonResponseForm({
             id={`question-${index}`}
             value={answers[index] || ''}
             onChange={(e) => handleAnswerChange(index, e.target.value)}
-            placeholder="Your answer..."
+            placeholder={t.answerPlaceholder}
             required
             disabled={isLoading || isReadOnly}
             rows={4}
@@ -189,12 +238,12 @@ export default function LessonResponseForm({
       ))}
 
       <div className="space-y-2">
-        <Label htmlFor="student-notes">Notes for your teacher (optional)</Label>
+        <Label htmlFor="student-notes">{t.notesLabel}</Label>
         <Textarea
           id="student-notes"
           value={studentNotes}
           onChange={(e) => setStudentNotes(e.target.value)}
-          placeholder="Anything you'd like to add?"
+          placeholder={t.notesPlaceholder}
           disabled={isLoading || isReadOnly}
         />
       </div>
@@ -202,7 +251,7 @@ export default function LessonResponseForm({
       {!isReadOnly && !practiceMode && (
          <div className="mt-6 border-t pt-6">
             <div className="flex items-center gap-2">
-                <Label>Rate this lesson:</Label>
+                <Label>{t.rateLesson}</Label>
                 <Rating initialRating={rating} onRatingChange={setRating} disabled={isLoading || isReadOnly || isSubmissionLocked} />
             </div>
         </div>
@@ -218,24 +267,24 @@ export default function LessonResponseForm({
               disabled={isSavingDraft || isSubmissionLocked}
               className="w-full md:w-48"
             >
-              {isSavingDraft ? 'Saving draft...' : 'Save Draft'}
+              {isSavingDraft ? t.savingDraft : t.saveDraft}
             </Button>
             <Button type="submit" disabled={isLoading || isSubmissionLocked} className="w-full md:flex-1">
-              {isLoading ? 'Submitting...' : 'Submit Assignment'}
+              {isLoading ? t.submitting : t.submit}
             </Button>
           </div>
           <p className="text-sm text-gray-500">
             {lastSavedAt
-              ? `Last saved ${formatDistanceToNow(lastSavedAt, { addSuffix: true })}`
-              : 'Draft not saved yet'}
+              ? t.lastSaved.replace("{time}", formatDistanceToNow(lastSavedAt, { addSuffix: true }))
+              : t.draftNotSaved}
           </p>
           <ConfirmDialog
             open={isDialogOpen}
             onOpenChange={setIsDialogOpen}
-            title="Submit assignment?"
-            description="You will not be able to edit your answers after submitting."
-            confirmLabel="Submit"
-            pendingLabel="Submitting..."
+            title={t.confirmTitle}
+            description={t.confirmDescription}
+            confirmLabel={t.confirmLabel}
+            pendingLabel={t.confirmPending}
             confirmVariant="default"
             isConfirming={isLoading}
             onConfirm={handleConfirmSubmit}

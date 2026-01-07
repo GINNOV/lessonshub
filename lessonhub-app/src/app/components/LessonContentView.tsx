@@ -23,9 +23,33 @@ type LessonWithOptionalLyric = Omit<Lesson, 'price'> & {
 interface LessonContentViewProps {
   lesson: LessonWithOptionalLyric; // Expects a serialized lesson
   showInstructions?: boolean;
+  copy?: {
+    additionalInfoTitle: string;
+    additionalInfoAvailable: string;
+    supportingMaterial: string;
+    listenOnSpotify: string;
+    timingReference: string;
+    openTrack: string;
+    instructionsTitle: string;
+    materialTitle: string;
+    viewAttachment: string;
+  };
 }
 
-export default async function LessonContentView({ lesson, showInstructions = true }: LessonContentViewProps) {
+export default async function LessonContentView({
+  lesson,
+  showInstructions = true,
+  copy,
+}: LessonContentViewProps) {
+  const additionalInfoTitle = copy?.additionalInfoTitle ?? "Additional Information";
+  const additionalInfoAvailable = copy?.additionalInfoAvailable ?? "Additional information available.";
+  const supportingMaterial = copy?.supportingMaterial ?? "Supporting Material";
+  const listenOnSpotify = copy?.listenOnSpotify ?? "Listen on Spotify";
+  const timingReference = copy?.timingReference ?? "Timing reference:";
+  const openTrack = copy?.openTrack ?? "open track";
+  const instructionsTitle = copy?.instructionsTitle ?? "👉🏼 INSTRUCTIONS";
+  const materialTitle = copy?.materialTitle ?? "MATERIAL";
+  const viewAttachment = copy?.viewAttachment ?? "View Attachment";
   const assignmentHtml = lesson.assignment_text ? ((await marked.parse(lesson.assignment_text)) as string) : "";
   const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : "";
 
@@ -79,7 +103,7 @@ export default async function LessonContentView({ lesson, showInstructions = tru
       {lesson.assignment_image_url && (
         <div className="my-4">
           <h2 className="text-sm font-semibold uppercase text-slate-300">
-            Supporting Material
+            {supportingMaterial}
           </h2>
           <Image
             src={lesson.assignment_image_url}
@@ -96,7 +120,7 @@ export default async function LessonContentView({ lesson, showInstructions = tru
           {isSpotifyAudio ? (
             <Button asChild variant="outline" className="border-slate-800 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white">
               <Link href={audioUrl} target="_blank" rel="noopener noreferrer">
-                <Volume2 className="mr-2 h-4 w-4" /> Listen on Spotify <ExternalLink className="ml-1 h-3 w-3" />
+                <Volume2 className="mr-2 h-4 w-4" /> {listenOnSpotify} <ExternalLink className="ml-1 h-3 w-3" />
               </Link>
             </Button>
           ) : isYouTubeUrl(audioUrl) ? (
@@ -141,14 +165,14 @@ export default async function LessonContentView({ lesson, showInstructions = tru
           )}
           {lesson.lyricConfig?.timingSourceUrl && (
             <div className="mt-2 text-sm text-slate-300">
-              Timing reference:{' '}
+              {timingReference}{' '}
               <a
                 href={lesson.lyricConfig.timingSourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-teal-200 underline"
               >
-                open track
+                {openTrack}
               </a>
             </div>
           )}
@@ -157,7 +181,7 @@ export default async function LessonContentView({ lesson, showInstructions = tru
 
       {showInstructions && (
         <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-md">
-          <h2 className="text-xl font-semibold text-slate-100">👉🏼 INSTRUCTIONS</h2>
+          <h2 className="text-xl font-semibold text-slate-100">{instructionsTitle}</h2>
           <div className="prose prose-sm max-w-none text-slate-200" dangerouslySetInnerHTML={{ __html: assignmentHtml }} />
         </div>
       )}
@@ -168,9 +192,9 @@ export default async function LessonContentView({ lesson, showInstructions = tru
             <AccordionItem value="additional-info" className="border-none">
               <AccordionTrigger className="group py-0 text-left text-lg font-semibold text-slate-100 hover:no-underline">
                 <span className="flex flex-col gap-1">
-                  <span>Additional Information</span>
+                  <span>{additionalInfoTitle}</span>
                   <span className="text-xs font-normal text-slate-400 group-data-[state=open]:hidden">
-                    Additional information available.
+                    {additionalInfoAvailable}
                   </span>
                 </span>
               </AccordionTrigger>
@@ -188,7 +212,7 @@ export default async function LessonContentView({ lesson, showInstructions = tru
       {lesson.attachment_url && (
         <div className="mt-6">
           <h3 className="mb-2 flex items-center text-lg font-semibold text-slate-100">
-            <Paperclip className="h-5 w-5 mr-2" /> MATERIAL
+            <Paperclip className="h-5 w-5 mr-2" /> {materialTitle}
           </h3>
           <Button
             asChild
@@ -198,11 +222,11 @@ export default async function LessonContentView({ lesson, showInstructions = tru
             <Link href={lesson.attachment_url} target="_blank" rel="noopener noreferrer">
               {isSpotifyMaterialLink ? (
                 <>
-                  <Volume2 className="mr-2 h-4 w-4" /> Listen on Spotify
+                  <Volume2 className="mr-2 h-4 w-4" /> {listenOnSpotify}
                 </>
               ) : (
                 <>
-                  <Eye className="mr-2 h-4 w-4" /> View Attachment
+                  <Eye className="mr-2 h-4 w-4" /> {viewAttachment}
                 </>
               )}
             </Link>

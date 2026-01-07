@@ -29,6 +29,7 @@ type StudentDashboardCopy = {
     emptyPaid: string;
     emptyFree: string;
   };
+  gamification: NonNullable<React.ComponentProps<typeof StudentGamificationPanel>['copy']>;
 };
 
 interface StudentLessonsDashboardProps {
@@ -91,6 +92,7 @@ export default function StudentLessonsDashboard({
         pastDue={stats.pastDue}
         settings={settings}
         copy={copy.stats}
+        locale={locale}
         activeFilter={assignmentFilter}
         onFilterSelect={handleFilterSelect}
       />
@@ -213,7 +215,7 @@ export default function StudentLessonsDashboard({
       </section>
 
       <div className="mt-10 space-y-8">
-        <StudentGamificationPanel data={gamificationSnapshot} />
+        <StudentGamificationPanel data={gamificationSnapshot} copy={copy.gamification} />
         <Leaderboard leaderboardData={leaderboardData} />
       </div>
     </>

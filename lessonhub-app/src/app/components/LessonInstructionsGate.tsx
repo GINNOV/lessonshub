@@ -10,6 +10,27 @@ type LessonInstructionsGateProps = {
   children: React.ReactNode;
   skipAcknowledgement?: boolean;
   defaultCollapsed?: boolean;
+  copy?: LessonInstructionsCopy;
+};
+
+type LessonInstructionsCopy = {
+  title: string;
+  show: string;
+  hide: string;
+  emptyHtml: string;
+  acknowledge: string;
+  continueLabel: string;
+  reviewPrompt: string;
+};
+
+const defaultCopy: LessonInstructionsCopy = {
+  title: 'Instructions',
+  show: 'Show instructions',
+  hide: 'Hide instructions',
+  emptyHtml: '<p>No instructions provided.</p>',
+  acknowledge: "I've read and understood the instructions above.",
+  continueLabel: 'Continue',
+  reviewPrompt: 'Review and acknowledge the instructions before unlocking the rest of this lesson.',
 };
 
 export default function LessonInstructionsGate({
@@ -17,7 +38,9 @@ export default function LessonInstructionsGate({
   children,
   skipAcknowledgement = false,
   defaultCollapsed = false,
+  copy,
 }: LessonInstructionsGateProps) {
+  const t = copy ?? defaultCopy;
   const hasInstructions = useMemo(() => Boolean(instructionsHtml && instructionsHtml.trim().length > 0), [instructionsHtml]);
   const initialAcknowledged = skipAcknowledgement || !hasInstructions;
   const [acknowledged, setAcknowledged] = useState(initialAcknowledged);
@@ -30,7 +53,7 @@ export default function LessonInstructionsGate({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-amber-900">
             <AlertCircle className="h-5 w-5" />
-            <h2 className="text-lg font-semibold uppercase tracking-wide">Instructions</h2>
+            <h2 className="text-lg font-semibold uppercase tracking-wide">{t.title}</h2>
           </div>
           {hasInstructions && acknowledged && (
             <Button
@@ -40,7 +63,7 @@ export default function LessonInstructionsGate({
               className="text-amber-900 hover:text-amber-800"
               onClick={() => setCollapsed((prev) => !prev)}
             >
-              {collapsed ? 'Show instructions' : 'Hide instructions'}
+              {collapsed ? t.show : t.hide}
             </Button>
           )}
         </div>
@@ -48,7 +71,7 @@ export default function LessonInstructionsGate({
           <div
             className="prose prose-sm mt-3 max-w-none text-amber-900"
             dangerouslySetInnerHTML={{
-              __html: hasInstructions ? (instructionsHtml as string) : '<p>No instructions provided.</p>',
+              __html: hasInstructions ? (instructionsHtml as string) : t.emptyHtml,
             }}
           />
         )}
@@ -62,8 +85,7 @@ export default function LessonInstructionsGate({
                 className="mt-0.5 shrink-0 border-amber-400 text-amber-500"
               />
               <span className="flex flex-col leading-snug">
-                <span>I&apos;ve read and understood the instructions above.</span>
-                <span>🇮🇹 Ho letto e compreso le istruzioni.</span>
+                <span>{t.acknowledge}</span>
               </span>
             </label>
             <Button
@@ -72,7 +94,7 @@ export default function LessonInstructionsGate({
               disabled={!checked}
               onClick={() => setAcknowledged(true)}
             >
-              Continue
+              {t.continueLabel}
             </Button>
           </div>
         )}
@@ -82,7 +104,7 @@ export default function LessonInstructionsGate({
         children
       ) : (
         <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
-          Review and acknowledge the instructions before unlocking the rest of this lesson.
+          {t.reviewPrompt}
         </div>
       )}
     </div>

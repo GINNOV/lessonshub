@@ -25,6 +25,35 @@ export const studentDashboardCopy: Record<
       searchPlaceholder: string;
       empty: string;
       browseTeachers: string;
+      card: {
+        viewResults: string;
+        practiceAgain: string;
+        shareLinkLabel: string;
+        shareLinkTitle: string;
+        viewTeacherTitle: string;
+        unassignedTeacher: string;
+        unassignedTeacherAlt: string;
+        submittedCountTitle: string;
+        submittedCountShort: string;
+        difficultyLabels: string[];
+        difficultySrPrefix: string;
+        status: {
+          graded: string;
+          failed: string;
+          submitted: string;
+          pastDue: string;
+          pending: string;
+          gradedScore: string;
+        };
+        scoreEmpty: string;
+        shareLinkError: string;
+        shareLinkCopied: string;
+        shareLinkReady: string;
+        shareLinkCopyError: string;
+        dueLabel: string;
+        extendedLabel: string;
+        originalLabel: string;
+      };
     };
     guides: {
       tabLabel: string;
@@ -38,6 +67,10 @@ export const studentDashboardCopy: Record<
       searchPlaceholder: string;
       emptyPaid: string;
       emptyFree: string;
+    };
+    gamification: {
+      recentActivityTitle: string;
+      recentActivityEmpty: string;
     };
   }
 > = {
@@ -65,6 +98,35 @@ export const studentDashboardCopy: Record<
       searchPlaceholder: "Search by title or teacher...",
       empty: "You have no assignments yet.",
       browseTeachers: "Browse teachers directory",
+      card: {
+        viewResults: "View Results",
+        practiceAgain: "Practice this lesson again",
+        shareLinkLabel: "Copy lesson share link",
+        shareLinkTitle: "Copy lesson share link",
+        viewTeacherTitle: "View {teacher}'s profile",
+        unassignedTeacher: "Unassigned",
+        unassignedTeacherAlt: "Unassigned teacher",
+        submittedCountTitle: "{submitted} of {total} students have submitted",
+        submittedCountShort: "{submitted} of {total}",
+        difficultyLabels: ["Super Simple", "Approachable", "Intermediate", "Challenging", "Advanced"],
+        difficultySrPrefix: "Lesson difficulty:",
+        status: {
+          graded: "Graded",
+          failed: "Failed",
+          submitted: "Submitted",
+          pastDue: "Past Due",
+          pending: "Pending",
+          gradedScore: "Graded: {score}/10",
+        },
+        scoreEmpty: "—",
+        shareLinkError: "Failed to generate share link.",
+        shareLinkCopied: "Lesson link copied to clipboard.",
+        shareLinkReady: "Lesson link ready to share.",
+        shareLinkCopyError: "Unable to copy share link.",
+        dueLabel: "Due",
+        extendedLabel: "Extended",
+        originalLabel: "Original:",
+      },
     },
     guides: {
       tabLabel: "Hub Guides",
@@ -79,6 +141,10 @@ export const studentDashboardCopy: Record<
       searchPlaceholder: "Search Hub Guides...",
       emptyPaid: "New guides are on the way. Stay tuned!",
       emptyFree: "No free guides are available right now. Upgrade to access the full library.",
+    },
+    gamification: {
+      recentActivityTitle: "Recent activity",
+      recentActivityEmpty: "Points updates will appear here once your next lesson is graded.",
     },
   },
   it: {
@@ -105,6 +171,35 @@ export const studentDashboardCopy: Record<
       searchPlaceholder: "Cerca per titolo o insegnante...",
       empty: "Non hai ancora compiti assegnati.",
       browseTeachers: "Vai al catalogo insegnanti",
+      card: {
+        viewResults: "Vedi risultati",
+        practiceAgain: "Ripeti questa lezione",
+        shareLinkLabel: "Copia link di condivisione",
+        shareLinkTitle: "Copia link di condivisione",
+        viewTeacherTitle: "Vedi il profilo di {teacher}",
+        unassignedTeacher: "Non assegnato",
+        unassignedTeacherAlt: "Insegnante non assegnato",
+        submittedCountTitle: "{submitted} su {total} studenti hanno inviato",
+        submittedCountShort: "{submitted} su {total}",
+        difficultyLabels: ["Facilissimo", "Accessibile", "Intermedio", "Impegnativo", "Avanzato"],
+        difficultySrPrefix: "Difficoltà lezione:",
+        status: {
+          graded: "Corretto",
+          failed: "Non superato",
+          submitted: "Inviato",
+          pastDue: "In ritardo",
+          pending: "In corso",
+          gradedScore: "Voto: {score}/10",
+        },
+        scoreEmpty: "—",
+        shareLinkError: "Impossibile generare il link di condivisione.",
+        shareLinkCopied: "Link della lezione copiato negli appunti.",
+        shareLinkReady: "Link della lezione pronto per la condivisione.",
+        shareLinkCopyError: "Impossibile copiare il link di condivisione.",
+        dueLabel: "Scadenza",
+        extendedLabel: "Estesa",
+        originalLabel: "Originale:",
+      },
     },
     guides: {
       tabLabel: "Hub Guides",
@@ -119,6 +214,10 @@ export const studentDashboardCopy: Record<
       searchPlaceholder: "Cerca nelle Hub Guides...",
       emptyPaid: "Nuove guide stanno arrivando. Resta sintonizzato!",
       emptyFree: "Nessuna guida gratuita disponibile ora. Fai upgrade per accedere alla libreria completa.",
+    },
+    gamification: {
+      recentActivityTitle: "Attività recente",
+      recentActivityEmpty: "Gli aggiornamenti dei punti appariranno qui dopo la prossima lezione corretta.",
     },
   },
 };

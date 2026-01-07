@@ -23,6 +23,7 @@ import {
 interface RateTeacherDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  copy?: RateTeacherCopy;
 }
 
 type TeacherOption = {
@@ -31,14 +32,14 @@ type TeacherOption = {
   image: string | null;
 };
 
-const ratingFields = [
-  { key: 'contentQuality', label: 'Quality of content' },
-  { key: 'helpfulness', label: 'Helpfulness' },
-  { key: 'communication', label: 'Communication' },
-  { key: 'valueForMoney', label: 'Value for money' },
+const ratingFieldKeys = [
+  'contentQuality',
+  'helpfulness',
+  'communication',
+  'valueForMoney',
 ] as const;
 
-type RatingKey = (typeof ratingFields)[number]['key'];
+type RatingKey = (typeof ratingFieldKeys)[number];
 
 const defaultScores: Record<RatingKey, number> = {
   contentQuality: 4,
@@ -47,13 +48,62 @@ const defaultScores: Record<RatingKey, number> = {
   valueForMoney: 4,
 };
 
-export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDialogProps) {
+type RateTeacherCopy = {
+  title: string;
+  description: string;
+  chooseTeacher: string;
+  loadingTeachers: string;
+  noTeachers: string;
+  overallLabel: string;
+  commentsLabel: string;
+  commentsPlaceholder: string;
+  cancel: string;
+  submit: string;
+  submitting: string;
+  ratingFields: Record<RatingKey, string>;
+  toastLoadError: string;
+  toastSelectTeacher: string;
+  toastSubmitSuccess: string;
+  toastSubmitError: string;
+};
+
+const defaultCopy: RateTeacherCopy = {
+  title: 'Rate your teacher',
+  description:
+    'Your responses stay anonymous to teachers. Administrators review feedback to ensure every class stays excellent.',
+  chooseTeacher: 'Choose a teacher',
+  loadingTeachers: 'Loading...',
+  noTeachers: 'No teachers found',
+  overallLabel: 'Overall impression:',
+  commentsLabel: 'Anything else?',
+  commentsPlaceholder: 'Share highlights or areas to improve. Keep it short and specific.',
+  cancel: 'Cancel',
+  submit: 'Submit rating',
+  submitting: 'Sending…',
+  ratingFields: {
+    contentQuality: 'Quality of content',
+    helpfulness: 'Helpfulness',
+    communication: 'Communication',
+    valueForMoney: 'Value for money',
+  },
+  toastLoadError: 'Unable to load teacher list. Please try again.',
+  toastSelectTeacher: 'Please select a teacher to rate.',
+  toastSubmitSuccess: 'Thank you for sharing your thoughts.',
+  toastSubmitError: 'Unable to submit your rating right now.',
+};
+
+export default function RateTeacherDialog({ open, onOpenChange, copy }: RateTeacherDialogProps) {
+  const t = copy ?? defaultCopy;
   const [teachers, setTeachers] = useState<TeacherOption[]>([]);
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
   const [scores, setScores] = useState<Record<RatingKey, number>>(defaultScores);
   const [comments, setComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const ratingFields = useMemo(
+    () => ratingFieldKeys.map((key) => ({ key, label: t.ratingFields[key] })),
+    [t]
+  );
 
   useEffect(() => {
     if (!open) {
@@ -74,7 +124,7 @@ export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDia
         }
       })
       .catch(() => {
-        toast.error('Unable to load teacher list. Please try again.');
+        toast.error(t.toastLoadError);
       })
       .finally(() => {
         if (isMounted) {
@@ -89,8 +139,8 @@ export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDia
   }, [open]);
 
   const averageScore = useMemo(() => {
-    const total = ratingFields.reduce((sum, field) => sum + (scores[field.key] || 0), 0);
-    return Math.round(total / ratingFields.length);
+    const total = ratingFieldKeys.reduce((sum, key) => sum + (scores[key] || 0), 0);
+    return Math.round(total / ratingFieldKeys.length);
   }, [scores]);
 
   const handleScoreChange = (key: RatingKey, value: number) => {
@@ -99,7 +149,7 @@ export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDia
 
   const handleSubmit = async () => {
     if (!selectedTeacherId) {
-      toast.error('Please select a teacher to rate.');
+      toast.error(t.toastSelectTeacher);
       return;
     }
 
@@ -112,12 +162,12 @@ export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDia
     });
 
     if (result.success) {
-      toast.success('Thank you for sharing your thoughts.');
+      toast.success(t.toastSubmitSuccess);
       setComments('');
       setScores(defaultScores);
       onOpenChange(false);
     } else {
-      toast.error(result.error || 'Unable to submit your rating right now.');
+      toast.error(result.error || t.toastSubmitError);
     }
     setIsSubmitting(false);
   };
@@ -126,17 +176,17 @@ export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Rate your teacher</DialogTitle>
+          <DialogTitle>{t.title}</DialogTitle>
           <DialogDescription>
-            Your responses stay anonymous to teachers. Administrators review feedback to ensure every class stays excellent.
+            {t.description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="form-field">
-            <Label htmlFor="teacherSelect">Choose a teacher</Label>
+            <Label htmlFor="teacherSelect">{t.chooseTeacher}</Label>
             <select
               id="teacherSelect"
               value={selectedTeacherId}
@@ -144,9 +194,9 @@ export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDia
               onChange={(event) => setSelectedTeacherId(event.target.value)}
               className="w-full rounded-md border border-gray-300 p-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
-              {isLoadingTeachers && <option value="">Loading...</option>}
+              {isLoadingTeachers && <option value="">{t.loadingTeachers}</option>}
               {!isLoadingTeachers && teachers.length === 0 && (
-                <option value="">No teachers found</option>
+                <option value="">{t.noTeachers}</option>
               )}
               {teachers.map((teacher) => (
                 <option key={teacher.id} value={teacher.id}>
@@ -169,16 +219,17 @@ export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDia
               </div>
             ))}
             <div className="text-right text-xs text-slate-400">
-              Overall impression: <span className="font-semibold text-slate-100">{averageScore}/5</span>
+              {t.overallLabel}{' '}
+              <span className="font-semibold text-slate-100">{averageScore}/5</span>
             </div>
           </div>
 
           <div className="form-field">
-            <Label htmlFor="teacherComments">Anything else?</Label>
+            <Label htmlFor="teacherComments">{t.commentsLabel}</Label>
             <Textarea
               id="teacherComments"
               rows={4}
-              placeholder="Share highlights or areas to improve. Keep it short and specific."
+              placeholder={t.commentsPlaceholder}
               value={comments}
               onChange={(event) => setComments(event.target.value)}
             />
@@ -187,16 +238,16 @@ export default function RateTeacherDialog({ open, onOpenChange }: RateTeacherDia
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-            Cancel
+            {t.cancel}
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit || isSubmitting}>
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Sending…
+                {t.submitting}
               </span>
             ) : (
-              'Submit rating'
+              t.submit
             )}
           </Button>
         </DialogFooter>

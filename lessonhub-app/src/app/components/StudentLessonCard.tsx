@@ -61,8 +61,68 @@ type SerializableAssignment = {
 interface StudentLessonCardProps {
   assignment: SerializableAssignment;
   index: number;
+  copy?: StudentLessonCardCopy;
 }
 
+type StudentLessonCardCopy = {
+  viewResults: string;
+  practiceAgain: string;
+  shareLinkLabel: string;
+  shareLinkTitle: string;
+  viewTeacherTitle: string;
+  unassignedTeacher: string;
+  unassignedTeacherAlt: string;
+  submittedCountTitle: string;
+  submittedCountShort: string;
+  difficultyLabels: string[];
+  difficultySrPrefix: string;
+  status: {
+    graded: string;
+    failed: string;
+    submitted: string;
+    pastDue: string;
+    pending: string;
+    gradedScore: string;
+  };
+  scoreEmpty: string;
+  shareLinkError: string;
+  shareLinkCopied: string;
+  shareLinkReady: string;
+  shareLinkCopyError: string;
+  dueLabel: string;
+  extendedLabel: string;
+  originalLabel: string;
+};
+
+const defaultCopy: StudentLessonCardCopy = {
+  viewResults: 'View Results',
+  practiceAgain: 'Practice this lesson again',
+  shareLinkLabel: 'Copy lesson share link',
+  shareLinkTitle: 'Copy lesson share link',
+  viewTeacherTitle: "View {teacher}'s profile",
+  unassignedTeacher: 'Unassigned',
+  unassignedTeacherAlt: 'Unassigned teacher',
+  submittedCountTitle: '{submitted} of {total} students have submitted',
+  submittedCountShort: '{submitted} of {total}',
+  difficultyLabels: ['Super Simple', 'Approachable', 'Intermediate', 'Challenging', 'Advanced'],
+  difficultySrPrefix: 'Lesson difficulty:',
+  status: {
+    graded: 'Graded',
+    failed: 'Failed',
+    submitted: 'Submitted',
+    pastDue: 'Past Due',
+    pending: 'Pending',
+    gradedScore: 'Graded: {score}/10',
+  },
+  scoreEmpty: '—',
+  shareLinkError: 'Failed to generate share link.',
+  shareLinkCopied: 'Lesson link copied to clipboard.',
+  shareLinkReady: 'Lesson link ready to share.',
+  shareLinkCopyError: 'Unable to copy share link.',
+  dueLabel: 'Due',
+  extendedLabel: 'Extended',
+  originalLabel: 'Original:',
+};
 const lessonTypeImages: Record<LessonType, string> = {
     [LessonType.STANDARD]: '/my-lessons/standard.png',
     [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
@@ -72,7 +132,8 @@ const lessonTypeImages: Record<LessonType, string> = {
     [LessonType.COMPOSER]: '/my-lessons/composer.png',
 };
 
-export default function StudentLessonCard({ assignment, index }: StudentLessonCardProps) {
+export default function StudentLessonCard({ assignment, index, copy }: StudentLessonCardProps) {
+  const t = copy ?? defaultCopy;
   const { lesson, status, deadline, score, pointsAwarded } = assignment;
   const currentDeadline = new Date(deadline);
   const originalDeadlineDate = assignment.originalDeadline ? new Date(assignment.originalDeadline) : null;
@@ -84,6 +145,10 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
   const [shareId, setShareId] = useState<string | null>(lesson.public_share_id);
   const [isCopying, setIsCopying] = useState(false);
   const pointsEarned = Math.max(pointsAwarded ?? 0, 0);
+  const normalizedDifficulty = Math.min(Math.max(Number(lesson.difficulty) || 3, 1), 5);
+  const difficultyLabel =
+    t.difficultyLabels?.[normalizedDifficulty - 1] ??
+    defaultCopy.difficultyLabels[normalizedDifficulty - 1];
   const completionPercent = (() => {
     const draftAnswers = assignment.draftAnswers;
     const hasDraftAnswers = draftAnswers && typeof draftAnswers === 'object';
@@ -136,33 +201,34 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
       lesson.type === LessonType.MULTI_CHOICE ||
       lesson.type === LessonType.STANDARD);
   
+  const gradedScore = typeof score === 'number' ? score.toString() : t.scoreEmpty;
   const statusMeta = (() => {
     if (status === AssignmentStatus.GRADED) {
       return {
-        label: `Graded: ${score ?? '—'}/10`,
+        label: t.status.gradedScore.replace('{score}', gradedScore),
         className: 'bg-emerald-400/15 text-emerald-100 border border-emerald-300/50',
       };
     }
     if (status === AssignmentStatus.FAILED) {
       return {
-        label: 'Failed',
+        label: t.status.failed,
         className: 'bg-rose-500/15 text-rose-100 border border-rose-400/60',
       };
     }
     if (status === AssignmentStatus.COMPLETED) {
       return {
-        label: 'Submitted',
+        label: t.status.submitted,
         className: 'bg-indigo-400/15 text-indigo-100 border border-indigo-300/50',
       };
     }
     if (isPastDeadline) {
       return {
-        label: 'Past Due',
+        label: t.status.pastDue,
         className: 'bg-orange-500/15 text-orange-100 border border-orange-400/60 animate-pulse',
       };
     }
     return {
-      label: 'Pending',
+      label: t.status.pending,
       className: 'bg-amber-400/20 text-amber-100 border border-amber-300/60',
     };
   })();
@@ -219,7 +285,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
       if (!currentShareId) {
         const result = await ensureLessonShareLink(lesson.id);
         if (!result.success || !result.shareId) {
-          toast.error(result.error || 'Failed to generate share link.');
+          toast.error(result.error || t.shareLinkError);
           return;
         }
         currentShareId = result.shareId;
@@ -248,17 +314,17 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
 
       if (!wasShared) {
         await copyToClipboard(shareUrl);
-        toast.success('Lesson link copied to clipboard.');
+        toast.success(t.shareLinkCopied);
       } else {
-        toast.success('Lesson link ready to share.');
+        toast.success(t.shareLinkReady);
       }
     } catch (error) {
       console.error('Failed to copy share link', error);
-      toast.error('Unable to copy share link.');
+      toast.error(t.shareLinkCopyError);
     } finally {
       setIsCopying(false);
     }
-  }, [shareId, lesson.id, lesson.lesson_preview, lesson.title, isCopying]);
+  }, [shareId, lesson.id, lesson.lesson_preview, lesson.title, isCopying, t]);
 
   return (
     <Card
@@ -301,7 +367,13 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
           </CardTitle>
         </div>
         <p className="text-sm text-slate-400 line-clamp-2">{lesson.lesson_preview}</p>
-        <LessonDifficultyIndicator value={lesson.difficulty} size="sm" className="mt-2" />
+        <LessonDifficultyIndicator
+          value={lesson.difficulty}
+          size="sm"
+          className="mt-2"
+          labels={t.difficultyLabels}
+          srLabel={`${t.difficultySrPrefix} ${difficultyLabel}`}
+        />
         {!isComplete && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-400">
@@ -319,7 +391,14 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
       </CardContent>
       <CardFooter className="flex flex-col gap-4 border-t border-slate-800/70 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-4 text-slate-200">
-          <div className="flex items-center gap-2" title={lesson.teacher?.name ? `View ${lesson.teacher.name}'s profile` : 'Unassigned'}>
+          <div
+            className="flex items-center gap-2"
+            title={
+              lesson.teacher?.name
+                ? t.viewTeacherTitle.replace('{teacher}', lesson.teacher.name)
+                : t.unassignedTeacher
+            }
+          >
             {lesson.teacher ? (
               <Link href={`/teachers#${lesson.teacher.id}`} className="inline-flex" prefetch={false}>
                 <Avatar className="h-7 w-7 ring-2 ring-slate-800">
@@ -329,14 +408,23 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
               </Link>
             ) : (
               <Avatar className="h-7 w-7 ring-2 ring-slate-800">
-                <AvatarImage src="" alt="Unassigned teacher" />
+                <AvatarImage src="" alt={t.unassignedTeacherAlt} />
                 <AvatarFallback>?</AvatarFallback>
               </Avatar>
             )}
           </div>
-          <div className="flex items-center gap-1 text-slate-400" title={`${lesson.submittedCount} of ${lesson.completionCount} students have submitted`}>
+          <div
+            className="flex items-center gap-1 text-slate-400"
+            title={t.submittedCountTitle
+              .replace('{submitted}', String(lesson.submittedCount))
+              .replace('{total}', String(lesson.completionCount))}
+          >
             <Users className="h-4 w-4" />
-            <span>{`${lesson.submittedCount} of ${lesson.completionCount}`}</span>
+            <span>
+              {t.submittedCountShort
+                .replace('{submitted}', String(lesson.submittedCount))
+                .replace('{total}', String(lesson.completionCount))}
+            </span>
           </div>
           {status === AssignmentStatus.GRADED && (
             <Badge variant="outline" className="border-emerald-300/60 bg-emerald-400/15 text-emerald-100">
@@ -352,8 +440,8 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
             onClick={handleShare}
             disabled={isCopying}
             className="h-9 w-9 border border-slate-700 bg-slate-800/70 text-slate-200 transition hover:border-teal-400/60 hover:text-white"
-            aria-label="Copy lesson share link"
-            title="Copy lesson share link"
+            aria-label={t.shareLinkLabel}
+            title={t.shareLinkTitle}
           >
             <Share2 className={cn("h-4 w-4", isCopying && "animate-pulse")} />
           </Button>
@@ -368,8 +456,8 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                 >
                   <Link
                     href={`/assignments/${assignment.id}?practice=1`}
-                    aria-label="Practice this lesson again"
-                    title="Practice this lesson again"
+                    aria-label={t.practiceAgain}
+                    title={t.practiceAgain}
                   >
                     <RotateCw className="h-4 w-4" />
                   </Link>
@@ -381,23 +469,23 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
                 size="sm"
                 className="border border-teal-300/50 bg-teal-500/20 text-teal-100 hover:bg-teal-400/30"
               >
-                <Link href={`/assignments/${assignment.id}?view=results`}>View Results</Link>
+                <Link href={`/assignments/${assignment.id}?view=results`}>{t.viewResults}</Link>
               </Button>
             </div>
           ) : (
             <div className="text-right">
               <div className="flex flex-col items-end gap-1">
                 <div className={cn("flex items-center gap-2 font-semibold text-xs sm:text-sm", isPastDeadline ? "text-orange-300" : "text-slate-200")}>
-                  <span>Due <LocaleDate date={deadline} /></span>
+                  <span>{t.dueLabel} <LocaleDate date={deadline} /></span>
                   {hasExtendedDeadline && (
                     <Badge variant="outline" className="border-cyan-300/60 text-cyan-100">
-                      Extended
+                      {t.extendedLabel}
                     </Badge>
                   )}
                 </div>
                 {hasExtendedDeadline && originalDeadlineDate && (
                   <div className="text-[11px] text-slate-400">
-                    Original:&nbsp;
+                    {t.originalLabel}&nbsp;
                     <span className="line-through">
                       <LocaleDate date={originalDeadlineDate.toISOString()} />
                     </span>

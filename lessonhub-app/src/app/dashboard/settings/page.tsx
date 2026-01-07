@@ -9,6 +9,8 @@ import TeacherPreferences from "@/app/components/TeacherPreferences";
 import WhatsNewDialog from "@/app/components/WhatsNewDialog";
 import { Button } from "@/components/ui/button";
 import { loadLatestUpgradeNote } from "@/lib/whatsNew";
+import { headers } from "next/headers";
+import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from "@/lib/locale";
 
 export default async function TeacherSettingsPage() {
   const session = await auth();
@@ -20,6 +22,16 @@ export default async function TeacherSettingsPage() {
   if (session.user.role !== Role.TEACHER) {
     redirect("/dashboard");
   }
+
+  const headerList = await headers();
+  const detectedLocales = parseAcceptLanguage(headerList.get("accept-language"));
+  const preference = ((session.user as any)?.uiLanguage as UiLanguagePreference) ?? "device";
+  const locale = resolveLocale({
+    preference,
+    detectedLocales,
+    supportedLocales: ["en", "it"] as const,
+    fallback: "en",
+  });
 
   const [teacher, instructionBooklets, whatsNewUS, whatsNewIT] = await Promise.all([
     prisma.user.findUnique({
@@ -67,7 +79,7 @@ const serializableTeacher = {
 
   return (
     <div className="p-6 space-y-4 text-slate-100">
-      <WhatsNewDialog notes={whatsNewNotes} defaultLocale="us" />
+      <WhatsNewDialog notes={whatsNewNotes} defaultLocale={locale === "it" ? "it" : "us"} />
       <div>
         <h1 className="text-3xl font-bold">Lesson Defaults</h1>
         <p className="mt-1 text-slate-400">

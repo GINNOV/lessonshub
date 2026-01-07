@@ -26,14 +26,57 @@ interface FlashcardPlayerProps {
   isSubmissionLocked?: boolean;
   mode?: 'assignment' | 'practice';
   practiceExitHref?: string;
+  copy?: FlashcardCopy;
 }
+
+type FlashcardCopy = {
+  intro: string;
+  start: string;
+  deadlinePassed: string;
+  submitSuccess: string;
+  submitError: string;
+  resultsTitle: string;
+  correct: string;
+  incorrect: string;
+  rateLesson: string;
+  restart: string;
+  donePracticing: string;
+  submitFinish: string;
+  submitting: string;
+  flip: string;
+  notes: string;
+  wasWrong: string;
+  wasRight: string;
+};
+
+const defaultCopy: FlashcardCopy = {
+  intro: 'Tap the card to flip between front and back. After flipping, choose whether you were right or wrong.',
+  start: 'Start',
+  deadlinePassed: 'The deadline has passed. Submissions are disabled for this lesson.',
+  submitSuccess: 'Your results have been submitted!',
+  submitError: 'Failed to submit your results.',
+  resultsTitle: 'Results',
+  correct: 'Correct',
+  incorrect: 'Incorrect',
+  rateLesson: 'Rate this lesson',
+  restart: 'Restart',
+  donePracticing: 'Done practicing',
+  submitFinish: 'Submit & Finish',
+  submitting: 'Submitting...',
+  flip: 'Flip',
+  notes: 'Notes',
+  wasWrong: 'I was wrong',
+  wasRight: 'I was right',
+};
 
 export default function FlashcardPlayer({
   assignment,
   isSubmissionLocked = false,
   mode = 'assignment',
   practiceExitHref,
+  copy,
 }: FlashcardPlayerProps) {
+  const t = copy ?? defaultCopy;
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -101,17 +144,17 @@ export default function FlashcardPlayer({
       return;
     }
     if (isSubmissionLocked) {
-      toast.error("The deadline has passed. Submissions are disabled for this lesson.");
+      toast.error(t.deadlinePassed);
       return;
     }
     setIsSubmitting(true);
     const result = await submitFlashcardAssignment(assignment.id, answers, rating);
     if (result.success) {
-      toast.success("Your results have been submitted!");
+      toast.success(t.submitSuccess);
       router.push('/my-lessons');
       router.refresh();
     } else {
-      toast.error(result.error || "Failed to submit your results.");
+      toast.error(result.error || t.submitError);
       setIsSubmitting(false);
     }
   };
@@ -167,9 +210,9 @@ export default function FlashcardPlayer({
           </div>
         )}
         <p className="text-sm text-slate-400">
-          Tap the card to flip between front and back. After flipping, choose whether you were right or wrong.
+          {t.intro}
         </p>
-        <Button onClick={() => setIsStarted(true)} className="w-full">Start</Button>
+        <Button onClick={() => setIsStarted(true)} className="w-full">{t.start}</Button>
       </div>
     );
   }
@@ -177,12 +220,12 @@ export default function FlashcardPlayer({
   if (showResults) {
     return (
         <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center text-slate-100 shadow-xl">
-            <h2 className="mb-4 text-2xl font-bold">Results</h2>
-            <p className="font-semibold text-emerald-300">Correct: {correctCount}</p>
-            <p className="font-semibold text-rose-300">Incorrect: {incorrectCount}</p>
+            <h2 className="mb-4 text-2xl font-bold">{t.resultsTitle}</h2>
+            <p className="font-semibold text-emerald-300">{t.correct}: {correctCount}</p>
+            <p className="font-semibold text-rose-300">{t.incorrect}: {incorrectCount}</p>
             {!isPractice && (
               <div className="mt-6">
-                <h3 className="mb-2 text-lg font-semibold">Rate this lesson</h3>
+                <h3 className="mb-2 text-lg font-semibold">{t.rateLesson}</h3>
                 <div className="flex justify-center">
                   <Rating onRatingChange={setRating} disabled={isSubmissionLocked} />
                 </div>
@@ -190,15 +233,15 @@ export default function FlashcardPlayer({
             )}
             <div className="mt-6 flex flex-wrap justify-center gap-4">
               <Button onClick={handleRestart} variant="outline">
-                  <RotateCw className="mr-2 h-4 w-4" /> Restart
+                  <RotateCw className="mr-2 h-4 w-4" /> {t.restart}
               </Button>
               {isPractice ? (
                 <Button onClick={handlePracticeFinish}>
-                  <Check className="mr-2 h-4 w-4" /> Done practicing
+                  <Check className="mr-2 h-4 w-4" /> {t.donePracticing}
                 </Button>
               ) : (
                 <Button onClick={handleSubmit} disabled={isSubmitting || isSubmissionLocked}>
-                    <Send className="mr-2 h-4 w-4" /> {isSubmitting ? 'Submitting...' : 'Submit & Finish'}
+                    <Send className="mr-2 h-4 w-4" /> {isSubmitting ? t.submitting : t.submitFinish}
                 </Button>
               )}
             </div>
@@ -291,15 +334,15 @@ export default function FlashcardPlayer({
             type="button"
             variant="outline"
             onClick={handleFlip}
-            aria-label="Flip card"
+            aria-label={t.flip}
             className="border-slate-700 bg-slate-900/70 text-slate-100 hover:border-teal-400/60 hover:text-white"
           >
-            Flip
+            {t.flip}
           </Button>
         </div>
         {assignment.lesson.notes && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-200 shadow-lg">
-            <h3 className="font-semibold mb-1">Notes</h3>
+            <h3 className="font-semibold mb-1">{t.notes}</h3>
             <p>{assignment.lesson.notes}</p>
           </div>
         )}
@@ -308,8 +351,8 @@ export default function FlashcardPlayer({
         </div>
          {isFlipped && (
             <div className="flex justify-center gap-4 border-t border-slate-800 pt-4">
-                <Button onClick={() => handleAnswer(false)} variant="destructive">I was wrong</Button>
-                <Button onClick={() => handleAnswer(true)} className="bg-green-600 hover:bg-green-700">I was right</Button>
+                <Button onClick={() => handleAnswer(false)} variant="destructive">{t.wasWrong}</Button>
+                <Button onClick={() => handleAnswer(true)} className="bg-green-600 hover:bg-green-700">{t.wasRight}</Button>
             </div>
         )}
     </div>

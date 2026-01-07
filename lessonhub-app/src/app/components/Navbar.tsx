@@ -293,7 +293,39 @@ export default function Navbar() {
                 </DropdownMenu>
                 <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
                 {user?.role === Role.STUDENT && (
-                  <RateTeacherDialog open={isRateTeacherDialogOpen} onOpenChange={setIsRateTeacherDialogOpen} />
+                  <RateTeacherDialog
+                    open={isRateTeacherDialogOpen}
+                    onOpenChange={setIsRateTeacherDialogOpen}
+                    copy={
+                      locale === 'it'
+                        ? {
+                            title: 'Valuta il tuo insegnante',
+                            description:
+                              "Le tue risposte restano anonime agli insegnanti. Gli amministratori revisionano i feedback per mantenere alta la qualità delle lezioni.",
+                            chooseTeacher: 'Scegli un insegnante',
+                            loadingTeachers: 'Caricamento...',
+                            noTeachers: 'Nessun insegnante trovato',
+                            overallLabel: 'Impressione generale:',
+                            commentsLabel: 'Qualcos’altro?',
+                            commentsPlaceholder:
+                              'Condividi punti di forza o aspetti da migliorare. Sii breve e specifico.',
+                            cancel: 'Annulla',
+                            submit: 'Invia valutazione',
+                            submitting: 'Invio...',
+                            ratingFields: {
+                              contentQuality: 'Qualità dei contenuti',
+                              helpfulness: 'Disponibilità',
+                              communication: 'Comunicazione',
+                              valueForMoney: 'Rapporto qualità/prezzo',
+                            },
+                            toastLoadError: 'Impossibile caricare la lista insegnanti. Riprova.',
+                            toastSelectTeacher: 'Seleziona un insegnante da valutare.',
+                            toastSubmitSuccess: 'Grazie per il tuo feedback.',
+                            toastSubmitError: 'Impossibile inviare la valutazione al momento.',
+                          }
+                        : undefined
+                    }
+                  />
                 )}
                 {user?.role === Role.TEACHER && (
                   <TeacherClassNotesDialog open={isClassNotesDialogOpen} onOpenChange={setIsClassNotesDialogOpen} />

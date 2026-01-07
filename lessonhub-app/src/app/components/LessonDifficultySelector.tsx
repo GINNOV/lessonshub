@@ -104,6 +104,8 @@ interface IndicatorProps {
   showLabel?: boolean;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  labels?: string[];
+  srLabel?: string;
 }
 
 const sizeMap = {
@@ -117,8 +119,13 @@ export function LessonDifficultyIndicator({
   showLabel = true,
   className,
   size = 'md',
+  labels,
+  srLabel,
 }: IndicatorProps) {
   const normalizedValue = clampDifficulty(value);
+  const fallbackLabels = DIFFICULTY_OPTIONS.map((option) => option.label);
+  const normalizedLabels = labels && labels.length === fallbackLabels.length ? labels : fallbackLabels;
+  const currentLabel = normalizedLabels[normalizedValue - 1];
 
   return (
     <div className={cn('space-y-1', className)}>
@@ -143,10 +150,10 @@ export function LessonDifficultyIndicator({
       </div>
       {showLabel && (
         <div className={cn('text-[11px] font-semibold uppercase tracking-wide', DIFFICULTY_OPTIONS[normalizedValue - 1].text)}>
-          {DIFFICULTY_OPTIONS[normalizedValue - 1].label}
+          {currentLabel}
         </div>
       )}
-      <span className="sr-only">Lesson difficulty: {DIFFICULTY_OPTIONS[normalizedValue - 1].label}</span>
+      <span className="sr-only">{srLabel ?? `Lesson difficulty: ${currentLabel}`}</span>
     </div>
   );
 }

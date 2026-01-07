@@ -37,9 +37,65 @@ type ComposerAssignment = Omit<Assignment, 'lesson'> & {
 interface ComposerLessonPlayerProps {
   assignment: ComposerAssignment;
   isSubmissionLocked?: boolean;
+  copy?: ComposerLessonCopy;
 }
 
-export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = false }: ComposerLessonPlayerProps) {
+type ComposerLessonCopy = {
+  neoTest: string;
+  extraTriesNone: string;
+  extraTriesWithCost: string;
+  terminal: string;
+  answered: string;
+  questionProgress: string;
+  tries: string;
+  rateLesson: string;
+  previous: string;
+  next: string;
+  saveDraft: string;
+  saving: string;
+  submit: string;
+  submitting: string;
+  deadlinePassed: string;
+  missingSentence: string;
+  answerAll: string;
+  submitSuccess: string;
+  submitError: string;
+  draftSaved: string;
+  draftError: string;
+  missingConfig: string;
+};
+
+const defaultCopy: ComposerLessonCopy = {
+  neoTest: 'NEO Test',
+  extraTriesNone: 'Extra tries: 0',
+  extraTriesWithCost: 'Extra tries: {count} · €{euros} + {points} pts',
+  terminal: 'Terminal',
+  answered: 'answered',
+  questionProgress: 'Question {current} of {total}',
+  tries: 'Tries:',
+  rateLesson: 'Rate this lesson',
+  previous: 'Previous',
+  next: 'Next',
+  saveDraft: 'Save Draft',
+  saving: 'Saving...',
+  submit: 'Submit assignment',
+  submitting: 'Submitting...',
+  deadlinePassed: 'The deadline has passed. Submissions are disabled for this lesson.',
+  missingSentence: 'This composer lesson is missing a sentence.',
+  answerAll: 'Answer every question to reveal the full sentence.',
+  submitSuccess: 'Composer submitted! Your sentence is revealed.',
+  submitError: 'There was an error submitting your assignment.',
+  draftSaved: 'Draft saved.',
+  draftError: 'Unable to save draft right now.',
+  missingConfig: 'Composer lesson data is missing. Please contact support.',
+};
+
+export default function ComposerLessonPlayer({
+  assignment,
+  isSubmissionLocked = false,
+  copy,
+}: ComposerLessonPlayerProps) {
+  const t = copy ?? defaultCopy;
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<number, string>>(() => {
     if (!assignment.draftAnswers || typeof assignment.draftAnswers !== 'object') return {};
@@ -164,15 +220,15 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
 
   const handleSubmit = async () => {
     if (isSubmissionLocked) {
-      toast.error('The deadline has passed. Submissions are disabled for this lesson.');
+      toast.error(t.deadlinePassed);
       return;
     }
     if (words.length === 0) {
-      toast.error('This composer lesson is missing a sentence.');
+      toast.error(t.missingSentence);
       return;
     }
     if (answeredCount !== words.length) {
-      toast.error('Answer every question to reveal the full sentence.');
+      toast.error(t.answerAll);
       return;
     }
     setIsSubmitting(true);
@@ -187,10 +243,10 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
       rating: rating > 0 ? rating : undefined,
     });
     if (result.success) {
-      toast.success('Composer submitted! Your sentence is revealed.');
+      toast.success(t.submitSuccess);
       router.refresh();
     } else {
-      toast.error(result.error || 'There was an error submitting your assignment.');
+      toast.error(result.error || t.submitError);
       setIsSubmitting(false);
     }
   };
@@ -205,10 +261,10 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
     });
     setIsSavingDraft(false);
     if (result.success) {
-      toast.success('Draft saved.');
+      toast.success(t.draftSaved);
       router.refresh();
     } else {
-      toast.error(result.error || 'Unable to save draft right now.');
+      toast.error(result.error || t.draftError);
     }
   };
 
@@ -251,7 +307,7 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
   if (!composerConfig) {
     return (
       <div className="rounded-2xl border border-rose-400/40 bg-rose-500/10 p-4 text-rose-100">
-        Composer lesson data is missing. Please contact support.
+        {t.missingConfig}
       </div>
     );
   }
@@ -263,11 +319,14 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
         className="rounded-3xl border border-emerald-400/40 bg-gradient-to-b from-slate-900 via-emerald-950/20 to-slate-950 p-3 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.2em] text-emerald-200/70">
-          <span className="font-semibold">NEO Test</span>
+          <span className="font-semibold">{t.neoTest}</span>
           <span className="text-emerald-200/60">
             {totalExtraTries > 0
-              ? `Extra tries: ${totalExtraTries} · €${totalExtraTries * 50} + ${totalExtraTries * 50} pts`
-              : 'Extra tries: 0'}
+              ? t.extraTriesWithCost
+                  .replace('{count}', totalExtraTries.toString())
+                  .replace('{euros}', (totalExtraTries * 50).toString())
+                  .replace('{points}', (totalExtraTries * 50).toString())
+              : t.extraTriesNone}
           </span>
         </div>
         <div className="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-black/70 p-6 shadow-inner">
@@ -302,9 +361,9 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2 text-slate-100">
             <Terminal className="h-5 w-5" aria-hidden="true" />
-            <span className="text-lg font-semibold">Terminal</span>
+            <span className="text-lg font-semibold">{t.terminal}</span>
           </div>
-          <p className="text-xs text-slate-400">{answeredCount} / {words.length} answered</p>
+          <p className="text-xs text-slate-400">{answeredCount} / {words.length} {t.answered}</p>
         </div>
         {wordQuestions.length > 0 && (() => {
           const question = wordQuestions[currentQuestionIndex];
@@ -317,11 +376,13 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
                   disabled={currentQuestionIndex === 0}
                   className="border border-emerald-400/60 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
                 >
-                  <span className="hidden sm:inline">Previous</span>
+                  <span className="hidden sm:inline">{t.previous}</span>
                   <ChevronLeft className="h-4 w-4 sm:hidden" aria-hidden="true" />
                 </Button>
                 <span>
-                  Question {currentQuestionIndex + 1} of {wordQuestions.length}
+                  {t.questionProgress
+                    .replace('{current}', (currentQuestionIndex + 1).toString())
+                    .replace('{total}', wordQuestions.length.toString())}
                 </span>
                 <Button
                   type="button"
@@ -331,7 +392,7 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
                   disabled={currentQuestionIndex >= wordQuestions.length - 1}
                   className="border border-emerald-400/60 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
                 >
-                  <span className="hidden sm:inline">Next</span>
+                  <span className="hidden sm:inline">{t.next}</span>
                   <ChevronRight className="h-4 w-4 sm:hidden" aria-hidden="true" />
                 </Button>
               </div>
@@ -339,7 +400,7 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
                 {question.index + 1}. {question.prompt}
               </p>
               <p className="mt-1 text-xs text-slate-400">
-                Tries: {tries[question.index] ?? 0} / {maxTries}
+                {t.tries} {tries[question.index] ?? 0} / {maxTries}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {sortedOptions.map((option) => {
@@ -370,7 +431,7 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
         })()}
 
         <div className="mt-6 border-t border-slate-800/70 pt-6">
-          <h4 className="text-sm font-semibold text-slate-200">Rate this lesson</h4>
+          <h4 className="text-sm font-semibold text-slate-200">{t.rateLesson}</h4>
           <div className="mt-2">
             <Rating initialRating={rating} onRatingChange={setRating} />
           </div>
@@ -378,10 +439,10 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSavingDraft}>
-            {isSavingDraft ? 'Saving...' : 'Save Draft'}
+            {isSavingDraft ? t.saving : t.saveDraft}
           </Button>
           <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? 'Submitting...' : 'Submit assignment'}
+            {isSubmitting ? t.submitting : t.submit}
           </Button>
         </div>
       </div>

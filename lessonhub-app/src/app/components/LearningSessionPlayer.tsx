@@ -19,7 +19,46 @@ type LearningSessionCard = {
 interface LearningSessionPlayerProps {
   cards: LearningSessionCard[];
   lessonTitle?: string;
+  copy?: LearningSessionCopy;
 }
+
+type LearningSessionCopy = {
+  emptyCard: string;
+  noGuideCards: string;
+  cardProgress: string;
+  flipProgress: string;
+  tapToFlip: string;
+  playing: string;
+  listen: string;
+  nextPlayback: string;
+  nextPlaybackNormal: string;
+  nextPlaybackSlow: string;
+  flipCard: string;
+  nextCard: string;
+  viewing: string;
+  ttsEmpty: string;
+  ttsUnsupported: string;
+  ttsError: string;
+};
+
+const defaultCopy: LearningSessionCopy = {
+  emptyCard: 'No content available for this card.',
+  noGuideCards: 'No guide cards have been added yet.',
+  cardProgress: 'Card {current} of {total}',
+  flipProgress: 'Flip {current} of {total} · loops automatically',
+  tapToFlip: 'Tap to flip · loops after the final step',
+  playing: 'Playing…',
+  listen: 'LISTEN',
+  nextPlayback: 'Next playback: {mode}',
+  nextPlaybackNormal: 'normal speed',
+  nextPlaybackSlow: 'slow speed',
+  flipCard: 'Flip card',
+  nextCard: 'Next card',
+  viewing: "You're viewing {title}. Feel free to loop through cards at your own pace.",
+  ttsEmpty: 'Nothing to read aloud for this step.',
+  ttsUnsupported: 'Text-to-speech is not supported in this browser.',
+  ttsError: 'Something went wrong while playing the audio.',
+};
 
 const CARD_COLORS = [
   { bg: 'bg-rose-50', border: 'border-rose-100' },
@@ -35,7 +74,8 @@ type Stage = {
   ttsText?: string;
 };
 
-export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSessionPlayerProps) {
+export default function LearningSessionPlayer({ cards, lessonTitle, copy }: LearningSessionPlayerProps) {
+  const t = copy ?? defaultCopy;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [stageIndex, setStageIndex] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -75,11 +115,11 @@ export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSe
     if (c4) sequence.push({ key: 'content4', text: c4 });
 
     if (sequence.length === 0) {
-      sequence.push({ key: 'empty', text: 'No content available for this card.' });
+      sequence.push({ key: 'empty', text: t.emptyCard });
     }
 
     return sequence;
-  }, [currentCard]);
+  }, [currentCard, t]);
 
   useEffect(() => {
     setStageIndex(0);
@@ -115,11 +155,11 @@ export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSe
       stages[stageIndex]?.ttsText?.trim() || currentCard?.content3?.trim() || currentCard?.content1?.trim() || '';
 
     if (!textToSpeak) {
-      toast.error('Nothing to read aloud for this step.');
+      toast.error(t.ttsEmpty);
       return;
     }
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      toast.error('Text-to-speech is not supported in this browser.');
+      toast.error(t.ttsUnsupported);
       return;
     }
     const synth = window.speechSynthesis;
@@ -143,7 +183,7 @@ export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSe
         });
         setNextPlaybackMode(currentMode === 'normal' ? 'slow' : 'normal');
       } catch (error) {
-        toast.error('Something went wrong while playing the audio.');
+        toast.error(t.ttsError);
       } finally {
         synth.cancel();
         setIsSpeaking(false);
@@ -156,7 +196,7 @@ export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSe
   if (!orderedCards.length) {
     return (
       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-600">
-        No guide cards have been added yet.
+        {t.noGuideCards}
       </div>
     );
   }
@@ -168,10 +208,14 @@ export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSe
     <div className="space-y-6">
       <div className="flex flex-col gap-2 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
         <span>
-          Card {currentIndex + 1} of {orderedCards.length}
+          {t.cardProgress
+            .replace('{current}', (currentIndex + 1).toString())
+            .replace('{total}', orderedCards.length.toString())}
         </span>
         <span>
-          Flip {stageIndex + 1} of {stages.length} &middot; loops automatically
+          {t.flipProgress
+            .replace('{current}', (stageIndex + 1).toString())
+            .replace('{total}', stages.length.toString())}
         </span>
       </div>
 
@@ -189,7 +233,7 @@ export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSe
             {activeStage?.text}
           </p>
           <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">
-            Tap to flip &middot; loops after the final step
+            {t.tapToFlip}
           </p>
         {activeStage?.showTts && (
           <div className="mt-4 flex flex-col items-center gap-1">
@@ -204,10 +248,13 @@ export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSe
               disabled={isSpeaking}
             >
               <Volume2 className="mr-2 h-4 w-4" />
-              {isSpeaking ? 'Playing…' : 'LISTEN'}
+              {isSpeaking ? t.playing : t.listen}
             </Button>
             <p className="text-[11px] uppercase tracking-wide text-gray-500">
-              Next playback: {nextPlaybackMode === 'normal' ? 'normal speed' : 'slow speed'}
+              {t.nextPlayback.replace(
+                '{mode}',
+                nextPlaybackMode === 'normal' ? t.nextPlaybackNormal : t.nextPlaybackSlow
+              )}
             </p>
           </div>
         )}
@@ -222,16 +269,16 @@ export default function LearningSessionPlayer({ cards, lessonTitle }: LearningSe
           className="border-emerald-300/60 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_30px_rgba(34,197,94,0.35)] hover:brightness-110 hover:shadow-[0_14px_36px_rgba(34,197,94,0.4)]"
         >
           <RotateCw className="mr-2 h-4 w-4" />
-          Flip card
+          {t.flipCard}
         </Button>
         <Button type="button" onClick={handleNextCard}>
-          Next card
+          {t.nextCard}
         </Button>
       </div>
 
       {lessonTitle && (
         <p className="text-xs text-gray-500 text-center">
-          You&apos;re viewing <span className="font-semibold">{lessonTitle}</span>. Feel free to loop through cards at your own pace.
+          {t.viewing.replace('{title}', lessonTitle)}
         </p>
       )}
     </div>

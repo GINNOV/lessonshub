@@ -43,6 +43,10 @@ type GamificationSnapshot = {
 
 interface StudentGamificationPanelProps {
   data: GamificationSnapshot | null;
+  copy?: {
+    recentActivityTitle: string;
+    recentActivityEmpty: string;
+  };
 }
 
 const reasonLabels: Record<string, string> = {
@@ -66,7 +70,12 @@ function formatDate(value: string) {
 
 export default function StudentGamificationPanel({
   data,
+  copy,
 }: StudentGamificationPanelProps) {
+  const recentActivityTitle = copy?.recentActivityTitle ?? "Recent activity";
+  const recentActivityEmpty =
+    copy?.recentActivityEmpty ??
+    "Points updates will appear here once your next lesson is graded.";
   const [achievementsExpanded, setAchievementsExpanded] = useState(false);
 
   if (!data) {
@@ -249,12 +258,11 @@ export default function StudentGamificationPanel({
 
             <div>
               <h3 className="text-sm font-semibold text-slate-100">
-                Recent activity
+                {recentActivityTitle}
               </h3>
               {recentTransactions.length === 0 ? (
                 <p className="mt-2 text-xs text-slate-400">
-                  Points updates will appear here once your next lesson is
-                  graded.
+                  {recentActivityEmpty}
                 </p>
               ) : (
                 <ul className="mt-2 space-y-3">

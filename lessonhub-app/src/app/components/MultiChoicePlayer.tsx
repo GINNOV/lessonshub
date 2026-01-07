@@ -30,14 +30,63 @@ interface MultiChoicePlayerProps {
   isSubmissionLocked?: boolean;
   mode?: 'assignment' | 'practice';
   practiceExitHref?: string;
+  copy?: MultiChoiceCopy;
 }
+
+type MultiChoiceCopy = {
+  practiceAnswerAll: string;
+  deadlinePassed: string;
+  submitAnswerAll: string;
+  submitSuccess: string;
+  submitError: string;
+  draftSaved: string;
+  draftError: string;
+  resultsTitle: string;
+  resultsSummary: string;
+  tryAgain: string;
+  donePracticing: string;
+  finish: string;
+  rateLesson: string;
+  saveDraft: string;
+  savingDraft: string;
+  submitAnswers: string;
+  submitting: string;
+  lastSaved: string;
+  draftNotSaved: string;
+  checkResults: string;
+};
+
+const defaultCopy: MultiChoiceCopy = {
+  practiceAnswerAll: 'Answer every question to see your practice results.',
+  deadlinePassed: 'The deadline has passed. Submissions are disabled for this lesson.',
+  submitAnswerAll: 'Please answer all questions before submitting.',
+  submitSuccess: 'Your assignment has been submitted and graded!',
+  submitError: 'There was an error submitting your assignment.',
+  draftSaved: 'Draft saved. Finish whenever you’re ready.',
+  draftError: 'Unable to save draft right now.',
+  resultsTitle: 'Results',
+  resultsSummary: 'You answered {correct} out of {total} questions correctly.',
+  tryAgain: 'Try Again',
+  donePracticing: 'Done practicing',
+  finish: 'Finish',
+  rateLesson: 'Rate this lesson',
+  saveDraft: 'Save Draft',
+  savingDraft: 'Saving draft...',
+  submitAnswers: 'Submit Answers',
+  submitting: 'Submitting...',
+  lastSaved: 'Last saved {time}',
+  draftNotSaved: 'Draft not saved yet',
+  checkResults: 'Check results',
+};
 
 export default function MultiChoicePlayer({
   assignment,
   isSubmissionLocked = false,
   mode = 'assignment',
   practiceExitHref,
+  copy,
 }: MultiChoicePlayerProps) {
+  const t = copy ?? defaultCopy;
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
@@ -77,18 +126,18 @@ export default function MultiChoicePlayer({
   const handleSubmit = async () => {
     if (isPractice) {
       if (Object.keys(answers).length !== multiChoiceQuestions.length) {
-        toast.error('Answer every question to see your practice results.');
+        toast.error(t.practiceAnswerAll);
         return;
       }
       setShowResults(true);
       return;
     }
     if (isSubmissionLocked) {
-      toast.error('The deadline has passed. Submissions are disabled for this lesson.');
+      toast.error(t.deadlinePassed);
       return;
     }
     if (Object.keys(answers).length !== multiChoiceQuestions.length) {
-      toast.error('Please answer all questions before submitting.');
+      toast.error(t.submitAnswerAll);
       return;
     }
     setIsSubmitting(true);
@@ -100,10 +149,10 @@ export default function MultiChoicePlayer({
     );
 
     if (result.success) {
-      toast.success('Your assignment has been submitted and graded!');
+      toast.success(t.submitSuccess);
       setShowResults(true);
     } else {
-      toast.error(result.error || 'There was an error submitting your assignment.');
+      toast.error(result.error || t.submitError);
       setIsSubmitting(false);
     }
   };
@@ -119,10 +168,10 @@ export default function MultiChoicePlayer({
     if (result.success) {
       const now = new Date();
       setLastSavedAt(now);
-      toast.success('Draft saved. Finish whenever you’re ready.');
+      toast.success(t.draftSaved);
       router.refresh();
     } else {
-      toast.error(result.error || 'Unable to save draft right now.');
+      toast.error(result.error || t.draftError);
     }
   };
 
@@ -152,21 +201,23 @@ export default function MultiChoicePlayer({
 
     return (
       <div className="text-center p-8 border rounded-lg">
-        <h2 className="text-2xl font-bold mb-4">Results</h2>
+        <h2 className="text-2xl font-bold mb-4">{t.resultsTitle}</h2>
         <p className="text-green-600 font-semibold">
-          You answered {correctCount} out of {multiChoiceQuestions.length} questions correctly.
+          {t.resultsSummary
+            .replace('{correct}', correctCount.toString())
+            .replace('{total}', multiChoiceQuestions.length.toString())}
         </p>
         <div className="flex justify-center gap-4 mt-6">
           <Button onClick={handleRestart} variant="outline">
-              <RotateCw className="mr-2 h-4 w-4" /> Try Again
+              <RotateCw className="mr-2 h-4 w-4" /> {t.tryAgain}
           </Button>
           {isPractice ? (
             <Button onClick={handlePracticeFinish}>
-              <Check className="mr-2 h-4 w-4" /> Done practicing
+              <Check className="mr-2 h-4 w-4" /> {t.donePracticing}
             </Button>
           ) : (
             <Button onClick={() => router.push('/my-lessons')} >
-                Finish
+                {t.finish}
             </Button>
           )}
         </div>
@@ -195,7 +246,7 @@ export default function MultiChoicePlayer({
       ))}
       {!isPractice && (
         <div className="mt-6 border-t pt-6">
-          <h3 className="text-lg font-semibold mb-2 text-center">Rate this lesson</h3>
+          <h3 className="text-lg font-semibold mb-2 text-center">{t.rateLesson}</h3>
           <div className="flex justify-center">
             <Rating
               initialRating={rating}
@@ -214,22 +265,22 @@ export default function MultiChoicePlayer({
             disabled={isSavingDraft || isSubmissionLocked}
             className="w-full md:w-48"
           >
-            {isSavingDraft ? 'Saving draft...' : 'Save Draft'}
+            {isSavingDraft ? t.savingDraft : t.saveDraft}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || isSubmissionLocked}
             className="w-full md:flex-1"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Answers'}
+            {isSubmitting ? t.submitting : t.submitAnswers}
           </Button>
         </div>
       )}
       {(!isPractice && isPending) && (
         <p className="text-sm text-gray-500">
           {lastSavedAt
-            ? `Last saved ${formatDistanceToNow(lastSavedAt, { addSuffix: true })}`
-            : 'Draft not saved yet'}
+            ? t.lastSaved.replace('{time}', formatDistanceToNow(lastSavedAt, { addSuffix: true }))
+            : t.draftNotSaved}
         </p>
       )}
       {(isPractice || !isPending) && (
@@ -238,7 +289,7 @@ export default function MultiChoicePlayer({
           disabled={!isPractice ? (isSubmitting || isSubmissionLocked) : false}
           className="w-full"
         >
-          {isPractice ? 'Check results' : isSubmitting ? 'Submitting...' : 'Submit Answers'}
+          {isPractice ? t.checkResults : isSubmitting ? t.submitting : t.submitAnswers}
         </Button>
       )}
     </div>
