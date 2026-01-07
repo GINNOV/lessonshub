@@ -7,7 +7,7 @@ import { autoAssignLessonToAllStudents } from '@/lib/lessonAssignments';
 import { normalizeComposerWord, parseComposerSentence } from '@/lib/composer';
 import { randomUUID } from 'node:crypto';
 
-type ComposerQuestionPayload = { id?: string; prompt: string; answer: string };
+type ComposerQuestionPayload = { id?: string; prompt: string; answer: string; maxTries?: number | null };
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -77,13 +77,32 @@ export async function POST(request: Request) {
     );
   }
   const normalizedWords = words.map((word) => normalizeComposerWord(word));
-  const questionBank = (Array.isArray(questions) ? questions : [])
-    .map((question: ComposerQuestionPayload) => ({
-      id: question.id || randomUUID(),
-      prompt: String(question.prompt ?? '').trim(),
-      answer: String(question.answer ?? '').trim(),
-    }))
-    .filter((question) => question.prompt && question.answer);
+  const questionPayloads = Array.isArray(questions) ? questions : [];
+  const questionBank: Array<{ id: string; prompt: string; answer: string; maxTries?: number | null }> = [];
+  for (const [index, question] of questionPayloads.entries()) {
+    const prompt = String((question as ComposerQuestionPayload)?.prompt ?? '').trim();
+    const answer = String((question as ComposerQuestionPayload)?.answer ?? '').trim();
+    const rawMaxTries = (question as ComposerQuestionPayload)?.maxTries;
+    let maxTriesValue: number | null = null;
+    if (rawMaxTries !== null && rawMaxTries !== undefined) {
+      const parsedMaxTries = Number(rawMaxTries);
+      if (!Number.isInteger(parsedMaxTries) || parsedMaxTries < 1) {
+        return new NextResponse(
+          JSON.stringify({ error: `Question ${index + 1} max tries must be a whole number greater than 0.` }),
+          { status: 400 },
+        );
+      }
+      maxTriesValue = parsedMaxTries;
+    }
+    if (prompt && answer) {
+      questionBank.push({
+        id: (question as ComposerQuestionPayload)?.id || randomUUID(),
+        prompt,
+        answer,
+        maxTries: maxTriesValue,
+      });
+    }
+  }
 
   if (questionBank.length === 0) {
     return new NextResponse(

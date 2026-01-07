@@ -9,11 +9,13 @@ import Rating from '@/app/components/Rating';
 import { saveComposerAssignmentDraft, submitComposerAssignment } from '@/actions/lessonActions';
 import { hashComposerSeed, normalizeComposerWord, parseComposerSentence } from '@/lib/composer';
 import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, Terminal } from 'lucide-react';
 
 type ComposerQuestion = {
   id: string;
   prompt: string;
   answer: string;
+  maxTries?: number | null;
 };
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
@@ -62,20 +64,17 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
   const audioContextRef = useRef<AudioContext | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didAutoSaveInitRef = useRef(false);
+  const neoTestRef = useRef<HTMLDivElement | null>(null);
 
   const composerConfig = assignment.lesson.composerConfig;
   const sentence = composerConfig?.hiddenSentence ?? '';
   const questionBank = useMemo(() => composerConfig?.questionBank ?? [], [composerConfig?.questionBank]);
   const maxTries = composerConfig?.maxTries ?? 1;
   const { tokens, words, uniqueWords } = useMemo(() => parseComposerSentence(sentence), [sentence]);
-  const totalExtraTries = useMemo(() => {
-    return Object.values(tries).reduce((sum, attempts) => {
-      const value = Number(attempts ?? 0);
-      if (!Number.isFinite(value) || value <= maxTries) return sum;
-      return sum + (value - maxTries);
-    }, 0);
-  }, [tries, maxTries]);
-
+  const sortedOptions = useMemo(
+    () => [...uniqueWords].sort((a, b) => a.localeCompare(b)),
+    [uniqueWords],
+  );
   const questionsByWord = useMemo(() => {
     const map = new Map<string, ComposerQuestion[]>();
     questionBank.forEach((question) => {
@@ -95,6 +94,7 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
           index,
           word,
           prompt: `Select the word that matches: "${word}".`,
+          maxTries: null,
         };
       }
       const seed = hashComposerSeed(`${assignment.id}-${word}-${index}`);
@@ -103,9 +103,19 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
         index,
         word,
         prompt: selection.prompt,
+        maxTries: selection.maxTries ?? null,
       };
     });
   }, [assignment.id, questionsByWord, words]);
+
+  const totalExtraTries = useMemo(() => {
+    return wordQuestions.reduce((sum, question) => {
+      const value = Number(tries?.[question.index] ?? 0);
+      const questionMax = question.maxTries ?? maxTries;
+      if (!Number.isFinite(value) || value <= questionMax) return sum;
+      return sum + (value - questionMax);
+    }, 0);
+  }, [tries, maxTries, wordQuestions]);
 
   const answeredCount = useMemo(
     () => Object.keys(answers).filter((key) => answers[Number(key)]?.trim()).length,
@@ -144,6 +154,12 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
     const expected = wordQuestions[index]?.word ?? '';
     const isCorrect = normalizeComposerWord(value) === normalizeComposerWord(expected);
     playFeedbackTone(isCorrect);
+    if (neoTestRef.current) {
+      neoTestRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    if (isCorrect) {
+      setCurrentQuestionIndex((prev) => Math.min(prev + 1, wordQuestions.length - 1));
+    }
   };
 
   const handleSubmit = async () => {
@@ -241,17 +257,17 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-emerald-400/40 bg-gradient-to-b from-slate-900 via-emerald-950/20 to-slate-950 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+    <div className="space-y-4 sm:space-y-6">
+      <div
+        ref={neoTestRef}
+        className="rounded-3xl border border-emerald-400/40 bg-gradient-to-b from-slate-900 via-emerald-950/20 to-slate-950 p-3 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
+      >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.2em] text-emerald-200/70">
-          <span>NEO Test</span>
+          <span className="font-semibold">NEO Test</span>
           <span className="text-emerald-200/60">
             {totalExtraTries > 0
               ? `Extra tries: ${totalExtraTries} · €${totalExtraTries * 50} + ${totalExtraTries * 50} pts`
               : 'Extra tries: 0'}
-          </span>
-          <span>
-            {revealedWords}/{words.length} {isGraded ? 'correct' : 'answered'}
           </span>
         </div>
         <div className="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-black/70 p-6 shadow-inner">
@@ -282,48 +298,27 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-800/70 bg-slate-950/80 p-6 shadow-xl">
+      <div className="rounded-3xl border border-slate-800/70 bg-slate-950/80 p-3 sm:p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-100">Terminal Questions</h3>
+          <div className="flex items-center gap-2 text-slate-100">
+            <Terminal className="h-5 w-5" aria-hidden="true" />
+            <span className="text-lg font-semibold">Terminal</span>
+          </div>
           <p className="text-xs text-slate-400">{answeredCount} / {words.length} answered</p>
         </div>
         {wordQuestions.length > 0 && (() => {
           const question = wordQuestions[currentQuestionIndex];
           return (
-            <div className="rounded-2xl border border-slate-800/70 bg-slate-900/70 p-4">
-              <p className="text-sm font-semibold text-slate-200">
-                {question.index + 1}. {question.prompt}
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                Tries: {tries[question.index] ?? 0} / {maxTries}
-              </p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                {uniqueWords.map((option) => {
-                  const selected = answers[question.index] === option;
-                  return (
-                    <button
-                      key={`${question.index}-${option}`}
-                      type="button"
-                      onClick={() => handleSelect(question.index, option)}
-                      className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
-                        selected
-                          ? 'border-emerald-400/70 bg-emerald-500/20 text-emerald-100'
-                          : 'border-slate-800 bg-slate-950/70 text-slate-200 hover:border-emerald-300/50'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
+            <div className="rounded-2xl border border-slate-800/70 bg-slate-900/70 p-3 sm:p-4">
+              <div className="mb-3 flex items-center justify-between text-xs text-slate-400">
                 <Button
                   type="button"
                   onClick={() => setCurrentQuestionIndex((prev) => Math.max(prev - 1, 0))}
                   disabled={currentQuestionIndex === 0}
                   className="border border-emerald-400/60 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
                 >
-                  Previous
+                  <span className="hidden sm:inline">Previous</span>
+                  <ChevronLeft className="h-4 w-4 sm:hidden" aria-hidden="true" />
                 </Button>
                 <span>
                   Question {currentQuestionIndex + 1} of {wordQuestions.length}
@@ -336,8 +331,39 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
                   disabled={currentQuestionIndex >= wordQuestions.length - 1}
                   className="border border-emerald-400/60 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
                 >
-                  Next
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="h-4 w-4 sm:hidden" aria-hidden="true" />
                 </Button>
+              </div>
+              <p className="text-sm font-semibold text-slate-200">
+                {question.index + 1}. {question.prompt}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                Tries: {tries[question.index] ?? 0} / {maxTries}
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {sortedOptions.map((option) => {
+                  const selected = answers[question.index] === option;
+                  const isCorrectSelection =
+                    selected &&
+                    normalizeComposerWord(option) === normalizeComposerWord(question.word);
+                  return (
+                    <button
+                      key={`${question.index}-${option}`}
+                      type="button"
+                      onClick={() => handleSelect(question.index, option)}
+                      className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                        selected
+                          ? isCorrectSelection
+                            ? 'border-emerald-400/70 bg-emerald-500/20 text-emerald-100'
+                            : 'border-rose-400/70 bg-rose-500/20 text-rose-100'
+                          : 'border-slate-800 bg-slate-950/70 text-slate-200 hover:border-emerald-300/50'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );
@@ -355,7 +381,7 @@ export default function ComposerLessonPlayer({ assignment, isSubmissionLocked = 
             {isSavingDraft ? 'Saving...' : 'Save Draft'}
           </Button>
           <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? 'Submitting...' : 'Submit Composer'}
+            {isSubmitting ? 'Submitting...' : 'Submit assignment'}
           </Button>
         </div>
       </div>

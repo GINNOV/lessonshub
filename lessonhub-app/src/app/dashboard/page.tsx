@@ -173,6 +173,7 @@ export default async function DashboardPage({
           status: assignment.status,
           deadline: assignment.deadline,
           startDate: assignment.startDate,
+          assignedAt: assignment.assignedAt,
           classId: teacherLink?.classId ?? null,
           className: teacherLink?.class?.name ?? null,
         };
@@ -194,9 +195,15 @@ export default async function DashboardPage({
 
   const filteredLessons = day
     ? lessonsWithRatings.filter(lesson =>
-        // Check if ANY assignment for this lesson has a deadline on the selected day
+        // Check if ANY assignment for this lesson becomes available on the selected day
         lesson.assignments.some(
-          assignment => new Date(assignment.deadline).getDay() === Number(day)
+          assignment => {
+            const availableDate = assignment.startDate ?? assignment.assignedAt;
+            if (!availableDate) {
+              return false;
+            }
+            return new Date(availableDate).getDay() === Number(day);
+          }
         )
       )
     : lessonsWithRatings;

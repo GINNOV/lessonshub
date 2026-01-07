@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import { toast } from 'sonner';
 import { parseCsv } from '@/lib/csv';
-import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import LearningSessionPlayer from '@/app/components/LearningSessionPlayer';
 import {
   Dialog,
@@ -469,9 +468,6 @@ export default function LearningSessionCreator({
           onChange={(e) => setAssignmentText(e.target.value)}
           rows={5}
         />
-        <p className="text-xs text-muted-foreground">
-          Need reusable sets? <ManageInstructionBookletsLink />
-        </p>
       </div>
 
       <div className="form-field">

@@ -32,16 +32,24 @@ type SerializableLesson = {
   teacher: SerializableUser | null;
   completionCount: number;
   difficulty: number;
+  composerConfig?: {
+    hiddenSentence: string;
+  } | null;
+  questionCount?: number;
+  multiChoiceCount?: number;
 };
 
 type SerializableAssignment = {
   id: string;
   status: AssignmentStatus;
+  startDate?: Date | string | null;
+  assignedAt?: Date | string | null;
   deadline: Date | string;
   originalDeadline: Date | string | null;
   score: number | null;
   pointsAwarded: number;
   answers: any;
+  draftAnswers?: any;
   lesson: SerializableLesson;
 };
 
@@ -62,6 +70,15 @@ export default function StudentLessonList({
   filter: externalFilter,
   onFilterChange,
 }: StudentLessonListProps) {
+  const getWeekKey = (date: Date) => {
+    const tempDate = new Date(date.valueOf());
+    tempDate.setUTCDate(tempDate.getUTCDate() + 4 - (tempDate.getUTCDay() || 7));
+    const year = tempDate.getUTCFullYear();
+    const yearStart = new Date(Date.UTC(year, 0, 1));
+    const weekNo = Math.ceil((((tempDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    return { year, weekNo, key: `${year}-${weekNo}` };
+  };
+
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<StudentLessonFilter>(externalFilter ?? 'all');
   useEffect(() => {
@@ -78,6 +95,8 @@ export default function StudentLessonList({
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
     const now = new Date();
+    const getAvailabilityDate = (assignment: SerializableAssignment) =>
+      assignment.startDate || assignment.assignedAt || assignment.deadline;
     return (assignments || [])
       .filter(a => {
         // Status filter (only keep the requested ones)
@@ -94,7 +113,10 @@ export default function StudentLessonList({
         const teacher = a.lesson.teacher?.name?.toLowerCase() || '';
         return title.includes(term) || teacher.includes(term);
       })
-      .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+      .sort(
+        (a, b) =>
+          new Date(getAvailabilityDate(a)).getTime() - new Date(getAvailabilityDate(b)).getTime(),
+      );
   }, [assignments, filter, search]);
 
   return (
@@ -129,20 +151,26 @@ export default function StudentLessonList({
       ) : (
         <div className="space-y-8">
           {(() => {
-            const groups = new Map<number, SerializableAssignment[]>();
+            const groups = new Map<string, { weekNo: number; year: number; items: SerializableAssignment[] }>();
             filtered.forEach(a => {
-              const week = parseInt(getWeekAndDay(new Date(a.deadline)).split('-')[0], 10);
-              if (!groups.has(week)) groups.set(week, []);
-              groups.get(week)!.push(a);
+              const availabilityDate = a.startDate || a.assignedAt || a.deadline;
+              const { key, weekNo, year } = getWeekKey(new Date(availabilityDate));
+              if (!groups.has(key)) {
+                groups.set(key, { weekNo, year, items: [] });
+              }
+              groups.get(key)!.items.push(a);
             });
             // Show most recent weeks first
-            const orderedWeeks = Array.from(groups.keys()).sort((a, b) => b - a);
+            const orderedWeeks = Array.from(groups.values()).sort((a, b) => {
+              if (a.year !== b.year) return b.year - a.year;
+              return b.weekNo - a.weekNo;
+            });
             let cardIndex = 0;
-            return orderedWeeks.map(week => (
-              <div key={week} className="space-y-4">
-                <WeekDivider weekNumber={week} />
+            return orderedWeeks.map(group => (
+              <div key={`${group.year}-${group.weekNo}`} className="space-y-4">
+                <WeekDivider weekNumber={group.weekNo} year={group.year} />
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {groups.get(week)!.map(a => (
+                  {group.items.map(a => (
                     <StudentLessonCard key={a.id} assignment={a} index={cardIndex++} />
                   ))}
                 </div>

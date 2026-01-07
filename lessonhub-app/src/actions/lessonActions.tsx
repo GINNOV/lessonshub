@@ -14,7 +14,8 @@ import { awardBadgesForStudent, calculateAssignmentPoints } from "@/lib/gamifica
 import { hasAdminPrivileges } from "@/lib/authz";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 import { convertExtraPointsToEuro } from "@/lib/points";
-import { getComposerExtraTries, normalizeComposerWord, parseComposerSentence } from "@/lib/composer";
+import { getComposerExtraTries, hashComposerSeed, normalizeComposerWord, parseComposerSentence } from "@/lib/composer";
+import { marked } from "marked";
 
 export async function getUploadedImages() {
   try {
@@ -453,6 +454,7 @@ export async function saveMultiChoiceAssignmentDraft(
       },
     });
     revalidatePath(`/assignments/${assignmentId}`);
+    revalidatePath('/my-lessons');
     return { success: true };
   } catch (error) {
     console.error('Failed to save multi-choice draft:', error);
@@ -486,6 +488,7 @@ export async function saveComposerAssignmentDraft(
       },
     });
     revalidatePath(`/assignments/${assignmentId}`);
+    revalidatePath('/my-lessons');
     return { success: true };
   } catch (error) {
     console.error('Failed to save composer draft:', error);
@@ -530,6 +533,21 @@ export async function submitComposerAssignment(
     }
 
     const maxTries = assignment.lesson.composerConfig.maxTries ?? 1;
+    const questionBank = Array.isArray(assignment.lesson.composerConfig.questionBank)
+      ? (assignment.lesson.composerConfig.questionBank as Array<{
+          id: string;
+          prompt: string;
+          answer: string;
+          maxTries?: number | null;
+        }>)
+      : [];
+    const questionsByWord = new Map<string, Array<{ prompt: string; answer: string; maxTries?: number | null }>>();
+    questionBank.forEach((question) => {
+      if (!question?.answer || !question?.prompt) return;
+      const key = normalizeComposerWord(question.answer);
+      if (!questionsByWord.has(key)) questionsByWord.set(key, []);
+      questionsByWord.get(key)?.push(question);
+    });
 
     const answersByIndex = new Map<number, { word: string; prompt?: string }>();
     const tries = data.tries ?? {};
@@ -546,22 +564,29 @@ export async function submitComposerAssignment(
       const isCorrect = normalizeComposerWord(selectedWord) === normalizeComposerWord(word);
       if (isCorrect) correctCount += 1;
       const attempts = Number(tries?.[index] ?? 0);
+      const candidates = questionsByWord.get(normalizeComposerWord(word)) ?? [];
+      const seed = hashComposerSeed(`${assignment.id}-${word}-${index}`);
+      const chosenQuestion = candidates.length > 0 ? candidates[seed % candidates.length] : null;
       return {
         index,
-        prompt: selection?.prompt ?? null,
+        prompt: chosenQuestion?.prompt ?? selection?.prompt ?? `Select the word that matches: "${word}".`,
         selectedWord,
         correctWord: word,
         tries: attempts,
+        maxTries: chosenQuestion?.maxTries ?? null,
         isCorrect,
       };
     });
 
     const score = Math.round((correctCount / words.length) * 10);
 
-    const totalExtraTries = Object.values(tries || {}).reduce((sum, tries) => {
-      const attempts = Number(tries);
-      if (!Number.isFinite(attempts) || attempts <= maxTries) return sum;
-      return sum + (attempts - maxTries);
+    const totalExtraTries = processedAnswers.reduce((sum, answer) => {
+      const attempts = Number(answer.tries ?? 0);
+      const questionMax = Number(answer.maxTries ?? maxTries);
+      const effectiveMax =
+        Number.isInteger(questionMax) && questionMax > 0 ? questionMax : maxTries;
+      if (!Number.isFinite(attempts) || attempts <= effectiveMax) return sum;
+      return sum + (attempts - effectiveMax);
     }, 0);
 
     const pointsPenalty = totalExtraTries * 50;
@@ -712,6 +737,7 @@ export async function saveStandardAssignmentDraft(
     });
 
     revalidatePath(`/assignments/${assignmentId}`);
+    revalidatePath('/my-lessons');
     return { success: true };
   } catch (error) {
     console.error("Failed to save draft:", error);
@@ -744,6 +770,7 @@ export async function getLessonsForTeacher(teacherId: string) {
             status: true,
             deadline: true,
             startDate: true,
+            assignedAt: true,
             student: {
               select: {
                 teachers: {
@@ -939,6 +966,11 @@ export async function getAssignmentsForStudent(studentId: string) {
                     status: true,
                 },
             },
+            composerConfig: {
+                select: {
+                    hiddenSentence: true,
+                },
+            },
             teacher: {
                 select: {
                     id: true,
@@ -948,16 +980,13 @@ export async function getAssignmentsForStudent(studentId: string) {
                     defaultLessonPrice: true,
                 }
             },
-            _count: { select: { assignments: true } },
+            _count: { select: { assignments: true, multiChoiceQuestions: true } },
         } as const;
 
         const fetchAssignments = async (lessonSelect: typeof baseLessonSelect) => {
             return prisma.assignment.findMany({
                 where: {
                     studentId: studentId,
-                    startDate: {
-                        lte: new Date(),
-                    },
                 },
                 select: {
                     id: true,
@@ -972,6 +1001,7 @@ export async function getAssignmentsForStudent(studentId: string) {
                     studentNotes: true,
                     rating: true,
                     answers: true,
+                    draftAnswers: true,
                     teacherComments: true,
                     // teacherAnswerComments intentionally omitted for DBs without the column
                     reminderSentAt: true,
@@ -1767,6 +1797,9 @@ export async function gradeAssignment(
     if (template && assignment.student?.email) {
       try {
         const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
+        const teacherCommentsHtml = data.teacherComments
+          ? ((await marked.parse(data.teacherComments, { breaks: true })) as string)
+          : '';
         await sendEmail({
           to: assignment.student.email,
           templateName: 'graded',
@@ -1774,7 +1807,9 @@ export async function gradeAssignment(
             studentName: assignment.student.name || 'student',
             lessonTitle: assignment.lesson.title,
             score: data.score.toString(),
-            teacherComments: data.teacherComments ? `<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Teacher's Feedback:</strong><br/><em>&quot;${data.teacherComments}&quot;</em></p>` : '',
+            teacherComments: teacherCommentsHtml
+              ? `<div style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Teacher's Feedback:</strong><div style="margin-top: 8px;">${teacherCommentsHtml}</div></div>`
+              : '',
             button: createButton('View Your Grade', assignmentUrl),
           }
         });

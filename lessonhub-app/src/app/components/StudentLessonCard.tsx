@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials, cn, getWeekAndDay } from '@/lib/utils';
+import { parseComposerSentence } from '@/lib/composer';
 import LocaleDate from '@/app/components/LocaleDate';
 import { Button } from '@/components/ui/button';
 import { Share2, Users, RotateCw } from 'lucide-react';
@@ -38,6 +39,11 @@ type SerializableLesson = {
   teacher: SerializableUser | null;
   completionCount: number;
   difficulty: number;
+  composerConfig?: {
+    hiddenSentence: string;
+  } | null;
+  questionCount?: number;
+  multiChoiceCount?: number;
 };
 
 type SerializableAssignment = {
@@ -48,6 +54,7 @@ type SerializableAssignment = {
   score: number | null;
   pointsAwarded: number;
   answers: any;
+  draftAnswers?: any;
   lesson: SerializableLesson;
 };
 
@@ -77,9 +84,52 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
   const [shareId, setShareId] = useState<string | null>(lesson.public_share_id);
   const [isCopying, setIsCopying] = useState(false);
   const pointsEarned = Math.max(pointsAwarded ?? 0, 0);
-  const completionPercent = lesson.completionCount > 0
-    ? Math.round((lesson.submittedCount / lesson.completionCount) * 100)
-    : 0;
+  const completionPercent = (() => {
+    const draftAnswers = assignment.draftAnswers;
+    const hasDraftAnswers = draftAnswers && typeof draftAnswers === 'object';
+    if (lesson.type === LessonType.COMPOSER && lesson.composerConfig?.hiddenSentence) {
+      const totalWords = parseComposerSentence(lesson.composerConfig.hiddenSentence).words.length;
+      const draftAnswerMap =
+        hasDraftAnswers && (draftAnswers as { answers?: Record<string, string> }).answers
+          ? (draftAnswers as { answers?: Record<string, string> }).answers
+          : hasDraftAnswers
+            ? (draftAnswers as Record<string, string>)
+            : null;
+      const answeredCount = draftAnswers
+        ? Object.values(draftAnswerMap ?? {}).filter((value) => typeof value === 'string' && value.trim()).length
+        : Array.isArray(assignment.answers)
+          ? assignment.answers.filter((answer) => (answer as { selectedWord?: string })?.selectedWord?.trim()).length
+          : 0;
+      return totalWords > 0 ? Math.round((answeredCount / totalWords) * 100) : 0;
+    }
+    if (lesson.type === LessonType.MULTI_CHOICE && lesson.multiChoiceCount) {
+      const total = lesson.multiChoiceCount;
+      const answeredCount = hasDraftAnswers
+        ? Object.keys(draftAnswers as Record<string, string>).length
+        : Array.isArray(assignment.answers)
+          ? assignment.answers.length
+          : 0;
+      return total > 0 ? Math.round((answeredCount / total) * 100) : 0;
+    }
+    if (lesson.type === LessonType.STANDARD && lesson.questionCount) {
+      const total = lesson.questionCount;
+      const answeredCount = hasDraftAnswers && Array.isArray(draftAnswers)
+        ? draftAnswers.filter((value: unknown) => typeof value === 'string' && value.trim()).length
+        : Array.isArray(assignment.answers)
+          ? assignment.answers.filter((value: unknown) => {
+              if (typeof value === 'string') return value.trim();
+              if (value && typeof value === 'object') {
+                return Boolean((value as { answer?: string }).answer?.trim());
+              }
+              return false;
+            }).length
+          : 0;
+      return total > 0 ? Math.round((answeredCount / total) * 100) : 0;
+    }
+    return lesson.completionCount > 0
+      ? Math.round((lesson.submittedCount / lesson.completionCount) * 100)
+      : 0;
+  })();
   const canPractice =
     (status === AssignmentStatus.GRADED || status === AssignmentStatus.FAILED) &&
     (lesson.type === LessonType.FLASHCARD ||
@@ -119,6 +169,7 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
 
   // Prefer lesson-specific cover when available, otherwise fall back to curated type image
   const coverImage = lesson.assignment_image_url?.trim() || lessonTypeImages[lesson.type];
+  const isAnimatedGif = coverImage.toLowerCase().includes('.gif');
   const typeLabel = LESSON_TYPE_SHORT_LABELS[lesson.type] || 'LESSON';
 
   const lessonIdDisplay = `Lesson ${getWeekAndDay(currentDeadline)}`;
@@ -220,7 +271,8 @@ export default function StudentLessonCard({ assignment, index }: StudentLessonCa
             src={coverImage}
             alt={lesson.title}
             fill
-            priority={index < 3}
+            priority={index < 3 && !isAnimatedGif}
+            unoptimized={isAnimatedGif}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 60vw, 480px"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />

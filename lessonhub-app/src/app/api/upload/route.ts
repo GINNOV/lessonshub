@@ -27,6 +27,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       lowerFilename.endsWith('.png') ||
       lowerFilename.endsWith('.webp') ||
       lowerFilename.endsWith('.gif');
+    const isGif = lowerFilename.endsWith('.gif');
     const isPlainText = lowerFilename.endsWith('.lrc') || lowerFilename.endsWith('.txt');
 
     const originalBuffer = Buffer.from(await request.arrayBuffer());
@@ -34,7 +35,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     let processedBuffer: Buffer;
     let contentType = 'application/octet-stream';
 
-    if (isImage) {
+    if (isImage && !isGif) {
       try {
         const sharp = (await import('sharp')).default;
         processedBuffer = await sharp(originalBuffer)
@@ -52,6 +53,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         processedBuffer = originalBuffer;
         contentType = 'application/octet-stream';
       }
+    } else if (isGif) {
+      processedBuffer = originalBuffer;
+      contentType = 'image/gif';
     } else {
       processedBuffer = originalBuffer;
       contentType = isPlainText ? 'text/plain' : 'application/octet-stream';

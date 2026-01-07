@@ -14,7 +14,6 @@ import { getWeekAndDay } from '@/lib/utils';
 import { Info, Upload } from 'lucide-react';
 import { parseCsv } from '@/lib/csv';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
-import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import FileUploadButton from '@/components/FileUploadButton';
 import { Switch } from '@/components/ui/switch';
 
@@ -542,10 +541,6 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
           )}
         </div>
         <Textarea id="assignmentText" placeholder="Describe the main task for the student." value={assignmentText} onChange={(e) => setAssignmentText(e.target.value)} required disabled={isLoading} className="min-h-[100px]" />
-        <p className="text-xs text-muted-foreground">
-          Need reusable sets?{' '}
-          <ManageInstructionBookletsLink />
-        </p>
       </div>
       
       <div className="form-field space-y-3">

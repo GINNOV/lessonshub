@@ -144,6 +144,7 @@ export default async function MyLessonsPage() {
       originalDeadline: assignment.originalDeadline ?? null,
       deadline: adjustedDeadline,
       pointsAwarded: assignment.pointsAwarded ?? 0,
+      draftAnswers: (assignment as any).draftAnswers ?? null,
       // Ensure optional columns missing in some DBs are present for typing
       teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
       lesson: {
@@ -151,6 +152,8 @@ export default async function MyLessonsPage() {
         price: price.toNumber(),
         completionCount: _count.assignments,
         submittedCount,
+        questionCount: Array.isArray(restOfLesson.questions) ? restOfLesson.questions.length : 0,
+        multiChoiceCount: _count.multiChoiceQuestions ?? 0,
         teacher: teacher
           ? {
               ...teacher,

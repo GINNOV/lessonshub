@@ -3,6 +3,7 @@ export type ComposerQuestion = {
   id: string;
   prompt: string;
   answer: string;
+  maxTries?: number | null;
 };
 
 export type ComposerToken = {
@@ -79,7 +80,10 @@ export function getComposerExtraTries(answers: unknown, maxTries = 1) {
   if (!Array.isArray(answers)) return 0;
   return answers.reduce((sum, answer) => {
     const tries = Number((answer as { tries?: number })?.tries ?? 0);
-    if (!Number.isFinite(tries) || tries <= maxTries) return sum;
-    return sum + (tries - maxTries);
+    const perQuestionMax = Number((answer as { maxTries?: number | null })?.maxTries ?? maxTries);
+    const effectiveMax =
+      Number.isInteger(perQuestionMax) && perQuestionMax > 0 ? perQuestionMax : maxTries;
+    if (!Number.isFinite(tries) || tries <= effectiveMax) return sum;
+    return sum + (tries - effectiveMax);
   }, 0);
 }

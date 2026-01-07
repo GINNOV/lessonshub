@@ -385,13 +385,14 @@ export async function getTeacherDashboardStats(teacherId: string) {
           lesson: {
             teacherId,
           },
-          deadline: {
+          startDate: {
             gte: startOfWeek,
             lte: endOfWeek,
           },
         },
         select: {
-          deadline: true,
+          startDate: true,
+          assignedAt: true,
         },
       }),
       prisma.lesson.count({
@@ -435,7 +436,10 @@ export async function getTeacherDashboardStats(teacherId: string) {
       }),
     ]);
     
-    const lessonsThisWeekDays = lessonsThisWeek.map(lesson => new Date(lesson.deadline).getDay());
+    const lessonsThisWeekDays = lessonsThisWeek
+      .map((lesson) => lesson.startDate ?? lesson.assignedAt)
+      .filter((date): date is Date => !!date && !Number.isNaN(new Date(date).getTime()))
+      .map((date) => new Date(date).getDay());
 
     return {
       totalStudents,

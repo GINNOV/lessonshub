@@ -4,6 +4,7 @@ import Link from "next/link";
 import { marked } from "marked";
 import { Lesson } from "@prisma/client";
 import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Paperclip, Eye, Volume2, ExternalLink } from "lucide-react";
 marked.setOptions({
   gfm: true,
@@ -162,10 +163,26 @@ export default async function LessonContentView({ lesson, showInstructions = tru
       )}
 
       {contextHtml && (
-        <>
-          <h3 className="mt-4 text-lg font-semibold text-slate-100">Additional Information</h3>
-          <div className="prose prose-sm max-w-none text-slate-200" dangerouslySetInnerHTML={{ __html: contextHtml }} />
-        </>
+        <div className="mt-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-3 shadow-md">
+          <Accordion type="single" collapsible>
+            <AccordionItem value="additional-info" className="border-none">
+              <AccordionTrigger className="group py-0 text-left text-lg font-semibold text-slate-100 hover:no-underline">
+                <span className="flex flex-col gap-1">
+                  <span>Additional Information</span>
+                  <span className="text-xs font-normal text-slate-400 group-data-[state=open]:hidden">
+                    Additional information available.
+                  </span>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="pt-3">
+                <div
+                  className="prose prose-sm max-w-none text-slate-200"
+                  dangerouslySetInnerHTML={{ __html: contextHtml }}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
       )}
 
       {lesson.attachment_url && (

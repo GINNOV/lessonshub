@@ -18,6 +18,7 @@ import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
 import LocaleDate from "@/app/components/LocaleDate";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Check, X, CheckCircle2, XCircle, GraduationCap, UserRound } from "lucide-react";
 import Rating from "@/app/components/Rating";
 import { Button } from "@/components/ui/button";
@@ -204,6 +205,18 @@ export default async function AssignmentPage({
   const isPastDue =
     serializableAssignment.status === AssignmentStatus.PENDING &&
     new Date(serializableAssignment.deadline).getTime() < Date.now();
+  const deadlineDate = new Date(serializableAssignment.deadline);
+  const deadlineStartSource =
+    serializableAssignment.startDate ||
+    serializableAssignment.assignedAt;
+  const deadlineStartDate = deadlineStartSource ? new Date(deadlineStartSource) : null;
+  const deadlineWindowMs = deadlineStartDate
+    ? deadlineDate.getTime() - deadlineStartDate.getTime()
+    : null;
+  const deadlineElapsedMs = deadlineStartDate ? Date.now() - deadlineStartDate.getTime() : null;
+  const deadlineProgress = deadlineWindowMs && deadlineWindowMs > 0 && deadlineElapsedMs !== null
+    ? Math.min(100, Math.max(0, Math.round((deadlineElapsedMs / deadlineWindowMs) * 100)))
+    : null;
   const isStudentOwner = session.user.id === serializableAssignment.studentId;
   const canRequestExtension = isStudentOwner && serializableAssignment.status === AssignmentStatus.PENDING;
   const canRevealAnswers =
@@ -273,21 +286,30 @@ export default async function AssignmentPage({
   const content = (
     <>
       {!isFlashcard && (
-        <div className="my-6">
+        <div className="mt-1">
           <LessonContentView lesson={serializableAssignment.lesson} showInstructions={false} />
         </div>
       )}
 
       {showResponseArea ? (
-        <div className="mt-8 border-t border-gray-200 pt-6">
+        <div className="mt-1">
           {!isFlashcard && notesHtml && (
-            <div className="mb-4 rounded-lg border bg-gray-50 p-4 text-gray-800">
-              <h3 className="text-lg font-semibold mb-1">Notes</h3>
-              <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: notesHtml }} />
-            </div>
+            <Accordion type="single" collapsible className="mb-2 rounded-lg border bg-gray-50 p-4 text-gray-800">
+              <AccordionItem value="notes" className="border-none">
+                <AccordionTrigger className="group py-0 text-left text-lg font-semibold text-gray-900 hover:no-underline">
+                  <span className="flex flex-col gap-1">
+                    <span>Notes</span>
+                    <span className="text-xs font-normal text-gray-500 group-data-[state=open]:hidden">Notes available.</span>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="pt-3">
+                  <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: notesHtml }} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           )}
           {!isFlashcard && !isLearningSession && (
-            <h2 className="mb-4 text-2xl font-bold text-slate-100 drop-shadow-sm">Your Response</h2>
+            <div className="mb-1" aria-hidden="true" />
           )}
           {isFlashcard ? (
             <FlashcardPlayer assignment={serializableAssignment} isSubmissionLocked={isPastDue} />
@@ -564,14 +586,28 @@ export default async function AssignmentPage({
   );
   
   return (
-    <div className="mx-auto max-w-4xl rounded-3xl border border-slate-800/70 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+    <div className="mx-auto max-w-4xl rounded-3xl border border-slate-800/70 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-4 sm:p-6 lg:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
       {showConfetti && <Confetti />}
 
       <h1 className="mb-2 text-3xl font-bold text-slate-100">{lesson.title}</h1>
       <div className="mb-6 text-sm text-slate-300">
-        <p className="font-bold text-rose-200">
+        <p className="font-semibold text-slate-200">
           Deadline: <LocaleDate date={serializableAssignment.deadline} />
         </p>
+        {deadlineProgress !== null && (
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center justify-end gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 text-right">
+              <span>Time elapsed</span>
+              <span className="text-slate-100">{deadlineProgress}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-teal-400 via-lime-400 to-amber-400"
+                style={{ width: `${deadlineProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
       {hasExtendedDeadline && serializableAssignment.originalDeadline && (
         <div className="mt-1 space-y-1 text-xs text-slate-400">
           <p>
@@ -584,7 +620,7 @@ export default async function AssignmentPage({
         </div>
       )}
       </div>
-      {canRequestExtension && (
+      {canRequestExtension && deadlineProgress !== null && deadlineProgress >= 80 && (
         <StudentExtensionRequest
           assignmentId={serializableAssignment.id}
           disabled={studentExtensionUsed}

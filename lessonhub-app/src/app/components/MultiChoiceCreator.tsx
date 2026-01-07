@@ -14,7 +14,6 @@ import Image from 'next/image';
 import ImageBrowser from './ImageBrowser';
 import { Info, Download } from 'lucide-react';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
-import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import FileUploadButton from '@/components/FileUploadButton';
 import { Switch } from '@/components/ui/switch';
 import { parseCsv } from '@/lib/csv';
@@ -560,10 +559,6 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
           value={assignmentText}
           onChange={(e) => setAssignmentText(e.target.value)}
         />
-        <p className="text-xs text-gray-500">
-          Need reusable sets?{' '}
-          <ManageInstructionBookletsLink />
-        </p>
       </div>
 
        <div className="form-field">

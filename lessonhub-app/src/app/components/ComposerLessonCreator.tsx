@@ -15,7 +15,6 @@ import ImageBrowser from './ImageBrowser';
 import { toast } from 'sonner';
 import { parseComposerSentence } from '@/lib/composer';
 import { parseCsv } from '@/lib/csv';
-import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import { Download, Info, Upload } from 'lucide-react';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
@@ -45,6 +44,7 @@ type ComposerQuestion = {
   id: string;
   prompt: string;
   answer: string;
+  maxTries?: number | null;
 };
 
 interface ComposerLessonCreatorProps {
@@ -203,6 +203,7 @@ export default function ComposerLessonCreator({
         id: crypto.randomUUID(),
         prompt: '',
         answer: uniqueWords[0] || '',
+        maxTries: null,
       },
     ]);
   };
@@ -271,6 +272,9 @@ export default function ComposerLessonCreator({
     const headers = rows[0].map((header) => header.trim().toLowerCase());
     const wordIndex = headers.indexOf('word');
     const sentenceIndex = headers.indexOf('sentence');
+    const maxTriesIndex = headers.findIndex(
+      (header) => header === 'max_tries' || header === 'max tries' || header === 'maxtries',
+    );
     if (wordIndex === -1 || sentenceIndex === -1) {
       throw new Error('CSV header must include word and sentence.');
     }
@@ -279,6 +283,15 @@ export default function ComposerLessonCreator({
       const rowNumber = rowIdx + 2;
       const word = row[wordIndex]?.trim() ?? '';
       const sentence = row[sentenceIndex]?.trim() ?? '';
+      const rawMaxTries = maxTriesIndex >= 0 ? row[maxTriesIndex]?.trim() : '';
+      let maxTriesValue: number | null = null;
+      if (rawMaxTries) {
+        const parsedMaxTries = Number(rawMaxTries);
+        if (!Number.isInteger(parsedMaxTries) || parsedMaxTries < 1) {
+          throw new Error(`Row ${rowNumber}: max_tries must be a whole number greater than 0.`);
+        }
+        maxTriesValue = parsedMaxTries;
+      }
       if (!word && !sentence) return acc;
       if (!word || !sentence) {
         throw new Error(`Row ${rowNumber}: word and sentence are required.`);
@@ -287,6 +300,7 @@ export default function ComposerLessonCreator({
         id: crypto.randomUUID(),
         answer: word,
         prompt: sentence,
+        maxTries: maxTriesValue,
       });
       return acc;
     }, []);
@@ -314,10 +328,10 @@ export default function ComposerLessonCreator({
   };
 
   const downloadCsvTemplate = () => {
-    const headers = ['word', 'sentence'];
+    const headers = ['word', 'sentence', 'max_tries'];
     const sampleRows = [
-      ['snow', 'Which word completes the phrase "Let it ___"?'],
-      ['night', 'Fill the missing word: "Silent ____".'],
+      ['snow', 'Which word completes the phrase "Let it ___"?', ''],
+      ['night', 'Fill the missing word: "Silent ____".', '3'],
     ];
     const rows = [headers, ...sampleRows];
     const csv = rows
@@ -382,6 +396,14 @@ export default function ComposerLessonCreator({
     const maxTriesValue = Number(maxTries);
     if (!Number.isInteger(maxTriesValue) || maxTriesValue < 1) {
       toast.error('Max tries must be a whole number greater than 0.');
+      return false;
+    }
+    const invalidQuestionMax = questions.find(
+      (question) => question.maxTries !== null && question.maxTries !== undefined
+        && (!Number.isInteger(question.maxTries) || question.maxTries < 1),
+    );
+    if (invalidQuestionMax) {
+      toast.error('Question max tries must be a whole number greater than 0.');
       return false;
     }
     return true;
@@ -467,7 +489,6 @@ export default function ComposerLessonCreator({
       <div className="space-y-2">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <Label htmlFor="assignmentText" className="text-base font-semibold">Instructions</Label>
-          <ManageInstructionBookletsLink />
         </div>
         {instructionBooklets.length > 0 && (
           <div className="flex flex-col gap-2 md:flex-row md:items-center">
@@ -545,11 +566,6 @@ export default function ComposerLessonCreator({
           disabled={isSubmitting}
           placeholder="Enter the full sentence to reveal."
         />
-        {uniqueWords.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            {uniqueWords.length} unique words: {uniqueWords.join(', ')}
-          </p>
-        )}
       </div>
 
       <div className="space-y-2">
@@ -590,7 +606,7 @@ export default function ComposerLessonCreator({
             </Button>
           </div>
         </div>
-        <p className="text-xs text-slate-400">CSV schema: word, sentence</p>
+        <p className="text-xs text-slate-400">CSV schema: word, sentence, max_tries (optional)</p>
         {questions.length === 0 && (
           <p className="text-sm text-muted-foreground">No questions yet.</p>
         )}
@@ -634,6 +650,22 @@ export default function ComposerLessonCreator({
                   {questionCounts.get(question.answer.toLowerCase()) || 0} question(s) tagged for “{question.answer}”.
                 </p>
               )}
+            </div>
+            <div className="space-y-2">
+              <Label>Max tries for this question (optional)</Label>
+              <Input
+                type="number"
+                min="1"
+                placeholder="Use global"
+                value={question.maxTries ?? ''}
+                onChange={(event) => {
+                  const rawValue = event.target.value;
+                  const value = rawValue === '' ? null : Number(rawValue);
+                  updateQuestion(question.id, { maxTries: value });
+                }}
+                disabled={isSubmitting}
+              />
+              <p className="text-xs text-slate-400">Leave blank to use the global max tries.</p>
             </div>
           </div>
         ))}

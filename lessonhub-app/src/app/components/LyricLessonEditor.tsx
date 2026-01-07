@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
-import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import { Music, Play, Pause, Scissors, Clock, RefreshCw, Upload, HelpCircle, Download, BookOpenText } from 'lucide-react';
 import {
   Dialog,
@@ -999,9 +998,6 @@ export default function LyricLessonEditor({
           value={assignmentText}
           onChange={(e) => setAssignmentText(e.target.value)}
         />
-        <p className="text-xs text-muted-foreground">
-          Need reusable sets? <ManageInstructionBookletsLink />
-        </p>
       </div>
 
       <div className="space-y-2">

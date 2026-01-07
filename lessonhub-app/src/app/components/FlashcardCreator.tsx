@@ -14,7 +14,6 @@ import { Upload, Info, Download } from 'lucide-react';
 import ImageBrowser from './ImageBrowser';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import { parseCsv } from '@/lib/csv';
-import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 import FileUploadButton from '@/components/FileUploadButton';
 import { Switch } from '@/components/ui/switch';
 
@@ -529,10 +528,6 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
           value={assignmentText}
           onChange={(e) => setAssignmentText(e.target.value)}
         />
-        <p className="text-xs text-gray-500">
-          Need reusable sets?{' '}
-          <ManageInstructionBookletsLink />
-        </p>
       </div>
       
       <div className="form-field">
