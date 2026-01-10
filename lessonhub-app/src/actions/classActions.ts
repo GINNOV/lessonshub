@@ -161,12 +161,33 @@ export async function sendClassNotes(classId: string | null, message: string) {
     return { success: false, error: 'Unauthorized' };
   }
 
+  const sanitizeRichText = (value: string) =>
+    value
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+      .replace(/\son\w+=(\"[^\"]*\"|'[^']*'|[^\s>]+)/gi, '')
+      .replace(/href=(\"|')javascript:[^\"']*(\"|')/gi, 'href="#"');
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  const stripTags = (value: string) =>
+    value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
   const trimmedMessage = message.trim();
-  if (!trimmedMessage) {
+  const plainText = stripTags(trimmedMessage);
+  if (!plainText) {
     return { success: false, error: 'Message cannot be empty.' };
   }
 
   try {
+    const sanitizedMessage = sanitizeRichText(trimmedMessage);
+    const formattedMessage = /<[^>]+>/.test(sanitizedMessage)
+      ? sanitizedMessage
+      : escapeHtml(sanitizedMessage).replace(/\n/g, '<br />');
     const links = await prisma.teachersForStudent.findMany({
       where: {
         teacherId: session.user.id,
@@ -211,12 +232,13 @@ export async function sendClassNotes(classId: string | null, message: string) {
     const teacherName = session.user.name || 'Your teacher';
     const className =
       classId && links[0]?.class?.name ? links[0].class.name : null;
-    const subject = className
-      ? `Notes for ${className}`
-      : `Notes from ${teacherName}`;
-    const messageBody = `${trimmedMessage}\n\n— ${teacherName}`;
-
+    const subject = 'Notes from your teacher.';
     for (const [email, { name }] of recipients) {
+      const messageBody = `
+        <p style="color:#525f7f;font-size:16px;line-height:24px;text-align:left;">Hello ${name || 'student'},</p>
+        <div style="color:#525f7f;font-size:16px;line-height:24px;text-align:left;">${formattedMessage}</div>
+        <p style="color:#525f7f;font-size:16px;line-height:24px;text-align:left;">— ${teacherName}</p>
+      `;
       await sendEmail({
         to: email,
         templateName: 'custom',
@@ -227,7 +249,7 @@ export async function sendClassNotes(classId: string | null, message: string) {
         },
         override: {
           subject,
-          body: `Hello ${name || 'student'},\n\n${messageBody}`,
+          body: messageBody,
         },
       });
     }

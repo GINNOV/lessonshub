@@ -23,7 +23,7 @@ interface AssignLessonFormProps {
   lesson: Omit<Lesson, 'price'> & { price: number };
   students: StudentWithStats[];
   existingAssignments: Assignment[];
-  calendarAssignments?: Pick<Assignment, 'deadline' | 'lessonId'>[];
+  calendarAssignments?: Pick<Assignment, 'deadline' | 'lessonId' | 'startDate' | 'assignedAt'>[];
   classes?: { id: string; name: string; isActive: boolean }[];
 }
 
@@ -46,11 +46,43 @@ const getDefaultMidnightDate = () => {
     return formatDateTimeForInput(tomorrow);
 }
 
-const getDefaultStartDate = () => {
-    const today = new Date();
-    today.setHours(9, 0, 0, 0); // Today at 9:00 AM
-    return formatDateTimeForInput(today);
-}
+const getAvailabilityDateKey = (value: Date | string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toLocaleDateString('en-CA');
+};
+
+const getDefaultStartDate = (
+  assignments: Array<{ startDate?: Date | string | null; assignedAt?: Date | string | null }>
+) => {
+  const availabilityCounts = new Map<string, number>();
+  assignments.forEach((assignment) => {
+    const availableDate = assignment.startDate ?? assignment.assignedAt;
+    if (!availableDate) return;
+    const key = getAvailabilityDateKey(availableDate);
+    if (!key) return;
+    availabilityCounts.set(key, (availabilityCounts.get(key) ?? 0) + 1);
+  });
+
+  const now = new Date();
+  const candidate = new Date(now);
+  candidate.setHours(6, 0, 0, 0);
+  if (candidate < now) {
+    candidate.setDate(candidate.getDate() + 1);
+  }
+
+  const maxDaysToCheck = 365;
+  for (let i = 0; i < maxDaysToCheck; i += 1) {
+    const key = candidate.toLocaleDateString('en-CA');
+    if (!availabilityCounts.has(key)) {
+      return formatDateTimeForInput(candidate);
+    }
+    candidate.setDate(candidate.getDate() + 1);
+    candidate.setHours(6, 0, 0, 0);
+  }
+
+  return formatDateTimeForInput(candidate);
+};
 
 const toISOStringWithTimezone = (value: string | undefined): string | null => {
   if (!value) return null;
@@ -86,9 +118,14 @@ export default function AssignLessonForm({
     return d;
   });
 
+  const defaultStartDate = useMemo(
+    () => getDefaultStartDate(calendarAssignments),
+    [calendarAssignments],
+  );
+
   // Initialize with default values first
   const [masterDeadline, setMasterDeadline] = useState<string>(getDefaultMidnightDate());
-  const [masterStartDate, setMasterStartDate] = useState<string>(getDefaultStartDate());
+  const [masterStartDate, setMasterStartDate] = useState<string>(defaultStartDate);
   
   const existingAssignmentsMap = useMemo(() => 
     new Map(existingAssignments.map(a => [a.studentId, a])), 

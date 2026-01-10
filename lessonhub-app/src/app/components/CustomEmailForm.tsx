@@ -1,7 +1,7 @@
 // file: src/app/components/CustomEmailForm.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,21 @@ export default function CustomEmailForm({ lessonId }: CustomEmailFormProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const [scrollProgress, setScrollProgress] = useState(0);
+    const [hasOverflow, setHasOverflow] = useState(false);
+
+    const updateScrollProgress = () => {
+        const el = textareaRef.current;
+        if (!el) return;
+        const maxScroll = el.scrollHeight - el.clientHeight;
+        setHasOverflow(maxScroll > 0);
+        setScrollProgress(maxScroll > 0 ? el.scrollTop / maxScroll : 0);
+    };
+
+    useEffect(() => {
+        updateScrollProgress();
+    }, [body]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,14 +69,29 @@ export default function CustomEmailForm({ lessonId }: CustomEmailFormProps) {
             </div>
             <div className="space-y-2">
                 <Label htmlFor="body">Email Body (HTML is supported)</Label>
-                <Textarea 
-                    id="body"
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    disabled={isLoading}
-                    className="min-h-[300px]"
-                    required
-                />
+                <div className="relative">
+                    <Textarea 
+                        id="body"
+                        ref={textareaRef}
+                        value={body}
+                        onChange={(e) => {
+                            setBody(e.target.value);
+                            requestAnimationFrame(updateScrollProgress);
+                        }}
+                        onScroll={updateScrollProgress}
+                        disabled={isLoading}
+                        className="min-h-[300px] max-h-[60vh] overflow-y-auto pr-8"
+                        required
+                    />
+                    {hasOverflow && (
+                        <div className="pointer-events-none absolute right-3 top-3 bottom-3 w-1 rounded-full bg-slate-200">
+                            <div
+                                className="absolute bottom-0 left-0 right-0 rounded-full bg-emerald-400 transition-[height] duration-150"
+                                style={{ height: `${Math.max(scrollProgress * 100, 8)}%` }}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
             <div className="flex justify-end">
                 <Button type="submit" disabled={isLoading}>

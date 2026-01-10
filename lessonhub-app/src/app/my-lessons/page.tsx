@@ -92,8 +92,18 @@ export default async function MyLessonsPage() {
 
   const total = assignments.length;
   const now = new Date();
+  const getAvailabilityDate = (assignment: typeof assignments[number]) =>
+    assignment.startDate || assignment.assignedAt || assignment.deadline;
+  const isAvailable = (assignment: typeof assignments[number]) => {
+    const availability = new Date(getAvailabilityDate(assignment));
+    if (Number.isNaN(availability.getTime())) return true;
+    return availability <= now;
+  };
   const pending = assignments.filter(
-    (a) => a.status === AssignmentStatus.PENDING && new Date(a.deadline) > now,
+    (a) =>
+      a.status === AssignmentStatus.PENDING &&
+      isAvailable(a) &&
+      new Date(a.deadline) > now,
   ).length;
   const submitted = assignments.filter(
     (a) => a.status === AssignmentStatus.COMPLETED,
@@ -139,9 +149,14 @@ export default async function MyLessonsPage() {
           })()
         : assignment.deadline;
 
+    const normalizedOriginalDeadline =
+      adjustedDeadline !== assignment.deadline
+        ? adjustedDeadline
+        : assignment.originalDeadline ?? null;
+
     return {
       ...assignment,
-      originalDeadline: assignment.originalDeadline ?? null,
+      originalDeadline: normalizedOriginalDeadline,
       deadline: adjustedDeadline,
       pointsAwarded: assignment.pointsAwarded ?? 0,
       draftAnswers: (assignment as any).draftAnswers ?? null,

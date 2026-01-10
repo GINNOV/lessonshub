@@ -2,6 +2,18 @@
 
 This document describes how to integrate the full email template system (editor + preview + sending) into another project using the same stack as this app (Next.js App Router + Prisma + Resend).
 
+## Features & Capabilities
+
+This email template system provides a complete solution for managing transactional emails within the application admin panel.
+
+*   **Visual Admin Interface:** A dedicated admin page to view, edit, and manage all system email templates without code changes.
+*   **Live Preview:** Real-time rendering of email HTML as you edit, using realistic dummy data to simulate the final look.
+*   **Dynamic Placeholders:** One-click insertion of dynamic variables (e.g., `{{studentName}}`, `{{lessonTitle}}`) directly from the editor UI.
+*   **Test Sending:** Instantly send a test version of the template to any email address to verify compatibility across different email clients.
+*   **Smart Defaults:** Comes pre-seeded with a comprehensive set of templates (Welcome, New Assignment, Graded, Reminders, etc.) that can be customized or reset.
+*   **Customizable Styling:** Granular control over email body HTML and specific elements like "Call to Action" button colors.
+*   **Categorization:** Templates are organized by category (Onboarding, Assignments, Billing, etc.) with descriptions for easy maintenance.
+
 ## What to bring over (files + responsibilities)
 
 ### Core template system

@@ -35,8 +35,10 @@ export default async function AssignPage({ params }: { params: Promise<{ lessonI
         lesson: { teacherId: session.user.id },
       },
       select: {
+        assignedAt: true,
         deadline: true,
         lessonId: true,
+        startDate: true,
       },
     }),
     getClassesForTeacher(),
