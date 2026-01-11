@@ -19,7 +19,7 @@ export default function PrivacyPage() {
 
       <h2>1. Who We Are</h2>
       <p>
-        LessonHUB is operated by QuantifyThis ("we," "us," or "our"). This
+        LessonHUB is operated by QuantifyThis (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). This
         Privacy Policy explains how we collect, use, and protect personal data
         when you use our website, apps, and services.
       </p>

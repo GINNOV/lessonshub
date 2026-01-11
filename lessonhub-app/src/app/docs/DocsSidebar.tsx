@@ -30,9 +30,11 @@ export default function DocsSidebar({ meta, locale }: DocsSidebarProps) {
   const sidebarTitle = locale === 'it' ? 'Documentazione' : 'Documentation';
   const placeholder = locale === 'it' ? 'Cerca...' : 'Search...';
   const noResults = locale === 'it' ? 'Nessun risultato' : 'No results found';
-  const sectionTitles = locale === 'it'
-    ? { students: 'Studenti', teachers: 'Insegnanti', billing: 'Fatturazione e Premi' }
-    : { students: 'Students', teachers: 'Teachers', billing: 'Billing & Rewards' };
+  const sectionTitles = useMemo(() => (
+    locale === 'it'
+      ? { students: 'Studenti', teachers: 'Insegnanti', billing: 'Fatturazione e Premi' }
+      : { students: 'Students', teachers: 'Teachers', billing: 'Billing & Rewards' }
+  ), [locale]);
   const sections = useMemo(() => {
     const grouped: Record<string, Array<[string, string]>> = { students: [], teachers: [], billing: [] };
     filteredLinks.forEach(([slug, title]) => {
