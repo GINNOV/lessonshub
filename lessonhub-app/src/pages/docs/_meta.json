@@ -5,9 +5,10 @@
   "students/points-and-savings": "Points & Savings",
   "students/assignments-lessons": "Assignments & Lessons",
   "students/hub-guides": "Hub Guides",
-  "students/profile-billing": "Profile & Billing",
   "students/troubleshooting": "Troubleshooting",
   "teachers/teacher-tools": "Teacher Tools",
   "teachers/admin-ops": "Admin & Operations",
-  "teachers/lyric-lessons": "Lyric Lessons (Technical)"
+  "teachers/lyric-lessons": "Lyric Lessons (Technical)",
+  "billing-rewards/profile-billing": "Profile & Billing",
+  "billing-rewards/referrals": "Referrals & Rewards"
 }
