@@ -5,6 +5,7 @@
 import { SessionProvider } from 'next-auth/react';
 import { ReactNode } from 'react';
 import { Toaster } from 'sonner';
+import PrivacyConsentBanner from './PrivacyConsentBanner';
 
 interface Props {
   children: ReactNode;
@@ -15,6 +16,7 @@ export default function Providers({ children }: Props) {
   return (
     <SessionProvider refetchInterval={5 * 60}>
       {children}
+      <PrivacyConsentBanner />
       <Toaster position="top-right" richColors closeButton />
     </SessionProvider>
   );

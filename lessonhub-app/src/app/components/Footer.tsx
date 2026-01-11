@@ -22,6 +22,7 @@ export default async function Footer() {
         about: 'Chi siamo',
         contact: 'Contatti',
         privacy: 'Privacy',
+        cookies: 'Cookie',
         docs: 'Documentazione',
       }
     : {
@@ -30,6 +31,7 @@ export default async function Footer() {
         about: 'About Us',
         contact: 'Contact Us',
         privacy: 'Privacy',
+        cookies: 'Cookie settings',
         docs: 'Docs',
       };
   const currentYear = new Date().getFullYear();
@@ -57,7 +59,7 @@ export default async function Footer() {
     const fallback = new Date();
     return fallback.toISOString().slice(0, 10);
   })();
-  const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || '';
+  const docsUrl = '/docs';
 
   return (
     <footer className="mt-auto border-t border-slate-800/70 bg-slate-950/80 backdrop-blur-xl">
@@ -73,6 +75,9 @@ export default async function Footer() {
           <Link href="/about" className="hover:text-slate-200 transition-colors">{copy.about}</Link>
           <Link href="/contact" className="hover:text-slate-200 transition-colors">{copy.contact}</Link>
           <Link href="/privacy" className="hover:text-slate-200 transition-colors">{copy.privacy}</Link>
+          <Link href="/privacy#cookie-preferences" className="hover:text-slate-200 transition-colors">
+            {copy.cookies}
+          </Link>
           {docsUrl && (
             <Link href={docsUrl} className="hover:text-slate-200 transition-colors" target="_blank" rel="noopener noreferrer">
               {copy.docs}

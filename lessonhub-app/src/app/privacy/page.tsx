@@ -1,6 +1,7 @@
 // file: src/app/privacy/page.tsx
 
 import type { Metadata } from 'next'
+import PrivacyPreferencesPanel from '@/app/components/PrivacyPreferencesPanel'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -10,87 +11,136 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="max-w-4xl mx-auto prose prose-lg">
-      <h1>Privacy Policy for LessonHUB</h1>
+    <div className="max-w-4xl mx-auto prose prose-lg prose-slate prose-invert">
+      <h1>Privacy Policy</h1>
       <p>
-        <strong>Last Updated:</strong> September 6, 2025
+        <strong>Last Updated:</strong> January 11, 2026
       </p>
 
-      <h2>1. Introduction</h2>
+      <h2>1. Who We Are</h2>
       <p>
-        Welcome to LessonHUB (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains what information we collect, how we use it, and what rights you have in relation to it. This policy applies to all information collected through our website and services.
+        LessonHUB is operated by QuantifyThis ("we," "us," or "our"). This
+        Privacy Policy explains how we collect, use, and protect personal data
+        when you use our website, apps, and services.
+      </p>
+      <p>
+        If you have questions about this policy or your data rights, contact us
+        at <a href="mailto:contact@quantifythis.com">contact@quantifythis.com</a>.
       </p>
 
-      <h2>2. Information We Collect</h2>
-      <p>
-        We collect personal information that you voluntarily provide to us when you register an account, as well as information that is collected automatically.
-      </p>
+      <h2>2. Personal Data We Collect</h2>
       <ul>
         <li>
-          <strong>Personal Information You Disclose to Us:</strong> We collect your name, email address, password (in a hashed format), and role (Student, Teacher, or Admin). You may also voluntarily provide a profile image.
+          <strong>Account data:</strong> name, email address, password (hashed),
+          role, profile image, timezone, language preference, and optional bio
+          fields.
         </li>
         <li>
-          <strong>Information from Third-Party Services:</strong> If you choose to register or log in using a third-party service like Google, we will collect your name, email address, and profile picture from that service.
+          <strong>Learning data:</strong> lesson assignments, submissions,
+          scores, comments, progress, and related activity.
         </li>
         <li>
-          <strong>Usage Data:</strong> We may automatically collect information about your device and how you interact with our service, such as your IP address and last seen date.
+          <strong>Usage data:</strong> device identifiers, IP address, browser
+          type, and login events.
+        </li>
+        <li>
+          <strong>Billing data:</strong> payment status, coupons redeemed, and
+          related metadata.
         </li>
       </ul>
 
-      <h2>3. How We Use Your Information</h2>
-      <p>
-        We use the information we collect for various purposes, including to:
-      </p>
+      <h2>3. Legal Bases for Processing (GDPR)</h2>
       <ul>
-        <li>Create and manage your account.</li>
-        <li>Provide, operate, and maintain our services.</li>
-        <li>Enable communication between Teachers and Students.</li>
-        <li>Send you transactional emails, such as new assignment notifications, reminders, and grading updates.</li>
-        <li>Respond to your requests and provide customer support.</li>
-        <li>Improve our website and services.</li>
+        <li>
+          <strong>Contract:</strong> to provide your account, lessons, and core
+          services.
+        </li>
+        <li>
+          <strong>Consent:</strong> for optional analytics/marketing cookies and
+          communications where required.
+        </li>
+        <li>
+          <strong>Legitimate interests:</strong> to improve the platform,
+          prevent abuse, and secure our services.
+        </li>
+        <li>
+          <strong>Legal obligations:</strong> to meet financial, tax, or
+          regulatory requirements.
+        </li>
       </ul>
 
-      <h2>4. How We Share Your Information</h2>
-      <p>
-        We do not sell your personal information. We may share your information with third-party vendors and service providers that perform services for us, such as:
-      </p>
+      <h2>4. How We Use Personal Data</h2>
       <ul>
-        <li>Database hosting (e.g., Vercel Postgres, Neon).</li>
-        <li>Email delivery services (e.g., Resend).</li>
-        <li>Authentication providers (e.g., Google).</li>
-      </ul>
-      <p>
-        We may also disclose your information if we are required to do so by law.
-      </p>
-      
-      <h2>5. Data Security</h2>
-      <p>
-        We have implemented appropriate technical and organizational security measures designed to protect the security of any personal information we process. However, please also remember that we cannot guarantee that the internet itself is 100% secure.
-      </p>
-      
-      <h2>6. Your Data Protection Rights</h2>
-      <p>
-        You have the following data protection rights:
-      </p>
-      <ul>
-        <li><strong>The right to access:</strong> You can request copies of your personal data.</li>
-        <li><strong>The right to rectification:</strong> You can request that we correct any information you believe is inaccurate or complete information you believe is incomplete. You can manage your name and profile picture from your profile page.</li>
-        <li><strong>The right to erasure:</strong> You can request that we erase your personal data, under certain conditions. You can delete your own account from your profile page.</li>
+        <li>Create and manage accounts and lesson delivery.</li>
+        <li>Send service emails (assignments, reminders, grading updates).</li>
+        <li>Provide support and respond to inquiries.</li>
+        <li>Improve the user experience and platform performance.</li>
+        <li>Detect, prevent, and address fraud or abuse.</li>
       </ul>
 
-      <h2>7. Children&apos;s Privacy</h2>
+      <h2>5. Cookies and Tracking</h2>
       <p>
-        Our services are not intended for use by children under the age of 13, and we do not knowingly collect personal information from children under 13.
+        We use essential cookies to keep LessonHUB secure and functional.
+        Optional analytics and marketing cookies are used only with your
+        consent. You can update your cookie preferences at any time below.
+      </p>
+      <div id="cookie-preferences" className="not-prose">
+        <PrivacyPreferencesPanel />
+      </div>
+
+      <h2>6. Sharing and Processors</h2>
+      <p>
+        We do not sell your personal data. We may share it with trusted service
+        providers that help us operate LessonHUB, such as hosting, email, and
+        analytics vendors. These providers process data under strict
+        confidentiality and security obligations.
       </p>
 
-      <h2>8. Changes to This Privacy Policy</h2>
+      <h2>7. International Transfers</h2>
       <p>
-        We may update this privacy policy from time to time. The updated version will be indicated by a revised &quot;Last Updated&quot; date.
+        If you access LessonHUB from outside the United States, your data may be
+        transferred and processed in countries with different data protection
+        laws. We use contractual safeguards where required.
       </p>
 
-      <h2>9. Contact Us</h2>
+      <h2>8. Data Retention</h2>
       <p>
-        If you have questions or comments about this policy, you may contact us through the information provided on our Contact Us page.
+        We retain personal data for as long as your account is active and as
+        needed to provide services, comply with legal obligations, resolve
+        disputes, and enforce agreements. When data is no longer needed, we
+        delete or anonymize it.
+      </p>
+
+      <h2>9. Your GDPR Rights</h2>
+      <p>
+        If you are located in the EEA, UK, or Switzerland, you may have the
+        right to access, correct, delete, restrict, or object to processing of
+        your personal data, and to request data portability. You may withdraw
+        consent at any time.
+      </p>
+      <p>
+        You can delete your account from the profile page. You can also request
+        a copy of your data from the same page. Contact us if you need further
+        assistance.
+      </p>
+
+      <h2>10. Security</h2>
+      <p>
+        We use administrative, technical, and physical safeguards to protect
+        data. No system is completely secure, so we cannot guarantee absolute
+        security.
+      </p>
+
+      <h2>11. Children&apos;s Privacy</h2>
+      <p>
+        LessonHUB is not intended for children under 13. We do not knowingly
+        collect personal data from children under 13.
+      </p>
+
+      <h2>12. Updates to This Policy</h2>
+      <p>
+        We may update this policy from time to time. The latest version will be
+        posted on this page with the revised date.
       </p>
     </div>
   );

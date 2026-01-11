@@ -4,9 +4,8 @@ import { Sora } from 'next/font/google';
 import Providers from './components/Providers';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import PageContainer from './components/PageContainer';
+import AnalyticsGate from './components/AnalyticsGate';
 
 const sora = Sora({ subsets: ['latin'], variable: '--font-sora', preload: false });
 
@@ -95,8 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
           <Footer />
         </Providers>
-        <Analytics />
-        <SpeedInsights />
+        <AnalyticsGate />
       </body>
     </html>
   );
