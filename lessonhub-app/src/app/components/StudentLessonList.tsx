@@ -6,6 +6,7 @@ import StudentLessonCard from '@/app/components/StudentLessonCard';
 import WeekDivider from '@/app/components/WeekDivider';
 import { getWeekAndDay } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 
@@ -158,12 +159,12 @@ export default function StudentLessonList({
       ) : (
         <div className="space-y-8">
           {(() => {
-            const groups = new Map<string, { weekNo: number; year: number; items: SerializableAssignment[] }>();
+            const groups = new Map<string, { key: string; weekNo: number; year: number; items: SerializableAssignment[] }>();
             filtered.forEach(a => {
               const availabilityDate = a.startDate || a.assignedAt || a.deadline;
               const { key, weekNo, year } = getWeekKey(new Date(availabilityDate));
               if (!groups.has(key)) {
-                groups.set(key, { weekNo, year, items: [] });
+                groups.set(key, { key, weekNo, year, items: [] });
               }
               groups.get(key)!.items.push(a);
             });
@@ -173,16 +174,34 @@ export default function StudentLessonList({
               return b.weekNo - a.weekNo;
             });
             let cardIndex = 0;
-            return orderedWeeks.map(group => (
-              <div key={`${group.year}-${group.weekNo}`} className="space-y-4">
-                <WeekDivider weekNumber={group.weekNo} year={group.year} />
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {group.items.map(a => (
-                    <StudentLessonCard key={a.id} assignment={a} index={cardIndex++} copy={copy?.card} />
-                  ))}
-                </div>
-              </div>
-            ));
+            const defaultOpen = orderedWeeks.slice(0, 1).map((group) => group.key);
+            return (
+              <Accordion type="multiple" defaultValue={defaultOpen} className="space-y-4">
+                {orderedWeeks.map(group => (
+                  <AccordionItem
+                    key={group.key}
+                    value={group.key}
+                    className="rounded-2xl border border-slate-800/70 bg-slate-900/60 px-4 shadow-lg"
+                  >
+                    <AccordionTrigger className="py-4 text-slate-200 hover:no-underline">
+                      <div className="flex w-full flex-wrap items-center justify-between gap-3">
+                        <WeekDivider weekNumber={group.weekNo} year={group.year} />
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          {group.items.length} lessons
+                        </span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-6 pt-2">
+                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        {group.items.map(a => (
+                          <StudentLessonCard key={a.id} assignment={a} index={cardIndex++} copy={copy?.card} />
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            );
           })()}
         </div>
       )}

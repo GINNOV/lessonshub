@@ -19,10 +19,27 @@ type LeaderboardData = {
 
 interface LeaderboardProps {
     leaderboardData: LeaderboardData[];
+    copy?: {
+        title: string;
+        subtitle: string;
+        rankLabel: string;
+        studentLabel: string;
+        pointsLabel: string;
+        completedLabel: string;
+        avgTimeLabel: string;
+        savingsLabel: string;
+        badgesLabel: string;
+        anonymousLabel: string;
+        durationEmpty: string;
+        emptyTable: string;
+        emptyList: string;
+        testsTakenLabel: string;
+        pointsSuffix: string;
+    };
 }
 
-function formatDuration(milliseconds: number) {
-    if (milliseconds === 0) return 'N/A';
+function formatDuration(milliseconds: number, emptyLabel: string) {
+    if (milliseconds === 0) return emptyLabel;
     
     const seconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(seconds / 60);
@@ -35,8 +52,8 @@ function formatDuration(milliseconds: number) {
     return `${seconds}s`;
 }
 
-function anonymizeName(name: string | null): string {
-    if (!name) return 'Anonymous';
+function anonymizeName(name: string | null, fallback: string): string {
+    if (!name) return fallback;
     const parts = name.split(' ');
     if (parts.length > 1) {
         return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`;
@@ -71,24 +88,49 @@ const getSavingsMeta = (value: number | undefined) => {
     return { label, className: 'text-slate-300' };
 };
 
-export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
+const getBadgeIcon = (badge: LeaderboardData['recentBadges'][number]) => {
+    if (badge.slug === 'perfect-10') return '💯';
+    if (badge.slug === 'gold-star') return '⭐️';
+    return badge.icon ?? '🎖️';
+};
+
+export default function Leaderboard({ leaderboardData, copy }: LeaderboardProps) {
+  const t = {
+    title: copy?.title ?? "🏆 Student Leaderboard",
+    subtitle: copy?.subtitle ?? "Showing top 12 peers in your network.",
+    rankLabel: copy?.rankLabel ?? "Rank",
+    studentLabel: copy?.studentLabel ?? "Student",
+    pointsLabel: copy?.pointsLabel ?? "Points",
+    completedLabel: copy?.completedLabel ?? "Completed",
+    avgTimeLabel: copy?.avgTimeLabel ?? "Avg. Time",
+    savingsLabel: copy?.savingsLabel ?? "Savings",
+    badgesLabel: copy?.badgesLabel ?? "Badges",
+    anonymousLabel: copy?.anonymousLabel ?? "Anonymous",
+    durationEmpty: copy?.durationEmpty ?? "N/A",
+    emptyTable:
+      copy?.emptyTable ??
+      "No leaderboard activity yet. Submissions and grades will appear here.",
+    emptyList: copy?.emptyList ?? "No leaderboard activity yet.",
+    testsTakenLabel: copy?.testsTakenLabel ?? "{count} tests taken",
+    pointsSuffix: copy?.pointsSuffix ?? "pts",
+  };
   return (
     <div className="mt-12">
-            <h2 className="mb-2 text-2xl font-bold text-slate-100">🏆 Student Leaderboard</h2>
-            <p className="mb-4 text-sm text-slate-400">Showing top 12 peers in your network.</p>
+            <h2 className="mb-2 text-2xl font-bold text-slate-100">{t.title}</h2>
+            <p className="mb-4 text-sm text-slate-400">{t.subtitle}</p>
             {/* Desktop/tablet table */}
             <div className="hidden overflow-hidden rounded-lg border border-slate-800/70 bg-slate-900/80 shadow-xl backdrop-blur-sm md:block">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-800">
                         <thead className="bg-slate-900/90">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Rank</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Student</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Points</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Completed</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Avg. Time</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Savings</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Badges</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">{t.rankLabel}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">{t.studentLabel}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">{t.pointsLabel}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">{t.completedLabel}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">{t.avgTimeLabel}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">{t.savingsLabel}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">{t.badgesLabel}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800">
@@ -109,17 +151,17 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                                                 rel="noopener noreferrer"
                                                 className="text-sm font-semibold text-teal-200 hover:text-teal-100"
                                             >
-                                                {anonymizeName(student.name)}
+                                                {anonymizeName(student.name, t.anonymousLabel)}
                                             </Link>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-slate-100">
-                                        {student.totalPoints.toLocaleString()} pts
+                                        {student.totalPoints.toLocaleString()} {t.pointsSuffix}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-400">{student.completedCount}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-400">
                                         <span className="mr-1 text-2xl">{getSpeedEmoji(student.speedTier, index + 1)}</span>
-                                        {formatDuration(student.averageCompletionTime)}
+                                        {formatDuration(student.averageCompletionTime, t.durationEmpty)}
                                     </td>
                                     <td className={`px-4 py-3 whitespace-nowrap text-sm font-semibold ${savingsClass}`}>
                                         {savingsLabel}
@@ -131,7 +173,7 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                                             ) : (
                                                 student.recentBadges.map((badge) => (
                                                     <span key={badge.slug} title={badge.name} className="text-lg">
-                                                        {badge.icon ?? '🎖️'}
+                                                        {getBadgeIcon(badge)}
                                                     </span>
                                                 ))
                                             )}
@@ -144,7 +186,7 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                     </table>
                 </div>
                 {leaderboardData.length === 0 && (
-                    <p className="p-6 text-center text-slate-400">No leaderboard activity yet. Submissions and grades will appear here.</p>
+                    <p className="p-6 text-center text-slate-400">{t.emptyTable}</p>
                 )}
             </div>
 
@@ -166,20 +208,22 @@ export default function Leaderboard({ leaderboardData }: LeaderboardProps) {
                                     rel="noopener noreferrer"
                                     className="truncate text-sm font-semibold text-teal-200 hover:text-teal-100"
                                 >
-                                    {anonymizeName(student.name)}
+                                    {anonymizeName(student.name, t.anonymousLabel)}
                                 </Link>
-                                <div className="text-xs text-slate-400">{student.testsTaken} tests taken</div>
+                                <div className="text-xs text-slate-400">
+                                  {t.testsTakenLabel.replace("{count}", student.testsTaken.toString())}
+                                </div>
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-xs uppercase tracking-wide text-slate-500">Savings</div>
+                            <div className="text-xs uppercase tracking-wide text-slate-500">{t.savingsLabel}</div>
                             <div className={`text-base font-semibold ${savingsClass}`}>{savingsLabel}</div>
                         </div>
                       </div>
                     );
                 })}
                 {leaderboardData.length === 0 && (
-                    <p className="p-4 text-center text-slate-400">No leaderboard activity yet.</p>
+                    <p className="p-4 text-center text-slate-400">{t.emptyList}</p>
                 )}
             </div>
         </div>

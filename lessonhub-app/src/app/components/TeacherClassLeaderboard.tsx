@@ -27,6 +27,12 @@ const getInitials = (name: string | null | undefined) => {
     return name.substring(0, 2).toUpperCase();
 };
 
+const getBadgeIcon = (badge: LeaderboardData['recentBadges'][number]) => {
+    if (badge.slug === 'perfect-10') return '💯';
+    if (badge.slug === 'gold-star') return '⭐️';
+    return badge.icon ?? '🎖️';
+};
+
 export default function TeacherClassLeaderboard({ leaderboardData }: TeacherClassLeaderboardProps) {
     return (
         <div className="mt-12">
@@ -76,7 +82,7 @@ export default function TeacherClassLeaderboard({ leaderboardData }: TeacherClas
                                             ) : (
                                                 student.recentBadges.map((badge) => (
                                                     <span key={badge.slug} title={badge.name} className="text-lg">
-                                                        {badge.icon ?? '🎖️'}
+                                                        {getBadgeIcon(badge)}
                                                     </span>
                                                 ))
                                             )}

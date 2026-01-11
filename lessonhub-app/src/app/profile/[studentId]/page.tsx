@@ -147,7 +147,13 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
                   className="flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 text-center shadow-sm"
                   title={badge.name}
                 >
-                  <span className="text-3xl">{badge.icon ?? "🎖️"}</span>
+                  <span className="text-3xl">
+                    {badge.slug === 'perfect-10'
+                      ? '💯'
+                      : badge.slug === 'gold-star'
+                        ? '⭐️'
+                        : badge.icon ?? '🎖️'}
+                  </span>
                   <span className="mt-2 text-xs font-medium text-slate-200">{badge.name}</span>
                 </div>
               ))}

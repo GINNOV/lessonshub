@@ -281,7 +281,10 @@ export async function getLeaderboardData() {
           savings += convertExtraPointsToEuro(a.extraPoints);
         }
         if (a.status === AssignmentStatus.FAILED) savings -= price;
-        if (a.lesson?.type === LessonType.COMPOSER) {
+        if (
+          a.lesson?.type === LessonType.COMPOSER &&
+          (a.status === AssignmentStatus.GRADED || a.status === AssignmentStatus.FAILED)
+        ) {
           const extraTries = getComposerExtraTries(a.answers, a.lesson.composerConfig?.maxTries ?? 1);
           savings -= extraTries * 50;
         }
@@ -299,7 +302,7 @@ export async function getLeaderboardData() {
         0
       );
 
-      const totalPoints = student.totalPoints ?? derivedPoints;
+      let totalPoints = student.totalPoints ?? derivedPoints;
 
       return {
         id: student.id,
@@ -464,7 +467,10 @@ export async function getStudentLeaderboardProfile(studentId: string) {
       if (assignment.status === AssignmentStatus.FAILED) {
         savings -= price;
       }
-      if (assignment.lesson?.type === LessonType.COMPOSER) {
+      if (
+        assignment.lesson?.type === LessonType.COMPOSER &&
+        (assignment.status === AssignmentStatus.GRADED || assignment.status === AssignmentStatus.FAILED)
+      ) {
         const extraTries = getComposerExtraTries(assignment.answers, assignment.lesson.composerConfig?.maxTries ?? 1);
         savings -= extraTries * 50;
       }
@@ -482,7 +488,8 @@ export async function getStudentLeaderboardProfile(studentId: string) {
       0
     );
 
-    const totalPoints = student.totalPoints ?? derivedPoints;
+    let totalPoints = student.totalPoints ?? derivedPoints;
+    // totalPoints stays derived from the stored total to keep live math.
     const completionRate = testsTaken > 0 ? completedCount / testsTaken : 0;
 
     return {

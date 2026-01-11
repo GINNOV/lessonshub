@@ -46,7 +46,7 @@ export default function GoldStarForm({ studentId, studentName }: GoldStarFormPro
         <div className="space-y-1">
           <p className="text-sm font-semibold text-slate-50">Send a gold star</p>
           <p className="text-xs text-slate-400">
-            Rewards the student with a custom euro amount, 11 points, and a Gold Star badge.
+            Rewards the student with a custom euro amount, scaled points, and a Gold Star badge.
           </p>
           <Badge variant="outline" className="border-emerald-300/50 bg-emerald-400/10 text-emerald-100">
             Instant email notification

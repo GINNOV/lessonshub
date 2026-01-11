@@ -44,22 +44,27 @@ type GamificationSnapshot = {
 interface StudentGamificationPanelProps {
   data: GamificationSnapshot | null;
   copy?: {
+    title: string;
+    toggleShow: string;
+    toggleHide: string;
+    summaryLine1: string;
+    summaryLine2: string;
+    lifetimePointsLabel: string;
+    badgesUnlockedLabel: string;
+    guidesCompletedLabel: string;
+    goldStarsReceivedLabel: string;
+    firstBadgeEmpty: string;
+    nextUpTitle: string;
+    nextUpSubtitle: string;
+    allBadgesUnlocked: string;
+    earnedLabel: string;
+    pointsSuffix: string;
     recentActivityTitle: string;
     recentActivityEmpty: string;
+    reasonLabels: Record<string, string>;
+    categoryLabels: Record<BadgeCategory, string>;
   };
 }
-
-const reasonLabels: Record<string, string> = {
-  ASSIGNMENT_GRADED: "Assignment graded",
-  BADGE_BONUS: "Badge bonus",
-  MANUAL_ADJUSTMENT: "Adjustment",
-};
-
-const categoryLabels: Record<BadgeCategory, string> = {
-  PROGRESSION: "Progression",
-  PERFORMANCE: "Performance",
-  PARTICIPATION: "Participation",
-};
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -72,10 +77,44 @@ export default function StudentGamificationPanel({
   data,
   copy,
 }: StudentGamificationPanelProps) {
-  const recentActivityTitle = copy?.recentActivityTitle ?? "Recent activity";
-  const recentActivityEmpty =
-    copy?.recentActivityEmpty ??
-    "Points updates will appear here once your next lesson is graded.";
+  const t = {
+    title: copy?.title ?? "Achievements",
+    toggleShow: copy?.toggleShow ?? "Show achievements",
+    toggleHide: copy?.toggleHide ?? "Hide achievements",
+    summaryLine1:
+      copy?.summaryLine1 ?? "Track the points and badges you've earned so far.",
+    summaryLine2:
+      copy?.summaryLine2 ??
+      "Earn points to unlock extras like new opportunities and deadline extensions. Every badge adds bonus points.",
+    lifetimePointsLabel: copy?.lifetimePointsLabel ?? "Lifetime points",
+    badgesUnlockedLabel: copy?.badgesUnlockedLabel ?? "Badges unlocked",
+    guidesCompletedLabel: copy?.guidesCompletedLabel ?? "Guides completed",
+    goldStarsReceivedLabel: copy?.goldStarsReceivedLabel ?? "Gold stars received",
+    firstBadgeEmpty:
+      copy?.firstBadgeEmpty ??
+      "Your first badge is just a lesson away. Submit a graded lesson to start collecting rewards.",
+    nextUpTitle: copy?.nextUpTitle ?? "Next up",
+    nextUpSubtitle: copy?.nextUpSubtitle ?? "Peek at your upcoming rewards.",
+    allBadgesUnlocked:
+      copy?.allBadgesUnlocked ??
+      "You've unlocked every badge currently available. Legendary status!",
+    earnedLabel: copy?.earnedLabel ?? "Earned {date}",
+    pointsSuffix: copy?.pointsSuffix ?? "pts",
+    recentActivityTitle: copy?.recentActivityTitle ?? "Recent activity",
+    recentActivityEmpty:
+      copy?.recentActivityEmpty ??
+      "Points updates will appear here once your next lesson is graded.",
+    reasonLabels: copy?.reasonLabels ?? {
+      ASSIGNMENT_GRADED: "Assignment graded",
+      BADGE_BONUS: "Badge bonus",
+      MANUAL_ADJUSTMENT: "Adjustment",
+    },
+    categoryLabels: copy?.categoryLabels ?? {
+      PROGRESSION: "Progression",
+      PERFORMANCE: "Performance",
+      PARTICIPATION: "Participation",
+    },
+  };
   const [achievementsExpanded, setAchievementsExpanded] = useState(false);
 
   if (!data) {
@@ -92,14 +131,14 @@ export default function StudentGamificationPanel({
       <Card className="border border-slate-800/70 bg-slate-900/70 text-slate-100 shadow-xl backdrop-blur-sm">
         <CardHeader className="flex flex-col gap-2 border-b border-slate-800/70 pb-4">
           <div className="flex items-center justify-between gap-3">
-            <CardTitle>Achievements</CardTitle>
+            <CardTitle>{t.title}</CardTitle>
             <Button
               type="button"
               variant="ghost"
               size="icon"
               onClick={() => setAchievementsExpanded((value) => !value)}
               aria-label={
-                achievementsExpanded ? "Hide achievements" : "Show achievements"
+                achievementsExpanded ? t.toggleHide : t.toggleShow
               }
               aria-expanded={achievementsExpanded}
               className={`h-10 w-10 rounded-full border transition ${
@@ -118,20 +157,18 @@ export default function StudentGamificationPanel({
           {!achievementsExpanded && (
             <div className="space-y-3">
               <p className="text-sm text-slate-400">
-                Track the points and badges you&apos;ve earned so far.
+                {t.summaryLine1}
               </p>
               <p className="text-sm text-slate-400">
-                🇮🇹 Guadagna punti per ottenere EXTRAS che ti consentono di avere
-                opportunità addizionali ed estendere deadlines. Ogni BADGE
-                ottenuto ti permette di ottenere un bonus di punti aggiuntivi.
+                {t.summaryLine2}
               </p>
               <div className="flex flex-wrap gap-6 text-sm">
                 <div>
                   <p className="text-2xl font-bold text-slate-50">
-                    {totalPoints.toLocaleString()} pts
+                    {totalPoints.toLocaleString()} {t.pointsSuffix}
                   </p>
                   <p className="text-xs uppercase tracking-wide text-slate-400">
-                    Lifetime points
+                    {t.lifetimePointsLabel}
                   </p>
                 </div>
                 <div>
@@ -139,23 +176,23 @@ export default function StudentGamificationPanel({
                     {badges.length}
                   </p>
                   <p className="text-xs uppercase tracking-wide text-slate-400">
-                    Badges unlocked
+                    {t.badgesUnlockedLabel}
                   </p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-slate-50">
-                    {guidePoints.toLocaleString()} pts
+                    {guidePoints.toLocaleString()} {t.pointsSuffix}
                   </p>
                   <p className="text-xs uppercase tracking-wide text-slate-400">
-                    Guides completed
+                    {t.guidesCompletedLabel}
                   </p>
                 </div>
               <div>
                 <p className="text-2xl font-bold text-slate-50">
-                  {goldStarPoints.toLocaleString()} pts
+                  {goldStarPoints.toLocaleString()} {t.pointsSuffix}
                 </p>
                 <p className="text-xs uppercase tracking-wide text-slate-400">
-                  Gold stars received
+                  {t.goldStarsReceivedLabel}
                 </p>
                 <p className="text-xs text-slate-500">≈ €{goldStarAmount.toLocaleString()}</p>
               </div>
@@ -168,10 +205,10 @@ export default function StudentGamificationPanel({
             <div className="flex flex-wrap gap-6 text-sm">
               <div>
                 <p className="text-2xl font-bold text-slate-50">
-                  {totalPoints.toLocaleString()} pts
+                  {totalPoints.toLocaleString()} {t.pointsSuffix}
                 </p>
                 <p className="text-xs uppercase tracking-wide text-slate-400">
-                  Lifetime points
+                  {t.lifetimePointsLabel}
                 </p>
               </div>
               <div>
@@ -179,31 +216,30 @@ export default function StudentGamificationPanel({
                   {badges.length}
                 </p>
                 <p className="text-xs uppercase tracking-wide text-slate-400">
-                  Badges unlocked
+                  {t.badgesUnlockedLabel}
                 </p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-50">
-                  {guidePoints.toLocaleString()} pts
+                  {guidePoints.toLocaleString()} {t.pointsSuffix}
                 </p>
                 <p className="text-xs uppercase tracking-wide text-slate-400">
-                  Guides completed
+                  {t.guidesCompletedLabel}
                 </p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-50">
-                  {goldStarPoints.toLocaleString()} pts
+                  {goldStarPoints.toLocaleString()} {t.pointsSuffix}
                 </p>
                 <p className="text-xs uppercase tracking-wide text-slate-400">
-                  Gold stars received
+                  {t.goldStarsReceivedLabel}
                 </p>
                 <p className="text-xs text-slate-500">≈ €{goldStarAmount.toLocaleString()}</p>
               </div>
             </div>
             {badges.length === 0 ? (
               <p className="rounded-lg border border-dashed border-slate-700 bg-slate-900/60 p-4 text-sm text-slate-300">
-                Your first badge is just a lesson away. Submit a graded lesson
-                to start collecting rewards.
+                {t.firstBadgeEmpty}
               </p>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -218,10 +254,10 @@ export default function StudentGamificationPanel({
                         {badge.name}
                       </p>
                       <p className="truncate text-xs text-slate-400">
-                        {categoryLabels[badge.category]}
+                        {t.categoryLabels[badge.category]}
                       </p>
                       <p className="truncate text-xs text-slate-500">
-                        Earned {formatDate(badge.awardedAt)}
+                        {t.earnedLabel.replace("{date}", formatDate(badge.awardedAt))}
                       </p>
                     </div>
                   </div>
@@ -231,9 +267,9 @@ export default function StudentGamificationPanel({
 
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-slate-100">Next up</h3>
+                <h3 className="text-sm font-semibold text-slate-100">{t.nextUpTitle}</h3>
                 <p className="text-xs text-slate-400">
-                  Peek at your upcoming rewards.
+                  {t.nextUpSubtitle}
                 </p>
               </div>
               {nextBadge ? (
@@ -250,25 +286,24 @@ export default function StudentGamificationPanel({
                 </div>
               ) : (
                 <p className="rounded-lg border border-emerald-300/60 bg-emerald-500/10 p-4 text-sm text-emerald-50">
-                  You&apos;ve unlocked every badge currently available.
-                  Legendary status!
+                  {t.allBadgesUnlocked}
                 </p>
               )}
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-slate-100">
-                {recentActivityTitle}
+                {t.recentActivityTitle}
               </h3>
               {recentTransactions.length === 0 ? (
                 <p className="mt-2 text-xs text-slate-400">
-                  {recentActivityEmpty}
+                  {t.recentActivityEmpty}
                 </p>
               ) : (
                 <ul className="mt-2 space-y-3">
                   {recentTransactions.map((transaction) => {
                     const friendlyReason =
-                      reasonLabels[transaction.reason] ?? transaction.reason;
+                      t.reasonLabels[transaction.reason] ?? transaction.reason;
                     const isPositive = transaction.points >= 0;
                     return (
                       <li
@@ -295,7 +330,7 @@ export default function StudentGamificationPanel({
                             }
                           >
                             {isPositive ? "+" : ""}
-                            {transaction.points} pts
+                            {transaction.points} {t.pointsSuffix}
                           </UiBadge>
                         </div>
                         <p className="mt-2 text-xs text-slate-500">

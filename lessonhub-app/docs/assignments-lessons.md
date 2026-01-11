@@ -1,0 +1,44 @@
+# Assignments & Lessons
+
+LessonHub keeps creation, assignment, and completion aligned. This page covers the full journey from a student's and teacher's perspective.
+
+## Student Workflow
+
+1. **Find Work:** Open a card from your dashboard (`/my-lessons`) to see the assignment details.
+2. **Read:** The "Lesson Content View" shows you previews, instructions, audio, and attachments in one place.
+3. **Complete:** Work through the lesson type—whether it's flashcards, multiple-choice questions, lyrics, or standard text responses.
+4. **Submit:** Click the submit button in the footer. You'll see a confirmation status once your teacher reviews it.
+
+## Sharing Lessons
+
+You can easily share a lesson with others:
+- **Tap the Share Icon:** Located on any lesson card.
+- **Device Behavior:** On iPhone/iPad (Safari), this opens the native share sheet. On other devices, it copies a unique link to your clipboard.
+
+## Teacher Creation Tools
+
+Teachers have a dedicated suite of tools for building content:
+
+### Lesson Form
+- **Basics:** Set title, price, difficulty, and upload cover art.
+- **Audio/Notes:** Add supporting audio tracks or extra notes.
+- **Instruction Booklets:** Quickly insert reusable instructions.
+
+### Multi-Choice Creator
+- **Questions:** Add them one by one or import from a CSV file.
+- **Media:** Attach reading materials or embed YouTube/SoundCloud audio.
+- **Controls:** Define correct answers and add explanatory notes.
+
+### Flashcard Creator
+- **Cards:** Create manually or import a bulk list via CSV.
+- **Visuals:** Upload images for the lesson cover and individual card sides.
+- **Preview:** See how the cards will look to students immediately.
+
+### Guide Creator
+- **Structure:** Build multi-step guides with up to 4 content sections per card.
+- **Import:** Upload entire sessions via CSV.
+
+## Grading & Feedback
+
+- **Teachers:** Grade via the `/dashboard/grade/[assignmentId]` page. You can leave comments on individual answers or the entire assignment.
+- **Students:** View your scores and teacher feedback directly on the assignment page. Your points automatically update your Leaderboard standing.

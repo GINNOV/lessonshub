@@ -1320,7 +1320,10 @@ export async function getStudentStats(studentId: string) {
     assignments.forEach((a) => {
       const price = a.lesson.price.toNumber();
       const isExtended = isExtendedDeadline(a.deadline, a.originalDeadline);
-      if (a.lesson.type === LessonType.COMPOSER) {
+      if (
+        a.lesson.type === LessonType.COMPOSER &&
+        (a.status === AssignmentStatus.GRADED || a.status === AssignmentStatus.FAILED)
+      ) {
         const extraTries = getComposerExtraTries(a.answers, a.lesson.composerConfig?.maxTries ?? 1);
         totalValue -= extraTries * 50;
       }
