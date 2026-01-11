@@ -1,0 +1,43 @@
+# Lezioni con Testo
+
+Le lezioni con testo permettono agli insegnanti di combinare una traccia audio con testi sincronizzati, così gli studenti possono seguire o completare esercizi di riempimento direttamente in LessonHUB.
+
+## Creare una lezione con testo
+
+1. Apri **Crea Nuova Lezione → Crea testo** dalla dashboard insegnante.
+2. Carica un MP3 (o incolla un URL audio esterno). Apparirà un player di anteprima per segnare i timestamp.
+3. (Opzionale) Carica un file **.lrc** corrispondente per popolare automaticamente i tempi delle righe. Dopo l'importazione, i controlli manuali sono nascosti di default—clicca *Abilita regolazioni manuali* se devi modificare singole voci.
+4. Se non usi un file LRC, incolla il testo nel campo **Testo Canzone** e clicca **Genera Righe** per creare i segnaposto manualmente.
+5. Usa i controlli di riproduzione (quando le regolazioni manuali sono attive) per segnare inizio/fine e perfezionare le singole righe.
+6. Scegli la modalità predefinita – `Leggi Insieme`, `Riempi gli Spazi`, o `Entrambi` – e regola la percentuale di parole nascoste per la pratica.
+7. Completa i metadati della lezione (prezzo, difficoltà, istruzioni) e clicca **Crea Lezione**.
+
+L'editor salva i dati dei timestamp in `LyricLessonConfig.lines` e le opzioni della lezione in `LyricLessonConfig.settings`.
+
+## Modificare una lezione esistente
+
+Vai su **Lezioni → Modifica** per una lezione con testo (o apri `/dashboard/edit/lyric/[id]`). L'editor pre-carica i timestamp salvati, permettendoti di aggiustare i tempi o rigenerare le righe se necessario.
+
+## Esperienza studente
+
+- Gli studenti vedono un player con controlli audio e testo a scorrimento automatico.
+- Quando la lezione è impostata su `Riempi gli Spazi`, degli input sostituiscono le parole nascoste. Gli studenti possono controllare le risposte, e LessonHUB registra il punteggio e il tempo impiegato.
+- I tentativi sono salvati in `LyricLessonAttempt` e segnano automaticamente il compito come completato.
+
+## Superficie API
+
+| Endpoint | Metodo | Scopo |
+| -------- | ------ | ----- |
+| `/api/lessons/lyric` | `POST` | Creare una lezione con testo. |
+| `/api/lessons/lyric/[lessonId]` | `GET`, `PATCH` | Recuperare o aggiornare una lezione esistente. |
+| `/api/lessons/lyric/attempt` | `POST` | Registrare un tentativo studente e segnare il compito come completato. |
+
+Tutti gli endpoint richiedono autenticazione insegnante o studente corrispondente alla lezione/compito.
+
+## Aggiunte al modello dati
+
+- `Lesson.type = LYRIC`
+- `LyricLessonConfig` – memorizza URL audio, URL sorgente tempi opzionale, testo grezzo, righe analizzate e impostazioni.
+- `LyricLessonAttempt` – cattura risposte studente, punteggi e metadati temporali.
+
+Esegui `npm run prisma:migrate` per applicare i cambiamenti allo schema, seguito da `npm run prisma:generate` per aggiornare il client Prisma.

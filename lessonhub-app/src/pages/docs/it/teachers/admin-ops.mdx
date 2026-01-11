@@ -1,0 +1,38 @@
+# Amministrazione e Operazioni
+
+Gli amministratori hanno una visione d'insieme della piattaforma tramite la dashboard a riquadri su `/dashboard`.
+
+## Aree di Gestione Principali
+
+- **Utenti:** Invita nuovi utenti, sospendi account o modifica profili. Puoi anche "Mettere in pausa" un utente (uguale alla funzione "Prenditi una pausa").
+- **Lezioni:** Supervisiona l'intero catalogo delle lezioni, esegui migrazioni del database o inizializza i template predefiniti.
+- **Email:** Monitora i log di tutte le email inviate (transazionali e di marketing).
+- **Impostazioni:** Configura impostazioni globali, valori dei punti e flag delle funzionalità.
+- **Cron:** Attiva manualmente i job di sistema (come le notifiche di "Data di Inizio") o simula orari per i test.
+- **Profilo:** Visualizza il tuo profilo con controlli amministrativi extra.
+
+## Job di Sistema (Cron)
+
+LessonHub esegue job automatici per mantenere tutto in movimento:
+- **Ogni ora:** Invia notifiche di "Data di Inizio" (eseguito giornalmente alle 10:00 UTC su alcuni piani).
+- **Giornaliero (09:00 UTC):** Invia promemoria dei compiti e riepiloghi settimanali.
+
+**Test:** Puoi usare la pagina **Cron Test** per simulare orari specifici e assicurarti che le email partano correttamente.
+
+## Database e Manutenzione
+
+- **Migrazioni:** Esegui sempre tramite gli script `npm` forniti per garantire la sicurezza.
+- **Seeding:** Se mancano template predefiniti o badge, lo script di seed li ripristina senza cancellare i dati esistenti.
+
+## Sicurezza e Best Practices
+
+- **Segreti:** Tutte le chiavi sensibili (password database, chiavi API) sono conservate in `.env.local` e mai condivise.
+- **Dati:** I valori finanziari (come i prezzi) sono gestiti con alta precisione.
+- **Classifiche:** I risparmi sono visualizzati chiaramente con codici colore (Verde per positivo, Rosso per negativo) per evitare confusione.
+
+## Playbook di Supporto
+
+Compiti amministrativi comuni:
+- **Accesso Hub Guide:** Se uno studente sostiene di aver pagato ma non vede le guide, controlla lo stato del pagamento nel suo Profilo.
+- **Errori Testi:** Se gli insegnanti segnalano problemi con le lezioni con testo, spesso significa che è necessaria una migrazione del database.
+- **Fusi Orari:** Incoraggia tutti gli utenti a impostare il proprio fuso orario. Fusi orari errati sono la causa numero 1 di scadenze "mancate".
