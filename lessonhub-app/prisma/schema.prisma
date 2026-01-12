@@ -49,6 +49,7 @@ model User {
   lessons                   Lesson[]
   assignments               Assignment[]
   pointTransactions         PointTransaction[]
+  leaderboardSnapshots      LeaderboardSnapshot[]
   badges                    UserBadge[]
   goldStarsReceived         GoldStar[]         @relation("GoldStarsReceived")
   goldStarsSent             GoldStar[]         @relation("GoldStarsSent")
@@ -417,6 +418,23 @@ model PointTransaction {
 
   @@index([userId])
   @@index([assignmentId])
+}
+
+model LeaderboardSnapshot {
+  id        String   @id @default(cuid())
+  userId    String
+  euros     Decimal
+  points    Int
+  lessons   Int
+  rank      Int
+  eventKey  String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([rank])
+  @@index([createdAt])
 }
 
 model GoldStar {

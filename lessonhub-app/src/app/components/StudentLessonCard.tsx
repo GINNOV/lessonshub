@@ -120,7 +120,7 @@ const defaultCopy: StudentLessonCardCopy = {
   shareLinkReady: 'Lesson link ready to share.',
   shareLinkCopyError: 'Unable to copy share link.',
   dueLabel: 'Due',
-  extendedLabel: 'Extended',
+  extendedLabel: 'Updated',
   originalLabel: 'Original:',
 };
 const lessonTypeImages: Record<LessonType, string> = {
@@ -349,7 +349,7 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
           </div>
           <div className="absolute right-3 top-3 text-2xl drop-shadow">
             {score !== null && score < 4 && '💩'}
-            {score === 10 && '🏆'}
+            {score === 10 && '💯'}
           </div>
           <div className="absolute bottom-3 right-3">
             <Badge variant="outline" className={`${statusMeta.className} backdrop-blur-sm`}>

@@ -6,6 +6,7 @@ type ProfileTabs = {
   billing: string;
   password: string;
   delete: string;
+  privacy: string;
 };
 
 type ProfileCopy = {
@@ -74,6 +75,17 @@ type ProfileCopy = {
     deleting: string;
     confirmationText: string;
   };
+  privacy: {
+    title: string;
+    description: string;
+    exportTitle: string;
+    exportDescription: string;
+    exportCta: string;
+    exporting: string;
+    exportNote: string;
+    cookiesTitle: string;
+    cookiesDescription: string;
+  };
   toasts: {
     profileSaved: string;
     profileError: string;
@@ -91,6 +103,7 @@ type ProfileCopy = {
     deleteConfirmMismatch: string;
     deleteSuccess: string;
     deleteError: string;
+    exportError: string;
   };
 };
 
@@ -105,6 +118,7 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       billing: "Billing",
       password: "Password",
       delete: "Break / delete",
+      privacy: "Privacy",
     },
     profile: {
       title: "Update Profile",
@@ -176,6 +190,20 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       deleting: "Deleting...",
       confirmationText: "Yes, I am sure.",
     },
+    privacy: {
+      title: "Privacy & Data",
+      description:
+        "Manage your data rights and privacy controls. Cookie preferences apply to this device.",
+      exportTitle: "Download your data",
+      exportDescription:
+        "Get a copy of your profile, lesson activity, and related records in JSON format.",
+      exportCta: "Download my data",
+      exporting: "Preparing export...",
+      exportNote: "If the download does not start, try again in a few seconds.",
+      cookiesTitle: "Cookie preferences",
+      cookiesDescription:
+        "Control analytics and marketing cookies. Necessary cookies stay enabled.",
+    },
     toasts: {
       profileSaved: "Profile updated successfully!",
       profileError: "Failed to update profile.",
@@ -193,6 +221,7 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       deleteConfirmMismatch: "Please type the confirmation text exactly as shown.",
       deleteSuccess: "Account deleted successfully.",
       deleteError: "Failed to delete account.",
+      exportError: "Unable to export your data right now.",
     },
   },
   it: {
@@ -205,6 +234,7 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       billing: "Abbonamento",
       password: "Password",
       delete: "Pausa / elimina",
+      privacy: "Privacy",
     },
     profile: {
       title: "Aggiorna profilo",
@@ -280,6 +310,20 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       deleting: "Eliminazione...",
       confirmationText: "Si, sono sicuro.",
     },
+    privacy: {
+      title: "Privacy e dati",
+      description:
+        "Gestisci i tuoi diritti sui dati e le preferenze privacy. I cookie valgono solo su questo dispositivo.",
+      exportTitle: "Scarica i tuoi dati",
+      exportDescription:
+        "Ricevi una copia del profilo, delle attivita e dei dati principali in formato JSON.",
+      exportCta: "Scarica i miei dati",
+      exporting: "Preparazione export...",
+      exportNote: "Se il download non parte, riprova tra qualche secondo.",
+      cookiesTitle: "Preferenze cookie",
+      cookiesDescription:
+        "Controlla i cookie analytics e marketing. Quelli necessari restano attivi.",
+    },
     toasts: {
       profileSaved: "Profilo aggiornato con successo!",
       profileError: "Impossibile aggiornare il profilo.",
@@ -297,6 +341,7 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       deleteConfirmMismatch: "Scrivi il testo di conferma esattamente come mostrato.",
       deleteSuccess: "Account eliminato con successo.",
       deleteError: "Impossibile eliminare l'account.",
+      exportError: "Impossibile esportare i dati al momento.",
     },
   },
 };

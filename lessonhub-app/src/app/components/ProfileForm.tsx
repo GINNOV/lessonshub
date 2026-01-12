@@ -29,9 +29,11 @@ import {
   CreditCard,
   Info,
   KeyRound,
+  ShieldCheck,
   Trash2,
   User as UserIcon,
 } from "lucide-react";
+import PrivacyPreferencesPanel from "@/app/components/PrivacyPreferencesPanel";
 
 interface ProfileFormProps {
   userToEdit?: User | null;
@@ -60,6 +62,7 @@ export default function ProfileForm({
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [locale, setLocale] = useState<ProfileLocale>(resolvedLocale);
   const copy = profileCopy[locale];
   const confirmationText = copy.breakTab.confirmationText;
@@ -305,6 +308,30 @@ export default function ProfileForm({
     }
   };
 
+  const handleExportData = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch("/api/profile/export");
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      link.download = `lessonhub-data-${dateStamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error(copy.toasts.exportError);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const visibleTabs = useMemo(() => {
     const base = [
       {
@@ -324,6 +351,12 @@ export default function ProfileForm({
         label: copy.tabs.billing,
         visible: user?.role === Role.STUDENT,
         icon: CreditCard,
+      },
+      {
+        value: "privacy",
+        label: copy.tabs.privacy,
+        visible: !isAdmin,
+        icon: ShieldCheck,
       },
       {
         value: "password",
@@ -635,6 +668,34 @@ export default function ProfileForm({
 
       {!isAdmin && (
         <>
+          <TabsContent value="privacy" className="mt-4">
+            <div className="mt-2 space-y-6 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-100">{copy.privacy.title}</h2>
+                <p className="mt-2 text-sm text-slate-400">{copy.privacy.description}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+                <h3 className="text-lg font-semibold text-slate-100">{copy.privacy.exportTitle}</h3>
+                <p className="mt-2 text-sm text-slate-400">{copy.privacy.exportDescription}</p>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    onClick={handleExportData}
+                    disabled={isExporting}
+                    className="border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] hover:brightness-110"
+                  >
+                    {isExporting ? copy.privacy.exporting : copy.privacy.exportCta}
+                  </Button>
+                  <span className="text-xs text-slate-500">{copy.privacy.exportNote}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-slate-100">{copy.privacy.cookiesTitle}</h3>
+                <p className="text-sm text-slate-400">{copy.privacy.cookiesDescription}</p>
+                <PrivacyPreferencesPanel hideTitle />
+              </div>
+            </div>
+          </TabsContent>
           <TabsContent value="password" className="mt-4">
             <div className="mt-2 rounded-2xl border border-slate-800/70 bg-slate-950/80 p-6 shadow-2xl backdrop-blur">
               <h2 className="mb-4 text-2xl font-semibold text-slate-100">{copy.password.title}</h2>

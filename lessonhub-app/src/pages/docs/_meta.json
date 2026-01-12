@@ -1,4 +1,14 @@
 {
-  "introduction": "Introduction",
-  "lyric-lessons": "Lyric Lessons"
+  "index": "Welcome",
+  "students/getting-started": "Getting Started",
+  "students/student-dashboard": "Student Dashboard",
+  "students/points-and-savings": "Points & Savings",
+  "students/assignments-lessons": "Assignments & Lessons",
+  "students/hub-guides": "Hub Guides",
+  "students/troubleshooting": "Troubleshooting",
+  "teachers/teacher-tools": "Teacher Tools",
+  "teachers/admin-ops": "Admin & Operations",
+  "teachers/lyric-lessons": "Lyric Lessons (Technical)",
+  "billing-rewards/profile-billing": "Profile & Billing",
+  "billing-rewards/referrals": "Referrals & Rewards"
 }

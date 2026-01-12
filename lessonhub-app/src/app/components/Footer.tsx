@@ -1,6 +1,39 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
+import { auth } from '@/auth';
+import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from '@/lib/locale';
 
-export default function Footer() {
+export default async function Footer() {
+  const session = await auth();
+  const preference = ((session?.user as any)?.uiLanguage as UiLanguagePreference) ?? 'device';
+  const headerList = await headers();
+  const acceptLanguage = headerList.get('accept-language');
+  const detectedLocales = parseAcceptLanguage(acceptLanguage);
+  const locale = resolveLocale({
+    preference,
+    detectedLocales,
+    supportedLocales: ['en', 'it'],
+    fallback: 'en',
+  });
+  const copy = locale === 'it'
+    ? {
+        buildLabel: 'Build',
+        lastUpdateLabel: 'Ultimo aggiornamento',
+        about: 'Chi siamo',
+        contact: 'Contatti',
+        privacy: 'Privacy',
+        cookies: 'Cookie',
+        docs: 'Documentazione',
+      }
+    : {
+        buildLabel: 'Build',
+        lastUpdateLabel: 'Last update',
+        about: 'About Us',
+        contact: 'Contact Us',
+        privacy: 'Privacy',
+        cookies: 'Cookie settings',
+        docs: 'Docs',
+      };
   const currentYear = new Date().getFullYear();
   
   const rawSha =
@@ -26,7 +59,7 @@ export default function Footer() {
     const fallback = new Date();
     return fallback.toISOString().slice(0, 10);
   })();
-  const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || '';
+  const docsUrl = '/docs';
 
   return (
     <footer className="mt-auto border-t border-slate-800/70 bg-slate-950/80 backdrop-blur-xl">
@@ -34,17 +67,20 @@ export default function Footer() {
         <div className="flex flex-wrap items-center gap-2">
           <span>© {currentYear} Garage Innovation LLC</span>
           <span className="text-slate-700">|</span>
-          <span>Build: {buildVersion}</span>
+          <span>{copy.buildLabel}: {buildVersion}</span>
           <span className="text-slate-700">|</span>
-          <span>Last update {lastUpdate}</span>
+          <span>{copy.lastUpdateLabel} {lastUpdate}</span>
         </div>
         <nav className="flex flex-wrap items-center gap-4">
-          <Link href="/about" className="hover:text-slate-200 transition-colors">About Us</Link>
-          <Link href="/contact" className="hover:text-slate-200 transition-colors">Contact Us</Link>
-          <Link href="/privacy" className="hover:text-slate-200 transition-colors">Privacy</Link>
+          <Link href="/about" className="hover:text-slate-200 transition-colors">{copy.about}</Link>
+          <Link href="/contact" className="hover:text-slate-200 transition-colors">{copy.contact}</Link>
+          <Link href="/privacy" className="hover:text-slate-200 transition-colors">{copy.privacy}</Link>
+          <Link href="/privacy#cookie-preferences" className="hover:text-slate-200 transition-colors">
+            {copy.cookies}
+          </Link>
           {docsUrl && (
             <Link href={docsUrl} className="hover:text-slate-200 transition-colors" target="_blank" rel="noopener noreferrer">
-              Docs
+              {copy.docs}
             </Link>
           )}
         </nav>

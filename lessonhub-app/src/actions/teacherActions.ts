@@ -10,7 +10,7 @@ import { sendEmail } from "@/lib/email-templates.server";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 import { ensureBadgeCatalog } from "@/lib/gamification";
 import { getEmailTemplateByName } from "@/actions/adminActions";
-import { convertExtraPointsToEuro, GOLD_STAR_POINTS, GOLD_STAR_VALUE_EURO } from "@/lib/points";
+import { convertExtraPointsToEuro, convertEuroToPoints, GOLD_STAR_POINTS, GOLD_STAR_VALUE_EURO } from "@/lib/points";
 import { getComposerExtraTries } from "@/lib/composer";
 
 /**
@@ -89,6 +89,7 @@ export async function sendGoldStar(studentId: string, message: string, amountEur
   const normalizedAmount = typeof amountEuro === "number" && Number.isFinite(amountEuro)
     ? Math.max(0, Math.round(amountEuro))
     : GOLD_STAR_VALUE_EURO;
+  const awardPoints = convertEuroToPoints(normalizedAmount);
 
   const teacher = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -128,11 +129,11 @@ export async function sendGoldStar(studentId: string, message: string, amountEur
           teacherId: teacher.id,
           message: trimmedMessage || null,
           amountEuro: normalizedAmount,
-          points: GOLD_STAR_POINTS,
+          points: awardPoints,
         },
       });
 
-      const updatedPoints = (student.totalPoints ?? 0) + GOLD_STAR_POINTS;
+      const updatedPoints = (student.totalPoints ?? 0) + awardPoints;
       await tx.user.update({
         where: { id: studentId },
         data: { totalPoints: updatedPoints },
@@ -141,7 +142,7 @@ export async function sendGoldStar(studentId: string, message: string, amountEur
       await tx.pointTransaction.create({
         data: {
           userId: studentId,
-          points: GOLD_STAR_POINTS,
+          points: awardPoints,
           reason: PointReason.MANUAL_ADJUSTMENT,
           note: `Gold star from ${teacher.name || "Teacher"}${trimmedMessage ? `: ${trimmedMessage}` : ""}`,
         },
@@ -177,7 +178,7 @@ export async function sendGoldStar(studentId: string, message: string, amountEur
           teacherName: teacher.name || 'Your teacher',
           message: trimmedMessage,
           amount: `€${normalizedAmount}`,
-          points: GOLD_STAR_POINTS.toString(),
+          points: awardPoints.toString(),
           button: createButton('View your profile', profileUrl, template.buttonColor || undefined),
         },
       });
@@ -290,7 +291,10 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
             savings += convertExtraPointsToEuro(a.extraPoints);
           }
           if (a.status === AssignmentStatus.FAILED) savings -= price;
-          if (a.lesson?.type === LessonType.COMPOSER) {
+          if (
+            a.lesson?.type === LessonType.COMPOSER &&
+            (a.status === AssignmentStatus.GRADED || a.status === AssignmentStatus.FAILED)
+          ) {
             const extraTries = getComposerExtraTries(a.answers, a.lesson.composerConfig?.maxTries ?? 1);
             savings -= extraTries * 50;
           }
@@ -308,7 +312,7 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
           0
         );
 
-        const totalPoints = student.totalPoints ?? derivedPoints;
+        let totalPoints = student.totalPoints ?? derivedPoints;
 
         return {
           id: student.id,
@@ -317,6 +321,7 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
           completedCount,
           savings,
           totalPoints,
+          testsTaken: student.assignments.length,
           recentBadges: student.badges.map(({ badge }) => ({
             slug: badge.slug,
             name: badge.name,
@@ -324,14 +329,17 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
           })),
         };
       })
-      .filter(s => s.completedCount > 0 || s.savings !== 0)
+      ;
+
+    const leaderboard = studentStats
+      .filter(s => s.testsTaken > 0)
       .sort((a, b) =>
         b.totalPoints - a.totalPoints ||
         b.savings - a.savings ||
         b.completedCount - a.completedCount
       );
 
-    return studentStats as Array<{
+    return leaderboard as Array<{
       id: string;
       name: string | null;
       image: string | null;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,11 +9,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { getClassesForTeacher, sendClassNotes } from '@/actions/classActions';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Bold, Italic, Link, List, ListOrdered, Loader2, Underline } from 'lucide-react';
 
 interface TeacherClassNotesDialogProps {
   open: boolean;
@@ -34,12 +33,13 @@ export default function TeacherClassNotesDialog({
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [isLoadingClasses, setIsLoadingClasses] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState<string>('all');
-  const [message, setMessage] = useState('');
+  const [messageHtml, setMessageHtml] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const editorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) {
-      setMessage('');
+      setMessageHtml('');
       setSelectedClassId('all');
       return;
     }
@@ -80,8 +80,7 @@ export default function TeacherClassNotesDialog({
   }, [open]);
 
   const handleSubmit = async () => {
-    const trimmedMessage = message.trim();
-    if (!trimmedMessage) {
+    if (!plainTextMessage) {
       toast.error('Please enter the notes you want to send.');
       return;
     }
@@ -91,12 +90,12 @@ export default function TeacherClassNotesDialog({
     try {
       const result = await sendClassNotes(
         selectedClassId === 'all' ? null : selectedClassId,
-        trimmedMessage
+        messageHtml.trim()
       );
 
       if (result.success) {
         toast.success('Notes sent to your students.');
-        setMessage('');
+        setMessageHtml('');
         setSelectedClassId('all');
         onOpenChange(false);
       } else {
@@ -110,6 +109,31 @@ export default function TeacherClassNotesDialog({
   };
 
   const activeClasses = classes.filter((cls) => cls.isActive);
+  const plainTextMessage = useMemo(
+    () => messageHtml.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim(),
+    [messageHtml]
+  );
+  const isEmptyMessage = plainTextMessage.length === 0;
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+    if (editorRef.current.innerHTML !== messageHtml) {
+      editorRef.current.innerHTML = messageHtml;
+    }
+  }, [messageHtml]);
+
+  const applyCommand = (command: string, value?: string) => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    document.execCommand(command, false, value);
+    setMessageHtml(editorRef.current.innerHTML);
+  };
+
+  const handleAddLink = () => {
+    const url = window.prompt('Enter a link URL');
+    if (!url) return;
+    applyCommand('createLink', url);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -153,12 +177,43 @@ export default function TeacherClassNotesDialog({
 
           <label className="block text-sm font-medium text-slate-100">
             Message
-            <Textarea
-              rows={5}
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder="Share upcoming deadlines, study tips, or important reminders..."
-            />
+            <div className="mt-2 space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => applyCommand('bold')}>
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => applyCommand('italic')}>
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => applyCommand('underline')}>
+                  <Underline className="h-4 w-4" />
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => applyCommand('insertUnorderedList')}>
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => applyCommand('insertOrderedList')}>
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={handleAddLink}>
+                  <Link className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="relative">
+                {isEmptyMessage && (
+                  <div className="pointer-events-none absolute left-3 top-3 text-sm text-muted-foreground">
+                    Share upcoming deadlines, study tips, or important reminders...
+                  </div>
+                )}
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={() => setMessageHtml(editorRef.current?.innerHTML ?? '')}
+                  className="min-h-[140px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  aria-label="Message"
+                />
+              </div>
+            </div>
           </label>
         </div>
 

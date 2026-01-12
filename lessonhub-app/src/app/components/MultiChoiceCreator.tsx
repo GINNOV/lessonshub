@@ -155,18 +155,6 @@ async function safeJson(response: Response) {
   }
 }
 
-const formatDateTimeLocal = (value: string | Date | null | undefined) => {
-  if (!value) return '';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
 export default function MultiChoiceCreator({ lesson, teacherPreferences, instructionBooklets = [] }: MultiChoiceCreatorProps) {
   const router = useRouter();
   const [title, setTitle] = useState('');
@@ -182,8 +170,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
   const [linkStatus, setLinkStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
-  const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
-  const [scheduledDate, setScheduledDate] = useState('');
+  const assignmentNotification = AssignmentNotification.NOT_ASSIGNED;
   const [questions, setQuestions] = useState<QuestionState[]>([{ question: '', options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }] }]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -220,8 +207,6 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
       setSoundcloudUrl(lesson.soundcloud_url || '');
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
-      setAssignmentNotification(lesson.assignment_notification);
-      setScheduledDate(formatDateTimeLocal(lesson.scheduled_assignment_date));
       setDifficulty(lesson.difficulty ?? 3);
       setIsFreeForAll(Boolean((lesson as any).isFreeForAll));
       if (lesson.multiChoiceQuestions && lesson.multiChoiceQuestions.length > 0) {
@@ -383,21 +368,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
       return;
     }
 
-    let scheduledDatePayload: Date | null = null;
-    if (assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE) {
-      if (!scheduledDate) {
-        toast.error('Please select a date and time to schedule the assignment.');
-        setIsLoading(false);
-        return;
-      }
-      const parsed = new Date(scheduledDate);
-      if (Number.isNaN(parsed.getTime())) {
-        toast.error('Please provide a valid date and time for the scheduled assignment.');
-        setIsLoading(false);
-        return;
-      }
-      scheduledDatePayload = parsed;
-    }
+    const scheduledDatePayload: Date | null = null;
 
     const url = isEditMode ? `/api/lessons/multi-choice/${lesson.id}` : '/api/lessons/multi-choice';
     const method = isEditMode ? 'PATCH' : 'POST';
@@ -648,36 +619,6 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         </div>
         <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </div>
-
-      <div className="form-field">
-        <Label htmlFor="assignmentNotification">Assignment Status</Label>
-        <select
-          id="assignmentNotification"
-          value={assignmentNotification}
-          onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
-          disabled={isLoading}
-          className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-        >
-          <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
-          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
-          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign to All and Notify Now</option>
-          <option value={AssignmentNotification.ASSIGN_ON_DATE}>Assign on a Specific Date</option>
-        </select>
-      </div>
-
-      {assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE && (
-        <div className="form-field">
-          <Label htmlFor="scheduledDate">Scheduled Assignment Date &amp; Time</Label>
-          <Input
-            type="datetime-local"
-            id="scheduledDate"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-        </div>
-      )}
 
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">

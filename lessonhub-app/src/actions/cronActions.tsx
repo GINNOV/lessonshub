@@ -353,7 +353,10 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
       if (a.status===AssignmentStatus.FAILED) savingsWeek-=price;
       else if (a.status===AssignmentStatus.GRADED && (a.score??0)>=0) { savingsWeek+=price; }
       if (a.status===AssignmentStatus.GRADED && a.extraPoints) savingsWeek+=convertExtraPointsToEuro(a.extraPoints);
-      if (a.lesson?.type === LessonType.COMPOSER) {
+      if (
+        a.lesson?.type === LessonType.COMPOSER &&
+        (a.status === AssignmentStatus.GRADED || a.status === AssignmentStatus.FAILED)
+      ) {
         const extraTries = getComposerExtraTries(a.answers, a.lesson.composerConfig?.maxTries ?? 1);
         savingsWeek -= extraTries * 50;
       }
@@ -371,7 +374,10 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
       if (a.status===AssignmentStatus.FAILED) savingsTotal-=price;
       else if ((a.score??0)>=0) { savingsTotal+=price; }
       if (a.status===AssignmentStatus.GRADED && a.extraPoints) savingsTotal+=convertExtraPointsToEuro(a.extraPoints);
-      if (a.lesson?.type === LessonType.COMPOSER) {
+      if (
+        a.lesson?.type === LessonType.COMPOSER &&
+        (a.status === AssignmentStatus.GRADED || a.status === AssignmentStatus.FAILED)
+      ) {
         const extraTries = getComposerExtraTries(a.answers, a.lesson.composerConfig?.maxTries ?? 1);
         savingsTotal -= extraTries * 50;
       }

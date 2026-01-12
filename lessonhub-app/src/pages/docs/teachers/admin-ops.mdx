@@ -1,0 +1,38 @@
+# Admin & Operations
+
+Administrators have a bird's-eye view of the platform via the tile-based [admin dashboard](/dashboard).
+
+## Core Management Areas
+
+- **Users:** Invite new users, suspend accounts, or edit profiles. You can also "Pause" a user (same as the "Taking a Break" feature).
+- **Lessons:** Oversee the entire lesson catalog, run database migrations, or seed default templates.
+- **Emails:** Monitor the logs of all sent emails (transactional and marketing).
+- **Settings:** Configure global settings, point values, and feature flags.
+- **Cron:** Manually trigger system jobs (like "Start Date" notifications) or simulate time for testing.
+- **Profile:** View your own profile with extra admin controls.
+
+## System Jobs (Cron)
+
+LessonHub runs automatic jobs to keep things moving:
+- **Hourly:** Sends "Start Date" notifications (runs daily at 10:00 UTC on some plans).
+- **Daily (09:00 UTC):** Sends assignment reminders and weekly summaries.
+
+**Testing:** You can use the **Cron Test** page to simulate specific times and ensure emails are firing correctly.
+
+## Database & Maintenance
+
+- **Migrations:** Always run via the provided `npm` scripts to ensure safety.
+- **Seeding:** If default templates or badges are missing, the seed script restores them without deleting existing data.
+
+## Security & Best Practices
+
+- **Secrets:** All sensitive keys (database passwords, API keys) are stored in `.env.local` and never shared.
+- **Data:** Financial values (like prices) are handled with high precision.
+- **Leaderboards:** Savings are displayed clearly with color-coding (Green for positive, Red for negative) to avoid confusion.
+
+## Support Playbook
+
+Common admin tasks:
+- **Hub Guide Access:** If a student claims they paid but can't see guides, check their payment status in their Profile.
+- **Lyric Errors:** If teachers report issues with lyric lessons, it often means a database migration is needed.
+- **Timezones:** Encourage all users to set their timezone. Incorrect timezones are the #1 cause of "missed" deadlines.

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 }
 
 export default function ContactPage() {
-  const contactEmail = "contact@lessonhub.com"; // Replace with your actual contact email
+  const contactEmail = "contact@quantifythis.com";
 
   return (
     <div className="max-w-4xl mx-auto">

@@ -203,10 +203,12 @@ export default async function AssignmentPage({
       };
   const deadlineCopy = locale === "it"
     ? {
-        extendedByTeacher: "Scadenza estesa dal tuo insegnante.",
+        extended: "Scadenza estesa.",
+        updated: "Scadenza aggiornata.",
       }
     : {
-        extendedByTeacher: "Deadline extended by your teacher.",
+        extended: "Deadline extended.",
+        updated: "Deadline updated.",
       };
   const assignmentUiCopy = locale === "it"
     ? {
@@ -1092,7 +1094,9 @@ export default async function AssignmentPage({
               <LocaleDate date={serializableAssignment.originalDeadline} />
             </span>
           </p>
-          <p className="font-semibold text-teal-200">{deadlineCopy.extendedByTeacher}</p>
+          <p className="font-semibold text-teal-200">
+            {studentExtensionUsed ? deadlineCopy.extended : deadlineCopy.updated}
+          </p>
         </div>
       )}
       </div>

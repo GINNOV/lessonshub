@@ -69,8 +69,46 @@ export const studentDashboardCopy: Record<
       emptyFree: string;
     };
     gamification: {
+      title: string;
+      toggleShow: string;
+      toggleHide: string;
+      summaryLine1: string;
+      summaryLine2: string;
+      lifetimePointsLabel: string;
+      badgesUnlockedLabel: string;
+      guidesCompletedLabel: string;
+      goldStarsReceivedLabel: string;
+      firstBadgeEmpty: string;
+      nextUpTitle: string;
+      nextUpSubtitle: string;
+      allBadgesUnlocked: string;
+      earnedLabel: string;
+      pointsSuffix: string;
       recentActivityTitle: string;
       recentActivityEmpty: string;
+      reasonLabels: Record<string, string>;
+      categoryLabels: {
+        PROGRESSION: string;
+        PERFORMANCE: string;
+        PARTICIPATION: string;
+      };
+    };
+    leaderboard: {
+      title: string;
+      subtitle: string;
+      rankLabel: string;
+      studentLabel: string;
+      pointsLabel: string;
+      completedLabel: string;
+      avgTimeLabel: string;
+      savingsLabel: string;
+      badgesLabel: string;
+      anonymousLabel: string;
+      durationEmpty: string;
+      emptyTable: string;
+      emptyList: string;
+      testsTakenLabel: string;
+      pointsSuffix: string;
     };
   }
 > = {
@@ -143,8 +181,53 @@ export const studentDashboardCopy: Record<
       emptyFree: "No free guides are available right now. Upgrade to access the full library.",
     },
     gamification: {
+      title: "Achievements",
+      toggleShow: "Show achievements",
+      toggleHide: "Hide achievements",
+      summaryLine1: "Track the points and badges you've earned so far.",
+      summaryLine2:
+        "Earn points to unlock extras like new opportunities and deadline extensions. Every badge adds bonus points.",
+      lifetimePointsLabel: "Lifetime points",
+      badgesUnlockedLabel: "Badges unlocked",
+      guidesCompletedLabel: "Guides completed",
+      goldStarsReceivedLabel: "Gold stars received",
+      firstBadgeEmpty:
+        "Your first badge is just a lesson away. Submit a graded lesson to start collecting rewards.",
+      nextUpTitle: "Next up",
+      nextUpSubtitle: "Peek at your upcoming rewards.",
+      allBadgesUnlocked:
+        "You've unlocked every badge currently available. Legendary status!",
+      earnedLabel: "Earned {date}",
+      pointsSuffix: "pts",
       recentActivityTitle: "Recent activity",
       recentActivityEmpty: "Points updates will appear here once your next lesson is graded.",
+      reasonLabels: {
+        ASSIGNMENT_GRADED: "Assignment graded",
+        BADGE_BONUS: "Badge bonus",
+        MANUAL_ADJUSTMENT: "Adjustment",
+      },
+      categoryLabels: {
+        PROGRESSION: "Progression",
+        PERFORMANCE: "Performance",
+        PARTICIPATION: "Participation",
+      },
+    },
+    leaderboard: {
+      title: "🏆 Student Leaderboard",
+      subtitle: "Showing top 12 peers in your network.",
+      rankLabel: "Rank",
+      studentLabel: "Student",
+      pointsLabel: "Points",
+      completedLabel: "Completed",
+      avgTimeLabel: "Avg. Time",
+      savingsLabel: "Savings",
+      badgesLabel: "Badges",
+      anonymousLabel: "Anonymous",
+      durationEmpty: "N/A",
+      emptyTable: "No leaderboard activity yet. Submissions and grades will appear here.",
+      emptyList: "No leaderboard activity yet.",
+      testsTakenLabel: "{count} tests taken",
+      pointsSuffix: "pts",
     },
   },
   it: {
@@ -216,8 +299,53 @@ export const studentDashboardCopy: Record<
       emptyFree: "Nessuna guida gratuita disponibile ora. Fai upgrade per accedere alla libreria completa.",
     },
     gamification: {
+      title: "Obiettivi",
+      toggleShow: "Mostra obiettivi",
+      toggleHide: "Nascondi obiettivi",
+      summaryLine1: "Tieni traccia dei punti e dei badge ottenuti finora.",
+      summaryLine2:
+        "Guadagna punti per sbloccare extra come nuove opportunità ed estensioni della scadenza. Ogni badge aggiunge punti bonus.",
+      lifetimePointsLabel: "Punti totali",
+      badgesUnlockedLabel: "Badge ottenuti",
+      guidesCompletedLabel: "Guide completate",
+      goldStarsReceivedLabel: "Gold star ricevute",
+      firstBadgeEmpty:
+        "Il tuo primo badge è a un passo. Completa una lezione corretta per iniziare a collezionare premi.",
+      nextUpTitle: "Prossimo obiettivo",
+      nextUpSubtitle: "Dai un'occhiata ai prossimi premi.",
+      allBadgesUnlocked:
+        "Hai sbloccato tutti i badge disponibili. Status leggendario!",
+      earnedLabel: "Ottenuto il {date}",
+      pointsSuffix: "punti",
       recentActivityTitle: "Attività recente",
       recentActivityEmpty: "Gli aggiornamenti dei punti appariranno qui dopo la prossima lezione corretta.",
+      reasonLabels: {
+        ASSIGNMENT_GRADED: "Lezione corretta",
+        BADGE_BONUS: "Bonus badge",
+        MANUAL_ADJUSTMENT: "Modifica",
+      },
+      categoryLabels: {
+        PROGRESSION: "Progressione",
+        PERFORMANCE: "Prestazioni",
+        PARTICIPATION: "Partecipazione",
+      },
+    },
+    leaderboard: {
+      title: "🏆 Classifica studenti",
+      subtitle: "I primi 12 studenti del tuo gruppo.",
+      rankLabel: "Posizione",
+      studentLabel: "Studente",
+      pointsLabel: "Punti",
+      completedLabel: "Completati",
+      avgTimeLabel: "Tempo medio",
+      savingsLabel: "Risparmi",
+      badgesLabel: "Badge",
+      anonymousLabel: "Anonimo",
+      durationEmpty: "N/D",
+      emptyTable: "Nessuna attività in classifica. Le consegne e i voti appariranno qui.",
+      emptyList: "Nessuna attività in classifica.",
+      testsTakenLabel: "{count} lezioni completate",
+      pointsSuffix: "punti",
     },
   },
 };

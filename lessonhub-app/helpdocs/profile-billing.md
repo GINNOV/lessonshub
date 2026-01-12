@@ -2,7 +2,11 @@
 
 Your profile anchors notifications, deadlines, and Hub Guide access. Keep it updated to ensure LessonHub feels effortless.
 
+![Profile View](/docs/profile-view.png)
+
 ## Profile tabs
+
+![Profile Settings](/docs/profile-settings.png)
 
 - **Profile:** name, photo, gender, timezone, weekly summary opt-in, and student bio.
 - **About me:** available to teachers for their directory bio. Markdown supported.
@@ -24,6 +28,8 @@ All tabs use the new pill-style selector. Tap or click a tab to bring it forward
 - Weekly summary emails arrive on Sunday unless you opt out via the toggle.
 
 ## Billing & Hub Guides
+
+![Billing and Guides](/docs/profile-billing.png)
 
 - The **Billing & Hub Guides** panel lives within the Status tab.
 - Students can redeem coupons, confirm prepaid access, or upgrade via their teacher.
