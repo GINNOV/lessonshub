@@ -2,10 +2,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { Role } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session) {
+  if (!session?.user || (session.user.role !== Role.TEACHER && session.user.role !== Role.ADMIN)) {
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 

@@ -15,6 +15,7 @@ import { hasAdminPrivileges } from "@/lib/authz";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 import { convertExtraPointsToEuro } from "@/lib/points";
 import { getComposerExtraTries, hashComposerSeed, normalizeComposerWord, parseComposerSentence } from "@/lib/composer";
+import { validateAssignmentForSubmission } from "@/lib/assignmentValidation";
 import { marked } from "marked";
 
 export async function getUploadedImages() {
@@ -334,11 +335,9 @@ export async function submitFlashcardAssignment(
     if (!assignment) {
       return { success: false, error: "Assignment not found or unauthorized." };
     }
-    if (assignment.status !== AssignmentStatus.PENDING) {
-      return { success: false, error: "Assignment has already been submitted." };
-    }
-    if (new Date() > new Date(assignment.deadline)) {
-      return { success: false, error: "The deadline for this assignment has passed." };
+    const validation = validateAssignmentForSubmission(assignment);
+    if (!validation.ok) {
+      return { success: false, error: validation.error };
     }
 
     const correctCount = Object.values(answers).filter(a => a === 'correct').length;
@@ -387,11 +386,9 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
             include: { lesson: { include: { multiChoiceQuestions: { include: { options: true }}}}}
         });
         if (!assignment) return { success: false, error: 'Assignment not found' };
-        if (assignment.status !== AssignmentStatus.PENDING) {
-          return { success: false, error: 'Assignment has already been submitted.' };
-        }
-        if (new Date() > new Date(assignment.deadline)) {
-          return { success: false, error: "The deadline for this assignment has passed." };
+        const validation = validateAssignmentForSubmission(assignment);
+        if (!validation.ok) {
+          return { success: false, error: validation.error };
         }
 
         let correctCount = 0;
@@ -526,11 +523,9 @@ export async function submitComposerAssignment(
     if (!assignment || assignment.lesson.type !== LessonType.COMPOSER) {
       return { success: false, error: 'Assignment not found' };
     }
-    if (assignment.status !== AssignmentStatus.PENDING) {
-      return { success: false, error: 'Assignment has already been submitted.' };
-    }
-    if (new Date() > new Date(assignment.deadline)) {
-      return { success: false, error: 'The deadline for this assignment has passed.' };
+    const validation = validateAssignmentForSubmission(assignment);
+    if (!validation.ok) {
+      return { success: false, error: validation.error };
     }
     if (!assignment.lesson.composerConfig) {
       return { success: false, error: 'Composer configuration is missing.' };
@@ -672,11 +667,9 @@ export async function submitStandardAssignment(
     if (!assignment) {
       return { success: false, error: "Assignment not found or unauthorized." };
     }
-    if (assignment.status !== AssignmentStatus.PENDING) {
-      return { success: false, error: "Assignment has already been submitted." };
-    }
-    if (new Date() > new Date(assignment.deadline)) {
-      return { success: false, error: "The deadline for this assignment has passed." };
+    const validation = validateAssignmentForSubmission(assignment);
+    if (!validation.ok) {
+      return { success: false, error: validation.error };
     }
     const updatedAssignment = await prisma.assignment.update({
       where: { id: assignmentId },

@@ -10,6 +10,7 @@ import {
   submitStandardAssignment,
   submitComposerAssignment,
 } from "@/actions/lessonActions";
+import { validateAssignmentForSubmission } from "@/lib/assignmentValidation";
 import { LessonType, Role } from "@prisma/client";
 
 export async function POST(
@@ -39,11 +40,12 @@ export async function POST(
     });
   }
   
-  if (new Date() > new Date(assignment.deadline)) {
-      return new NextResponse(JSON.stringify({ error: "The deadline for this assignment has passed." }), { status: 403 });
-  }
-  if (assignment.status !== 'PENDING') {
-      return new NextResponse(JSON.stringify({ error: "This assignment has already been submitted." }), { status: 400 });
+  const validation = validateAssignmentForSubmission(assignment);
+  if (!validation.ok) {
+    return new NextResponse(
+      JSON.stringify({ error: validation.error }),
+      { status: validation.reason === 'deadline' ? 403 : 400 }
+    );
   }
 
   try {
