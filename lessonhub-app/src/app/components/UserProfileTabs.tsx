@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import LocaleDate from "@/app/components/LocaleDate";
 import { Button } from "@/components/ui/button";
 import LoginHistoryCard from "@/app/components/LoginHistoryCard";
+import { ClipboardList, User } from "lucide-react";
 
 type AssignmentWithLesson = Assignment & { lesson: Lesson };
 type LoginHistoryEntry = {
@@ -24,18 +25,24 @@ interface UserProfileTabsProps {
 export default function UserProfileTabs({ user, loginHistory }: UserProfileTabsProps) {
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="mb-4 flex w-full flex-wrap gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner">
+      <TabsList className="mb-4 grid h-auto w-full gap-2 rounded-2xl bg-gray-50 p-1 shadow-inner [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
         <TabsTrigger
           value="overview"
-          className="flex-1 min-w-[160px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100 md:flex-none"
+          className="rounded-xl border border-gray-200/80 bg-white/70 px-4 py-2.5 text-sm font-semibold text-gray-500 shadow-sm transition hover:border-indigo-200 hover:bg-white hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200/60 data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
         >
-          Overview
+          <span className="inline-flex items-center justify-center gap-2">
+            <User className="h-4 w-4" aria-hidden="true" />
+            Overview
+          </span>
         </TabsTrigger>
         <TabsTrigger
           value="assignments"
-          className="flex-1 min-w-[160px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-gray-500 transition data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100 md:flex-none"
+          className="rounded-xl border border-gray-200/80 bg-white/70 px-4 py-2.5 text-sm font-semibold text-gray-500 shadow-sm transition hover:border-indigo-200 hover:bg-white hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200/60 data-[state=active]:border-indigo-200 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-100"
         >
-          Assignments ({user.assignments.length})
+          <span className="inline-flex items-center justify-center gap-2">
+            <ClipboardList className="h-4 w-4" aria-hidden="true" />
+            Assignments ({user.assignments.length})
+          </span>
         </TabsTrigger>
       </TabsList>
       <TabsContent value="overview">

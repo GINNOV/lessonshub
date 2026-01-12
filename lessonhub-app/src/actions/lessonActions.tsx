@@ -397,10 +397,19 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
         let correctCount = 0;
         const processedAnswers = assignment.lesson.multiChoiceQuestions.map(q => {
             const selectedOptionId = answers[q.id];
+            const selectedOptionIndex = q.options.findIndex(o => o.id === selectedOptionId);
+            const selectedOption =
+              selectedOptionIndex >= 0 ? q.options[selectedOptionIndex] : null;
             const correctOption = q.options.find(o => o.isCorrect);
             const isCorrect = selectedOptionId === correctOption?.id;
             if (isCorrect) correctCount++;
-            return { questionId: q.id, selectedAnswerId: selectedOptionId, isCorrect };
+            return {
+              questionId: q.id,
+              selectedAnswerId: selectedOptionId,
+              selectedAnswerText: selectedOption?.text ?? null,
+              selectedAnswerIndex: selectedOptionIndex >= 0 ? selectedOptionIndex : null,
+              isCorrect,
+            };
         });
 
         const score = Math.round((correctCount / assignment.lesson.multiChoiceQuestions.length) * 10);

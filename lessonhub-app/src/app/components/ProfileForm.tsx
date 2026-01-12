@@ -25,6 +25,13 @@ import FileUploadButton from "@/components/FileUploadButton";
 import { useSearchParams } from "next/navigation";
 import { UiLanguagePreference, resolveLocale } from "@/lib/locale";
 import { profileCopy, ProfileLocale } from "@/lib/profileCopy";
+import {
+  CreditCard,
+  Info,
+  KeyRound,
+  Trash2,
+  User as UserIcon,
+} from "lucide-react";
 
 interface ProfileFormProps {
   userToEdit?: User | null;
@@ -300,19 +307,31 @@ export default function ProfileForm({
 
   const visibleTabs = useMemo(() => {
     const base = [
-      { value: "profile", label: copy.tabs.profile, visible: true },
+      {
+        value: "profile",
+        label: copy.tabs.profile,
+        visible: true,
+        icon: UserIcon,
+      },
       {
         value: "about",
         label: copy.tabs.about,
         visible: user?.role === Role.TEACHER,
+        icon: Info,
       },
       {
         value: "status",
         label: copy.tabs.billing,
         visible: user?.role === Role.STUDENT,
+        icon: CreditCard,
       },
-      { value: "password", label: copy.tabs.password, visible: !isAdmin },
-      { value: "delete", label: copy.tabs.delete, visible: !isAdmin },
+      {
+        value: "password",
+        label: copy.tabs.password,
+        visible: !isAdmin,
+        icon: KeyRound,
+      },
+      { value: "delete", label: copy.tabs.delete, visible: !isAdmin, icon: Trash2 },
     ] as const;
     return base.filter((option) => option.visible);
   }, [user?.role, isAdmin, copy.tabs]);
@@ -352,14 +371,17 @@ export default function ProfileForm({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="mb-4 flex w-full flex-wrap gap-2 rounded-2xl border border-slate-800 bg-slate-950/70 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)] h-auto">
+      <TabsList className="mb-4 grid h-auto w-full gap-2 rounded-2xl border border-slate-800 bg-slate-950/70 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)] [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
         {visibleTabs.map((tab) => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            className="flex-1 min-w-[140px] rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-slate-100 transition data-[state=active]:border-teal-400/60 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 md:flex-none"
+            className="rounded-xl border border-slate-700/70 bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-300 shadow-sm transition hover:border-teal-300/40 hover:bg-slate-900/90 hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/40 data-[state=active]:border-teal-400/70 data-[state=active]:bg-gradient-to-b data-[state=active]:from-slate-800 data-[state=active]:to-slate-900 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30"
           >
-            {tab.label}
+            <span className="inline-flex items-center justify-center gap-2">
+              <tab.icon className="h-4 w-4" aria-hidden="true" />
+              {tab.label}
+            </span>
           </TabsTrigger>
         ))}
       </TabsList>

@@ -12,12 +12,14 @@ import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLesso
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, UserRound, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type MultiChoiceAnswer = {
   questionId: string;
   selectedAnswerId: string | null;
+  selectedAnswerText?: string | null;
+  selectedAnswerIndex?: number | null;
   isCorrect: boolean | null;
 };
 
@@ -486,7 +488,9 @@ export default async function GradeSubmissionPage({
       questionId: string | undefined,
       selected: unknown,
       correctness: unknown,
-      fallbackIndex?: number
+      fallbackIndex?: number,
+      selectedText?: unknown,
+      selectedIndex?: unknown
     ) => {
       const fallbackId =
         typeof fallbackIndex === 'number'
@@ -515,11 +519,25 @@ export default async function GradeSubmissionPage({
           record[id] = {
             questionId: id,
             selectedAnswerId: null,
+            selectedAnswerText: null,
+            selectedAnswerIndex: null,
             isCorrect: null,
           };
         }
         if (extractedSelection !== undefined) {
           record[id].selectedAnswerId = extractedSelection;
+        }
+        if (typeof selectedText === 'string' && selectedText.trim()) {
+          record[id].selectedAnswerText = selectedText.trim();
+        }
+        if (typeof selectedIndex === 'number' && Number.isFinite(selectedIndex)) {
+          record[id].selectedAnswerIndex = selectedIndex;
+        }
+        if (typeof selectedIndex === 'string' && selectedIndex.trim()) {
+          const parsedIndex = Number(selectedIndex);
+          if (Number.isFinite(parsedIndex)) {
+            record[id].selectedAnswerIndex = parsedIndex;
+          }
         }
         if (boolValue !== null) {
           record[id].isCorrect = boolValue;
@@ -546,10 +564,10 @@ export default async function GradeSubmissionPage({
       }
       if (Array.isArray(value)) {
         if (value.length === 0) return;
-        if (value.length <= 3 && (typeof value[0] === 'string' || typeof value[0] === 'number' || value[0] === null || value[0] === undefined)) {
-          const [maybeQuestionId, maybeSelected, maybeCorrect] = value;
+        if (value.length <= 4 && (typeof value[0] === 'string' || typeof value[0] === 'number' || value[0] === null || value[0] === undefined)) {
+          const [maybeQuestionId, maybeSelected, maybeCorrect, maybeSelectedText] = value;
           const qid = typeof maybeQuestionId === 'string' ? maybeQuestionId : undefined;
-          ensureEntry(qid, maybeSelected, maybeCorrect, fallbackIndex);
+          ensureEntry(qid, maybeSelected, maybeCorrect, fallbackIndex, maybeSelectedText);
           return;
         }
         value.forEach((item, index) => {
@@ -586,6 +604,25 @@ export default async function GradeSubmissionPage({
           obj.response,
         ].find((candidate) => candidate !== undefined);
 
+        const selectedTextCandidate = [
+          obj.selectedAnswerText,
+          obj.selected_answer_text,
+          obj.selectedText,
+          obj.answerText,
+          obj.answer_text,
+          obj.text,
+        ].find((candidate): candidate is string => typeof candidate === 'string');
+
+        const selectedIndexCandidate = [
+          obj.selectedAnswerIndex,
+          obj.selected_answer_index,
+          obj.selectedIndex,
+          obj.answerIndex,
+          obj.answer_index,
+          obj.index,
+          obj.optionIndex,
+        ].find((candidate) => candidate !== undefined);
+
         const correctnessCandidate = [
           obj.isCorrect,
           obj.correct,
@@ -597,12 +634,14 @@ export default async function GradeSubmissionPage({
           obj.passed,
         ].find((candidate) => candidate !== undefined);
 
-        if (questionIdCandidate || rawSelectedCandidate !== undefined || correctnessCandidate !== undefined) {
+        if (questionIdCandidate || rawSelectedCandidate !== undefined || correctnessCandidate !== undefined || selectedTextCandidate || selectedIndexCandidate !== undefined) {
           ensureEntry(
             questionIdCandidate,
             rawSelectedCandidate,
             correctnessCandidate,
-            fallbackIndex
+            fallbackIndex,
+            selectedTextCandidate,
+            selectedIndexCandidate
           );
           return;
         }
@@ -629,11 +668,47 @@ export default async function GradeSubmissionPage({
   const correctCount = flashcardAnswers ? Object.values(flashcardAnswers).filter(a => a === 'correct').length : 0;
   const incorrectCount = flashcardAnswers ? Object.values(flashcardAnswers).filter(a => a === 'incorrect').length : 0;
   const multiChoiceAnswers = parseMultiChoiceAnswers();
+  const resolveSelectedOption = (
+    question: { options: Array<{ id: string; text: string }> },
+    answer?: MultiChoiceAnswer
+  ) => {
+    const selectedAnswerId = answer?.selectedAnswerId;
+    if (selectedAnswerId === null || selectedAnswerId === undefined) {
+      if (typeof answer?.selectedAnswerIndex === 'number') {
+        const zeroBased = question.options[answer.selectedAnswerIndex];
+        if (zeroBased) return zeroBased;
+        const oneBased = question.options[answer.selectedAnswerIndex - 1];
+        if (oneBased) return oneBased;
+      }
+      if (typeof answer?.selectedAnswerText === 'string') {
+        const byText = question.options.find(option => option.text === answer.selectedAnswerText);
+        if (byText) return byText;
+      }
+      return null;
+    }
+    const selectedValue = typeof selectedAnswerId === 'string' || typeof selectedAnswerId === 'number'
+      ? selectedAnswerId
+      : null;
+    if (selectedValue === null) return null;
+
+    const byId = question.options.find(option => option.id === String(selectedValue));
+    if (byId) return byId;
+
+    const numeric = typeof selectedValue === 'number' ? selectedValue : Number(selectedValue);
+    if (Number.isFinite(numeric)) {
+      const zeroBased = question.options[numeric];
+      if (zeroBased) return zeroBased;
+      const oneBased = question.options[numeric - 1];
+      if (oneBased) return oneBased;
+    }
+
+    const byText = question.options.find(option => option.text === String(selectedValue));
+    if (byText) return byText;
+    return null;
+  };
   const multiChoiceDetails = multiChoiceQuestions.map((question, index) => {
     const answer = multiChoiceAnswers[question.id];
-    const selectedOption = answer?.selectedAnswerId
-      ? question.options.find(option => option.id === answer.selectedAnswerId) ?? null
-      : null;
+    const selectedOption = resolveSelectedOption(question, answer);
     const correctOption = question.options.find(option => option.isCorrect) ?? null;
     let isCorrect: boolean | null = null;
     if (selectedOption && correctOption) {
@@ -652,11 +727,9 @@ export default async function GradeSubmissionPage({
   });
   const multiChoiceSummary = multiChoiceDetails.reduce(
     (acc, detail) => {
-      if (detail.selectedOption && detail.isCorrect === true) {
+      if (detail.isCorrect === true) {
         acc.correct += 1;
-      } else if (detail.selectedOption) {
-        acc.incorrect += 1;
-      } else if (detail.answer?.selectedAnswerId) {
+      } else if (detail.isCorrect === false) {
         acc.incorrect += 1;
       }
       return acc;
@@ -836,6 +909,10 @@ export default async function GradeSubmissionPage({
                           answer?.selectedAnswerId ||
                           typeof answer?.isCorrect === 'boolean'
                         );
+                        const fallbackSelectedOptionId =
+                          !selectedOption && isCorrect === true && correctOption
+                            ? correctOption.id
+                            : null;
                         const statusLabel =
                           isCorrect === true
                             ? 'Correct'
@@ -865,7 +942,10 @@ export default async function GradeSubmissionPage({
                             </div>
                             <div className="space-y-2">
                               {question.options.map(option => {
-                                const isSelected = Boolean(selectedOption && option.id === selectedOption.id);
+                                const isSelected = Boolean(
+                                  (selectedOption && option.id === selectedOption.id) ||
+                                  (fallbackSelectedOptionId && option.id === fallbackSelectedOptionId)
+                                );
                                 const isCorrectOption = Boolean(correctOption && option.id === correctOption.id);
                                 const optionClasses = cn(
                                   "flex flex-col gap-2 rounded-md border p-3 text-sm transition-colors md:flex-row md:items-center md:justify-between",
@@ -879,14 +959,16 @@ export default async function GradeSubmissionPage({
                                   <div key={option.id} className={optionClasses}>
                                     <span className="text-slate-100">{option.text}</span>
                                     <div className="flex flex-wrap gap-2">
-                                      {isSelected && (
+                                      {isSelected && isCorrect === false && (
                                         <span
                                           className={cn(
                                             "rounded-full px-2 py-1 text-xs font-semibold",
-                                            isCorrect === true ? "bg-emerald-900/40 text-emerald-100 border border-emerald-400/60" : "bg-rose-900/40 text-rose-100 border border-rose-400/60"
+                                            "bg-yellow-900/40 text-yellow-100 border border-yellow-400/60"
                                           )}
+                                          aria-label="Student selection"
+                                          title="Student selection"
                                         >
-                                          Your selection
+                                          <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
                                         </span>
                                       )}
                                       {isCorrectOption && (
