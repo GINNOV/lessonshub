@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Three.js Frogger - English Teacher Mode</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', Courier, monospace; }
+
+        /* Main Layout */
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #game-view {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            background: #000;
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* UI Overlay for HUD */
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+            text-shadow: 2px 2px #000;
+            z-index: 5;
+        }
+
+        .hud {
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #settings-btn {
+            pointer-events: auto;
+            cursor: pointer;
+            font-size: 30px;
+            transition: transform 0.2s;
+        }
+        #settings-btn:hover { transform: scale(1.2); color: #0f0; }
+
+        /* Modals */
+        .modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        /* Teacher Panel */
+        #teacher-panel {
+            display: none;
+            height: 180px;
+            background-color: #111;
+            border-top: 4px solid #0f0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #0f0;
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 20;
+        }
+
+        #teacher-panel h2 { margin: 0 0 10px 0; font-size: 20px; text-transform: uppercase; color: #fff; }
+
+        #qa-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        #qa-question { font-size: 24px; margin-bottom: 10px; text-align: center; color: #0f0; }
+
+        #qa-input-row { display: flex; gap: 10px; align-items: center; }
+
+        #qa-input {
+            font-size: 20px; padding: 8px; border: 2px solid #0f0;
+            background: #000; color: #fff; outline: none; text-align: center;
+            width: 200px; text-transform: lowercase; font-family: inherit;
+        }
+
+        #qa-submit {
+            background: #0f0; color: #000; border: none; padding: 8px 15px;
+            font-size: 20px; font-weight: bold; cursor: pointer; font-family: inherit;
+        }
+        #qa-submit:hover { background: #fff; }
+
+        #qa-feedback { height: 24px; color: #ff0055; font-size: 18px; font-weight: bold; margin-top: 5px; }
+
+        /* Start Screen */
+        #start-screen h1 {
+            font-size: 60px; margin-bottom: 10px; color: #0f0;
+            text-transform: uppercase; letter-spacing: 5px;
+            text-align: center;
+        }
+        #start-screen p { font-size: 20px; margin-top: 5px; }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        /* Settings Modal */
+        #settings-modal { display: none; z-index: 30; }
+        #settings-modal h2 { font-size: 40px; color: #fff; margin-bottom: 30px; border-bottom: 2px solid #0f0; }
+        .setting-row { display: flex; align-items: center; font-size: 24px; margin-bottom: 30px; }
+        input[type=checkbox] { transform: scale(2); margin-right: 15px; cursor: pointer; accent-color: #0f0; }
+
+        button.btn-close {
+            background: #0f0; color: #000; border: none; padding: 15px 40px;
+            font-size: 20px; font-family: inherit; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 20px;
+        }
+        button.btn-close:hover { background: #fff; }
+
+    </style>
+    <!-- Import Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="app-container">
+
+        <!-- Top Section: Game -->
+        <div id="game-view">
+            <div id="ui-layer">
+                <div class="hud">
+                    <div id="score">SCORE: 0</div>
+                    <div id="settings-btn" title="Settings">⚙️</div>
+                    <div id="lives">LIVES: 3</div>
+                </div>
+            </div>
+            <!-- Canvas will be appended here by JS -->
+        </div>
+
+        <!-- Bottom Section: Teacher Panel -->
+        <div id="teacher-panel">
+            <h2>English Challenge</h2>
+            <div id="qa-container">
+                <div id="qa-question">Waiting...</div>
+                <div id="qa-input-row">
+                    <input type="text" id="qa-input" placeholder="answer..." autocomplete="off">
+                    <button id="qa-submit">GO</button>
+                </div>
+                <div id="qa-feedback"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Start Screen Overlay -->
+    <div id="start-screen" class="modal">
+        <h1>FROGGER 3D</h1>
+        <p>ARROWS to Move</p>
+        <p class="blink">CLICK TO START</p>
+    </div>
+
+    <!-- Settings Modal Overlay -->
+    <div id="settings-modal" class="modal">
+        <h2>SETTINGS</h2>
+        <div class="setting-row">
+            <input type="checkbox" id="sound-toggle" checked>
+            <label for="sound-toggle">SOUND EFFECTS</label>
+        </div>
+        <div class="setting-row">
+            <input type="checkbox" id="teacher-toggle">
+            <label for="teacher-toggle">ENGLISH TEACHER</label>
+        </div>
+        <button id="close-settings" class="btn-close">RESUME</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- CONFIGURATION ---
+        const GRID_SIZE = 40;
+        const COLS = 13;
+        const ROWS = 13;
+        const GAME_WIDTH = COLS * GRID_SIZE;
+        const GAME_HEIGHT = ROWS * GRID_SIZE;
+
+        const COLORS = {
+            water: '#1a1a5e',
+            road: '#111',
+            grass: '#2d1e2d',
+            frog: '#00ff00',
+            turtle: '#ff4400',
+            log: '#8B4513',
+            car1: '#ff0055',
+            car2: '#ffff00',
+            car3: '#00ccff',
+            truck: '#ffffff'
+        };
+
+        const GRAMMAR_QUESTIONS = [
+            { q: "Past tense of: To Sink", a: "sank" },
+            { q: "Past tense of: To Go", a: "went" },
+            { q: "Past tense of: To Eat", a: "ate" },
+            { q: "Past tense of: To Run", a: "ran" },
+            { q: "Past tense of: To See", a: "saw" },
+            { q: "Past tense of: To Buy", a: "bought" },
+            { q: "Past tense of: To Think", a: "thought" },
+            { q: "Past tense of: To Teach", a: "taught" },
+            { q: "Past tense of: To Speak", a: "spoke" },
+            { q: "Past tense of: To Write", a: "wrote" },
+            { q: "Past tense of: To Fly", a: "flew" },
+            { q: "Past tense of: To Drive", a: "drove" },
+            { q: "Past tense of: To Sing", a: "sang" },
+            { q: "Past tense of: To Swim", a: "swam" }
+        ];
+
+        // --- GLOBAL STATE ---
+        let scene, camera, renderer;
+        let frog;
+        let obstacles = [];
+        let goals = [];
+        let score = 0;
+        let lives = 3;
+
+        // Game Flow State
+        let isPaused = true;
+        let isGameStarted = false;
+        let soundEnabled = true;
+        let teacherMode = false;
+        let teacherAIActive = false;
+        let currentQuestion = null;
+
+        let lastTime = 0;
+        let aiTimer = 0;
+        let audioCtx;
+
+        // --- AUDIO SYSTEM ---
+        const Sound = {
+            init: () => {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            },
+            playTone: (freq, type, duration, vol = 0.1) => {
+                if (!audioCtx || !soundEnabled) return;
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + duration);
+                } catch(e) {}
+            },
+            jump: () => { Sound.playTone(300, 'square', 0.1); },
+            die: () => { Sound.playTone(100, 'sawtooth', 0.3); },
+            win: () => {
+                if (!soundEnabled) return;
+                Sound.playTone(600, 'sine', 0.1);
+                setTimeout(() => { Sound.playTone(800, 'sine', 0.1); }, 100);
+            },
+            correct: () => { Sound.playTone(1000, 'sine', 0.2); },
+            wrong: () => { Sound.playTone(150, 'sawtooth', 0.2); }
+        };
+
+        // --- TEXTURES ---
+        function createTexture(type, width, height) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+
+            if (type === 'frog') {
+                ctx.fillStyle = COLORS.frog;
+                ctx.fillRect(2, 2, width-4, height-4);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(8, 8, 4, 4); ctx.fillRect(width-12, 8, 4, 4);
+            } else if (type === 'car') {
+                ctx.fillStyle = COLORS.car1;
+                ctx.fillRect(0, 5, width, height-10);
+                ctx.fillStyle = '#ccffff'; ctx.fillRect(width-10, 8, 6, height-16);
+            } else if (type === 'truck') {
+                ctx.fillStyle = COLORS.truck;
+                ctx.fillRect(0, 2, width, height-4);
+                ctx.fillStyle = '#888'; ctx.fillRect(4, 4, width-20, height-8);
+            } else if (type === 'log') {
+                ctx.fillStyle = COLORS.log;
+                ctx.fillRect(0, 4, width, height-8);
+                ctx.fillStyle = '#5c2e0e'; ctx.fillRect(10, 4, 5, height-8); ctx.fillRect(width-20, 4, 5, height-8);
+            } else if (type === 'turtle') {
+                ctx.fillStyle = COLORS.turtle;
+                const drawTurtle = (x) => { ctx.beginPath(); ctx.arc(x + height/2, height/2, height/3, 0, Math.PI * 2); ctx.fill(); };
+                drawTurtle(0); drawTurtle(width/2);
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter;
+            texture.minFilter = THREE.NearestFilter;
+            return texture;
+        }
+
+        const textures = {
+            frog: createTexture('frog', 32, 32),
+            car: createTexture('car', 32, 32),
+            truck: createTexture('truck', 64, 32),
+            logS: createTexture('log', 80, 32),
+            logM: createTexture('log', 120, 32),
+            logL: createTexture('log', 180, 32),
+            turtle: createTexture('turtle', 64, 32),
+            goal: createTexture('goal', 32, 32)
+        };
+
+        // --- ENTITIES ---
+        class Entity {
+            constructor(x, y, w, h, texture, speed = 0) {
+                this.w = w; this.h = h; this.speed = speed;
+                const geometry = new THREE.PlaneGeometry(w, h);
+                const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
+                this.mesh = new THREE.Mesh(geometry, material);
+                this.mesh.rotation.x = -Math.PI / 2;
+                this.mesh.position.set(
+                    (x * GRID_SIZE) - (GAME_WIDTH / 2) + (w / 2), 0,
+                    (y * GRID_SIZE) - (GAME_HEIGHT / 2) + (GRID_SIZE / 2)
+                );
+                scene.add(this.mesh);
+            }
+
+            update(dt) {
+                this.mesh.position.x += this.speed * dt;
+                const limit = (GAME_WIDTH / 2) + (this.w);
+                if (this.speed > 0 && this.mesh.position.x > limit) this.mesh.position.x = -limit;
+                else if (this.speed < 0 && this.mesh.position.x < -limit) this.mesh.position.x = limit;
+            }
+
+            getBox() {
+                const paddingX = 6;
+                const paddingY = 6;
+                return {
+                    x: this.mesh.position.x - (this.w / 2) + paddingX,
+                    y: this.mesh.position.z - (this.h / 2) + paddingY,
+                    w: this.w - (paddingX * 2),
+                    h: this.h - (paddingY * 2),
+                    speed: this.speed
+                };
+            }
+        }
+
+        class Frog {
+            constructor() {
+                this.w = GRID_SIZE * 0.8; this.h = GRID_SIZE * 0.8;
+                const geometry = new THREE.PlaneGeometry(this.w, this.h);
+                const material = new THREE.MeshBasicMaterial({ map: textures.frog, transparent: true });
+                this.mesh = new THREE.Mesh(geometry, material);
+                this.mesh.rotation.x = -Math.PI / 2;
+                scene.add(this.mesh);
+                this.reset();
+            }
+
+            reset() {
+                this.gridX = 6; this.gridY = 0;
+                this.isDead = false; this.onLogSpeed = 0;
+                this.updatePosition();
+                this.mesh.rotation.z = 0;
+            }
+
+            move(dx, dy) {
+                if (this.isDead || isPaused) return;
+                const nextX = this.gridX + dx;
+                const nextY = this.gridY + dy;
+
+                if (nextX >= 0 && nextX < COLS && nextY >= 0 && nextY < ROWS) {
+                    this.gridX = nextX; this.gridY = nextY;
+                    if (dx === 1) this.mesh.rotation.z = -Math.PI / 2;
+                    if (dx === -1) this.mesh.rotation.z = Math.PI / 2;
+                    if (dy === 1) this.mesh.rotation.z = 0;
+                    if (dy === -1) this.mesh.rotation.z = Math.PI;
+                    Sound.jump();
+                    this.updatePosition();
+                }
+            }
+
+            updatePosition() {
+                this.mesh.position.set(
+                    (this.gridX * GRID_SIZE) - (GAME_WIDTH / 2) + (GRID_SIZE / 2),
+                    1,
+                    -(this.gridY * GRID_SIZE) + (GAME_HEIGHT / 2) - (GRID_SIZE / 2)
+                );
+            }
+
+            update(dt) {
+                if (this.isDead) return;
+                if (this.gridY >= 7 && this.gridY <= 11) {
+                    this.mesh.position.x += this.onLogSpeed * dt;
+                }
+                if (this.mesh.position.x < -GAME_WIDTH/2 || this.mesh.position.x > GAME_WIDTH/2) {
+                    if (teacherMode && teacherAIActive) {
+                        this.mesh.position.x = Math.max(-GAME_WIDTH/2 + 20, Math.min(GAME_WIDTH/2 - 20, this.mesh.position.x));
+                        const px = this.mesh.position.x + (GAME_WIDTH/2) - (GRID_SIZE/2);
+                        this.gridX = Math.round(px / GRID_SIZE);
+                    } else {
+                        handleDeath();
+                    }
+                }
+            }
+
+            getBox() {
+                const padding = 8;
+                return {
+                    x: this.mesh.position.x - (this.w / 2) + padding,
+                    y: this.mesh.position.z - (this.h / 2) + padding,
+                    w: this.w - (padding * 2),
+                    h: this.h - (padding * 2)
+                };
+            }
+        }
+
+        // --- GAME SYSTEM ---
+
+        function init() {
+            scene = new THREE.Scene();
+
+            const container = document.getElementById('game-view');
+            const aspect = container.clientWidth / container.clientHeight;
+            const camSize = 350;
+            camera = new THREE.OrthographicCamera(-camSize * aspect, camSize * aspect, camSize, -camSize, 1, 1000);
+            camera.position.set(0, 100, 0); camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: false });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            createEnvironment();
+            frog = new Frog();
+            createObstacles();
+            createGoals();
+
+            // Listeners
+            window.addEventListener('keydown', handleInput);
+            window.addEventListener('resize', onResize);
+
+            // UI
+            document.getElementById('start-screen').addEventListener('click', startGame);
+            document.getElementById('settings-btn').addEventListener('click', openSettingsMenu);
+            document.getElementById('close-settings').addEventListener('click', closeSettingsMenu);
+            document.getElementById('sound-toggle').addEventListener('change', (e) => { soundEnabled = e.target.checked; });
+            document.getElementById('teacher-toggle').addEventListener('change', toggleTeacherMode);
+
+            // QA
+            document.getElementById('qa-submit').addEventListener('click', submitAnswer);
+            document.getElementById('qa-input').addEventListener('keydown', (e) => { if(e.key==='Enter') submitAnswer(); });
+        }
+
+        function startGame() {
+            Sound.init();
+            document.getElementById('start-screen').style.display = 'none';
+            isGameStarted = true;
+            isPaused = false;
+            lastTime = performance.now();
+
+            if (teacherMode) {
+                // Ensure teacher mode toggle state matches variable
+                const toggle = document.getElementById('teacher-toggle');
+                toggle.checked = true;
+                toggleTeacherMode({ target: toggle });
+            } else {
+                requestAnimationFrame(loop);
+            }
+        }
+
+        function onResize() {
+            const container = document.getElementById('game-view');
+            if(!container) return;
+            const aspect = container.clientWidth / container.clientHeight;
+            const camSize = 350;
+            camera.left = -camSize * aspect; camera.right = camSize * aspect;
+            camera.top = camSize; camera.bottom = -camSize;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function handleInput(e) {
+            const settingsOpen = document.getElementById('settings-modal').style.display === 'flex';
+            if (settingsOpen) {
+                if (e.key === 'Escape') closeSettingsMenu();
+                return;
+            }
+
+            if (document.activeElement === document.getElementById('qa-input')) return;
+
+            if (e.key === 'Escape') { openSettingsMenu(); return; }
+
+            if (teacherMode) return;
+
+            if(e.key === 'ArrowUp') frog.move(0, 1);
+            if(e.key === 'ArrowDown') frog.move(0, -1);
+            if(e.key === 'ArrowLeft') frog.move(-1, 0);
+            if(e.key === 'ArrowRight') frog.move(1, 0);
+        }
+
+        // --- TEACHER MODE LOGIC ---
+
+        function toggleTeacherMode(e) {
+            teacherMode = e.target.checked;
+            const panel = document.getElementById('teacher-panel');
+
+            if (teacherMode) {
+                panel.style.display = 'flex';
+                setTimeout(onResize, 50);
+                if (isGameStarted) {
+                    frog.reset();
+                    startTeacherRound();
+                }
+            } else {
+                panel.style.display = 'none';
+                setTimeout(onResize, 50);
+                teacherAIActive = false;
+
+                if (isGameStarted) {
+                    isPaused = false;
+                    lastTime = performance.now();
+                    requestAnimationFrame(loop);
+                }
+            }
+        }
+
+        function startTeacherRound() {
+            if (!teacherMode) return;
+            teacherAIActive = false;
+            isPaused = true;
+
+            currentQuestion = GRAMMAR_QUESTIONS[Math.floor(Math.random() * GRAMMAR_QUESTIONS.length)];
+
+            const qText = document.getElementById('qa-question');
+            const input = document.getElementById('qa-input');
+            const feedback = document.getElementById('qa-feedback');
+
+            qText.innerText = currentQuestion.q;
+            input.value = "";
+            input.disabled = false;
+            feedback.innerText = "";
+            input.focus();
+        }
+
+        function submitAnswer() {
+            const input = document.getElementById('qa-input');
+            const feedback = document.getElementById('qa-feedback');
+            const val = input.value.trim().toLowerCase();
+
+            if (val === currentQuestion.a) {
+                Sound.correct();
+                feedback.style.color = '#0f0';
+                feedback.innerText = "CORRECT! Watching Frog...";
+                input.disabled = true;
+
+                setTimeout(() => {
+                    isPaused = false;
+                    teacherAIActive = true;
+                    lastTime = performance.now();
+                    requestAnimationFrame(loop);
+                }, 500);
+            } else {
+                Sound.wrong();
+                feedback.style.color = '#ff0055';
+                feedback.innerText = "WRONG! Try again.";
+                input.value = "";
+                input.focus();
+            }
+        }
+
+        // --- AI AUTONOMOUS MOVEMENT ---
+
+        function updateAI(dt) {
+            if (!teacherAIActive || frog.isDead) return;
+
+            aiTimer += dt;
+            if (aiTimer < 0.20) return;
+
+            const targetY = frog.gridY + 1;
+            const targetX = frog.gridX;
+
+            let moved = false;
+
+            // Priority: Stay on screen in river
+            if (frog.gridY >= 7 && frog.gridY <= 11) {
+                const screenX = frog.mesh.position.x;
+                const limit = GAME_WIDTH / 2 - 80;
+
+                if (screenX > limit) {
+                    // Drifting right, move left
+                    if (isSafe(targetX - 1, frog.gridY)) {
+                        frog.move(-1, 0);
+                        moved = true;
+                    }
+                } else if (screenX < -limit) {
+                    // Drifting left, move right
+                    if (isSafe(targetX + 1, frog.gridY)) {
+                        frog.move(1, 0);
+                        moved = true;
+                    }
+                }
+            }
+
+            if (!moved && isSafe(targetX, targetY)) {
+                frog.move(0, 1);
+                moved = true;
+            }
+
+            if (moved) aiTimer = 0;
+        }
+
+        function isSafe(gx, gy) {
+            if (gx < 0 || gx >= COLS || gy > 12) return false;
+            if (gy === 0 || gy === 6 || gy === 12) return true;
+
+            const testX = (gx * GRID_SIZE) - (GAME_WIDTH / 2) + (GRID_SIZE / 2);
+            const testZ = -(gy * GRID_SIZE) + (GAME_HEIGHT / 2) - (GRID_SIZE / 2);
+
+            const aiBuffer = 10;
+            const box = {
+                x: testX - 12 - aiBuffer,
+                y: testZ - 12,
+                w: 24 + (aiBuffer*2),
+                h: 24
+            };
+
+            // ROAD (Rows 1-5): Must NOT collide
+            if (gy >= 1 && gy <= 5) {
+                // Check NOW
+                if (checkObstacleCollision(box, gy, 0)) return false;
+                // Check LATER
+                if (checkObstacleCollision(box, gy, 0.5)) return false;
+
+                return true;
+            }
+
+            // RIVER (Rows 7-11): MUST collide (ride log)
+            if (gy >= 7 && gy <= 11) {
+                return checkObstacleCollision(box, gy, 0);
+            }
+
+            return true;
+        }
+
+        function checkObstacleCollision(box, targetRow, timeOffset) {
+            for (let obs of obstacles) {
+                // Simplified calculation to avoid syntax errors with deep nesting
+                const zPos = obs.mesh.position.z;
+                const centerOffset = (GAME_HEIGHT / 2) - (GRID_SIZE / 2);
+                const rawRow = -(zPos - centerOffset) / GRID_SIZE;
+                const obsRow = Math.round(rawRow);
+
+                if (obsRow === targetRow) {
+                    const ob = obs.getBox();
+
+                    const futureObsX = ob.x + (ob.speed * timeOffset);
+
+                    if (box.x < futureObsX + ob.w &&
+                        box.x + box.w > futureObsX &&
+                        box.y < ob.y + ob.h &&
+                        box.y + box.h > ob.y) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // --- CORE GAME LOOP ---
+
+        function createEnvironment() {
+            const addRect = (y, h, color) => {
+                const geo = new THREE.PlaneGeometry(GAME_WIDTH, h * GRID_SIZE);
+                const mat = new THREE.MeshBasicMaterial({ color: color });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.rotation.x = -Math.PI / 2;
+                const centerRow = y + (h/2) - 0.5;
+                const z = -(centerRow * GRID_SIZE) + (GAME_HEIGHT / 2) - (GRID_SIZE / 2);
+                mesh.position.set(0, -1, z);
+                scene.add(mesh);
+            };
+            addRect(0, 1, COLORS.grass); addRect(1, 5, COLORS.road);
+            addRect(6, 1, COLORS.grass); addRect(7, 5, COLORS.water);
+            addRect(12, 1, COLORS.grass);
+        }
+
+        function createObstacles() {
+            const addLane = (row, speed, type, width, spacing, offset = 0) => {
+                const count = Math.ceil(GAME_WIDTH / spacing) + 1;
+                for (let i = 0; i < count; i++) {
+                    const x = (i * spacing) / GRID_SIZE + offset - (COLS/2);
+                    obstacles.push(new Entity(x, row, width, GRID_SIZE * 0.8, type, speed));
+                }
+            };
+            addLane(1, -60, textures.car, 40, 150);
+            addLane(2, 40, textures.truck, 60, 200, 2);
+            addLane(3, -90, textures.car, 40, 180, 1);
+            addLane(4, 50, textures.car, 40, 160, 4);
+            addLane(5, -50, textures.truck, 80, 250, 3);
+            addLane(7, -50, textures.turtle, 40, 100);
+            addLane(8, 40, textures.logS, 80, 160);
+            addLane(9, -70, textures.logL, 160, 300);
+            addLane(10, 60, textures.logM, 120, 250);
+            addLane(11, -80, textures.turtle, 40, 120, 2);
+        }
+
+        function createGoals() {
+            for (let i = 0; i < 5; i++) {
+                goals.push({ x: 2 * i + 1 + 1, filled: false, mesh: null });
+            }
+        }
+
+        function checkCollisions() {
+            const fb = frog.getBox();
+
+            if (frog.gridY === 12) {
+                if (teacherMode) {
+                    const openIndex = goals.findIndex(g => !g.filled);
+                    winLevel(openIndex !== -1 ? openIndex : 0);
+                    return;
+                }
+                let landed = false;
+                for(let i=0; i<5; i++) {
+                    const gx = 1 + (i * 3);
+                    if(Math.abs(frog.gridX - gx) <= 0 && !goals[i].filled) {
+                        winLevel(i);
+                        landed = true;
+                        break;
+                    }
+                }
+                if(!landed) handleDeath();
+                return;
+            }
+
+            let safeOnLog = false;
+
+            const frogRow = frog.gridY;
+
+            if ((frogRow >= 1 && frogRow <= 5) || (frogRow >= 7 && frogRow <= 11)) {
+                for (let obs of obstacles) {
+                    // Safe calculation here as well
+                    const zPos = obs.mesh.position.z;
+                    const centerOffset = (GAME_HEIGHT / 2) - (GRID_SIZE / 2);
+                    const obsRow = Math.round(-(zPos - centerOffset) / GRID_SIZE);
+
+                    if (obsRow === frogRow) {
+                        const ob = obs.getBox();
+                        const collision = (fb.x < ob.x + ob.w && fb.x + fb.w > ob.x &&
+                                           fb.y < ob.y + ob.h && fb.y + fb.h > ob.y);
+
+                        if (collision) {
+                            if (frogRow >= 7) {
+                                safeOnLog = true;
+                                frog.onLogSpeed = obs.speed;
+                            } else {
+                                if (!teacherMode) handleDeath();
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (frogRow >= 7 && frogRow <= 11) {
+                if (!safeOnLog) {
+                    if (!teacherMode) handleDeath();
+                }
+            } else {
+                frog.onLogSpeed = 0;
+            }
+        }
+
+        function winLevel(index) {
+            goals[index].filled = true;
+            Sound.win();
+            score += 100;
+
+            const goalMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE),
+                new THREE.MeshBasicMaterial({ map: textures.frog, transparent: true })
+            );
+            goalMesh.rotation.x = -Math.PI/2;
+            const gx = 1 + (index * 3);
+            goalMesh.position.set(
+                (gx * GRID_SIZE) - (GAME_WIDTH / 2) + (GRID_SIZE / 2), 2,
+                -(12 * GRID_SIZE) + (GAME_HEIGHT / 2) - (GRID_SIZE / 2)
+            );
+            scene.add(goalMesh);
+            goals[index].mesh = goalMesh;
+
+            if (goals.every(g => g.filled)) {
+                alert("YOU WON! Resetting...");
+                resetGame();
+            } else {
+                frog.reset();
+                if (teacherMode) startTeacherRound();
+            }
+            updateHUD();
+        }
+
+        function handleDeath() {
+            if (frog.isDead) return;
+            frog.isDead = true;
+            Sound.die();
+            lives--;
+            updateHUD();
+
+            if (lives <= 0) {
+                setTimeout(() => {
+                    alert("GAME OVER");
+                    resetGame();
+                }, 500);
+            } else {
+                setTimeout(() => {
+                    frog.reset();
+                    if (teacherMode) {
+                        frog.reset();
+                        teacherAIActive = true;
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetGame() {
+            score = 0; lives = 3;
+            goals.forEach(g => { g.filled = false; if(g.mesh) { scene.remove(g.mesh); g.mesh = null; } });
+            updateHUD();
+            frog.reset();
+            if (teacherMode) startTeacherRound();
+        }
+
+        function updateHUD() {
+            document.getElementById('score').innerText = `SCORE: ${score}`;
+            document.getElementById('lives').innerText = `LIVES: ${lives}`;
+        }
+
+        function openSettingsMenu() {
+            isPaused = true;
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+
+        function closeSettingsMenu() {
+            document.getElementById('settings-modal').style.display = 'none';
+            if (isGameStarted) {
+                isPaused = false;
+                lastTime = performance.now();
+                requestAnimationFrame(loop);
+            }
+        }
+
+        function loop(time) {
+            if (isPaused) return;
+            requestAnimationFrame(loop);
+
+            const dt = (time - lastTime) / 1000;
+            lastTime = time;
+            if (dt > 0.1) return;
+
+            obstacles.forEach(obs => obs.update(dt));
+            frog.update(dt);
+
+            if (teacherMode) updateAI(dt);
+
+            checkCollisions();
+            renderer.render(scene, camera);
+        }
+
+        init();
+
+    </script>
+</body>
+</html>

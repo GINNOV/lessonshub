@@ -1,0 +1,419 @@
+.appContainer {
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - 4rem);
+  min-height: calc(100svh - 4rem);
+  width: 100vw;
+  background-color: #000;
+  color: #fff;
+  font-family: "Courier New", Courier, monospace;
+  position: relative;
+}
+
+.gameView {
+  flex-grow: 1;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+.gameView :global(canvas) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.uiLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  box-sizing: border-box;
+  text-shadow: 2px 2px #000;
+  z-index: 5;
+}
+
+.hud {
+  color: #fff;
+  font-size: 24px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.lives {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lives span {
+  letter-spacing: 1px;
+}
+
+.lifeIcon {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+}
+
+.settingsBtn {
+  pointer-events: auto;
+  cursor: pointer;
+  font-size: 30px;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  transition: transform 0.2s;
+}
+
+.settingsBtn:hover {
+  transform: scale(1.2);
+  color: #0f0;
+}
+
+.modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  pointer-events: auto;
+  z-index: 10;
+}
+
+.startScreen h1 {
+  font-size: 60px;
+  margin-bottom: 10px;
+  color: #0f0;
+  text-transform: uppercase;
+  letter-spacing: 5px;
+  text-align: center;
+}
+
+.titleImage {
+  width: min(420px, 80vw);
+  height: auto;
+  margin-bottom: 16px;
+  image-rendering: pixelated;
+}
+
+.startScreen p {
+  font-size: 20px;
+  margin-top: 5px;
+}
+
+.startStats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 10px;
+}
+
+.startScore {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.startLives {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.blink {
+  animation: blinker 1s linear infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
+}
+
+.settingsModal {
+  display: none;
+  z-index: 30;
+}
+
+.settingsModal h2 {
+  font-size: 40px;
+  color: #fff;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #0f0;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  font-size: 24px;
+  margin-bottom: 30px;
+}
+
+.toggle {
+  transform: scale(2);
+  margin-right: 15px;
+  cursor: pointer;
+  accent-color: #0f0;
+}
+
+.closeBtn {
+  background: #0f0;
+  color: #000;
+  border: none;
+  padding: 15px 40px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.closeBtn:hover {
+  background: #fff;
+}
+
+.teacherPanel {
+  display: none;
+  height: 180px;
+  background-color: #111;
+  border-top: 4px solid #0f0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #0f0;
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 20;
+}
+
+.teacherPanel h2 {
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.qaContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.qaQuestion {
+  font-size: 24px;
+  margin-bottom: 10px;
+  text-align: center;
+  color: #0f0;
+}
+
+.qaInputRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.qaInput {
+  font-size: 20px;
+  padding: 8px;
+  border: 2px solid #0f0;
+  background: #000;
+  color: #fff;
+  outline: none;
+  text-align: center;
+  width: 200px;
+  text-transform: lowercase;
+  font-family: inherit;
+}
+
+.qaSubmit {
+  background: #0f0;
+  color: #000;
+  border: none;
+  padding: 8px 15px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.qaSubmit:hover {
+  background: #fff;
+}
+
+.qaFeedback {
+  height: 24px;
+  color: #ff0055;
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.gameOver {
+  display: none;
+  z-index: 40;
+  gap: 18px;
+}
+
+.gameOverImage {
+  width: min(420px, 80vw);
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.gameOverStats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gameOverScore {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gameOverLives {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.retryBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.retryBtn img {
+  width: min(200px, 55vw);
+  height: auto;
+  image-rendering: pixelated;
+}
+
+@media (max-width: 768px) {
+  .appContainer {
+    height: calc(100svh - 4rem);
+    min-height: calc(100svh - 4rem);
+  }
+
+  .uiLayer {
+    padding: 12px;
+  }
+
+  .hud {
+    font-size: 18px;
+    max-width: 100%;
+  }
+
+  .settingsBtn {
+    font-size: 24px;
+  }
+
+  .teacherPanel {
+    height: 200px;
+    padding: 12px;
+  }
+
+  .teacherPanel h2 {
+    font-size: 16px;
+  }
+
+  .qaQuestion {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .qaInput {
+    font-size: 16px;
+    width: 160px;
+  }
+
+  .qaSubmit {
+    font-size: 16px;
+    padding: 6px 12px;
+  }
+
+  .qaFeedback {
+    font-size: 14px;
+  }
+
+  .startScreen h1 {
+    font-size: 40px;
+    letter-spacing: 2px;
+  }
+
+  .lifeIcon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .titleImage {
+    width: min(320px, 80vw);
+  }
+
+  .startScreen p {
+    font-size: 16px;
+  }
+
+  .startStats {
+    font-size: 14px;
+    gap: 12px;
+  }
+
+  .gameOverStats {
+    font-size: 14px;
+    gap: 12px;
+  }
+
+  .settingsModal h2 {
+    font-size: 28px;
+  }
+
+  .settingRow {
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+
+  .toggle {
+    transform: scale(1.4);
+  }
+
+  .closeBtn {
+    padding: 12px 28px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .teacherPanel {
+    height: 220px;
+  }
+
+  .qaInputRow {
+    flex-direction: column;
+  }
+
+  .qaInput {
+    width: 100%;
+    max-width: 240px;
+  }
+}

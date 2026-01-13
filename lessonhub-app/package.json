@@ -63,7 +63,8 @@
     "sharp": "^0.34.3",
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.3.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "three": "^0.168.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -72,6 +73,7 @@
     "@types/pg": "^8.15.6",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.182.0",
     "autoprefixer": "^10.4.19",
     "dotenv-cli": "^7.4.2",
     "eslint": "^9.38.0",

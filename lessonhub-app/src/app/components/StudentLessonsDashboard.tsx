@@ -83,10 +83,10 @@ export default function StudentLessonsDashboard({
     },
     {
       label: 'Frog Verbs',
-      href: null,
+      href: '/games/frog-verbs',
       icon: Sparkles,
-      color: 'border-slate-700/60 bg-slate-900/40 text-slate-200',
-      status: locale === 'it' ? 'In arrivo' : 'Coming soon',
+      color: 'border-lime-200 bg-lime-50/80 text-lime-900',
+      status: locale === 'it' ? 'Gioca ora' : 'Play now',
     },
     {
       label: 'Naked Adjectives',
@@ -96,6 +96,41 @@ export default function StudentLessonsDashboard({
       status: locale === 'it' ? 'In arrivo' : 'Coming soon',
     },
   ];
+  const renderGameTiles = () => (
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {gameTiles.map(({ label, href, icon: Icon, color, status }) => {
+        const isExternal = href?.startsWith('http');
+
+        if (href) {
+          return (
+            <Link
+              key={label}
+              href={href}
+              target={isExternal ? '_blank' : undefined}
+              rel={isExternal ? 'noreferrer' : undefined}
+              className={`block rounded-xl border ${color} p-8 text-center shadow-sm transition-shadow hover:shadow-lg`}
+            >
+              <div className="flex flex-col items-center gap-3">
+                <Icon className="h-10 w-10" />
+                <span className="text-lg font-semibold">{label}</span>
+                <span className="text-xs uppercase tracking-wide opacity-70">{status}</span>
+              </div>
+            </Link>
+          );
+        }
+
+        return (
+          <div key={label} className={`rounded-xl border ${color} p-8 text-center opacity-70`}>
+            <div className="flex flex-col items-center gap-3">
+              <Icon className="h-10 w-10" />
+              <span className="text-lg font-semibold">{label}</span>
+              <span className="text-xs uppercase tracking-wide opacity-70">{status}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   const handleFilterSelect = (filter: StudentLessonFilter) => {
     setAssignmentFilter(filter);
@@ -175,36 +210,7 @@ export default function StudentLessonsDashboard({
                 )}
               </TabsContent>
               <TabsContent value="games">
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {gameTiles.map(({ label, href, icon: Icon, color, status }) =>
-                    href ? (
-                      <Link
-                        key={label}
-                        href={href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`block rounded-xl border ${color} p-8 text-center shadow-sm transition-shadow hover:shadow-lg`}
-                      >
-                        <div className="flex flex-col items-center gap-3">
-                          <Icon className="h-10 w-10" />
-                          <span className="text-lg font-semibold">{label}</span>
-                          <span className="text-xs uppercase tracking-wide opacity-70">{status}</span>
-                        </div>
-                      </Link>
-                    ) : (
-                      <div
-                        key={label}
-                        className={`rounded-xl border ${color} p-8 text-center opacity-70`}
-                      >
-                        <div className="flex flex-col items-center gap-3">
-                          <Icon className="h-10 w-10" />
-                          <span className="text-lg font-semibold">{label}</span>
-                          <span className="text-xs uppercase tracking-wide opacity-70">{status}</span>
-                        </div>
-                      </div>
-                    ),
-                  )}
-                </div>
+                {renderGameTiles()}
               </TabsContent>
             </Tabs>
           ) : (
@@ -279,36 +285,7 @@ export default function StudentLessonsDashboard({
               )}
             </TabsContent>
             <TabsContent value="games">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {gameTiles.map(({ label, href, icon: Icon, color, status }) =>
-                  href ? (
-                    <Link
-                      key={label}
-                      href={href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`block rounded-xl border ${color} p-8 text-center shadow-sm transition-shadow hover:shadow-lg`}
-                    >
-                      <div className="flex flex-col items-center gap-3">
-                        <Icon className="h-10 w-10" />
-                        <span className="text-lg font-semibold">{label}</span>
-                        <span className="text-xs uppercase tracking-wide opacity-70">{status}</span>
-                      </div>
-                    </Link>
-                  ) : (
-                    <div
-                      key={label}
-                      className={`rounded-xl border ${color} p-8 text-center opacity-70`}
-                    >
-                      <div className="flex flex-col items-center gap-3">
-                        <Icon className="h-10 w-10" />
-                        <span className="text-lg font-semibold">{label}</span>
-                        <span className="text-xs uppercase tracking-wide opacity-70">{status}</span>
-                      </div>
-                    </div>
-                  ),
-                )}
-              </div>
+              {renderGameTiles()}
             </TabsContent>
           </Tabs>
         ) : (

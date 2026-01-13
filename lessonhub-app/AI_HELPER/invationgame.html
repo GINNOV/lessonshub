@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vocabolario Invaders</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap');
+
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            color: white;
+            overflow: hidden; /* Prevent scrolling on mobile */
+            font-family: 'Roboto', sans-serif;
+            touch-action: none; /* Disable default touch actions */
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        /* UI Overlays */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 10;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Neon Glow Effects */
+        .neon-text {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.7), 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .hud {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none; /* Let clicks pass through */
+            z-index: 5;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            color: #fbbf24;
+        }
+
+        .target-display {
+            position: absolute;
+            top: 50px;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        .target-word {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #38bdf8; /* Sky 400 */
+            text-shadow: 0 0 15px #0284c7;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .target-word.audio-mode {
+            color: #f472b6; /* Pink */
+            text-shadow: 0 0 15px #db2777;
+            animation: pulse-audio 1.5s infinite;
+        }
+
+        @keyframes pulse-audio {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        /* WebKit (Chrome, Safari, Edge) Thumb */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #ec4899; /* pink-500 */
+            cursor: pointer;
+            margin-top: -10px; /* Offset to center on track */
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.8);
+            border: 2px solid #fff;
+        }
+
+        /* WebKit Track */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #334155; /* Slate 700 */
+            border-radius: 4px;
+        }
+
+        /* Firefox Thumb */
+        input[type=range]::-moz-range-thumb {
+            height: 24px;
+            width: 24px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            background: #ec4899;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.8);
+        }
+
+        /* Firefox Track */
+        input[type=range]::-moz-range-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- HUD -->
+    <div id="hud" class="hud hidden">
+        <div>SCORE: <span id="score">0</span></div>
+        <div>LIVES: <span id="lives">3</span></div>
+    </div>
+
+    <!-- Target Word Display -->
+    <div id="target-display" class="target-display hidden">
+        <div class="text-sm text-gray-400 mb-1" id="target-label">TRANSLATE</div>
+        <div id="current-target" class="target-word">---</div>
+    </div>
+
+    <!-- Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Controls Hint -->
+    <div id="controls-hint" class="hidden">
+        DRAG TO MOVE • DOUBLE TAP TO SHOOT
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay">
+        <h1 class="pixel-font text-4xl text-yellow-400 mb-4 neon-text leading-snug">VOCABOLARIO<br>INVADERS</h1>
+        <p class="text-gray-300 mb-6 max-w-md">
+            Defend the galaxy by learning words!
+            <br><br>
+            Double tap to fire.
+        </p>
+
+        <div class="flex flex-col gap-4 w-full max-w-xs">
+            <button id="start-btn-visual" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition hover:scale-105 pixel-font text-sm w-full">
+                VISUAL MODE<br><span class="text-[10px] opacity-70 font-sans">READ ITALIAN &rarr; SHOOT ENGLISH</span>
+            </button>
+
+            <div class="bg-slate-800 p-4 rounded-xl border border-pink-900/50 shadow-lg mt-2">
+                <button id="start-btn-audio" class="bg-pink-600 hover:bg-pink-500 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition hover:scale-105 pixel-font text-sm w-full mb-4">
+                    LISTEN TO KILL<br><span class="text-[10px] opacity-70 font-sans">HEAR ENGLISH &rarr; SHOOT ENGLISH</span>
+                </button>
+
+                <div class="text-left px-2">
+                    <label class="block text-[10px] text-pink-300 mb-3 font-sans uppercase tracking-wider font-bold">
+                        Slow Playback Speed: <span id="rate-display" class="text-white text-base ml-1">0.5</span>x
+                    </label>
+                    <input type="range" id="tts-rate-slider" min="0.1" max="0.9" step="0.1" value="0.5">
+                    <div class="flex justify-between text-[9px] text-gray-400 font-sans mt-2">
+                        <span>SNAIL (0.1)</span>
+                        <span>NORMAL-ISH (0.9)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="overlay hidden">
+        <h1 class="pixel-font text-red-500 text-4xl mb-4 neon-text">GAME OVER</h1>
+        <p class="text-xl mb-2">Final Score</p>
+        <p id="final-score" class="pixel-font text-3xl text-yellow-400 mb-8">0</p>
+        <button id="restart-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition hover:scale-105 pixel-font text-sm">
+            TRY AGAIN
+        </button>
+    </div>
+</div>
+
+<script>
+    /**
+     * GAME CONFIGURATION & VOCABULARY
+     */
+    const VOCABULARY = [
+        { it: 'Mela', en: 'Apple' },
+        { it: 'Cane', en: 'Dog' },
+        { it: 'Gatto', en: 'Cat' },
+        { it: 'Casa', en: 'House' },
+        { it: 'Libro', en: 'Book' },
+        { it: 'Ciao', en: 'Hello' },
+        { it: 'Amico', en: 'Friend' },
+        { it: 'Acqua', en: 'Water' },
+        { it: 'Tempo', en: 'Time' },
+        { it: 'Uomo', en: 'Man' },
+        { it: 'Donna', en: 'Woman' },
+        { it: 'Bambino', en: 'Child' },
+        { it: 'Lavoro', en: 'Work' },
+        { it: 'Soldi', en: 'Money' },
+        { it: 'Mondo', en: 'World' },
+        { it: 'Amore', en: 'Love' },
+        { it: 'Felice', en: 'Happy' },
+        { it: 'Triste', en: 'Sad' },
+        { it: 'Grande', en: 'Big' },
+        { it: 'Piccolo', en: 'Small' },
+        { it: 'Nuovo', en: 'New' },
+        { it: 'Vecchio', en: 'Old' },
+        { it: 'Buono', en: 'Good' },
+        { it: 'Male', en: 'Bad' },
+        { it: 'Notte', en: 'Night' },
+        { it: 'Giorno', en: 'Day' },
+        { it: 'Sole', en: 'Sun' },
+        { it: 'Luna', en: 'Moon' },
+        { it: 'Mare', en: 'Sea' },
+        { it: 'Cielo', en: 'Sky' }
+    ];
+
+    /**
+     * AUDIO SYSTEM (Synthesized sounds + Speech)
+     */
+    const AudioSys = {
+        ctx: null,
+        ttsTimer: null,
+        ttsStage: 0, // 0: Normal, 1: Slow
+        init: function() {
+            window.AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+            // Cancel any pending speech from previous sessions
+            window.speechSynthesis.cancel();
+        },
+        playTone: function(freq, type, duration) {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+        },
+        shoot: function() { this.playTone(400, 'square', 0.1); },
+        explosion: function() { this.playTone(100, 'sawtooth', 0.3); },
+        success: function() {
+            if (!this.ctx) return;
+            const now = this.ctx.currentTime;
+            this.playTone(600, 'sine', 0.1);
+            setTimeout(() => this.playTone(800, 'sine', 0.2), 100);
+        },
+        error: function() { this.playTone(150, 'sawtooth', 0.4); },
+
+        // Text-to-Speech Logic
+        stopTTS: function() {
+            if (this.ttsTimer) clearTimeout(this.ttsTimer);
+            window.speechSynthesis.cancel();
+        },
+        startTTSLoop: function(word) {
+            this.stopTTS();
+            this.ttsStage = 0; // Start normal
+
+            const speak = () => {
+                if (gameState !== 'PLAYING') return;
+
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+
+                // Toggle speed: Even = 1.0, Odd = User Selected Slow Rate
+                utterance.rate = (this.ttsStage % 2 === 0) ? 1.0 : ttsSlowRate;
+
+                // Optional: Pitch variation to make it less robotic
+                utterance.pitch = 1.1;
+
+                utterance.onend = () => {
+                    if (gameState !== 'PLAYING') return;
+                    this.ttsStage++;
+                    // Wait 1.5 seconds then speak again
+                    this.ttsTimer = setTimeout(speak, 1500);
+                };
+
+                // Error handling for speech
+                utterance.onerror = (e) => {
+                    console.error('Speech error', e);
+                }
+
+                window.speechSynthesis.speak(utterance);
+            };
+
+            speak();
+        }
+    };
+
+    /**
+     * GAME ENGINE
+     */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI Elements
+    const startScreen = document.getElementById('start-screen');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const hud = document.getElementById('hud');
+    const targetDisplay = document.getElementById('target-display');
+    const targetLabel = document.getElementById('target-label');
+    const controlsHint = document.getElementById('controls-hint');
+    const scoreEl = document.getElementById('score');
+    const livesEl = document.getElementById('lives');
+    const currentTargetEl = document.getElementById('current-target');
+    const finalScoreEl = document.getElementById('final-score');
+
+    // Game State
+    let gameState = 'START'; // START, PLAYING, GAMEOVER
+    let gameMode = 'VISUAL'; // 'VISUAL' or 'AUDIO'
+    let lastTime = 0;
+    let score = 0;
+    let lives = 3;
+    let difficultyMultiplier = 1;
+    let ttsSlowRate = 0.5; // Default slow rate
+
+    // Current Learning Objective
+    let currentTargetPair = null;
+
+    // Entities
+    let player = { x: 0, y: 0, width: 40, height: 40, color: '#4ade80' };
+    let bullets = [];
+    let enemies = [];
+    let particles = [];
+    let stars = [];
+
+    // Input
+    let input = { x: 0, isDown: false, tapped: false };
+    let lastTapTime = 0;
+
+    /**
+     * RESIZE & INIT
+     */
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        // Keep player at bottom
+        player.y = canvas.height - 80;
+        player.x = canvas.width / 2;
+        initStars();
+    }
+    window.addEventListener('resize', resize);
+
+    function initStars() {
+        stars = [];
+        for(let i=0; i<100; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2,
+                speed: Math.random() * 0.5 + 0.1
+            });
+        }
+    }
+
+    /**
+     * CORE LOGIC
+     */
+    function startGame(mode) {
+        AudioSys.init();
+        gameState = 'PLAYING';
+        gameMode = mode;
+        score = 0;
+        lives = 3;
+        difficultyMultiplier = 1;
+        bullets = [];
+        enemies = [];
+        particles = [];
+
+        updateUI();
+        pickNewTarget();
+        spawnEnemyWave(); // Initial spawn
+
+        // Hide menus, show game UI
+        startScreen.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+        hud.classList.remove('hidden');
+        targetDisplay.classList.remove('hidden');
+        controlsHint.classList.remove('hidden');
+
+        player.x = canvas.width / 2;
+        input.x = player.x; // Reset input tracking
+
+        lastTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function gameOver() {
+        gameState = 'GAMEOVER';
+        AudioSys.error();
+        AudioSys.stopTTS(); // Stop any speaking
+        finalScoreEl.innerText = score;
+        gameOverScreen.classList.remove('hidden');
+        hud.classList.add('hidden');
+        targetDisplay.classList.add('hidden');
+        controlsHint.classList.add('hidden');
+    }
+
+    function pickNewTarget() {
+        // Pick random pair
+        currentTargetPair = VOCABULARY[Math.floor(Math.random() * VOCABULARY.length)];
+
+        // Handle Modes
+        if (gameMode === 'VISUAL') {
+            targetLabel.innerText = "TRANSLATE";
+            currentTargetEl.innerText = currentTargetPair.it.toUpperCase();
+            currentTargetEl.classList.remove('audio-mode');
+            AudioSys.stopTTS();
+        } else {
+            // AUDIO MODE
+            targetLabel.innerText = "LISTEN & FIND";
+            currentTargetEl.innerHTML = "🔊 LISTEN";
+            currentTargetEl.classList.add('audio-mode');
+            // Start speaking English word
+            AudioSys.startTTSLoop(currentTargetPair.en);
+        }
+    }
+
+    function spawnEnemyWave() {
+        if (gameState !== 'PLAYING') return;
+
+        const enemyWidth = 80;
+        const laneCount = Math.floor(canvas.width / enemyWidth);
+        const lanes = Array.from({length: laneCount}, (_, i) => i);
+
+        // Randomly decide how many enemies to spawn (1 to 3)
+        const count = Math.min(lanes.length, Math.floor(Math.random() * 2) + 1);
+
+        // Shuffle lanes
+        for (let i = lanes.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [lanes[i], lanes[j]] = [lanes[j], lanes[i]];
+        }
+
+        let correctSpawned = false;
+
+        for (let i = 0; i < count; i++) {
+            const laneIndex = lanes[i];
+            const x = (laneIndex * enemyWidth) + (enemyWidth/2) + ((canvas.width - (laneCount * enemyWidth))/2);
+
+            let word = '';
+            let isTarget = false;
+
+            const existingCorrect = enemies.some(e => e.word === currentTargetPair.en);
+
+            if (!existingCorrect && !correctSpawned) {
+                word = currentTargetPair.en;
+                isTarget = true;
+                correctSpawned = true;
+            } else {
+                // Pick a random WRONG word
+                let randomPair;
+                do {
+                    randomPair = VOCABULARY[Math.floor(Math.random() * VOCABULARY.length)];
+                } while (randomPair.en === currentTargetPair.en);
+                word = randomPair.en;
+            }
+
+            enemies.push({
+                x: x,
+                y: -50 - (Math.random() * 100), // Stagger start
+                width: 70,
+                height: 40,
+                word: word,
+                isTarget: isTarget,
+                speed: (Math.random() * 50 + 50) * (1 + (score/500)), // Speed increases with score
+                color: isTarget ? '#f472b6' : '#a78bfa'
+            });
+        }
+
+        // Schedule next wave
+        const spawnDelay = Math.max(1000, 3000 - (score * 5));
+        setTimeout(spawnEnemyWave, spawnDelay);
+    }
+
+    function update(dt) {
+        // Player Movement (Lerp for smoothness)
+        // input.x is set by touch/mouse logic
+        const targetX = Math.max(player.width/2, Math.min(canvas.width - player.width/2, input.x));
+        player.x += (targetX - player.x) * 0.2; // Smooth lag
+
+        // Shooting
+        if (input.tapped) {
+            bullets.push({
+                x: player.x,
+                y: player.y - 20,
+                speed: 600
+            });
+            AudioSys.shoot();
+            input.tapped = false;
+        }
+
+        // Update Bullets
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            let b = bullets[i];
+            b.y -= b.speed * dt;
+            if (b.y < -10) bullets.splice(i, 1);
+        }
+
+        // Update Enemies
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            let e = enemies[i];
+            e.y += e.speed * dt;
+
+            // Check collision with bottom
+            if (e.y > canvas.height) {
+                enemies.splice(i, 1);
+                continue;
+            }
+
+            // Check collision with Player
+            if (
+                player.x - player.width/2 < e.x + e.width/2 &&
+                player.x + player.width/2 > e.x - e.width/2 &&
+                player.y - player.height/2 < e.y + e.height/2 &&
+                player.y + player.height/2 > e.y - e.height/2
+            ) {
+                createExplosion(player.x, player.y, '#ff0000');
+                lives--;
+                updateUI();
+                enemies.splice(i, 1);
+                AudioSys.explosion();
+                if (lives <= 0) gameOver();
+                continue;
+            }
+
+            // Check collision with Bullets
+            for (let j = bullets.length - 1; j >= 0; j--) {
+                let b = bullets[j];
+                if (
+                    b.x > e.x - e.width/2 &&
+                    b.x < e.x + e.width/2 &&
+                    b.y > e.y - e.height/2 &&
+                    b.y < e.y + e.height/2
+                ) {
+                    // Hit!
+                    bullets.splice(j, 1);
+                    createExplosion(e.x, e.y, e.isTarget ? '#4ade80' : '#ef4444');
+                    enemies.splice(i, 1);
+
+                    if (e.isTarget) {
+                        // Correct Answer
+                        score += 10;
+                        AudioSys.success();
+                        pickNewTarget(); // This will trigger new audio in AUDIO mode
+                        spawnEnemyWave();
+                    } else {
+                        // Wrong Answer
+                        lives--;
+                        score = Math.max(0, score - 5);
+                        AudioSys.error();
+                        createFloatingText(e.x, e.y, "NO!");
+                        if (lives <= 0) gameOver();
+                    }
+                    updateUI();
+                    break;
+                }
+            }
+        }
+
+        // Update Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= dt;
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        // Stars
+        stars.forEach(s => {
+            s.y += s.speed;
+            if (s.y > canvas.height) s.y = 0;
+        });
+    }
+
+    function createExplosion(x, y, color) {
+        for(let i=0; i<15; i++) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 300,
+                vy: (Math.random() - 0.5) * 300,
+                life: 0.5,
+                color: color,
+                size: Math.random() * 4 + 2
+            });
+        }
+    }
+
+    function createFloatingText(x, y, text) {
+        // Simplified visual feedback handled by createExplosion color for now
+    }
+
+    function updateUI() {
+        scoreEl.innerText = score;
+        livesEl.innerText = lives;
+    }
+
+    function draw() {
+        // Clear background
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Stars
+        ctx.fillStyle = '#ffffff';
+        stars.forEach(s => {
+            ctx.globalAlpha = Math.random() * 0.5 + 0.3;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+
+        // Draw Player
+        ctx.save();
+        ctx.translate(player.x, player.y);
+
+        // Ship Body
+        ctx.fillStyle = player.color;
+        ctx.shadowColor = player.color;
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.moveTo(0, -20);
+        ctx.lineTo(15, 15);
+        ctx.lineTo(0, 10);
+        ctx.lineTo(-15, 15);
+        ctx.closePath();
+        ctx.fill();
+
+        // Engine flame
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.moveTo(-5, 15);
+        ctx.lineTo(0, 25 + Math.random() * 10);
+        ctx.lineTo(5, 15);
+        ctx.fill();
+        ctx.restore();
+
+        // Draw Enemies
+        enemies.forEach(e => {
+            ctx.save();
+            ctx.translate(e.x, e.y);
+
+            // Cloud Visuals
+            ctx.fillStyle = 'rgba(30, 41, 59, 0.95)'; // Dark Slate background
+            ctx.strokeStyle = '#38bdf8'; // Sky blue neon
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 10;
+
+            // Draw Cloud Path
+            ctx.beginPath();
+            const w = e.width/2;
+            const h = e.height/2;
+
+            // Start bottom-left
+            ctx.moveTo(-w, h - 5);
+            // Left Hump
+            ctx.bezierCurveTo(-w - 15, h - 10, -w - 10, -h - 5, -10, -h);
+            // Top/Right Hump
+            ctx.bezierCurveTo(10, -h - 15, w + 15, -h, w, h - 5);
+            // Bottom Curve
+            ctx.bezierCurveTo(w + 5, h + 10, -w - 5, h + 10, -w, h - 5);
+
+            ctx.fill();
+            ctx.stroke();
+
+            // Text
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 0;
+            ctx.font = 'bold 16px Roboto';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(e.word, 0, 0);
+
+            ctx.restore();
+        });
+
+        // Draw Bullets
+        ctx.fillStyle = '#fbbf24';
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 10;
+        bullets.forEach(b => {
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 4, 0, Math.PI*2);
+            ctx.fill();
+        });
+
+        // Draw Particles
+        particles.forEach(p => {
+            ctx.fillStyle = p.color;
+            ctx.shadowColor = p.color;
+            ctx.globalAlpha = p.life / 0.5;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+    }
+
+    function gameLoop(timestamp) {
+        if (gameState !== 'PLAYING') return;
+
+        let dt = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+
+        update(dt);
+        draw();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    /**
+     * INPUT HANDLING
+     */
+    function handleInputStart(e) {
+        e.preventDefault(); // Prevent scrolling
+        input.isDown = true;
+        updateInputCoordinates(e);
+
+        // Double Tap Logic
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTapTime;
+
+        if (tapLength < 300 && tapLength > 0) {
+            if (gameState === 'PLAYING') {
+                 input.tapped = true;
+            }
+        }
+        lastTapTime = currentTime;
+    }
+
+    function handleInputMove(e) {
+        e.preventDefault();
+        if (input.isDown) {
+            updateInputCoordinates(e);
+        }
+    }
+
+    function handleInputEnd(e) {
+        e.preventDefault();
+        input.isDown = false;
+    }
+
+    function updateInputCoordinates(e) {
+        let clientX;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+        } else {
+            clientX = e.clientX;
+        }
+        input.x = clientX;
+    }
+
+    // Attach Listeners
+    canvas.addEventListener('mousedown', handleInputStart);
+    canvas.addEventListener('mousemove', handleInputMove);
+    canvas.addEventListener('mouseup', handleInputEnd);
+
+    canvas.addEventListener('touchstart', handleInputStart, {passive: false});
+    canvas.addEventListener('touchmove', handleInputMove, {passive: false});
+    canvas.addEventListener('touchend', handleInputEnd, {passive: false});
+
+    // Button Listeners
+    document.getElementById('start-btn-visual').addEventListener('click', () => startGame('VISUAL'));
+    document.getElementById('start-btn-audio').addEventListener('click', () => startGame('AUDIO'));
+
+    // Slider Listener
+    const rateSlider = document.getElementById('tts-rate-slider');
+    const rateDisplay = document.getElementById('rate-display');
+    rateSlider.addEventListener('input', (e) => {
+        ttsSlowRate = parseFloat(e.target.value);
+        rateDisplay.innerText = ttsSlowRate;
+    });
+
+    document.getElementById('restart-btn').addEventListener('click', () => {
+        // Default restart to last mode used, or just visual?
+        // Let's reset to start screen instead for choice
+        gameOverScreen.classList.add('hidden');
+        startScreen.classList.remove('hidden');
+        gameState = 'START';
+    });
+
+    // Initial Setup
+    resize();
+    player.x = canvas.width / 2; // Center initially
+
+</script>
+</body>
+</html>

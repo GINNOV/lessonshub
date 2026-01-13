@@ -1,0 +1,360 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Play, RotateCcw, AlertCircle, Trophy, Keyboard, Heart } from 'lucide-react';
+
+// --- Game Data ---
+const WORD_DATA = [
+  { answer: "apple", clue: "A round, edible fruit that typically has red skin." },
+  { answer: "library", clue: "A building or room containing collections of books." },
+  { answer: "ocean", clue: "A very large expanse of sea, in particular each of the main areas into which the sea is divided." },
+  { answer: "python", clue: "A large heavy-bodied non-venomous snake OR a popular programming language." },
+  { answer: "galaxy", clue: "A system of millions or billions of stars, together with gas and dust." },
+  { answer: "rhythm", clue: "A strong, regular, repeated pattern of movement or sound." },
+  { answer: "umbrella", clue: "A device used for protection against rain or sun." },
+  { answer: "vacation", clue: "An extended period of leisure and recreation." },
+  { answer: "whisper", clue: "To speak very softly using one's breath without one's vocal cords." },
+  { answer: "journey", clue: "An act of traveling from one place to another." },
+  { answer: "knowledge", clue: "Facts, information, and skills acquired by a person through experience or education." },
+  { answer: "mystery", clue: "Something that is difficult or impossible to understand or explain." },
+  { answer: "breeze", clue: "A gentle wind." },
+  { answer: "castle", clue: "A large building, typically of the medieval period, fortified against attack." },
+  { answer: "danger", clue: "The possibility of suffering harm or injury." },
+  { answer: "forest", clue: "A large area covered chiefly with trees and undergrowth." },
+  { answer: "guitar", clue: "A stringed musical instrument played by plucking or strumming." },
+  { answer: "island", clue: "A piece of land surrounded by water." },
+  { answer: "jungle", clue: "An area of land overgrown with dense forest and tangled vegetation." },
+  { answer: "mountain", clue: "A large natural elevation of the earth's surface rising abruptly from the surrounding level." }
+];
+
+// Shuffle array helper
+const shuffleArray = (array) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
+// --- Components ---
+
+// 1. Hangman Visualization (SVG)
+const HangmanFigure = ({ mistakes, maxMistakes }) => {
+  const strokeColor = "#ef4444"; // Tailwind red-500
+  const baseColor = "#4b5563";   // Tailwind gray-600
+
+  // Drawing parts based on mistake count
+  const parts = [
+    // Base (always visible slightly or first mistake?) Let's make mistakes draw the man, base is static or 1st error.
+    // Let's go strict: 0 mistakes = empty gallows.
+    <line key="base" x1="10" y1="190" x2="150" y2="190" stroke={baseColor} strokeWidth="4" />, // 1
+    <line key="pole" x1="80" y1="190" x2="80" y2="20" stroke={baseColor} strokeWidth="4" />,   // 2
+    <line key="top" x1="80" y1="20" x2="140" y2="20" stroke={baseColor} strokeWidth="4" />,    // 3
+    <line key="rope" x1="140" y1="20" x2="140" y2="50" stroke={baseColor} strokeWidth="4" />,  // 4
+    <circle key="head" cx="140" cy="70" r="20" stroke={strokeColor} strokeWidth="4" fill="transparent" />, // 5
+    <line key="body" x1="140" y1="90" x2="140" y2="150" stroke={strokeColor} strokeWidth="4" />, // 6
+    <line key="l-arm" x1="140" y1="100" x2="110" y2="130" stroke={strokeColor} strokeWidth="4" />, // 7
+    <line key="r-arm" x1="140" y1="100" x2="170" y2="130" stroke={strokeColor} strokeWidth="4" />, // 8
+    <line key="l-leg" x1="140" y1="150" x2="120" y2="180" stroke={strokeColor} strokeWidth="4" />, // 9
+    <line key="r-leg" x1="140" y1="150" x2="160" y2="180" stroke={strokeColor} strokeWidth="4" />, // 10
+  ];
+
+  // Logic: We show parts from index 0 up to mistakes-1.
+  // Wait, let's make the gallows (first 4 parts) appear immediately or quickly,
+  // then the body parts correspond to actual mistakes that "kill" the player.
+  // Let's map mistakes directly to body parts for high stakes.
+  // Gallows are always there.
+
+  const gallows = [
+     <line key="base" x1="10" y1="190" x2="150" y2="190" stroke={baseColor} strokeWidth="4" />,
+     <line key="pole" x1="80" y1="190" x2="80" y2="20" stroke={baseColor} strokeWidth="4" />,
+     <line key="top" x1="80" y1="20" x2="140" y2="20" stroke={baseColor} strokeWidth="4" />,
+     <line key="rope" x1="140" y1="20" x2="140" y2="50" stroke={baseColor} strokeWidth="4" />,
+  ];
+
+  const bodyParts = [
+    <circle key="head" cx="140" cy="70" r="20" stroke={strokeColor} strokeWidth="4" fill="transparent" />,
+    <line key="body" x1="140" y1="90" x2="140" y2="150" stroke={strokeColor} strokeWidth="4" />,
+    <line key="l-arm" x1="140" y1="100" x2="110" y2="130" stroke={strokeColor} strokeWidth="4" />,
+    <line key="r-arm" x1="140" y1="100" x2="170" y2="130" stroke={strokeColor} strokeWidth="4" />,
+    <line key="l-leg" x1="140" y1="150" x2="120" y2="180" stroke={strokeColor} strokeWidth="4" />,
+    <line key="r-leg" x1="140" y1="150" x2="160" y2="180" stroke={strokeColor} strokeWidth="4" />,
+  ];
+
+  // maxMistakes determines how many body parts we have. Let's say 6 body parts.
+  const visibleBodyParts = bodyParts.slice(0, mistakes);
+
+  return (
+    <svg width="200" height="220" viewBox="0 0 200 220" className="opacity-80 transition-all duration-300">
+      {gallows}
+      {visibleBodyParts}
+    </svg>
+  );
+};
+
+// Main App Component
+export default function WordSurvivalApp() {
+  const [gameState, setGameState] = useState('start'); // start, playing, won, lost
+  const [queue, setQueue] = useState([]);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [typed, setTyped] = useState("");
+  const [mistakes, setMistakes] = useState(0);
+  const [shake, setShake] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const inputRef = useRef(null);
+
+  const MAX_MISTAKES = 6; // Head, Body, Arm, Arm, Leg, Leg
+
+  // Initialize Game
+  const startGame = () => {
+    const shuffled = shuffleArray(WORD_DATA);
+    setQueue(shuffled);
+    setCurrentIdx(0);
+    setTyped("");
+    setMistakes(0);
+    setGameState('playing');
+    setStreak(0);
+    // Focus input after render
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  // Handle Input
+  const handleKeyDown = (e) => {
+    if (gameState !== 'playing') return;
+
+    const currentWordObj = queue[currentIdx];
+    const targetWord = currentWordObj.answer.toLowerCase();
+    const key = e.key.toLowerCase();
+
+    // Ignore non-character keys (except backspace if we wanted to allow it, but monkey type strictly usually just blocks forward progress or counts error)
+    // Here we implement "Strict Mode": You must type the correct character to advance.
+    // If you type wrong, you get a penalty, but the cursor doesn't move (or ghost moves).
+
+    // We only care about single letters
+    if (!/^[a-z]$/.test(key)) return;
+
+    // Check if key matches the next expected character
+    const expectedChar = targetWord[typed.length];
+
+    if (key === expectedChar) {
+      // Correct character
+      const newTyped = typed + key;
+      setTyped(newTyped);
+
+      // Check Word Completion
+      if (newTyped === targetWord) {
+        // Word Done
+        if (currentIdx + 1 >= queue.length) {
+          setGameState('won');
+        } else {
+          // Next Word
+          setTyped("");
+          setCurrentIdx(prev => prev + 1);
+          setStreak(prev => prev + 1);
+        }
+      }
+    } else {
+      // Incorrect character
+      setMistakes(prev => {
+        const newMistakes = prev + 1;
+        if (newMistakes >= MAX_MISTAKES) {
+          setGameState('lost');
+        }
+        return newMistakes;
+      });
+
+      // Visual feedback
+      setShake(true);
+      setTimeout(() => setShake(false), 300);
+    }
+  };
+
+  // Keep focus on input
+  const handleClickAnywhere = () => {
+    if (gameState === 'playing') {
+      inputRef.current?.focus();
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('click', handleClickAnywhere);
+    return () => window.removeEventListener('click', handleClickAnywhere);
+  }, [gameState]);
+
+
+  // --- Render Helpers ---
+
+  const renderWord = () => {
+    if (!queue[currentIdx]) return null;
+    const targetWord = queue[currentIdx].answer;
+
+    return (
+      <div className={`flex flex-wrap justify-center gap-1 sm:gap-2 text-4xl sm:text-6xl font-mono font-bold tracking-wider my-8 transition-transform duration-100 ${shake ? 'translate-x-1 text-red-500' : 'text-gray-100'}`}>
+        {targetWord.split('').map((char, index) => {
+          const isTyped = index < typed.length;
+          const isCurrent = index === typed.length;
+
+          return (
+            <span
+              key={index}
+              className={`
+                relative w-8 sm:w-12 h-16 flex items-center justify-center border-b-4
+                ${isTyped ? 'border-transparent text-emerald-400' : 'border-gray-700 text-gray-700'}
+                ${isCurrent ? 'border-yellow-400 animate-pulse' : ''}
+              `}
+            >
+              {isTyped ? char : '_'}
+              {/* Cursor Effect */}
+              {isCurrent && (
+                <span className="absolute left-0 w-full h-full border-l-2 border-yellow-400 animate-pulse opacity-50"></span>
+              )}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className="min-h-screen bg-gray-900 text-gray-200 font-sans selection:bg-yellow-500 selection:text-gray-900 flex flex-col items-center justify-center p-4 overflow-hidden"
+      onClick={handleClickAnywhere}
+      onKeyDown={handleKeyDown}
+      tabIndex={0} // Make div focusable to capture global keys if input fails
+    >
+      {/* Hidden Input for Mobile/IME support */}
+      <input
+        ref={inputRef}
+        type="text"
+        className="absolute opacity-0 top-0 left-0 h-0 w-0"
+        autoFocus
+        onChange={() => {}} // React controlled input warning fix
+      />
+
+      {/* Header / Stats */}
+      <div className="absolute top-6 w-full max-w-4xl flex justify-between px-6 text-gray-500 font-mono text-sm uppercase tracking-widest">
+        <div className="flex items-center gap-2">
+          <span className="text-emerald-500 flex items-center gap-1"><Trophy size={16}/> {streak} Streak</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span>Word {gameState === 'playing' ? currentIdx + 1 : currentIdx} / {queue.length > 0 ? queue.length : WORD_DATA.length}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`${mistakes >= MAX_MISTAKES - 2 ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
+            Errors Allowed: {MAX_MISTAKES - mistakes}
+          </span>
+        </div>
+      </div>
+
+      {/* Main Game Area */}
+      <div className="w-full max-w-3xl flex flex-col items-center z-10">
+
+        {gameState === 'start' && (
+          <div className="text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="mb-6 flex justify-center">
+               <Keyboard size={64} className="text-yellow-400" />
+            </div>
+            <h1 className="text-5xl font-black text-white mb-4 tracking-tighter">
+              LEXICAL <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">SURVIVAL</span>
+            </h1>
+            <p className="text-xl text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">
+              Solve the definition. Type the word. <br/>
+              <span className="text-red-400">Don't let the stickman fade.</span>
+            </p>
+            <button
+              onClick={startGame}
+              className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl transition-all hover:scale-105 active:scale-95 border border-gray-700 hover:border-yellow-500/50 shadow-2xl shadow-yellow-500/10"
+            >
+              <Play className="fill-current" />
+              <span>Start Game</span>
+            </button>
+          </div>
+        )}
+
+        {gameState === 'playing' && (
+          <div className="w-full flex flex-col items-center">
+
+            {/* Clue Section */}
+            <div className="mb-8 text-center px-4">
+              <span className="inline-block py-1 px-3 rounded-full bg-gray-800 text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
+                Definition
+              </span>
+              <p className="text-2xl sm:text-3xl text-gray-300 font-light leading-normal max-w-2xl">
+                "{queue[currentIdx].clue}"
+              </p>
+            </div>
+
+            {/* Typing Area */}
+            <div className="relative">
+               {renderWord()}
+            </div>
+
+            <p className="text-gray-600 text-sm font-mono mt-2 mb-12">
+              Type the word to continue...
+            </p>
+
+            {/* Visualizer (Hangman) */}
+            <div className="mt-4 p-6 bg-gray-800/30 rounded-3xl border border-gray-800">
+               <HangmanFigure mistakes={mistakes} maxMistakes={MAX_MISTAKES} />
+            </div>
+
+          </div>
+        )}
+
+        {gameState === 'lost' && (
+            <div className="text-center animate-in zoom-in duration-300">
+              <div className="mb-6 flex justify-center text-red-500">
+                 <AlertCircle size={80} />
+              </div>
+              <h2 className="text-4xl font-bold text-white mb-2">Game Over</h2>
+              <p className="text-gray-400 mb-6">The word was <span className="text-yellow-400 font-mono text-lg ml-1">{queue[currentIdx].answer.toUpperCase()}</span></p>
+
+              <div className="grid grid-cols-2 gap-4 mb-8 w-full max-w-xs mx-auto">
+                <div className="bg-gray-800 p-4 rounded-xl text-center">
+                  <div className="text-xs text-gray-500 uppercase">Words Solved</div>
+                  <div className="text-2xl font-bold text-white">{currentIdx}</div>
+                </div>
+                <div className="bg-gray-800 p-4 rounded-xl text-center">
+                   <div className="text-xs text-gray-500 uppercase">Accuracy</div>
+                   {/* Simple accuracy calc */}
+                   <div className="text-2xl font-bold text-white">
+                      {Math.round((currentIdx / (currentIdx + mistakes || 1)) * 100)}%
+                   </div>
+                </div>
+              </div>
+
+              <button
+                onClick={startGame}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <RotateCcw size={20} /> Try Again
+              </button>
+            </div>
+        )}
+
+        {gameState === 'won' && (
+           <div className="text-center animate-in zoom-in duration-500">
+             <div className="mb-6 flex justify-center text-yellow-400">
+                <Trophy size={80} />
+             </div>
+             <h2 className="text-4xl font-bold text-white mb-4">Vocabulary Master!</h2>
+             <p className="text-gray-400 mb-8 max-w-md">
+               You survived all the definitions without losing your stickman.
+             </p>
+             <button
+               onClick={startGame}
+               className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-lg transition-colors shadow-lg shadow-emerald-500/20"
+             >
+               <RotateCcw size={20} /> Play Again
+             </button>
+           </div>
+        )}
+
+      </div>
+
+      {/* Footer */}
+      <div className="absolute bottom-4 text-gray-700 text-xs font-mono">
+        {gameState === 'playing' ? 'Focus is required. Spelling matters.' : 'Press Start to begin.'}
+      </div>
+    </div>
+  );
+}
