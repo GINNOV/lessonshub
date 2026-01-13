@@ -45,6 +45,7 @@ Everything important lives on `/my-lessons`. The layout adapts to your screen wh
 - Accessible via the **Games** tab or the "Play Games" card.
 - Games like "Vocabolario Invaders" help you practice vocabulary in a fun, arcade-style environment.
 - Choose your difficulty and visual/audio modes to customize your learning experience.
+- **Frog Verbs rewards:** each correct answer earns **€5** and **10 points**. Each wrong answer subtracts **€10**.
 
 ## Leaderboard
 

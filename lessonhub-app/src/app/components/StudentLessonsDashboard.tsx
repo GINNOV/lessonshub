@@ -1,7 +1,8 @@
 // file: src/app/components/StudentLessonsDashboard.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StudentStatsHeader from '@/app/components/StudentStatsHeader';
@@ -70,6 +71,8 @@ export default function StudentLessonsDashboard({
   gamificationSnapshot,
   leaderboardData,
 }: StudentLessonsDashboardProps) {
+  const searchParams = useSearchParams();
+  const requestedTab = useMemo(() => searchParams?.get('tab') ?? '', [searchParams]);
   const [assignmentFilter, setAssignmentFilter] = useState<StudentLessonFilter | null>('all');
   const [activeTab, setActiveTab] = useState(isPaying ? 'lessons' : 'free');
   const showAllContent = assignmentFilter === null || assignmentFilter === 'all';
@@ -139,6 +142,15 @@ export default function StudentLessonsDashboard({
     }
   };
 
+  useEffect(() => {
+    if (!requestedTab) return;
+    const normalized = requestedTab.toLowerCase();
+    if (normalized === 'games') setActiveTab('games');
+    if (normalized === 'guides') setActiveTab('guides');
+    if (normalized === 'lessons') setActiveTab('lessons');
+    if (normalized === 'free' && !isPaying) setActiveTab('free');
+  }, [isPaying, requestedTab]);
+
   return (
     <>
       <StudentStatsHeader
@@ -163,7 +175,7 @@ export default function StudentLessonsDashboard({
         {isPaying ? (
           showAllContent ? (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="mb-2 flex w-full flex-wrap items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 px-2 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+              <TabsList className="mb-2 flex h-auto w-full flex-wrap items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 px-2 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
                 <TabsTrigger
                   value="lessons"
                   className="flex-1 min-w-[140px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
@@ -223,7 +235,7 @@ export default function StudentLessonsDashboard({
           )
         ) : showAllContent ? (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="mb-2 flex w-full flex-wrap items-stretch gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-slate-800/70">
+            <TabsList className="mb-2 flex h-auto w-full flex-wrap items-stretch gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)] ring-1 ring-slate-800/70">
               <TabsTrigger
                 value="free"
                 className="flex-1 min-w-[150px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-teal-400/50 data-[state=active]:bg-slate-800 data-[state=active]:text-teal-200 data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"

@@ -46,6 +46,7 @@
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
+  margin-top: -8px;
 }
 
 .lives {
@@ -322,6 +323,7 @@
   .hud {
     font-size: 18px;
     max-width: 100%;
+    margin-top: -8px;
   }
 
   .settingsBtn {

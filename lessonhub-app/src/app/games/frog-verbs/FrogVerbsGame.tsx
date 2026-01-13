@@ -44,7 +44,8 @@ const GRAMMAR_QUESTIONS = [
 type GrammarQuestion = (typeof GRAMMAR_QUESTIONS)[number];
 
 type Goal = {
-  x: number;
+  xWorld: number;
+  zWorld: number;
   filled: boolean;
   mesh: THREE.Mesh | null;
 };
@@ -58,7 +59,8 @@ export default function FrogVerbsGame() {
   const soundToggleRef = useRef<HTMLInputElement | null>(null);
   const teacherToggleRef = useRef<HTMLInputElement | null>(null);
   const closeSettingsRef = useRef<HTMLButtonElement | null>(null);
-  const scoreRef = useRef<HTMLDivElement | null>(null);
+  const eurosRef = useRef<HTMLDivElement | null>(null);
+  const pointsRef = useRef<HTMLDivElement | null>(null);
   const livesRef = useRef<HTMLDivElement | null>(null);
   const gameOverRef = useRef<HTMLDivElement | null>(null);
   const gameOverScoreRef = useRef<HTMLDivElement | null>(null);
@@ -80,7 +82,8 @@ export default function FrogVerbsGame() {
     const soundToggle = soundToggleRef.current;
     const teacherToggle = teacherToggleRef.current;
     const closeSettings = closeSettingsRef.current;
-    const scoreEl = scoreRef.current;
+    const eurosEl = eurosRef.current;
+    const pointsEl = pointsRef.current;
     const livesEl = livesRef.current;
     const gameOverScreen = gameOverRef.current;
     const gameOverScore = gameOverScoreRef.current;
@@ -102,7 +105,8 @@ export default function FrogVerbsGame() {
       !soundToggle ||
       !teacherToggle ||
       !closeSettings ||
-      !scoreEl ||
+      !eurosEl ||
+      !pointsEl ||
       !livesEl ||
       !gameOverScreen ||
       !gameOverScore ||
@@ -141,8 +145,10 @@ export default function FrogVerbsGame() {
     let frog: Frog;
     const obstacles: Entity[] = [];
     const goals: Goal[] = [];
-    let score = 0;
-    let lastScore = 0;
+    let points = 0;
+    let euros = 0;
+    let lastPoints = 0;
+    let lastEuros = 0;
     let lives = 3;
 
     let isPaused = true;
@@ -236,7 +242,7 @@ export default function FrogVerbsGame() {
       goal: loadTexture('/games/frog-verbs/goal.png'),
     };
 
-    scene.background = textures.background;
+    scene.background = null;
 
     type SpriteAnimation = {
       texture: THREE.Texture;
@@ -275,6 +281,8 @@ export default function FrogVerbsGame() {
         this.w = w;
         this.h = h;
         this.speed = speed;
+        this.row = y;
+        this.laneType = y >= 7 && y <= 11 ? 'river' : 'road';
         if (animation) {
           this.animation = {
             texture: animation.texture,
@@ -295,11 +303,8 @@ export default function FrogVerbsGame() {
         this.mesh.position.set(
           x * GRID_SIZE - GAME_WIDTH / 2 + w / 2,
           0,
-          y * GRID_SIZE - GAME_HEIGHT / 2 + GRID_SIZE / 2,
+          -(y * GRID_SIZE) + GAME_HEIGHT / 2 - GRID_SIZE / 2,
         );
-        const centerOffset = GAME_HEIGHT / 2 - GRID_SIZE / 2;
-        this.row = Math.round(-(this.mesh.position.z - centerOffset) / GRID_SIZE);
-        this.laneType = this.row >= 7 && this.row <= 11 ? 'river' : 'road';
         scene.add(this.mesh);
       }
 
@@ -495,6 +500,9 @@ export default function FrogVerbsGame() {
       const val = qaInput.value.trim().toLowerCase();
 
       if (val === currentQuestion.a) {
+        euros += 5;
+        points += 10;
+        updateHUD();
         Sound.correct();
         qaFeedback.style.color = '#0f0';
         qaFeedback.innerText = 'CORRECT! Watching Frog...';
@@ -507,6 +515,8 @@ export default function FrogVerbsGame() {
           animationId = requestAnimationFrame(loop);
         }, 500);
       } else {
+        euros -= 10;
+        updateHUD();
         Sound.wrong();
         qaFeedback.style.color = '#ff0055';
         qaFeedback.innerText = 'WRONG! Try again.';
@@ -634,21 +644,12 @@ export default function FrogVerbsGame() {
     };
 
     const createEnvironment = () => {
-      const addRect = (y: number, h: number, color: string) => {
-        const geo = new THREE.PlaneGeometry(GAME_WIDTH, h * GRID_SIZE);
-        const mat = new THREE.MeshBasicMaterial({ color });
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.rotation.x = -Math.PI / 2;
-        const centerRow = y + h / 2 - 0.5;
-        const z = -(centerRow * GRID_SIZE) + GAME_HEIGHT / 2 - GRID_SIZE / 2;
-        mesh.position.set(0, -1, z);
-        scene.add(mesh);
-      };
-      addRect(0, 1, COLORS.grass);
-      addRect(1, 5, COLORS.road);
-      addRect(6, 1, COLORS.grass);
-      addRect(7, 5, COLORS.water);
-      addRect(12, 1, COLORS.grass);
+      const geo = new THREE.PlaneGeometry(GAME_WIDTH, GAME_HEIGHT);
+      const mat = new THREE.MeshBasicMaterial({ map: textures.background });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(0, -1, 0);
+      scene.add(mesh);
     };
 
     const createObstacles = () => {
@@ -712,8 +713,11 @@ export default function FrogVerbsGame() {
     };
 
     const createGoals = () => {
-      for (let i = 0; i < 5; i += 1) {
-        goals.push({ x: 2 * i + 1 + 1, filled: false, mesh: null });
+      const goalSlotRatios = [0.065, 0.279, 0.494, 0.706, 0.917];
+      const goalZ = -GAME_HEIGHT / 2 + GAME_HEIGHT * 0.0375;
+      for (let i = 0; i < goalSlotRatios.length; i += 1) {
+        const xWorld = goalSlotRatios[i] * GAME_WIDTH - GAME_WIDTH / 2;
+        goals.push({ xWorld, zWorld: goalZ, filled: false, mesh: null });
       }
     };
 
@@ -721,21 +725,15 @@ export default function FrogVerbsGame() {
       const fb = frog.getBox();
 
       if (frog.gridY === 12) {
-        if (teacherMode) {
-          const openIndex = goals.findIndex((goal) => !goal.filled);
-          winLevel(openIndex !== -1 ? openIndex : 0);
-          return;
+        const snapDistance = GRID_SIZE * 0.7;
+        const targetIndex = goals.findIndex(
+          (goal) => !goal.filled && Math.abs(frog.mesh.position.x - goal.xWorld) <= snapDistance,
+        );
+        if (targetIndex !== -1) {
+          winLevel(targetIndex);
+        } else {
+          handleDeath();
         }
-        let landed = false;
-        for (let i = 0; i < 5; i += 1) {
-          const gx = 1 + i * 3;
-          if (Math.abs(frog.gridX - gx) <= 0 && !goals[i].filled) {
-            winLevel(i);
-            landed = true;
-            break;
-          }
-        }
-        if (!landed) handleDeath();
         return;
       }
 
@@ -774,18 +772,15 @@ export default function FrogVerbsGame() {
     const winLevel = (index: number) => {
       goals[index].filled = true;
       Sound.win();
-      score += 100;
-
       const goalMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE),
         new THREE.MeshBasicMaterial({ map: textures.goal, transparent: true }),
       );
       goalMesh.rotation.x = -Math.PI / 2;
-      const gx = 1 + index * 3;
       goalMesh.position.set(
-        gx * GRID_SIZE - GAME_WIDTH / 2 + GRID_SIZE / 2,
+        goals[index].xWorld,
         2,
-        -(12 * GRID_SIZE) + GAME_HEIGHT / 2 - GRID_SIZE / 2,
+        goals[index].zWorld,
       );
       scene.add(goalMesh);
       goals[index].mesh = goalMesh;
@@ -824,8 +819,10 @@ export default function FrogVerbsGame() {
     };
 
     const resetGame = () => {
-      lastScore = score;
-      score = 0;
+      lastPoints = points;
+      lastEuros = euros;
+      points = 0;
+      euros = 0;
       lives = 3;
       gameOverScreen.style.display = 'none';
       goals.forEach((goal) => {
@@ -841,7 +838,8 @@ export default function FrogVerbsGame() {
     };
 
     const updateHUD = () => {
-      scoreEl.innerText = `SCORE: ${score}`;
+      eurosEl.innerText = `€ ${euros}`;
+      pointsEl.innerText = `${points} pts`;
       livesEl.innerHTML = '';
       const label = document.createElement('span');
       label.textContent = 'LIVES';
@@ -854,7 +852,7 @@ export default function FrogVerbsGame() {
         icon.className = styles.lifeIcon;
         livesEl.appendChild(icon);
       }
-      gameOverScore.innerText = `SCORE ${score}`;
+      gameOverScore.innerText = `€${euros} • ${points} pts`;
       gameOverLives.innerHTML = '';
       const livesLabel = document.createElement('span');
       livesLabel.textContent = 'LIVES';
@@ -867,7 +865,7 @@ export default function FrogVerbsGame() {
         gameOverLives.appendChild(icon);
       }
 
-      startScore.innerText = `LAST SCORE ${lastScore}`;
+      startScore.innerText = `LAST €${lastEuros} • ${lastPoints} pts`;
       startLives.innerHTML = '';
       const startLivesLabel = document.createElement('span');
       startLivesLabel.textContent = 'LIVES';
@@ -1005,7 +1003,10 @@ export default function FrogVerbsGame() {
       <div ref={gameViewRef} className={styles.gameView}>
         <div className={styles.uiLayer}>
         <div className={styles.hud}>
-          <div ref={scoreRef}>SCORE: 0</div>
+          <div>
+            <div ref={eurosRef}>€ 0</div>
+            <div ref={pointsRef}>0 pts</div>
+          </div>
           <button ref={settingsBtnRef} className={styles.settingsBtn} title="Settings" type="button">
             ⚙️
           </button>
@@ -1047,7 +1048,7 @@ export default function FrogVerbsGame() {
         />
         <div className={styles.startStats}>
           <div ref={startScoreRef} className={styles.startScore}>
-            SCORE 0
+            LAST €0 • 0 pts
           </div>
           <div ref={startLivesRef} className={styles.startLives}>
             LIVES
@@ -1095,7 +1096,7 @@ export default function FrogVerbsGame() {
         />
         <div className={styles.gameOverStats}>
           <div ref={gameOverScoreRef} className={styles.gameOverScore}>
-            SCORE 0
+            €0 • 0 pts
           </div>
           <div ref={gameOverLivesRef} className={styles.gameOverLives}>
             LIVES
