@@ -968,7 +968,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
             >
               <option value="all">All Statuses</option>
               <option value="past_due">Past Due</option>
-              <option value="empty_class">Empty Class</option>
+              <option value="empty_class">Unassigned</option>
               <option value="free">Free</option>
               <option value={AssignmentStatus.PENDING}>Pending</option>
               <option value={AssignmentStatus.COMPLETED}>Completed</option>

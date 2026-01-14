@@ -2,6 +2,15 @@
 
 LessonHub keeps creation, assignment, and completion aligned. This page covers the full journey.
 
+## Lesson types
+
+- **Standard (Topic):** open-response questions with optional attachments and notes.
+- **Flashcard:** flip-card practice; teachers can add visuals and students work through the deck.
+- **Multi-choice:** multiple-choice questions with defined correct answers and optional notes.
+- **Lyric:** audio-focused lessons with timed lyrics (LRC optional) and downloads.
+- **Composer:** answer prompts to reveal a hidden sentence by selecting the correct words.
+- **Guides (Hub Guides / Learning Sessions):** multi-step learning cards shown in the Hub Guides tab; can include audio, attachments, and lyric support.
+
 ## Student workflow
 
 1. **Open a card** from `/my-lessons` to reach `/assignments/[assignmentId]`.

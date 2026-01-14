@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { LessonType, Role } from "@prisma/client";
 import { hasAdminPrivileges } from "@/lib/authz";
+import Link from "next/link";
 
 const normalizeLines = (value: unknown): LyricLine[] => {
   if (!Array.isArray(value)) return [];
@@ -94,7 +95,17 @@ export default async function EditLyricLessonPage({ params }: { params: Promise<
   return (
     <div className="flex min-h-screen flex-col items-center p-8 sm:p-16">
       <div className="w-full max-w-4xl space-y-6">
-        <h1 className="text-3xl font-bold">Edit Lyric Lesson</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-3xl font-bold">Edit Lyric Lesson</h1>
+          <Link
+            className="text-sm font-semibold text-teal-500 hover:text-teal-400"
+            href="/docs/teachers/lesson-editors/lyric"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Lesson editor docs
+          </Link>
+        </div>
         <LyricLessonEditor
           lesson={serializableLesson}
           teacherPreferences={serializablePreferences}

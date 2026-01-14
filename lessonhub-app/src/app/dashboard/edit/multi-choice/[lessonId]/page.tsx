@@ -85,7 +85,17 @@ export default async function EditMultiChoicePage({ params }: { params: Promise<
 
     return (
         <div>
-            <h1 className="text-3xl font-bold mb-6">Edit Multi-Choice Lesson</h1>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+                <h1 className="text-3xl font-bold">Edit Multi-Choice Lesson</h1>
+                <Link
+                    className="text-sm font-semibold text-teal-500 hover:text-teal-400"
+                    href="/docs/teachers/lesson-editors/multi-choice"
+                    rel="noreferrer"
+                    target="_blank"
+                >
+                    Lesson editor docs
+                </Link>
+            </div>
             <MultiChoiceCreator
               lesson={serializableLesson}
               teacherPreferences={serializablePreferences}

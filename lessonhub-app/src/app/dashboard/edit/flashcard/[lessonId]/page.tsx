@@ -85,7 +85,17 @@ export default async function EditFlashcardPage({ params }: { params: Promise<{ 
 
     return (
         <div>
-            <h1 className="text-3xl font-bold mb-6">Edit Flashcard Lesson</h1>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+                <h1 className="text-3xl font-bold">Edit Flashcard Lesson</h1>
+                <Link
+                    className="text-sm font-semibold text-teal-500 hover:text-teal-400"
+                    href="/docs/teachers/lesson-editors/flashcard"
+                    rel="noreferrer"
+                    target="_blank"
+                >
+                    Lesson editor docs
+                </Link>
+            </div>
             <FlashcardCreator
               lesson={serializableLesson}
               teacherPreferences={serializablePreferences}

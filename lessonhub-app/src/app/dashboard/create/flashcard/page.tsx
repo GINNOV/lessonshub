@@ -5,6 +5,7 @@ import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletAc
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
+import Link from "next/link";
 
 export default async function CreateFlashcardPage() {
     const session = await auth();
@@ -24,7 +25,17 @@ export default async function CreateFlashcardPage() {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold mb-6">Create a Flashcard Lesson</h1>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+                <h1 className="text-3xl font-bold">Create a Flashcard Lesson</h1>
+                <Link
+                    className="text-sm font-semibold text-teal-500 hover:text-teal-400"
+                    href="/docs/teachers/lesson-editors/flashcard"
+                    rel="noreferrer"
+                    target="_blank"
+                >
+                    Lesson editor docs
+                </Link>
+            </div>
             <FlashcardCreator
                 teacherPreferences={serializablePreferences}
                 instructionBooklets={instructionBooklets.map((booklet) => ({

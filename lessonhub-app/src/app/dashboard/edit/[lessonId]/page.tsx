@@ -12,6 +12,7 @@ import ComposerLessonCreator from "@/app/components/ComposerLessonCreator";
 import { getTeacherPreferences } from "@/actions/teacherActions";
 import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletActions";
 import { hasAdminPrivileges } from "@/lib/authz";
+import Link from "next/link";
 
 export default async function EditLessonPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
@@ -64,11 +65,37 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
     ...lesson,
     price: lesson.price.toNumber(),
   };
+  const editorDocHref = (() => {
+    switch (lesson.type) {
+      case LessonType.STANDARD:
+        return "/docs/teachers/lesson-editors/standard";
+      case LessonType.FLASHCARD:
+        return "/docs/teachers/lesson-editors/flashcard";
+      case LessonType.MULTI_CHOICE:
+        return "/docs/teachers/lesson-editors/multi-choice";
+      case LessonType.LEARNING_SESSION:
+        return "/docs/teachers/lesson-editors/guide";
+      case LessonType.COMPOSER:
+        return "/docs/teachers/lesson-editors/composer";
+      default:
+        return "/docs/teachers/lesson-editors/standard";
+    }
+  })();
 
   return (
     <div className="flex min-h-screen flex-col items-center p-8 sm:p-24">
       <div className="w-full max-w-lg">
-        <h1 className="text-3xl font-bold mb-6">Edit Lesson</h1>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-3xl font-bold">Edit Lesson</h1>
+          <Link
+            className="text-sm font-semibold text-teal-500 hover:text-teal-400"
+            href={editorDocHref}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Lesson editor docs
+          </Link>
+        </div>
         {lesson.type === LessonType.STANDARD && (
           <LessonForm
             lesson={serializableLesson}
