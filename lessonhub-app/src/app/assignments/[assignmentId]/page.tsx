@@ -55,6 +55,7 @@ export default async function AssignmentPage({
   if (!session) {
     redirect("/signin");
   }
+  const autoSaveEnabled = !((session.user as any)?.lessonAutoSaveOptOut ?? false);
 
   const headerList = await headers();
   const detectedLocales = parseAcceptLanguage(headerList.get("accept-language"));
@@ -770,12 +771,14 @@ export default async function AssignmentPage({
             <MultiChoicePlayer
               assignment={serializableAssignment}
               isSubmissionLocked={isPastDue}
+              autoSaveEnabled={autoSaveEnabled}
               copy={lessonCopy.multiChoice}
             />
           ) : isComposer && lesson.composerConfig ? (
             <ComposerLessonPlayer
               assignment={serializableAssignment as any}
               isSubmissionLocked={isPastDue}
+              autoSaveEnabled={autoSaveEnabled}
               copy={composerCopy}
             />
           ) : isLyric && lesson.lyricConfig ? (
@@ -798,6 +801,7 @@ export default async function AssignmentPage({
                 updatedAt: (serializableAssignment as any).lyricDraftUpdatedAt ?? null,
               }}
               bonusReadSwitches={availableReadBoosts}
+              autoSaveEnabled={autoSaveEnabled}
               copy={lessonCopy.lyric}
             />
           ) : isLearningSession ? (
@@ -810,6 +814,7 @@ export default async function AssignmentPage({
             <LessonResponseForm
               assignment={serializableAssignment}
               isSubmissionLocked={isPastDue}
+              autoSaveEnabled={autoSaveEnabled}
               copy={lessonCopy.standard}
             />
           )}
@@ -1056,7 +1061,12 @@ export default async function AssignmentPage({
               copy={lessonCopy.multiChoice}
             />
           ) : (
-            <LessonResponseForm assignment={serializableAssignment} practiceMode copy={lessonCopy.standard} />
+          <LessonResponseForm
+            assignment={serializableAssignment}
+            practiceMode
+            autoSaveEnabled={autoSaveEnabled}
+            copy={lessonCopy.standard}
+          />
           )}
         </div>
       )}

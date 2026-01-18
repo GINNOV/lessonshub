@@ -17,6 +17,7 @@ model User {
   image                     String?
   timeZone                  String?
   weeklySummaryOptOut       Boolean   @default(false)
+  lessonAutoSaveOptOut      Boolean   @default(false)
   gender                    Gender    @default(BINARY)
   role                      Role      @default(STUDENT)
   lastSeen                  DateTime?

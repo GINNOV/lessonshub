@@ -1,7 +1,7 @@
 // file: src/app/components/ComposerLessonPlayer.tsx
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Assignment, Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -10,6 +10,12 @@ import { saveComposerAssignmentDraft, submitComposerAssignment } from '@/actions
 import { hashComposerSeed, normalizeComposerWord, parseComposerSentence } from '@/lib/composer';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Terminal } from 'lucide-react';
+import {
+  clearAssignmentDraft,
+  getAssignmentDraftKey,
+  readAssignmentDraft,
+  writeAssignmentDraft,
+} from '@/app/components/assignmentDraftStorage';
 
 type ComposerQuestion = {
   id: string;
@@ -37,6 +43,7 @@ type ComposerAssignment = Omit<Assignment, 'lesson'> & {
 interface ComposerLessonPlayerProps {
   assignment: ComposerAssignment;
   isSubmissionLocked?: boolean;
+  autoSaveEnabled?: boolean;
   copy?: ComposerLessonCopy;
 }
 
@@ -93,6 +100,7 @@ const defaultCopy: ComposerLessonCopy = {
 export default function ComposerLessonPlayer({
   assignment,
   isSubmissionLocked = false,
+  autoSaveEnabled = true,
   copy,
 }: ComposerLessonPlayerProps) {
   const t = copy ?? defaultCopy;
@@ -120,6 +128,15 @@ export default function ComposerLessonPlayer({
   const audioContextRef = useRef<AudioContext | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didAutoSaveInitRef = useRef(false);
+  const saveInFlightRef = useRef(false);
+  const draftKey = getAssignmentDraftKey('composer', assignment.id);
+  const restoredFromLocalRef = useRef(false);
+  const shownRestoreToastRef = useRef(false);
+  const draftRef = useRef<{ answers: Record<number, string>; tries: Record<number, number>; rating: number }>({
+    answers: {},
+    tries: {},
+    rating: assignment.draftRating ?? 0,
+  });
   const neoTestRef = useRef<HTMLDivElement | null>(null);
 
   const composerConfig = assignment.lesson.composerConfig;
@@ -244,6 +261,7 @@ export default function ComposerLessonPlayer({
     });
     if (result.success) {
       toast.success(t.submitSuccess);
+      clearAssignmentDraft(draftKey);
       router.refresh();
     } else {
       toast.error(result.error || t.submitError);
@@ -251,48 +269,131 @@ export default function ComposerLessonPlayer({
     }
   };
 
+  const saveDraft = useCallback(
+    async ({
+      showToast = false,
+      showSpinner = false,
+      refresh = false,
+    }: {
+      showToast?: boolean;
+      showSpinner?: boolean;
+      refresh?: boolean;
+    }) => {
+      if (isSubmissionLocked || assignment.status !== 'PENDING') return false;
+      if (saveInFlightRef.current) return false;
+      saveInFlightRef.current = true;
+      if (showSpinner) setIsSavingDraft(true);
+      const snapshot = draftRef.current;
+      const result = await saveComposerAssignmentDraft(assignment.id, assignment.studentId, {
+        answers: snapshot.answers,
+        tries: snapshot.tries,
+        rating: snapshot.rating > 0 ? snapshot.rating : undefined,
+      });
+      if (showSpinner) setIsSavingDraft(false);
+      saveInFlightRef.current = false;
+      if (result.success) {
+        writeAssignmentDraft(draftKey, snapshot);
+        if (showToast) {
+          toast.success(t.draftSaved);
+        }
+        if (refresh) {
+          router.refresh();
+        }
+      } else if (showToast) {
+        toast.error(result.error || t.draftError);
+      }
+      return result.success;
+    },
+    [
+      assignment.id,
+      assignment.status,
+      assignment.studentId,
+      draftKey,
+      isSubmissionLocked,
+      router,
+      t.draftError,
+      t.draftSaved,
+    ],
+  );
+
   const handleSaveDraft = async () => {
-    if (isSubmissionLocked || assignment.status !== 'PENDING') return;
-    setIsSavingDraft(true);
-    const result = await saveComposerAssignmentDraft(assignment.id, assignment.studentId, {
-      answers,
-      tries,
-      rating: rating > 0 ? rating : undefined,
-    });
-    setIsSavingDraft(false);
-    if (result.success) {
-      toast.success(t.draftSaved);
-      router.refresh();
-    } else {
-      toast.error(result.error || t.draftError);
-    }
+    await saveDraft({ showToast: true, showSpinner: true, refresh: true });
   };
 
   useEffect(() => {
-    if (isSubmissionLocked || assignment.status !== 'PENDING') return;
+    if (assignment.status !== 'PENDING') {
+      clearAssignmentDraft(draftKey);
+      return;
+    }
+    const serverUpdatedAt = assignment.draftUpdatedAt
+      ? new Date(assignment.draftUpdatedAt).getTime()
+      : 0;
+    const localDraft = autoSaveEnabled
+      ? readAssignmentDraft<{ answers: Record<number, string>; tries: Record<number, number>; rating: number }>(draftKey)
+      : null;
+    const shouldUseLocal = localDraft && localDraft.updatedAt > serverUpdatedAt;
+    if (shouldUseLocal) {
+      restoredFromLocalRef.current = true;
+      setAnswers({ ...localDraft.data.answers });
+      setTries({ ...localDraft.data.tries });
+      setRating(typeof localDraft.data.rating === 'number' ? localDraft.data.rating : 0);
+    }
+  }, [assignment.draftUpdatedAt, assignment.status, autoSaveEnabled, draftKey]);
+
+  useEffect(() => {
+    if (assignment.status !== 'PENDING') return;
+    draftRef.current = {
+      answers,
+      tries,
+      rating,
+    };
+    if (autoSaveEnabled) {
+      writeAssignmentDraft(draftKey, draftRef.current);
+    }
+  }, [answers, assignment.status, autoSaveEnabled, draftKey, rating, tries]);
+
+  useEffect(() => {
+    if (!autoSaveEnabled || isSubmissionLocked || assignment.status !== 'PENDING') return;
     if (!didAutoSaveInitRef.current) {
       didAutoSaveInitRef.current = true;
       return;
     }
-
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
-
-    autoSaveTimerRef.current = setTimeout(async () => {
-      await saveComposerAssignmentDraft(assignment.id, assignment.studentId, {
-        answers,
-        tries,
-        rating: rating > 0 ? rating : undefined,
-      });
-    }, 200);
+    autoSaveTimerRef.current = setTimeout(() => {
+      saveDraft({ showToast: false, showSpinner: false, refresh: false });
+    }, 2000);
 
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [answers, tries, rating, assignment.id, assignment.status, assignment.studentId, isSubmissionLocked]);
+  }, [answers, assignment.status, autoSaveEnabled, isSubmissionLocked, rating, saveDraft, tries]);
+
+  useEffect(() => {
+    if (!autoSaveEnabled) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        writeAssignmentDraft(draftKey, draftRef.current);
+        saveDraft({ showToast: false, showSpinner: false, refresh: false });
+      } else if (
+        document.visibilityState === 'visible' &&
+        restoredFromLocalRef.current &&
+        !shownRestoreToastRef.current
+      ) {
+        toast('Draft restored from this device. Tap Save Draft to sync.');
+        shownRestoreToastRef.current = true;
+      }
+    };
+    window.addEventListener('pagehide', handleVisibility);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('pagehide', handleVisibility);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [autoSaveEnabled, draftKey, saveDraft]);
 
   const isGraded = assignment.status === 'GRADED' || assignment.status === 'FAILED';
   const correctCount = wordQuestions.reduce((count, question) => {

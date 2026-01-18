@@ -1,7 +1,7 @@
 // file: src/app/components/MultiChoiceCreator.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption as PrismaOption, AssignmentNotification } from '@prisma/client';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelec
 import FileUploadButton from '@/components/FileUploadButton';
 import { Switch } from '@/components/ui/switch';
 import { parseCsv } from '@/lib/csv';
+import { useSession } from 'next-auth/react';
+import { formatAutoSaveStatus, useLessonAutosave } from '@/app/components/useLessonAutosave';
 
 type SerializableLesson = Omit<Lesson, 'price'> & { isFreeForAll?: boolean };
 
@@ -157,6 +159,8 @@ async function safeJson(response: Response) {
 
 export default function MultiChoiceCreator({ lesson, teacherPreferences, instructionBooklets = [] }: MultiChoiceCreatorProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const autoSaveEnabled = !((session?.user as any)?.lessonAutoSaveOptOut ?? false);
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
   const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
@@ -403,6 +407,92 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         setIsLoading(false);
     }
   };
+
+  const canAutoSave =
+    isEditMode &&
+    title.trim().length > 0 &&
+    questions.length > 0 &&
+    Number.isInteger(difficulty) &&
+    difficulty >= 1 &&
+    difficulty <= 5;
+
+  const handleAutoSave = useCallback(async () => {
+    if (!lesson) return false;
+    const response = await fetch(`/api/lessons/multi-choice/${lesson.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        price: parseFloat(price) || 0,
+        lesson_preview: lessonPreview,
+        assignment_text: assignmentText,
+        assignment_image_url: assignmentImageUrl,
+        soundcloud_url: soundcloudUrl,
+        attachment_url: attachmentUrl,
+        notes,
+        difficulty,
+        questions,
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: null,
+        isFreeForAll,
+      }),
+    });
+    return response.ok;
+  }, [
+    assignmentImageUrl,
+    assignmentNotification,
+    assignmentText,
+    attachmentUrl,
+    difficulty,
+    isFreeForAll,
+    lesson,
+    lessonPreview,
+    notes,
+    price,
+    questions,
+    soundcloudUrl,
+    title,
+  ]);
+
+  const autoSaveDependencies = useMemo(
+    () => [
+      title,
+      lessonPreview,
+      price,
+      assignmentText,
+      assignmentImageUrl,
+      soundcloudUrl,
+      attachmentUrl,
+      notes,
+      difficulty,
+      questions,
+      isFreeForAll,
+    ],
+    [
+      title,
+      lessonPreview,
+      price,
+      assignmentText,
+      assignmentImageUrl,
+      soundcloudUrl,
+      attachmentUrl,
+      notes,
+      difficulty,
+      questions,
+      isFreeForAll,
+    ]
+  );
+
+  const { status: autoSaveStatus, lastSavedAt } = useLessonAutosave({
+    enabled: autoSaveEnabled,
+    isEditMode,
+    canSave: canAutoSave,
+    isSavingBlocked: isLoading || isUploading,
+    onSave: handleAutoSave,
+    dependencies: autoSaveDependencies,
+    resetKey: lesson?.id ?? null,
+  });
+  const autoSaveMessage = formatAutoSaveStatus(autoSaveStatus, lastSavedAt);
 
   const downloadQuestionTemplate = () => {
     const headers = ['question', 'right_answer_id', 'answer1', 'answer2', 'answer3', 'answer4'];
@@ -664,6 +754,9 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         <Button type="button" onClick={addQuestion}>Add Question</Button>
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Saving...' : 'Save Lesson'}</Button>
       </div>
+      {autoSaveEnabled && isEditMode && autoSaveMessage && (
+        <p className="text-xs text-muted-foreground">{autoSaveMessage}</p>
+      )}
     </form>
   );
 }

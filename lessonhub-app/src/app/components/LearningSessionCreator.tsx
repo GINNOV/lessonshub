@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lesson, AssignmentNotification } from '@prisma/client';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,8 @@ import { guideImageOptions } from '@/lib/guideImages';
 import FileUploadButton from '@/components/FileUploadButton';
 import { Download } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { useSession } from 'next-auth/react';
+import { formatAutoSaveStatus, useLessonAutosave } from '@/app/components/useLessonAutosave';
 
 type TeacherPreferences = {
   defaultLessonPrice?: number | null;
@@ -128,6 +130,8 @@ export default function LearningSessionCreator({
   instructionBooklets = [],
 }: LearningSessionCreatorProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const autoSaveEnabled = !((session?.user as any)?.lessonAutoSaveOptOut ?? false);
   const isEditMode = Boolean(lesson);
 
   const [title, setTitle] = useState(lesson?.title ?? '');
@@ -335,6 +339,97 @@ export default function LearningSessionCreator({
       setIsLoading(false);
     }
   };
+
+  const parseScheduledDate = (value: string) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const scheduledDatePayload =
+    assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE
+      ? parseScheduledDate(scheduledDate)
+      : null;
+
+  const canAutoSave =
+    isEditMode &&
+    title.trim().length > 0 &&
+    validCards.length > 0 &&
+    Number.isInteger(difficulty) &&
+    difficulty >= 1 &&
+    difficulty <= 5 &&
+    (assignmentNotification !== AssignmentNotification.ASSIGN_ON_DATE || Boolean(scheduledDatePayload));
+
+  const handleAutoSave = useCallback(async () => {
+    if (!lesson) return false;
+    const response = await fetch(`/api/lessons/learning-session/${lesson.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title.trim(),
+        price,
+        lesson_preview: lessonPreview,
+        assignment_text: assignmentText,
+        difficulty,
+        cards,
+        guideCardImage,
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: scheduledDatePayload,
+        isFreeForAll,
+      }),
+    });
+    return response.ok;
+  }, [
+    assignmentNotification,
+    assignmentText,
+    cards,
+    difficulty,
+    guideCardImage,
+    isFreeForAll,
+    lesson,
+    lessonPreview,
+    price,
+    scheduledDatePayload,
+    title,
+  ]);
+
+  const autoSaveDependencies = useMemo(
+    () => [
+      title,
+      price,
+      lessonPreview,
+      assignmentText,
+      difficulty,
+      cards,
+      guideCardImage,
+      assignmentNotification,
+      scheduledDate,
+      isFreeForAll,
+    ],
+    [
+      title,
+      price,
+      lessonPreview,
+      assignmentText,
+      difficulty,
+      cards,
+      guideCardImage,
+      assignmentNotification,
+      scheduledDate,
+      isFreeForAll,
+    ]
+  );
+
+  const { status: autoSaveStatus, lastSavedAt } = useLessonAutosave({
+    enabled: autoSaveEnabled,
+    isEditMode,
+    canSave: canAutoSave,
+    isSavingBlocked: isLoading || isImporting,
+    onSave: handleAutoSave,
+    dependencies: autoSaveDependencies,
+    resetKey: lesson?.id ?? null,
+  });
+  const autoSaveMessage = formatAutoSaveStatus(autoSaveStatus, lastSavedAt);
 
   const applyBooklet = (mode: 'replace' | 'append') => {
     const booklet = instructionBooklets.find((b) => b.id === selectedBookletId);
@@ -611,6 +706,9 @@ export default function LearningSessionCreator({
           {isLoading ? 'Saving…' : isEditMode ? 'Update Guide' : 'Create Guide'}
         </Button>
       </div>
+      {autoSaveEnabled && isEditMode && autoSaveMessage && (
+        <p className="text-xs text-muted-foreground">{autoSaveMessage}</p>
+      )}
 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-2xl">

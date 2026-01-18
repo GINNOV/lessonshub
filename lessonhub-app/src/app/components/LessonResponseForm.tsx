@@ -1,7 +1,7 @@
 // file: src/app/components/LessonResponseForm.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Assignment, Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,12 @@ import { useRouter } from 'next/navigation';
 import Rating from './Rating';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  clearAssignmentDraft,
+  getAssignmentDraftKey,
+  readAssignmentDraft,
+  writeAssignmentDraft,
+} from '@/app/components/assignmentDraftStorage';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -30,6 +36,7 @@ interface LessonResponseFormProps {
   assignment: StandardAssignment;
   isSubmissionLocked?: boolean;
   practiceMode?: boolean;
+  autoSaveEnabled?: boolean;
   copy?: LessonResponseCopy;
 }
 
@@ -79,10 +86,26 @@ const defaultCopy: LessonResponseCopy = {
   confirmPending: "Submitting...",
 };
 
+const parseStringArray = (value: unknown, length: number): string[] | null => {
+  if (!Array.isArray(value) || length <= 0) return null;
+  return Array.from({ length }, (_, index) => {
+    const entry = value[index];
+    if (typeof entry === 'string') return entry;
+    if (entry === null || entry === undefined) return '';
+    return String(entry);
+  });
+};
+
+const normalizeAnswerArray = (value: unknown, length: number): string[] => {
+  const parsed = parseStringArray(value, length);
+  return parsed ?? Array(length).fill('');
+};
+
 export default function LessonResponseForm({
   assignment,
   isSubmissionLocked = false,
   practiceMode = false,
+  autoSaveEnabled = true,
   copy,
 }: LessonResponseFormProps) {
   const t = copy ?? defaultCopy;
@@ -97,6 +120,17 @@ export default function LessonResponseForm({
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(() => {
     if (!assignment.draftUpdatedAt) return null;
     return new Date(assignment.draftUpdatedAt);
+  });
+  const draftKey = getAssignmentDraftKey('standard', assignment.id);
+  const saveInFlightRef = useRef(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didAutoSaveInitRef = useRef(false);
+  const restoredFromLocalRef = useRef(false);
+  const shownRestoreToastRef = useRef(false);
+  const draftRef = useRef<{ answers: string[]; studentNotes: string; rating: number }>({
+    answers: [],
+    studentNotes: '',
+    rating: 0,
   });
 
   const normalizeQuestions = (value: any): { question: string; expectedAnswer: string }[] => {
@@ -117,16 +151,6 @@ export default function LessonResponseForm({
 
   const questions = normalizeQuestions(assignment.lesson.questions);
 
-  const parseStringArray = (value: unknown, length: number): string[] | null => {
-    if (!Array.isArray(value) || length <= 0) return null;
-    return Array.from({ length }, (_, index) => {
-      const entry = value[index];
-      if (typeof entry === 'string') return entry;
-      if (entry === null || entry === undefined) return '';
-      return String(entry);
-    });
-  };
-
   useEffect(() => {
     if (practiceMode) {
       setAnswers(Array(questions.length).fill(''));
@@ -143,15 +167,44 @@ export default function LessonResponseForm({
       setStudentNotes(assignment.studentNotes || '');
       setRating(assignment.rating || 0);
       setIsReadOnly(true);
+      clearAssignmentDraft(draftKey);
     } else {
-      const draft = parseStringArray(assignment.draftAnswers, questions.length);
-      setAnswers(draft ?? Array(questions.length).fill(''));
-      setStudentNotes(assignment.draftStudentNotes ?? '');
-      setRating(typeof assignment.draftRating === 'number' ? assignment.draftRating : 0);
+      const serverUpdatedAt = assignment.draftUpdatedAt
+        ? new Date(assignment.draftUpdatedAt).getTime()
+        : 0;
+      const localDraft = autoSaveEnabled
+        ? readAssignmentDraft<{ answers: string[]; studentNotes: string; rating: number }>(draftKey)
+        : null;
+      const shouldUseLocal = localDraft && localDraft.updatedAt > serverUpdatedAt;
+      if (shouldUseLocal) {
+        restoredFromLocalRef.current = true;
+        const normalizedAnswers = normalizeAnswerArray(localDraft?.data.answers, questions.length);
+        setAnswers(normalizedAnswers);
+        setStudentNotes(localDraft?.data.studentNotes ?? '');
+        setRating(typeof localDraft?.data.rating === 'number' ? localDraft.data.rating : 0);
+        setLastSavedAt(new Date(localDraft.updatedAt));
+      } else {
+        const draft = parseStringArray(assignment.draftAnswers, questions.length);
+        setAnswers(draft ?? Array(questions.length).fill(''));
+        setStudentNotes(assignment.draftStudentNotes ?? '');
+        setRating(typeof assignment.draftRating === 'number' ? assignment.draftRating : 0);
+        setLastSavedAt(assignment.draftUpdatedAt ? new Date(assignment.draftUpdatedAt) : null);
+      }
       setIsReadOnly(false);
-      setLastSavedAt(assignment.draftUpdatedAt ? new Date(assignment.draftUpdatedAt) : null);
     }
-  }, [assignment, questions.length, practiceMode]);
+  }, [assignment, autoSaveEnabled, draftKey, practiceMode, questions.length]);
+
+  useEffect(() => {
+    if (practiceMode || isReadOnly || assignment.status !== 'PENDING') return;
+    draftRef.current = {
+      answers,
+      studentNotes,
+      rating,
+    };
+    if (autoSaveEnabled) {
+      writeAssignmentDraft(draftKey, draftRef.current);
+    }
+  }, [answers, assignment.status, autoSaveEnabled, draftKey, isReadOnly, practiceMode, rating, studentNotes]);
   
   const handleAnswerChange = (index: number, value: string) => {
     const newAnswers = [...answers];
@@ -194,24 +247,117 @@ export default function LessonResponseForm({
     setIsLoading(false);
   };
   
+  const saveDraft = useCallback(
+    async ({
+      showToast = false,
+      showSpinner = false,
+      refresh = false,
+    }: {
+      showToast?: boolean;
+      showSpinner?: boolean;
+      refresh?: boolean;
+    }) => {
+      if (practiceMode || isReadOnly || isSubmissionLocked || assignment.status !== 'PENDING') {
+        return false;
+      }
+      if (saveInFlightRef.current) return false;
+      saveInFlightRef.current = true;
+      if (showSpinner) setIsSavingDraft(true);
+      const snapshot = draftRef.current;
+      const result = await saveStandardAssignmentDraft(assignment.id, assignment.studentId, {
+        answers: snapshot.answers,
+        studentNotes: snapshot.studentNotes,
+        rating: snapshot.rating > 0 ? snapshot.rating : undefined,
+      });
+      if (showSpinner) setIsSavingDraft(false);
+      saveInFlightRef.current = false;
+      if (result.success) {
+        const now = new Date();
+        setLastSavedAt(now);
+        writeAssignmentDraft(draftKey, snapshot, now.getTime());
+        if (showToast) {
+          toast.success(t.draftSaved);
+        }
+        if (refresh) {
+          router.refresh();
+        }
+      } else if (showToast) {
+        toast.error(result.error || t.draftError);
+      }
+      return result.success;
+    },
+    [
+      assignment.id,
+      assignment.status,
+      assignment.studentId,
+      draftKey,
+      isReadOnly,
+      isSubmissionLocked,
+      practiceMode,
+      router,
+      t.draftError,
+      t.draftSaved,
+    ],
+  );
+
   const handleSaveDraft = async () => {
-    if (practiceMode || isReadOnly || isSubmissionLocked) return;
-    setIsSavingDraft(true);
-    const result = await saveStandardAssignmentDraft(assignment.id, assignment.studentId, {
-      answers,
-      studentNotes,
-      rating: rating > 0 ? rating : undefined,
-    });
-    setIsSavingDraft(false);
-    if (result.success) {
-      const now = new Date();
-      setLastSavedAt(now);
-      toast.success(t.draftSaved);
-      router.refresh();
-    } else {
-      toast.error(result.error || t.draftError);
-    }
+    await saveDraft({ showToast: true, showSpinner: true, refresh: true });
   };
+
+  useEffect(() => {
+    if (!autoSaveEnabled || practiceMode || isReadOnly || isSubmissionLocked || assignment.status !== 'PENDING') {
+      return;
+    }
+    if (!didAutoSaveInitRef.current) {
+      didAutoSaveInitRef.current = true;
+      return;
+    }
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    autoSaveTimerRef.current = setTimeout(() => {
+      saveDraft({ showToast: false, showSpinner: false, refresh: false });
+    }, 2000);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [
+    answers,
+    assignment.status,
+    autoSaveEnabled,
+    isReadOnly,
+    isSubmissionLocked,
+    practiceMode,
+    rating,
+    saveDraft,
+    studentNotes,
+  ]);
+
+  useEffect(() => {
+    if (!autoSaveEnabled) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        writeAssignmentDraft(draftKey, draftRef.current);
+        saveDraft({ showToast: false, showSpinner: false, refresh: false });
+      } else if (
+        document.visibilityState === 'visible' &&
+        restoredFromLocalRef.current &&
+        !shownRestoreToastRef.current
+      ) {
+        toast('Draft restored from this device. Tap Save Draft to sync.');
+        shownRestoreToastRef.current = true;
+      }
+    };
+    window.addEventListener('pagehide', handleVisibility);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('pagehide', handleVisibility);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [autoSaveEnabled, draftKey, saveDraft]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

@@ -1,7 +1,7 @@
 // file: src/app/components/ComposerLessonCreator.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AssignmentNotification, Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 import { parseComposerSentence } from '@/lib/composer';
 import { parseCsv } from '@/lib/csv';
 import { Download, Info, Upload } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { formatAutoSaveStatus, useLessonAutosave } from '@/app/components/useLessonAutosave';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -59,6 +61,8 @@ export default function ComposerLessonCreator({
   instructionBooklets = [],
 }: ComposerLessonCreatorProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const autoSaveEnabled = !((session?.user as any)?.lessonAutoSaveOptOut ?? false);
   const isEditMode = Boolean(lesson?.id);
 
   const [title, setTitle] = useState('');
@@ -454,6 +458,121 @@ export default function ComposerLessonCreator({
     }
   };
 
+  const maxTriesValue = Number(maxTries);
+  const hasValidMaxTries = Number.isInteger(maxTriesValue) && maxTriesValue >= 1;
+  const hasValidQuestions =
+    questions.length > 0 &&
+    questions.every((question) => question.prompt.trim() && question.answer.trim()) &&
+    questions.every(
+      (question) =>
+        question.maxTries === null ||
+        question.maxTries === undefined ||
+        (Number.isInteger(question.maxTries) && question.maxTries > 0)
+    );
+  const missingWords = normalizedWords.filter((word) => !questionCounts.get(word));
+  const canAutoSave =
+    isEditMode &&
+    title.trim().length > 0 &&
+    lessonPreview.trim().length > 0 &&
+    hiddenSentence.trim().length > 0 &&
+    Number.isInteger(difficulty) &&
+    difficulty >= 1 &&
+    difficulty <= 5 &&
+    hasValidQuestions &&
+    normalizedWords.length > 0 &&
+    missingWords.length === 0 &&
+    hasValidMaxTries;
+
+  const handleAutoSave = useCallback(async () => {
+    if (!lesson) return false;
+    const response = await fetch(`/api/lessons/composer/${lesson.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        lesson_preview: lessonPreview,
+        assignment_text: assignmentText,
+        context_text: contextText,
+        notes,
+        hiddenSentence,
+        questions,
+        maxTries: maxTriesValue,
+        price: parseFloat(price) || 0,
+        difficulty,
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: null,
+        assignment_image_url: assignmentImageUrl,
+        attachment_url: attachmentUrl,
+        soundcloud_url: soundcloudUrl,
+        isFreeForAll,
+      }),
+    });
+    return response.ok;
+  }, [
+    assignmentImageUrl,
+    assignmentNotification,
+    assignmentText,
+    attachmentUrl,
+    contextText,
+    difficulty,
+    hiddenSentence,
+    isFreeForAll,
+    lesson,
+    lessonPreview,
+    maxTriesValue,
+    notes,
+    price,
+    questions,
+    soundcloudUrl,
+    title,
+  ]);
+
+  const autoSaveDependencies = useMemo(
+    () => [
+      title,
+      lessonPreview,
+      price,
+      assignmentText,
+      contextText,
+      notes,
+      hiddenSentence,
+      questions,
+      maxTriesValue,
+      difficulty,
+      assignmentImageUrl,
+      attachmentUrl,
+      soundcloudUrl,
+      isFreeForAll,
+    ],
+    [
+      title,
+      lessonPreview,
+      price,
+      assignmentText,
+      contextText,
+      notes,
+      hiddenSentence,
+      questions,
+      maxTriesValue,
+      difficulty,
+      assignmentImageUrl,
+      attachmentUrl,
+      soundcloudUrl,
+      isFreeForAll,
+    ]
+  );
+
+  const { status: autoSaveStatus, lastSavedAt } = useLessonAutosave({
+    enabled: autoSaveEnabled,
+    isEditMode,
+    canSave: canAutoSave,
+    isSavingBlocked: isSubmitting || isUploading,
+    onSave: handleAutoSave,
+    dependencies: autoSaveDependencies,
+    resetKey: lesson?.id ?? null,
+  });
+  const autoSaveMessage = formatAutoSaveStatus(autoSaveStatus, lastSavedAt);
+
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl space-y-6">
       <div className="space-y-2">
@@ -815,6 +934,9 @@ export default function ComposerLessonCreator({
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? 'Saving...' : isEditMode ? 'Save Composer Lesson' : 'Create Composer Lesson'}
       </Button>
+      {autoSaveEnabled && isEditMode && autoSaveMessage && (
+        <p className="text-xs text-muted-foreground">{autoSaveMessage}</p>
+      )}
     </form>
   );
 }

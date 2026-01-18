@@ -10,6 +10,7 @@
     "lint": "next lint",
     "test": "npm run test:build && node --test tmp/test-dist/__tests__/assignmentNotifications.test.js",
     "test:build": "tsc -p tsconfig.test.json",
+    "test:unit": "vitest run",
     "prisma:generate": "dotenv -e .env.local -- prisma generate",
     "prisma:push": "dotenv -e .env.local -- prisma db push",
     "prisma:studio": "dotenv -e .env.local -- prisma studio",
@@ -67,6 +68,8 @@
     "three": "^0.168.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/marked": "^5.0.2",
     "@types/node": "^20.14.9",
@@ -78,11 +81,13 @@
     "dotenv-cli": "^7.4.2",
     "eslint": "^9.38.0",
     "eslint-config-next": "15.5.7",
+    "jsdom": "^27.4.0",
     "postcss": "^8.4.38",
-    "prisma": "^7.0.1",
+    "prisma": "^7.2.0",
     "tailwindcss": "^3.4.4",
     "tsx": "^4.20.5",
-    "typescript": "^5.5.2"
+    "typescript": "^5.5.2",
+    "vitest": "^4.0.17"
   },
   "overrides": {
     "@auth/core": "0.41.1"

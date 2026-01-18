@@ -31,6 +31,7 @@ export default async function ProfilePage() {
     image: user.image,
     timeZone: user.timeZone,
     weeklySummaryOptOut: user.weeklySummaryOptOut,
+    lessonAutoSaveOptOut: user.lessonAutoSaveOptOut,
     gender: user.gender,
     role: user.role,
     lastSeen: user.lastSeen?.toISOString() ?? null,

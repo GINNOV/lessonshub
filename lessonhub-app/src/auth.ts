@@ -80,6 +80,7 @@ export const {
         token.isTakingBreak = user.isTakingBreak;
         (token as any).uiLanguage = (user as any).uiLanguage ?? 'device';
         (token as any).hasAdminPortalAccess = (user as any).hasAdminPortalAccess ?? false;
+        (token as any).lessonAutoSaveOptOut = (user as any).lessonAutoSaveOptOut ?? false;
       }
       return token;
     },
@@ -95,6 +96,7 @@ export const {
           isPaying: true,
           isSuspended: true,
           isTakingBreak: true, // Include isTakingBreak
+          lessonAutoSaveOptOut: true,
           hasAdminPortalAccess: true,
           uiLanguage: true,
           impersonatedBy: {
@@ -107,6 +109,7 @@ export const {
               isPaying: true,
               isSuspended: true,
               isTakingBreak: true,
+              lessonAutoSaveOptOut: true,
               hasAdminPortalAccess: true,
               uiLanguage: true,
             },
@@ -130,6 +133,7 @@ export const {
           isPaying: (impersonatedUser as any).isPaying,
           isSuspended: (impersonatedUser as any).isSuspended,
           isTakingBreak: (impersonatedUser as any).isTakingBreak, // Pass through impersonated user's status
+          lessonAutoSaveOptOut: (impersonatedUser as any).lessonAutoSaveOptOut ?? false,
           hasAdminPortalAccess: (impersonatedUser as any).hasAdminPortalAccess ?? false,
           uiLanguage: (impersonatedUser as any).uiLanguage ?? 'device',
           impersonating: true,
@@ -144,6 +148,7 @@ export const {
         session.user.isPaying = dbUser.isPaying;
         session.user.isSuspended = dbUser.isSuspended;
         session.user.isTakingBreak = dbUser.isTakingBreak; // Assign to the direct user
+        (session.user as any).lessonAutoSaveOptOut = (dbUser as any).lessonAutoSaveOptOut ?? false;
         (session.user as any).hasAdminPortalAccess = dbUser.hasAdminPortalAccess;
         (session.user as any).uiLanguage = (dbUser as any).uiLanguage ?? 'device';
       }

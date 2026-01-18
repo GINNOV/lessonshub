@@ -1,7 +1,7 @@
 // file: src/app/components/MultiChoicePlayer.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Assignment, Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -12,6 +12,12 @@ import { RotateCw, Check } from 'lucide-react';
 import Rating from './Rating';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  clearAssignmentDraft,
+  getAssignmentDraftKey,
+  readAssignmentDraft,
+  writeAssignmentDraft,
+} from '@/app/components/assignmentDraftStorage';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -30,6 +36,7 @@ interface MultiChoicePlayerProps {
   isSubmissionLocked?: boolean;
   mode?: 'assignment' | 'practice';
   practiceExitHref?: string;
+  autoSaveEnabled?: boolean;
   copy?: MultiChoiceCopy;
 }
 
@@ -84,6 +91,7 @@ export default function MultiChoicePlayer({
   isSubmissionLocked = false,
   mode = 'assignment',
   practiceExitHref,
+  autoSaveEnabled = true,
   copy,
 }: MultiChoicePlayerProps) {
   const t = copy ?? defaultCopy;
@@ -96,6 +104,16 @@ export default function MultiChoicePlayer({
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(() => {
     if (!assignment.draftUpdatedAt) return null;
     return new Date(assignment.draftUpdatedAt);
+  });
+  const draftKey = getAssignmentDraftKey('multi-choice', assignment.id);
+  const saveInFlightRef = useRef(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didAutoSaveInitRef = useRef(false);
+  const restoredFromLocalRef = useRef(false);
+  const shownRestoreToastRef = useRef(false);
+  const draftRef = useRef<{ answers: Record<string, string>; rating: number }>({
+    answers: {},
+    rating: assignment.draftRating ?? 0,
   });
   const { multiChoiceQuestions } = assignment.lesson;
   const isPractice = mode === 'practice';
@@ -112,12 +130,42 @@ export default function MultiChoicePlayer({
 
   useEffect(() => {
     if (!isPractice && isPending) {
-      if (draftAnswers) {
+      const serverUpdatedAt = assignment.draftUpdatedAt
+        ? new Date(assignment.draftUpdatedAt).getTime()
+        : 0;
+      const localDraft = autoSaveEnabled
+        ? readAssignmentDraft<{ answers: Record<string, string>; rating: number }>(draftKey)
+        : null;
+      const shouldUseLocal = localDraft && localDraft.updatedAt > serverUpdatedAt;
+      if (shouldUseLocal) {
+        restoredFromLocalRef.current = true;
+        setAnswers({ ...localDraft.data.answers });
+        setRating(typeof localDraft.data.rating === 'number' ? localDraft.data.rating : 0);
+        setLastSavedAt(new Date(localDraft.updatedAt));
+      } else if (draftAnswers) {
         setAnswers({ ...draftAnswers });
+        setRating(assignment.draftRating ?? 0);
+        setLastSavedAt(assignment.draftUpdatedAt ? new Date(assignment.draftUpdatedAt) : null);
+      } else {
+        setAnswers({});
+        setRating(assignment.draftRating ?? 0);
       }
-      setRating(assignment.draftRating ?? 0);
     }
-  }, [assignment.draftRating, draftAnswers, isPending, isPractice]);
+    if (!isPending) {
+      clearAssignmentDraft(draftKey);
+    }
+  }, [assignment.draftRating, assignment.draftUpdatedAt, autoSaveEnabled, draftAnswers, draftKey, isPending, isPractice]);
+
+  useEffect(() => {
+    if (isPractice || !isPending) return;
+    draftRef.current = {
+      answers,
+      rating,
+    };
+    if (autoSaveEnabled) {
+      writeAssignmentDraft(draftKey, draftRef.current);
+    }
+  }, [answers, autoSaveEnabled, draftKey, isPending, isPractice, rating]);
 
   const handleValueChange = (questionId: string, value: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
@@ -157,23 +205,101 @@ export default function MultiChoicePlayer({
     }
   };
 
+  const saveDraft = useCallback(
+    async ({
+      showToast = false,
+      showSpinner = false,
+      refresh = false,
+    }: {
+      showToast?: boolean;
+      showSpinner?: boolean;
+      refresh?: boolean;
+    }) => {
+      if (isPractice || !isPending || isSubmissionLocked) return false;
+      if (saveInFlightRef.current) return false;
+      saveInFlightRef.current = true;
+      if (showSpinner) setIsSavingDraft(true);
+      const snapshot = draftRef.current;
+      const result = await saveMultiChoiceAssignmentDraft(assignment.id, assignment.studentId, {
+        answers: snapshot.answers,
+        rating: snapshot.rating > 0 ? snapshot.rating : undefined,
+      });
+      if (showSpinner) setIsSavingDraft(false);
+      saveInFlightRef.current = false;
+      if (result.success) {
+        const now = new Date();
+        setLastSavedAt(now);
+        writeAssignmentDraft(draftKey, snapshot, now.getTime());
+        if (showToast) {
+          toast.success(t.draftSaved);
+        }
+        if (refresh) {
+          router.refresh();
+        }
+      } else if (showToast) {
+        toast.error(result.error || t.draftError);
+      }
+      return result.success;
+    },
+    [
+      assignment.id,
+      assignment.studentId,
+      draftKey,
+      isPending,
+      isPractice,
+      isSubmissionLocked,
+      router,
+      t.draftError,
+      t.draftSaved,
+    ],
+  );
+
   const handleSaveDraft = async () => {
-    if (isPractice || !isPending || isSubmissionLocked) return;
-    setIsSavingDraft(true);
-    const result = await saveMultiChoiceAssignmentDraft(assignment.id, assignment.studentId, {
-      answers,
-      rating: rating > 0 ? rating : undefined,
-    });
-    setIsSavingDraft(false);
-    if (result.success) {
-      const now = new Date();
-      setLastSavedAt(now);
-      toast.success(t.draftSaved);
-      router.refresh();
-    } else {
-      toast.error(result.error || t.draftError);
-    }
+    await saveDraft({ showToast: true, showSpinner: true, refresh: true });
   };
+
+  useEffect(() => {
+    if (!autoSaveEnabled || isPractice || !isPending || isSubmissionLocked) return;
+    if (!didAutoSaveInitRef.current) {
+      didAutoSaveInitRef.current = true;
+      return;
+    }
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    autoSaveTimerRef.current = setTimeout(() => {
+      saveDraft({ showToast: false, showSpinner: false, refresh: false });
+    }, 2000);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [answers, autoSaveEnabled, isPending, isPractice, isSubmissionLocked, rating, saveDraft]);
+
+  useEffect(() => {
+    if (!autoSaveEnabled) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        writeAssignmentDraft(draftKey, draftRef.current);
+        saveDraft({ showToast: false, showSpinner: false, refresh: false });
+      } else if (
+        document.visibilityState === 'visible' &&
+        restoredFromLocalRef.current &&
+        !shownRestoreToastRef.current
+      ) {
+        toast('Draft restored from this device. Tap Save Draft to sync.');
+        shownRestoreToastRef.current = true;
+      }
+    };
+    window.addEventListener('pagehide', handleVisibility);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('pagehide', handleVisibility);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [autoSaveEnabled, draftKey, saveDraft]);
 
   const handleRestart = () => {
     setAnswers({});

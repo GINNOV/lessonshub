@@ -1,7 +1,7 @@
 // file: src/app/components/LyricLessonEditor.tsx
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lesson, LyricLessonConfig, AssignmentNotification } from '@prisma/client';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { useSession } from 'next-auth/react';
+import { formatAutoSaveStatus, useLessonAutosave } from '@/app/components/useLessonAutosave';
 
 type SerializableLesson = Omit<Lesson, 'price' | 'createdAt' | 'updatedAt'> & {
   price: number;
@@ -212,6 +214,8 @@ export default function LyricLessonEditor({
 }: LyricLessonEditorProps) {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { data: session } = useSession();
+  const autoSaveEnabled = !((session?.user as any)?.lessonAutoSaveOptOut ?? false);
 
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
@@ -681,14 +685,17 @@ export default function LyricLessonEditor({
     return true;
   };
 
-  const serializeSettings = (): LyricLessonSettings => ({
-    defaultMode: settings.defaultMode,
-    fillBlankDifficulty: Math.min(0.8, Math.max(0.05, settings.fillBlankDifficulty)),
-    maxReadModeSwitches:
-      typeof settings.maxReadModeSwitches === 'number' && Number.isFinite(settings.maxReadModeSwitches)
-        ? Math.max(0, Math.floor(settings.maxReadModeSwitches))
-        : null,
-  });
+  const serializeSettings = useCallback(
+    (): LyricLessonSettings => ({
+      defaultMode: settings.defaultMode,
+      fillBlankDifficulty: Math.min(0.8, Math.max(0.05, settings.fillBlankDifficulty)),
+      maxReadModeSwitches:
+        typeof settings.maxReadModeSwitches === 'number' && Number.isFinite(settings.maxReadModeSwitches)
+          ? Math.max(0, Math.floor(settings.maxReadModeSwitches))
+          : null,
+    }),
+    [settings]
+  );
 
   const renderLineEditor = (line: LyricLine, index: number, showPerLineActions: boolean) => {
     const startDisplay = formatSeconds(line.startTime);
@@ -889,6 +896,134 @@ export default function LyricLessonEditor({
       setIsSubmitting(false);
     }
   };
+
+  const parseScheduledDate = (value: string) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const scheduledDatePayload =
+    assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE
+      ? parseScheduledDate(scheduledDate)
+      : null;
+
+  const cleanedAttachmentUrl = attachmentUrl.trim();
+  const attachmentIsAudio =
+    Boolean(cleanedAttachmentUrl) && /\.(mp3|wav|ogg|m4a|aac)$/i.test(cleanedAttachmentUrl);
+  const attachmentIsSpotify =
+    Boolean(cleanedAttachmentUrl) && /open\.spotify\.com/i.test(cleanedAttachmentUrl);
+  const hasAudioSource = Boolean(audioUrl.trim()) || attachmentIsAudio || attachmentIsSpotify;
+  const hasValidLines = lines.length > 0 && lines.every((line) => line.text.trim().length > 0);
+  const canAutoSave =
+    isEditMode &&
+    title.trim().length > 0 &&
+    hasAudioSource &&
+    rawLyrics.trim().length > 0 &&
+    hasValidLines &&
+    Number.isInteger(difficulty) &&
+    difficulty >= 1 &&
+    difficulty <= 5 &&
+    (assignmentNotification !== AssignmentNotification.ASSIGN_ON_DATE || Boolean(scheduledDatePayload));
+
+  const handleAutoSave = useCallback(async () => {
+    if (!lesson) return false;
+    const response = await fetch(`/api/lessons/lyric/${lesson.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        price: parseFloat(price) || 0,
+        difficulty,
+        lesson_preview: lessonPreview,
+        assignment_text: assignmentText,
+        attachment_url: attachmentUrl,
+        notes,
+        audioUrl,
+        audioStorageKey,
+        lrcUrl: lrcUrl.trim() || null,
+        lrcStorageKey,
+        rawLyrics,
+        lines,
+        settings: serializeSettings(),
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: scheduledDatePayload,
+        isFreeForAll,
+      }),
+    });
+    return response.ok;
+  }, [
+    assignmentNotification,
+    assignmentText,
+    attachmentUrl,
+    audioStorageKey,
+    audioUrl,
+    difficulty,
+    isFreeForAll,
+    lesson,
+    lessonPreview,
+    lines,
+    lrcStorageKey,
+    lrcUrl,
+    notes,
+    price,
+    rawLyrics,
+    scheduledDatePayload,
+    serializeSettings,
+    title,
+  ]);
+
+  const autoSaveDependencies = useMemo(
+    () => [
+      title,
+      price,
+      lessonPreview,
+      assignmentText,
+      attachmentUrl,
+      notes,
+      audioUrl,
+      audioStorageKey,
+      lrcUrl,
+      lrcStorageKey,
+      rawLyrics,
+      lines,
+      settings,
+      difficulty,
+      assignmentNotification,
+      scheduledDate,
+      isFreeForAll,
+    ],
+    [
+      title,
+      price,
+      lessonPreview,
+      assignmentText,
+      attachmentUrl,
+      notes,
+      audioUrl,
+      audioStorageKey,
+      lrcUrl,
+      lrcStorageKey,
+      rawLyrics,
+      lines,
+      settings,
+      difficulty,
+      assignmentNotification,
+      scheduledDate,
+      isFreeForAll,
+    ]
+  );
+
+  const { status: autoSaveStatus, lastSavedAt } = useLessonAutosave({
+    enabled: autoSaveEnabled,
+    isEditMode,
+    canSave: canAutoSave,
+    isSavingBlocked: isSubmitting || audioUploadState === 'uploading' || lrcImportState !== 'idle',
+    onSave: handleAutoSave,
+    dependencies: autoSaveDependencies,
+    resetKey: lesson?.id ?? null,
+  });
+  const autoSaveMessage = formatAutoSaveStatus(autoSaveStatus, lastSavedAt);
 
   return (
     <>
@@ -1414,6 +1549,9 @@ export default function LyricLessonEditor({
           {isSubmitting ? 'Saving…' : isEditMode ? 'Update Lesson' : 'Create Lesson'}
         </Button>
       </div>
+      {autoSaveEnabled && isEditMode && autoSaveMessage && (
+        <p className="text-xs text-muted-foreground">{autoSaveMessage}</p>
+      )}
       </form>
 
       <Dialog open={isGuideOpen} onOpenChange={setIsGuideOpen}>

@@ -80,6 +80,9 @@ export default function ProfileForm({
   const [weeklySummaryOptOut, setWeeklySummaryOptOut] = useState<boolean>(
     (user as any)?.weeklySummaryOptOut ?? false,
   );
+  const [lessonAutoSaveOptOut, setLessonAutoSaveOptOut] = useState<boolean>(
+    (user as any)?.lessonAutoSaveOptOut ?? false,
+  );
 
   // Timezone state
   const defaultTz = (() => {
@@ -208,6 +211,7 @@ export default function ProfileForm({
       timeZone,
       gender,
       weeklySummaryOptOut,
+      lessonAutoSaveOptOut,
       uiLanguage,
     };
     if (user?.role === Role.STUDENT) {
@@ -232,6 +236,7 @@ export default function ProfileForm({
             timeZone,
             gender,
             weeklySummaryOptOut,
+            lessonAutoSaveOptOut,
             uiLanguage,
             ...(user?.role === Role.STUDENT ? { studentBio } : {}),
           } as any,
@@ -499,6 +504,23 @@ export default function ProfileForm({
                 onCheckedChange={(v) => setWeeklySummaryOptOut(!v)}
               />
             </div>
+            {user?.role === Role.STUDENT && (
+              <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+                <div className="space-y-1">
+                  <Label htmlFor="lesson-autosave" className="font-semibold text-slate-200">
+                    {copy.profile.autoSaveLabel}
+                  </Label>
+                  <p className="text-xs text-slate-400">
+                    {copy.profile.autoSaveDesc}
+                  </p>
+                </div>
+                <Switch
+                  id="lesson-autosave"
+                  checked={!lessonAutoSaveOptOut}
+                  onCheckedChange={(v) => setLessonAutoSaveOptOut(!v)}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="timeZone" className="text-sm font-semibold text-slate-100">
                 {copy.profile.timeZone}

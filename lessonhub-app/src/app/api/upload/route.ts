@@ -61,10 +61,18 @@ export async function POST(request: Request): Promise<NextResponse> {
       contentType = isPlainText ? 'text/plain' : 'application/octet-stream';
     }
 
+    const body = new Blob([new Uint8Array(processedBuffer)], { type: contentType });
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!blobToken) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Missing BLOB_READ_WRITE_TOKEN for uploads.' }),
+        { status: 500 }
+      );
+    }
     // Upload the processed image buffer to Vercel Blob
-    const blob = await put(filename, processedBuffer, {
-      access: 'public',
+    const blob = await put(filename, body, {
       contentType,
+      token: blobToken,
     });
 
     return NextResponse.json(blob);

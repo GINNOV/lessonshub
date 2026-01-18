@@ -25,21 +25,22 @@ export async function GET() {
         image: true,
         role: true,
         timeZone: true,
-      weeklySummaryOptOut: true,
-      gender: true,
-      lastSeen: true,
-      isPaying: true,
-      isSuspended: true,
-      isTakingBreak: true,
-      totalPoints: true,
-      studentBio: true,
-      progressCardTitle: true,
-      progressCardBody: true,
-      progressCardLinkText: true,
-      progressCardLinkUrl: true,
-      uiLanguage: true,
-    },
-  });
+        weeklySummaryOptOut: true,
+        lessonAutoSaveOptOut: true,
+        gender: true,
+        lastSeen: true,
+        isPaying: true,
+        isSuspended: true,
+        isTakingBreak: true,
+        totalPoints: true,
+        studentBio: true,
+        progressCardTitle: true,
+        progressCardBody: true,
+        progressCardLinkText: true,
+        progressCardLinkUrl: true,
+        uiLanguage: true,
+      },
+    });
 
     if (!user) {
       return new NextResponse(JSON.stringify({ error: "User not found" }), {
@@ -111,6 +112,7 @@ export async function PATCH(request: NextRequest) {
       timeZone,
       gender,
       weeklySummaryOptOut,
+      lessonAutoSaveOptOut,
       studentBio,
       isTakingBreak,
       newPassword,
@@ -121,6 +123,7 @@ export async function PATCH(request: NextRequest) {
       timeZone?: string;
       gender?: 'MALE' | 'FEMALE' | 'BINARY';
       weeklySummaryOptOut?: boolean;
+      lessonAutoSaveOptOut?: boolean;
       studentBio?: string | null;
       isTakingBreak?: boolean;
       newPassword?: string;
@@ -133,6 +136,7 @@ export async function PATCH(request: NextRequest) {
       timeZone?: string;
       gender?: 'MALE' | 'FEMALE' | 'BINARY';
       weeklySummaryOptOut?: boolean;
+      lessonAutoSaveOptOut?: boolean;
       studentBio?: string | null;
       isTakingBreak?: boolean;
       hashedPassword?: string;
@@ -143,6 +147,7 @@ export async function PATCH(request: NextRequest) {
     if (timeZone) dataToUpdate.timeZone = timeZone;
     if (gender) dataToUpdate.gender = gender;
     if (typeof weeklySummaryOptOut === 'boolean') dataToUpdate.weeklySummaryOptOut = weeklySummaryOptOut;
+    if (typeof lessonAutoSaveOptOut === 'boolean') dataToUpdate.lessonAutoSaveOptOut = lessonAutoSaveOptOut;
     if (studentBio !== undefined) dataToUpdate.studentBio = studentBio;
     if (typeof isTakingBreak === 'boolean') dataToUpdate.isTakingBreak = isTakingBreak;
     if (uiLanguage && ['device', 'en', 'it'].includes(uiLanguage)) dataToUpdate.uiLanguage = uiLanguage;

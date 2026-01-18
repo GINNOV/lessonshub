@@ -1,7 +1,7 @@
 // file: src/app/components/LessonForm.tsx
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import { parseCsv } from '@/lib/csv';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import FileUploadButton from '@/components/FileUploadButton';
 import { Switch } from '@/components/ui/switch';
+import { useSession } from 'next-auth/react';
+import { formatAutoSaveStatus, useLessonAutosave } from '@/app/components/useLessonAutosave';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -60,6 +62,8 @@ const OptionalIndicator = () => <Info className="ml-1 h-4 w-4 text-muted-foregro
 export default function LessonForm({ lesson, teacherPreferences, instructionBooklets = [] }: LessonFormProps) {
   const router = useRouter();
   const inputFileRef = useRef<HTMLInputElement>(null);
+  const { data: session } = useSession();
+  const autoSaveEnabled = !((session?.user as any)?.lessonAutoSaveOptOut ?? false);
 
   const [title, setTitle] = useState('');
   const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
@@ -114,6 +118,16 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
   const [linkStatus, setLinkStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
 
   const isEditMode = !!lesson;
+  const normalizedQa = useMemo(
+    () =>
+      questions
+        .map((q, idx) => ({
+          question: q.trim(),
+          expectedAnswer: (expectedAnswers[idx] || '').trim(),
+        }))
+        .filter((entry) => entry.question),
+    [expectedAnswers, questions]
+  );
 
   useEffect(() => {
     try {
@@ -302,13 +316,6 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
       setError('Lesson preview cannot be empty.');
       return;
     }
-    const normalizedQa = questions
-      .map((q, idx) => ({
-        question: q.trim(),
-        expectedAnswer: (expectedAnswers[idx] || '').trim(),
-      }))
-      .filter((entry) => entry.question);
-
     if (normalizedQa.length === 0) {
       setError('You must include at least one question.');
       return;
@@ -356,6 +363,97 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
       setIsLoading(false);
     }
   };
+
+  const canAutoSave =
+    isEditMode &&
+    title.trim().length > 0 &&
+    lessonPreview.trim().length > 0 &&
+    normalizedQa.length > 0 &&
+    Number.isInteger(difficulty) &&
+    difficulty >= 1 &&
+    difficulty <= 5;
+
+  const handleAutoSave = useCallback(async () => {
+    if (!lesson) return false;
+    const response = await fetch(`/api/lessons/${lesson.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        price: parseFloat(price) || 0,
+        lesson_preview: lessonPreview,
+        assignmentText,
+        difficulty,
+        questions: normalizedQa,
+        contextText,
+        assignment_image_url: assignmentImageUrl,
+        soundcloud_url: soundcloudUrl,
+        attachment_url: attachmentUrl,
+        notes,
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: null,
+        isFreeForAll,
+      }),
+    });
+    return response.ok;
+  }, [
+    assignmentImageUrl,
+    assignmentNotification,
+    assignmentText,
+    attachmentUrl,
+    contextText,
+    difficulty,
+    isFreeForAll,
+    lesson,
+    lessonPreview,
+    normalizedQa,
+    notes,
+    price,
+    soundcloudUrl,
+    title,
+  ]);
+
+  const autoSaveDependencies = useMemo(
+    () => [
+      title,
+      lessonPreview,
+      price,
+      assignmentText,
+      difficulty,
+      normalizedQa,
+      contextText,
+      assignmentImageUrl,
+      soundcloudUrl,
+      attachmentUrl,
+      notes,
+      isFreeForAll,
+    ],
+    [
+      title,
+      lessonPreview,
+      price,
+      assignmentText,
+      difficulty,
+      normalizedQa,
+      contextText,
+      assignmentImageUrl,
+      soundcloudUrl,
+      attachmentUrl,
+      notes,
+      isFreeForAll,
+    ]
+  );
+
+  const { status: autoSaveStatus, lastSavedAt } = useLessonAutosave({
+    enabled: autoSaveEnabled,
+    isEditMode,
+    canSave: canAutoSave,
+    isSavingBlocked: isLoading || isUploading,
+    onSave: handleAutoSave,
+    dependencies: autoSaveDependencies,
+    resetKey: lesson?.id ?? null,
+  });
+  const autoSaveMessage = formatAutoSaveStatus(autoSaveStatus, lastSavedAt);
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-lg space-y-6">
@@ -647,6 +745,9 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
       <Button type="submit" disabled={isLoading || isUploading} className="w-full">
         {isLoading ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create Lesson')}
       </Button>
+      {autoSaveEnabled && isEditMode && autoSaveMessage && (
+        <p className="text-xs text-muted-foreground">{autoSaveMessage}</p>
+      )}
     </form>
   );
 }

@@ -1,7 +1,7 @@
 // file: src/app/components/FlashcardCreator.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Lesson, Flashcard as PrismaFlashcard, AssignmentNotification } from '@prisma/client';
@@ -16,6 +16,8 @@ import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelec
 import { parseCsv } from '@/lib/csv';
 import FileUploadButton from '@/components/FileUploadButton';
 import { Switch } from '@/components/ui/switch';
+import { useSession } from 'next-auth/react';
+import { formatAutoSaveStatus, useLessonAutosave } from '@/app/components/useLessonAutosave';
 
 type SerializableLesson = Omit<Lesson, 'price'> & { isFreeForAll?: boolean };
 
@@ -152,6 +154,8 @@ const formatDateTimeLocal = (value: string | Date | null | undefined) => {
 
 export default function FlashcardCreator({ lesson, teacherPreferences, instructionBooklets = [] }: FlashcardCreatorProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const autoSaveEnabled = !((session?.user as any)?.lessonAutoSaveOptOut ?? false);
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState(teacherPreferences?.defaultLessonPrice?.toString() || '0');
   const [lessonPreview, setLessonPreview] = useState(teacherPreferences?.defaultLessonPreview || '');
@@ -206,6 +210,10 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
   const [selectedBookletId, setSelectedBookletId] = useState('');
   const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
   const isEditMode = !!lesson;
+  const validFlashcards = useMemo(
+    () => flashcards.filter((fc) => fc.term.trim() && fc.definition.trim()),
+    [flashcards]
+  );
 
   useEffect(() => {
     if (lesson) {
@@ -370,8 +378,6 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
     e.preventDefault();
     setIsLoading(true);
 
-    const validFlashcards = flashcards.filter(fc => fc.term.trim() && fc.definition.trim());
-
     if (!title.trim()) {
       toast.error('Lesson title cannot be empty.');
       setIsLoading(false);
@@ -444,6 +450,113 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
       setIsLoading(false);
     }
   };
+
+  const parseScheduledDate = (value: string) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const scheduledDatePayload =
+    assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE
+      ? parseScheduledDate(scheduledDate)
+      : null;
+
+  const canAutoSave =
+    isEditMode &&
+    title.trim().length > 0 &&
+    validFlashcards.length > 0 &&
+    Number.isInteger(difficulty) &&
+    difficulty >= 1 &&
+    difficulty <= 5 &&
+    (assignmentNotification !== AssignmentNotification.ASSIGN_ON_DATE || Boolean(scheduledDatePayload));
+
+  const handleAutoSave = useCallback(async () => {
+    if (!lesson) return false;
+    const response = await fetch(`/api/lessons/flashcard/${lesson.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        price: parseFloat(price) || 0,
+        lesson_preview: lessonPreview,
+        assignment_text: assignmentText,
+        context_text: contextText,
+        assignment_image_url: assignmentImageUrl,
+        soundcloud_url: soundcloudUrl,
+        attachment_url: attachmentUrl,
+        notes,
+        difficulty,
+        flashcards: validFlashcards,
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: scheduledDatePayload,
+        isFreeForAll,
+      }),
+    });
+    return response.ok;
+  }, [
+    assignmentImageUrl,
+    assignmentNotification,
+    assignmentText,
+    attachmentUrl,
+    contextText,
+    difficulty,
+    isFreeForAll,
+    lesson,
+    lessonPreview,
+    notes,
+    price,
+    scheduledDatePayload,
+    soundcloudUrl,
+    title,
+    validFlashcards,
+  ]);
+
+  const autoSaveDependencies = useMemo(
+    () => [
+      title,
+      lessonPreview,
+      price,
+      assignmentText,
+      contextText,
+      assignmentImageUrl,
+      soundcloudUrl,
+      attachmentUrl,
+      notes,
+      difficulty,
+      validFlashcards,
+      assignmentNotification,
+      scheduledDate,
+      isFreeForAll,
+    ],
+    [
+      title,
+      lessonPreview,
+      price,
+      assignmentText,
+      contextText,
+      assignmentImageUrl,
+      soundcloudUrl,
+      attachmentUrl,
+      notes,
+      difficulty,
+      validFlashcards,
+      assignmentNotification,
+      scheduledDate,
+      isFreeForAll,
+    ]
+  );
+
+  const { status: autoSaveStatus, lastSavedAt } = useLessonAutosave({
+    enabled: autoSaveEnabled,
+    isEditMode,
+    canSave: canAutoSave,
+    isSavingBlocked: isLoading || isUploading || uploadingIndex !== null,
+    onSave: handleAutoSave,
+    dependencies: autoSaveDependencies,
+    resetKey: lesson?.id ?? null,
+  });
+  const autoSaveMessage = formatAutoSaveStatus(autoSaveStatus, lastSavedAt);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -744,6 +857,9 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
         <Button type="button" onClick={addFlashcard}>Add Flashcard</Button>
         <Button type="submit" disabled={isLoading || uploadingIndex !== null}>{isLoading ? 'Saving...' : 'Save Lesson'}</Button>
       </div>
+      {autoSaveEnabled && isEditMode && autoSaveMessage && (
+        <p className="text-xs text-muted-foreground">{autoSaveMessage}</p>
+      )}
     </form>
   );
 }

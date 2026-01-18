@@ -25,6 +25,8 @@ type ProfileCopy = {
     genderOptions: { male: string; female: string; binary: string };
     weeklyLabel: string;
     weeklyDesc: string;
+    autoSaveLabel: string;
+    autoSaveDesc: string;
     timeZone: string;
     timeZoneHint: string;
     uiLanguageLabel: string;
@@ -131,6 +133,8 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       genderOptions: { male: "male", female: "female", binary: "binary" },
       weeklyLabel: "Weekly summary emails",
       weeklyDesc: "Receive a Sunday recap of your accomplishments.",
+      autoSaveLabel: "Auto-save lesson drafts",
+      autoSaveDesc: "Save your answers automatically while you work.",
       timeZone: "Timezone",
       timeZoneHint: "Used to format deadlines in emails and reminders.",
       uiLanguageLabel: "UI language",
@@ -247,6 +251,8 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       genderOptions: { male: "uomo", female: "donna", binary: "non binario" },
       weeklyLabel: "Email riepilogo settimanale",
       weeklyDesc: "Ricevi la domenica il riepilogo dei tuoi progressi.",
+      autoSaveLabel: "Salva automaticamente le bozze",
+      autoSaveDesc: "Salviamo automaticamente le risposte mentre lavori.",
       timeZone: "Fuso orario",
       timeZoneHint: "Usato per formattare scadenze in email e promemoria.",
       uiLanguageLabel: "Lingua interfaccia",

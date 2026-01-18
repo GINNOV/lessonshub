@@ -11,6 +11,12 @@ import { ExternalLink, Pause, Play, RefreshCw, Save, Sparkles, Volume2 } from 'l
 import type { LyricLine, LyricLessonSettings } from './LyricLessonEditor';
 import { saveLyricAssignmentDraft } from '@/actions/lessonActions';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  clearAssignmentDraft,
+  getAssignmentDraftKey,
+  readAssignmentDraft,
+  writeAssignmentDraft,
+} from '@/app/components/assignmentDraftStorage';
 
 type LyricAttemptAnswers = Record<string, string[]>;
 
@@ -55,6 +61,7 @@ type LyricLessonPlayerProps = {
     updatedAt: string | null;
   } | null;
   bonusReadSwitches?: number;
+  autoSaveEnabled?: boolean;
   copy?: LyricLessonCopy;
 };
 
@@ -261,6 +268,7 @@ export default function LyricLessonPlayer({
   lrcUrl,
   draftState,
   bonusReadSwitches = 0,
+  autoSaveEnabled = true,
   copy,
 }: LyricLessonPlayerProps) {
   const t = copy ?? defaultCopy;
@@ -295,6 +303,21 @@ export default function LyricLessonPlayer({
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(() =>
     draftState?.updatedAt ? new Date(draftState.updatedAt) : null
   );
+  const draftKey = getAssignmentDraftKey('lyric', assignmentId);
+  const saveInFlightRef = useRef(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didAutoSaveInitRef = useRef(false);
+  const restoredFromLocalRef = useRef(false);
+  const shownRestoreToastRef = useRef(false);
+  const draftRef = useRef<{
+    answers: LyricAttemptAnswers;
+    mode: 'read' | 'fill';
+    readModeSwitches: number;
+  }>({
+    answers: draftState?.answers ?? {},
+    mode: draftState?.mode ?? (settings?.defaultMode === 'fill' ? 'fill' : 'read'),
+    readModeSwitches: draftState?.readModeSwitches ?? 0,
+  });
 
   const difficulty = settings?.fillBlankDifficulty ?? 0.2;
   const preparedLines = useMemo(() => prepareLines(lines, difficulty), [lines, difficulty]);
@@ -316,6 +339,29 @@ export default function LyricLessonPlayer({
       setReadModeSwitchCount(0);
     }
   }, [assignmentId, draftState]);
+
+  useEffect(() => {
+    if (status !== AssignmentStatus.PENDING) {
+      clearAssignmentDraft(draftKey);
+      return;
+    }
+    const serverUpdatedAt = draftState?.updatedAt ? new Date(draftState.updatedAt).getTime() : 0;
+    const localDraft = autoSaveEnabled
+      ? readAssignmentDraft<{
+          answers: LyricAttemptAnswers;
+          mode: 'read' | 'fill';
+          readModeSwitches: number;
+        }>(draftKey)
+      : null;
+    const shouldUseLocal = localDraft && localDraft.updatedAt > serverUpdatedAt;
+    if (shouldUseLocal) {
+      restoredFromLocalRef.current = true;
+      setAnswers(localDraft.data.answers ?? {});
+      setMode(localDraft.data.mode ?? 'read');
+      setReadModeSwitchCount(localDraft.data.readModeSwitches ?? 0);
+      setLastSavedAt(new Date(localDraft.updatedAt));
+    }
+  }, [autoSaveEnabled, draftKey, draftState?.updatedAt, status]);
 
   useEffect(() => {
     if (!existingAttempt) return;
@@ -527,23 +573,107 @@ export default function LyricLessonPlayer({
     }
   };
 
+  const saveDraft = useCallback(
+    async ({
+      showToast = false,
+      showSpinner = false,
+    }: {
+      showToast?: boolean;
+      showSpinner?: boolean;
+    }) => {
+      if (status !== AssignmentStatus.PENDING || isSubmitting) return false;
+      if (saveInFlightRef.current) return false;
+      saveInFlightRef.current = true;
+      if (showSpinner) setIsSavingDraft(true);
+      const snapshot = draftRef.current;
+      const result = await saveLyricAssignmentDraft(assignmentId, studentId, {
+        answers: snapshot.answers,
+        mode: snapshot.mode,
+        readModeSwitches: snapshot.readModeSwitches,
+      });
+      if (showSpinner) setIsSavingDraft(false);
+      saveInFlightRef.current = false;
+      if (result.success) {
+        const now = new Date();
+        setLastSavedAt(now);
+        writeAssignmentDraft(draftKey, snapshot, now.getTime());
+        if (showToast) {
+          toast.success(t.draftSavedToast);
+        }
+      } else if (showToast) {
+        toast.error(result.error || t.draftError);
+      }
+      return result.success;
+    },
+    [
+      assignmentId,
+      draftKey,
+      isSubmitting,
+      status,
+      studentId,
+      t.draftError,
+      t.draftSavedToast,
+    ],
+  );
+
   const handleSaveDraft = async () => {
-    if (status !== AssignmentStatus.PENDING || isSubmitting || isSavingDraft) return;
-    setIsSavingDraft(true);
-    const result = await saveLyricAssignmentDraft(assignmentId, studentId, {
+    await saveDraft({ showToast: true, showSpinner: true });
+  };
+
+  useEffect(() => {
+    if (status !== AssignmentStatus.PENDING) return;
+    draftRef.current = {
       answers,
       mode,
       readModeSwitches: readModeSwitchCount,
-    });
-    setIsSavingDraft(false);
-    if (result.success) {
-      const now = new Date();
-      setLastSavedAt(now);
-      toast.success(t.draftSavedToast);
-    } else {
-      toast.error(result.error || t.draftError);
+    };
+    if (autoSaveEnabled) {
+      writeAssignmentDraft(draftKey, draftRef.current);
     }
-  };
+  }, [answers, autoSaveEnabled, draftKey, mode, readModeSwitchCount, status]);
+
+  useEffect(() => {
+    if (!autoSaveEnabled || status !== AssignmentStatus.PENDING || isSubmitting) return;
+    if (!didAutoSaveInitRef.current) {
+      didAutoSaveInitRef.current = true;
+      return;
+    }
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    autoSaveTimerRef.current = setTimeout(() => {
+      saveDraft({ showToast: false, showSpinner: false });
+    }, 2000);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [answers, autoSaveEnabled, isSubmitting, mode, readModeSwitchCount, saveDraft, status]);
+
+  useEffect(() => {
+    if (!autoSaveEnabled) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        writeAssignmentDraft(draftKey, draftRef.current);
+        saveDraft({ showToast: false, showSpinner: false });
+      } else if (
+        document.visibilityState === 'visible' &&
+        restoredFromLocalRef.current &&
+        !shownRestoreToastRef.current
+      ) {
+        toast('Draft restored from this device. Tap Save Draft to sync.');
+        shownRestoreToastRef.current = true;
+      }
+    };
+    window.addEventListener('pagehide', handleVisibility);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('pagehide', handleVisibility);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [autoSaveEnabled, draftKey, saveDraft]);
 
   const playFromLine = useCallback((line: PreparedLine) => {
     if (!hasAudio) return;

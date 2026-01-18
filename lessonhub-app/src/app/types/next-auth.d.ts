@@ -17,6 +17,7 @@ declare module "next-auth" {
       impersonating?: boolean;
       originalUserId?: string;
       uiLanguage?: string;
+      lessonAutoSaveOptOut?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -27,5 +28,6 @@ declare module "next-auth" {
     isTakingBreak: boolean;
     hasAdminPortalAccess: boolean;
     uiLanguage?: string;
+    lessonAutoSaveOptOut?: boolean;
   }
 }
