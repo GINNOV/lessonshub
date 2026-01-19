@@ -173,6 +173,10 @@ export const {
   },
   logger: {
     error(error) {
+      const cause = (error as { cause?: unknown })?.cause;
+      if (cause) {
+        console.error("AUTH_ERROR_CAUSE", cause);
+      }
       console.error("AUTH_ERROR", error);
     },
     warn(code) {
