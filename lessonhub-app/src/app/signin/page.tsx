@@ -171,6 +171,16 @@ function SignInForm() {
 }
 
 export default function SignInPage() {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const updateTheme = () => setIsDarkMode(mediaQuery.matches);
+    updateTheme();
+    mediaQuery.addEventListener("change", updateTheme);
+    return () => mediaQuery.removeEventListener("change", updateTheme);
+  }, []);
+
   return (
     <div className="flex w-full flex-col-reverse lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
       <div className="flex items-center justify-center p-6 sm:p-12">
@@ -180,11 +190,11 @@ export default function SignInPage() {
       </div>
       <div className="flex justify-center">
         <Image
-          src="/auth/hero_signin.png"
+          src={isDarkMode ? "/auth/hero_signin_dark.png" : "/auth/hero_signin.png"}
           alt="Students collaborating on a lesson"
           width="1920"
           height="1080"
-          className="w-1/2 h-auto object-cover dark:brightness-[0.2] dark:grayscale sm:h-full sm:w-full"
+          className="h-auto w-full object-contain"
         />
       </div>
     </div>

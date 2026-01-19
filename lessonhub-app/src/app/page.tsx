@@ -55,7 +55,7 @@ function getCopy(isItalian: boolean): Copy {
   if (isItalian) {
     return {
       heroTagline: '',
-      heroTitle: 'Meno grammatica e molti piu esempi di vita reale.',
+      heroTitle: 'Molta meno grammatica, molti piu esempi di vita reale',
       heroSubtitle:
         'La piattaforma flessibile e divertente per imparare le lingue pensata per chi ha una vita piena. Non è mai troppo tardi per iniziare una nuova avventura.',
       heroSecondaryCta: 'Scopri come funziona',
@@ -65,19 +65,21 @@ function getCopy(isItalian: boolean): Copy {
       howTitle: 'Il tuo percorso verso la fluidità in 3 semplici passi',
       steps: [
         {
-          title: '1. Scegli la tua lingua',
-          description: 'Seleziona tra decine di lingue e trova quella perfetta per il tuo prossimo viaggio o obiettivo.',
+          title: '1. Fatti capire',
+          description:
+            'Persone, non insegnanti. I nostri madrelingua si concentrano sul farti capire. Le persone normali infrangono le regole di grammatica ogni giorno: non muore nessuno. Fatti capire e ricevi meno sguardi strani.',
           icon: Languages,
         },
         {
           title: '2. Impara ai tuoi ritmi',
           description:
-            'Lezioni brevi che si adattano alla tua giornata, che tu abbia 5 minuti in metro o un’ora sul divano.',
+            'Lezioni brevi che si adattano alla tua giornata, che tu abbia 5 minuti in metro o un’ora per diventare piu forte.',
           icon: Clock3,
         },
         {
-          title: '3. Parla con sicurezza',
-          description: 'Fai pratica con conversazioni reali e acquisisci la sicurezza per parlare con chiunque, ovunque.',
+          title: '3. Contenuti di vita reale',
+          description:
+            '"Il libro è sul tavolo" è utile come l\'aria nello spazio. Ti eserciterai con meme, scene di film, notizie dal vivo e persino giochi arcade. È coinvolgente, è reale - e funziona.',
           icon: MessageCircle,
         },
       ],
@@ -104,8 +106,8 @@ function getCopy(isItalian: boolean): Copy {
       testimonials: [
         {
           quote:
-            'Sto finalmente imparando lo spagnolo per il mio viaggio a 55 anni! LessonHUB ha reso tutto semplice e posso esercitarmi in pausa pranzo. Mi sento molto più sicura.',
-          name: 'Brenda T.',
+            "Sto finalmente imparando l'inglese per il mio viaggio a 55 anni! LessonHUB ha reso tutto semplice e posso esercitarmi in pausa pranzo. Mi sento molto più sicura.",
+          name: 'Angela S.',
           subtitle: '55 anni',
           image: '/home/testimonial1.jpg',
           alt: 'Ritratto di Brenda, una donna sorridente',
@@ -129,7 +131,7 @@ function getCopy(isItalian: boolean): Copy {
 
   return {
     heroTagline: '',
-    heroTitle: 'Way less grammar and lots more real life examples.',
+    heroTitle: 'Way less grammar, way more real-life examples',
     heroSubtitle:
       'The fun and flexible language learning platform designed for busy adults. It’s never too late to start a new adventure.',
     heroSecondaryCta: 'See How It Works',
@@ -139,18 +141,21 @@ function getCopy(isItalian: boolean): Copy {
     howTitle: 'Your Journey to Fluency in 3 Simple Steps',
     steps: [
       {
-        title: '1. Choose Your Language',
-        description: 'Select from dozens of languages and find the perfect one for your next adventure or personal goal.',
+        title: '1. Be understood',
+        description:
+          'People, not teachers. Our native speakers focus on making sure students are understood. Normal people break grammar rules every day - nobody dies. Get understood, get fewer weird looks.',
         icon: Languages,
       },
       {
         title: '2. Learn On Your Schedule',
-        description: 'Bite-sized lessons fit into your life, whether you have 5 minutes on your commute or an hour to relax.',
+        description:
+          'Bite-sized lessons fit into your life, whether you have 5 minutes on your commute or an hour to get stronger.',
         icon: Clock3,
       },
       {
-        title: '3. Speak with Confidence',
-        description: 'Practice with real conversations and gain the skills to talk to anyone, anywhere.',
+        title: '3. Real life content',
+        description:
+          "\"The book is on the table\" is as useful as air in a vacuum. You'll practice with memes, movie scenes, live news, even arcade games. It's engaging, it's real - and it works.",
         icon: MessageCircle,
       },
     ],
@@ -177,11 +182,11 @@ function getCopy(isItalian: boolean): Copy {
     testimonials: [
       {
         quote:
-          "I'm finally learning Spanish for my trip to Spain at 55! LessonHUB made it so easy to get started and I can practice on my lunch breaks. I feel so much more confident.",
-        name: 'Brenda T.',
+          "I'm finally learning English for my trip at 55! LessonHUB made it so easy to get started and I can practice on my lunch breaks. I feel so much more confident.",
+        name: 'Angela S.',
         subtitle: 'Age 55',
         image: '/home/testimonial1.jpg',
-        alt: 'Portrait of Brenda, a smiling woman',
+        alt: 'Portrait of Angela, a smiling woman',
       },
       {
         quote:
