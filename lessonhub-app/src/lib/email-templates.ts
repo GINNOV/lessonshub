@@ -51,6 +51,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hi {{studentName}},</p>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Your submission for the lesson, <strong>{{lessonTitle}}</strong>, has been graded.</p>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Your Score:</strong> {{score}}</p>
+{{extraPointsLineEn}}
 {{teacherComments}}
 {{button}}
 
@@ -59,6 +60,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Ciao {{studentName}},</p>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">La tua consegna per la lezione <strong>{{lessonTitle}}</strong> è stata valutata.</p>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Il tuo punteggio:</strong> {{score}}</p>
+{{extraPointsLineIt}}
 {{teacherComments}}
 {{button}}`,
         buttonColor: '#5e6ad2',

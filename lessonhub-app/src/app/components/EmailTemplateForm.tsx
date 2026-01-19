@@ -130,6 +130,10 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
       lessonTitle: '[Sample Lesson Title]',
       deadline: new Date().toLocaleString(),
       score: '10',
+      extraPointsLineEn:
+        '<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Bonus points:</strong> 2</p>',
+      extraPointsLineIt:
+        '<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Punti bonus:</strong> 2</p>',
       price: '5.00',
       teacherComments: `<p style="color: #525f7f; font-size: 16px; line-height: 24px;"><strong>Teacher's Feedback:</strong><br/><em>&quot;This is a sample comment to preview the formatting.&quot;</em></p>`,
       button: createButton('Sample Action Button', '#', buttonColor),

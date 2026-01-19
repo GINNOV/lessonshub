@@ -28,6 +28,8 @@ const allPlaceholders: PlaceholderCategory[] = [
       { variable: '{{lessonTitle}}', description: 'The title of the lesson.' },
       { variable: '{{deadline}}', description: 'The assignment submission deadline.' },
       { variable: '{{score}}', description: 'The score a student received on an assignment.' },
+      { variable: '{{extraPointsLineEn}}', description: 'Optional bonus points line for graded emails (English HTML).' },
+      { variable: '{{extraPointsLineIt}}', description: 'Optional bonus points line for graded emails (Italian HTML).' },
       { variable: '{{price}}', description: "The lesson's value in Euros (€)." },
       { variable: '{{teacherComments}}', description: "The teacher's formatted feedback on a graded assignment." },
     ],

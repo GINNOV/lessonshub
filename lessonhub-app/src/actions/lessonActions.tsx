@@ -1805,6 +1805,14 @@ export async function gradeAssignment(
         const teacherCommentsHtml = data.teacherComments
           ? ((await marked.parse(data.teacherComments, { breaks: true })) as string)
           : '';
+        const extraPointsLineEn =
+          extraPoints > 0
+            ? `<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Bonus points:</strong> ${extraPoints}</p>`
+            : '';
+        const extraPointsLineIt =
+          extraPoints > 0
+            ? `<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Punti bonus:</strong> ${extraPoints}</p>`
+            : '';
         await sendEmail({
           to: assignment.student.email,
           templateName: 'graded',
@@ -1812,6 +1820,8 @@ export async function gradeAssignment(
             studentName: assignment.student.name || 'student',
             lessonTitle: assignment.lesson.title,
             score: data.score.toString(),
+            extraPointsLineEn,
+            extraPointsLineIt,
             teacherComments: teacherCommentsHtml
               ? `<div style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;"><strong>Teacher's Feedback:</strong><div style="margin-top: 8px;">${teacherCommentsHtml}</div></div>`
               : '',
