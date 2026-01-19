@@ -203,6 +203,14 @@ export default async function DashboardPage({
     })
   );
 
+  const calendarAssignments = lessonsWithRatings.flatMap((lesson) =>
+    lesson.assignments.map((assignment) => ({
+      deadline: assignment.deadline,
+      startDate: assignment.startDate ?? null,
+      assignedAt: assignment.assignedAt ?? null,
+    }))
+  );
+
   // Use the resolved searchParams object to get the day
   const day = typeof resolvedSearchParams.day === 'string' ? resolvedSearchParams.day : null;
 
@@ -272,7 +280,7 @@ export default async function DashboardPage({
         </DropdownMenu>
       </div>
 
-      <TeacherStatsHeader stats={stats} />
+      <TeacherStatsHeader stats={stats} calendarAssignments={calendarAssignments} />
       <div className="mt-8">
         <CollapsibleSection title="Your assignments" defaultOpen>
           <TeacherLessonList

@@ -183,13 +183,18 @@ export default function AssignLessonForm({
 
   const assignmentsForCalendar = calendarAssignments.length > 0 ? calendarAssignments : existingAssignments;
 
-  const assignmentCountsByDate = useMemo(() => {
-    const counts = new Map<string, number>();
+  const availabilityByDueDate = useMemo(() => {
+    const map = new Map<string, { startDayCounts: Map<number, number> }>();
     assignmentsForCalendar.forEach((assignment) => {
-      const dateKey = new Date(assignment.deadline).toLocaleDateString('en-CA');
-      counts.set(dateKey, (counts.get(dateKey) ?? 0) + 1);
+      const availableDate = assignment.startDate ?? assignment.assignedAt;
+      if (!availableDate) return;
+      const dueKey = new Date(assignment.deadline).toLocaleDateString('en-CA');
+      const entry = map.get(dueKey) ?? { startDayCounts: new Map<number, number>() };
+      const startDay = new Date(availableDate).getDate();
+      entry.startDayCounts.set(startDay, (entry.startDayCounts.get(startDay) ?? 0) + 1);
+      map.set(dueKey, entry);
     });
-    return counts;
+    return map;
   }, [assignmentsForCalendar]);
 
   const calendarDays = useMemo(() => {
@@ -198,7 +203,13 @@ export default function AssignLessonForm({
     const month = firstOfMonth.getMonth();
     const firstDayIndex = firstOfMonth.getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const days: { date: Date; inMonth: boolean; key: string; count: number }[] = [];
+    const days: {
+      date: Date;
+      inMonth: boolean;
+      key: string;
+      startDay: number | null;
+      dueDay: number | null;
+    }[] = [];
 
     const prevMonthDays = firstDayIndex;
     const totalCells = Math.ceil((prevMonthDays + daysInMonth) / 7) * 7;
@@ -208,15 +219,33 @@ export default function AssignLessonForm({
       const current = new Date(year, month, dayOffset);
       const key = current.toLocaleDateString('en-CA');
       const inMonth = current.getMonth() === month;
+      const availability = availabilityByDueDate.get(key);
+      let startDay: number | null = null;
+      if (availability?.startDayCounts?.size) {
+        let bestDay = -1;
+        let bestCount = -1;
+        availability.startDayCounts.forEach((count, day) => {
+          if (count > bestCount || (count === bestCount && day < bestDay)) {
+            bestDay = day;
+            bestCount = count;
+          }
+        });
+        startDay = bestDay > 0 ? bestDay : null;
+      }
+      let dueDay: number | null = null;
+      if (availability) {
+        dueDay = current.getDate();
+      }
       days.push({
         date: current,
         inMonth,
         key,
-        count: assignmentCountsByDate.get(key) ?? 0,
+        startDay,
+        dueDay,
       });
     }
     return days;
-  }, [assignmentCountsByDate, calendarMonth]);
+  }, [availabilityByDueDate, calendarMonth]);
 
   const goToMonth = (delta: number) => {
     setCalendarMonth((prev) => {
@@ -447,17 +476,40 @@ export default function AssignLessonForm({
           ))}
         </div>
         <div className="mt-2 grid grid-cols-7 gap-1 text-sm">
-          {calendarDays.map(({ date, inMonth, key, count }) => (
+          {calendarDays.map(({ date, inMonth, key, startDay, dueDay }) => (
             <div
               key={`${key}-${date.getDate()}`}
               className={cn(
-                'rounded-md px-2 py-3 border text-center',
-                inMonth ? 'bg-card' : 'bg-muted/50 text-muted-foreground',
-                count > 0 ? 'border-emerald-200 bg-emerald-50/70 text-emerald-800 font-semibold' : 'border-border text-foreground'
+                'overflow-hidden rounded-md border text-center text-[11px] font-semibold',
+                inMonth ? 'border-border' : 'border-border/70 opacity-70'
               )}
             >
-              <div className="text-xs">{date.getDate()}</div>
-              {count > 0 && <div className="text-[11px]">{count} due</div>}
+              <div
+                className={cn(
+                  'px-2 py-1 text-xs',
+                  inMonth ? 'bg-card text-foreground' : 'bg-muted/50 text-muted-foreground'
+                )}
+              >
+                {date.getDate()}
+              </div>
+              <div className="grid grid-cols-2 border-t border-border/80 text-sm">
+                <div
+                  className={cn(
+                    'flex items-center justify-center px-2 py-2',
+                    startDay ? 'bg-emerald-100 text-emerald-800' : 'bg-transparent text-transparent'
+                  )}
+                >
+                  {startDay ?? ''}
+                </div>
+                <div
+                  className={cn(
+                    'flex items-center justify-center border-l border-border/80 px-2 py-2',
+                    dueDay ? 'bg-rose-100 text-rose-800' : 'bg-transparent text-transparent'
+                  )}
+                >
+                  {dueDay ?? ''}
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -465,18 +517,18 @@ export default function AssignLessonForm({
 
       <div className="p-4 border rounded-md space-y-3">
         <Label className="mb-2 block font-semibold">Notification Options</Label>
-        <RadioGroup value={notificationOption} onValueChange={setNotificationOption} className="space-y-2">
+        <RadioGroup value={notificationOption} onValueChange={setNotificationOption} className="flex flex-wrap items-center gap-4">
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="on_start_date" id="on_start_date" />
-            <Label htmlFor="on_start_date">Notify students on the start date (default)</Label>
+            <Label htmlFor="on_start_date">Notify students on assign day</Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="immediate" id="immediate" />
-            <Label htmlFor="immediate">Notify newly assigned students immediately</Label>
+            <Label htmlFor="immediate">Notify students now</Label>
           </div>
-           <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
             <RadioGroupItem value="none" id="none" />
-            <Label htmlFor="none">Don&apos;t notify, make available immediately</Label>
+            <Label htmlFor="none">Don&apos;t notify</Label>
           </div>
         </RadioGroup>
       </div>

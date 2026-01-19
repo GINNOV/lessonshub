@@ -711,24 +711,35 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
       </div>
 
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-          <div className="space-y-1 w-full">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="questionsCsv">Import questions from CSV</Label>
-              <Button type="button" variant="ghost" size="sm" onClick={downloadQuestionTemplate} className="text-xs font-semibold">
-                <Download className="mr-2 h-4 w-4" />
-                Download template
-              </Button>
-            </div>
-            <p className="text-xs text-gray-500">Columns: question, right_answer_id, answer1, answer2, answer3 (answer4 optional).</p>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <Label htmlFor="questionsCsv">Import questions from CSV</Label>
+            <p className="text-xs text-gray-500">Columns: question, right_answer_id, answer1, answer2, answer3, answer4.</p>
           </div>
-          <FileUploadButton
-            id="questionsCsv"
-            accept=".csv,text/csv"
-            onChange={handleCsvUpload}
-            disabled={isLoading || isImporting}
-            className="md:w-72"
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={downloadQuestionTemplate}
+              className="text-xs font-semibold"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download template
+            </Button>
+            <FileUploadButton
+              id="questionsCsv"
+              accept=".csv,text/csv"
+              onChange={handleCsvUpload}
+              disabled={isLoading || isImporting}
+              className="md:w-72"
+              allowClear
+              clearLabel="Reupload"
+              appearance="button"
+              variant="outline"
+              size="sm"
+            />
+          </div>
         </div>
         {isImporting && <p className="text-sm text-gray-500">Loading CSV…</p>}
       </div>
@@ -737,7 +748,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         <div key={qIndex} className="p-4 border rounded-md space-y-4">
           <div className="flex justify-between items-center">
             <Label>Question {qIndex + 1}</Label>
-            <Button type="button" variant="destructive" size="sm" onClick={() => removeQuestion(qIndex)}>Remove Question</Button>
+            <Button type="button" variant="destructive" size="sm" onClick={() => removeQuestion(qIndex)}>Remove</Button>
           </div>
           <Textarea value={q.question} onChange={(e) => handleQuestionChange(qIndex, e.target.value)} placeholder={`Enter question ${qIndex + 1}`} />
           {q.options.map((opt, oIndex) => (

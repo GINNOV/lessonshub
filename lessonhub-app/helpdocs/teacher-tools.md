@@ -8,6 +8,10 @@ Teachers work from `/dashboard` and related routes. The workflow is direct, pred
 - Use the student search and filters to choose recipients.
 - Bulk-select, set start and deadline dates, and choose notification timing.
 - Submit to create assignments. LessonHub patches `/api/assignments` in one action.
+- **Schedule map:** each calendar cell shows three numbers.
+  - **Top (calendar day):** the day of the month.
+  - **Green (start day):** the most common start day for assignments due on that date.
+  - **Red (due day):** the due day for assignments on that date.
 
 ## Grade submissions
 

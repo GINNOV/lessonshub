@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Lesson, Assignment, AssignmentStatus, LessonType } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -101,6 +101,8 @@ const lessonTypeLabels: Record<LessonType, string> = {
 };
 
 const STORAGE_KEY = 'teacher-dashboard-filters';
+const QUICK_FILTER_RANGE_START = '2000-01-01';
+const QUICK_FILTER_RANGE_END = '2100-01-01';
 
 type StatusFilterValue = AssignmentStatus | 'all' | 'past_due' | 'empty_class' | 'free';
 type OrderViewValue = 'deadline' | 'week' | 'available';
@@ -249,7 +251,9 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
   const [isLegendOpen, setIsLegendOpen] = useState(false);
   const [guideActionLessonId, setGuideActionLessonId] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const hasHydratedState = useRef(false);
+  const lastQuickFilter = useRef<string | null>(null);
 
   const handleShareClick = async (lessonId: string) => {
     const result = await generateShareLink(lessonId);
@@ -626,6 +630,54 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
     window.addEventListener('keydown', handleKeydown);
     return () => window.removeEventListener('keydown', handleKeydown);
   }, []);
+
+  useEffect(() => {
+    const quickFilter = searchParams?.get('quickFilter');
+    if (!quickFilter || quickFilter === lastQuickFilter.current) return;
+    lastQuickFilter.current = quickFilter;
+
+    const resetFilters = () => {
+      setSearchTerm('');
+      setStatusFilter(AssignmentStatus.PENDING);
+      setLessonTypeFilter('all');
+      setDateFilter('this_week');
+      setCustomStartDate('');
+      setCustomEndDate('');
+      setClassFilter('all');
+      setOrderView('week');
+    };
+
+    const applyWideDateRange = () => {
+      setDateFilter('custom');
+      setCustomStartDate(QUICK_FILTER_RANGE_START);
+      setCustomEndDate(QUICK_FILTER_RANGE_END);
+    };
+
+    if (quickFilter === 'all') {
+      resetFilters();
+    } else if (quickFilter === 'past_due') {
+      setStatusFilter('past_due');
+      setLessonTypeFilter('all');
+      setClassFilter('all');
+      applyWideDateRange();
+    } else if (quickFilter === 'completed') {
+      setStatusFilter(AssignmentStatus.COMPLETED);
+      setLessonTypeFilter('all');
+      setClassFilter('all');
+      applyWideDateRange();
+    } else if (quickFilter === 'empty') {
+      setStatusFilter('empty_class');
+      setLessonTypeFilter('all');
+      setClassFilter('all');
+      applyWideDateRange();
+    } else if (quickFilter === 'guides') {
+      setStatusFilter('all');
+      setLessonTypeFilter(LessonType.LEARNING_SESSION);
+      setClassFilter('all');
+      applyWideDateRange();
+    }
+
+  }, [searchParams]);
 
   const { weekGroups, weekSequence } = useMemo(() => {
     const groups = new Map<number, LessonWithMeta[]>();
