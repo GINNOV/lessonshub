@@ -32,7 +32,6 @@ type Copy = {
   heroTagline: string
   heroTitle: string
   heroSubtitle: string
-  heroPrimaryCta: string
   heroSecondaryCta: string
   heroLoginCta: string
   heroBadge: string
@@ -55,11 +54,10 @@ type Copy = {
 function getCopy(isItalian: boolean): Copy {
   if (isItalian) {
     return {
-      heroTagline: 'LessonHUB',
-      heroTitle: 'Riscopri la tua passione, apri il mondo.',
+      heroTagline: '',
+      heroTitle: 'Meno grammatica e molti piu esempi di vita reale.',
       heroSubtitle:
         'La piattaforma flessibile e divertente per imparare le lingue pensata per chi ha una vita piena. Non è mai troppo tardi per iniziare una nuova avventura.',
-      heroPrimaryCta: 'Inizia la prova gratuita',
       heroSecondaryCta: 'Scopri come funziona',
       heroLoginCta: 'Hai già un account? Accedi',
       heroBadge: 'Nessuna carta di credito richiesta',
@@ -130,11 +128,10 @@ function getCopy(isItalian: boolean): Copy {
   }
 
   return {
-    heroTagline: 'LessonHUB',
-    heroTitle: 'Rediscover Your Passion, Unlock the World.',
+    heroTagline: '',
+    heroTitle: 'Way less grammar and lots more real life examples.',
     heroSubtitle:
       'The fun and flexible language learning platform designed for busy adults. It’s never too late to start a new adventure.',
-    heroPrimaryCta: 'Start Your Free Trial',
     heroSecondaryCta: 'See How It Works',
     heroLoginCta: 'Already have an account? Sign in',
     heroBadge: 'No Credit Card Required',
@@ -252,7 +249,9 @@ function Hero({ copy }: { copy: Copy }) {
         <div className="absolute inset-0 bg-gradient-to-r from-[#0d1528]/60 via-transparent to-[#0d1528]/40" />
       </div>
       <div className="relative mx-auto flex min-h-[60vh] max-w-5xl flex-col items-center justify-center gap-5 px-4 py-16 text-center sm:py-20">
-        <p className="text-sm font-bold uppercase tracking-[0.35em] text-amber-300/90">{copy.heroTagline}</p>
+        {copy.heroTagline ? (
+          <p className="text-sm font-bold uppercase tracking-[0.35em] text-amber-300/90">{copy.heroTagline}</p>
+        ) : null}
         <h1
           className={`${lora.className} text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl md:text-6xl`}
         >
@@ -260,13 +259,6 @@ function Hero({ copy }: { copy: Copy }) {
         </h1>
         <p className="max-w-2xl text-lg text-[#A0AEC0] sm:text-xl">{copy.heroSubtitle}</p>
         <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
-          <Button
-            asChild
-            size="lg"
-            className="h-12 rounded-lg bg-[#D69E2E] px-6 text-base font-bold text-[#1A202C] transition-transform hover:scale-[1.02]"
-          >
-            <Link href="/register">{copy.heroPrimaryCta}</Link>
-          </Button>
           <Link
             href="#how-it-works"
             className="inline-flex items-center gap-2 text-sm font-semibold text-amber-100 transition hover:text-white"
