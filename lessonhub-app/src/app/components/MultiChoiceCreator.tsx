@@ -736,8 +736,8 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
               allowClear
               clearLabel="Reupload"
               appearance="button"
-              variant="outline"
-              size="sm"
+              buttonVariant="outline"
+              buttonSize="sm"
             />
           </div>
         </div>

@@ -12,8 +12,8 @@ type FileUploadButtonProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, '
   allowClear?: boolean;
   clearLabel?: string;
   appearance?: 'upload' | 'button';
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
-  size?: 'default' | 'sm' | 'lg' | 'icon';
+  buttonVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  buttonSize?: 'default' | 'sm' | 'lg' | 'icon';
 };
 
 const FileUploadButton = forwardRef<HTMLInputElement, FileUploadButtonProps>(
@@ -25,8 +25,8 @@ const FileUploadButton = forwardRef<HTMLInputElement, FileUploadButtonProps>(
       allowClear = false,
       clearLabel = 'Clear',
       appearance = 'upload',
-      variant = 'outline',
-      size = 'sm',
+      buttonVariant = 'outline',
+      buttonSize = 'sm',
       disabled,
       onChange,
       ...props
@@ -69,7 +69,7 @@ const FileUploadButton = forwardRef<HTMLInputElement, FileUploadButtonProps>(
         <label
           className={cn(
             appearance === 'button'
-              ? buttonVariants({ variant, size })
+              ? buttonVariants({ variant: buttonVariant, size: buttonSize })
               : 'inline-flex items-center gap-2 rounded-xl border border-dashed border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 focus-within:ring-2 focus-within:ring-indigo-200',
             'cursor-pointer',
             disabled && 'cursor-not-allowed opacity-60 hover:bg-indigo-50'
