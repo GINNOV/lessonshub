@@ -72,6 +72,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Upload the processed image buffer to Vercel Blob
     const blob = await put(filename, body, {
       contentType,
+      access: 'public',
       token: blobToken,
     });
 
