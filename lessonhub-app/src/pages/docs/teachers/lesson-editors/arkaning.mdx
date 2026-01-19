@@ -1,0 +1,48 @@
+# ArkanING Lesson Editor
+
+ArkanING is an arcade-style grammar game lesson. Students answer quick ING vs NOT-ING questions to trigger short play rounds.
+
+## Core fields
+
+- **Lesson Title**: The name shown in the lesson list.
+- **Lesson Preview**: Short teaser shown on cards.
+- **Price**: Standard lesson price.
+- **Instructions**: Shown above the game on the assignment page.
+- **Additional Information / Notes**: Optional extra context.
+
+## Game settings
+
+- **Rounds per correct answer**: How many ball trips play after each correct answer.
+- **Points per correct**: Points awarded on a correct answer.
+- **Euros per correct**: Savings awarded on a correct answer.
+- **Lives**: Total lives for the session.
+- **Lose a life on every wrong answer**: Toggle to lose a life on each wrong answer.
+- **Wrong answers per life**: If the toggle is off, a life is lost every N wrong answers.
+
+Wrong answers always deduct 50 points and 50 euros.
+
+## Questions
+
+Each question includes:
+
+- **Prompt**: The sentence with a blank (example: "I enjoy ___ (read)").
+- **Answer**: `ing` or `not-ing`.
+- **Reveal**: The correct fill (example: "reading" or "to read").
+
+### CSV import
+
+Upload a CSV with the following columns:
+
+```
+prompt,answer,reveal
+```
+
+`answer` must be `ing` or `not-ing`.
+
+## Assignment flow
+
+- Correct answers trigger the game rounds.
+- Wrong answers add a new row of bricks and apply the penalty.
+- Lives end the session when they reach zero.
+
+Use the ArkanING lesson type when you want short, repeatable grammar practice with arcade feedback.

@@ -92,6 +92,8 @@ export default function LessonTable({
             return `/dashboard/edit/multi-choice/${lesson.id}`;
         case LessonType.LYRIC:
             return `/dashboard/edit/lyric/${lesson.id}`;
+        case LessonType.ARKANING:
+            return `/dashboard/edit/arkaning/${lesson.id}`;
         default:
             return `/dashboard/edit/${lesson.id}`;
     }

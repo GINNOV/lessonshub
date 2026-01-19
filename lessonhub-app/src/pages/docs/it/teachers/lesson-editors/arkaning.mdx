@@ -1,0 +1,40 @@
+# Editor Lezione ArkanING
+
+ArkanING e un gioco arcade per esercizi rapidi su -ing e not-ing.
+
+## Campi principali
+
+- **Lesson Title**: nome della lezione.
+- **Lesson Preview**: breve descrizione per la card.
+- **Price**: prezzo standard.
+- **Instructions**: istruzioni mostrate sopra al gioco.
+- **Additional Information / Notes**: note opzionali.
+
+## Impostazioni gioco
+
+- **Rounds per correct answer**: numero di viaggi della palla per risposta corretta.
+- **Points per correct**: punti per risposta corretta.
+- **Euros per correct**: euro per risposta corretta.
+- **Lives**: vite totali.
+- **Lose a life on every wrong answer**: perde una vita a ogni errore.
+- **Wrong answers per life**: se disattivo, perde una vita ogni N errori.
+
+Le risposte sbagliate sottraggono sempre 50 punti e 50 euro.
+
+## Domande
+
+Ogni domanda ha:
+
+- **Prompt**: frase con spazio vuoto.
+- **Answer**: `ing` o `not-ing`.
+- **Reveal**: soluzione corretta.
+
+### Import CSV
+
+Schema:
+
+```
+prompt,answer,reveal
+```
+
+`answer` deve essere `ing` oppure `not-ing`.

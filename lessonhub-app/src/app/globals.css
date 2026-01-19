@@ -3,6 +3,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/press-start-2p.ttf') format('truetype');
+}
+
 @layer base {
   :root {
     --background: 222 60% 7%;
@@ -61,6 +69,12 @@
       radial-gradient(circle at 20% 20%, rgba(20, 184, 166, 0.12), transparent 32%),
       radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.1), transparent 28%),
       radial-gradient(circle at 70% 80%, rgba(94, 234, 212, 0.08), transparent 30%);
+  }
+}
+
+@layer utilities {
+  .font-arcade {
+    font-family: 'Press Start 2P', 'Courier New', monospace;
   }
 }
 

@@ -12,7 +12,7 @@ import StudentGuideList from '@/app/components/StudentGuideList';
 import StudentFreeLessonList from '@/app/components/StudentFreeLessonList';
 import StudentGamificationPanel from '@/app/components/StudentGamificationPanel';
 import Leaderboard from '@/app/components/Leaderboard';
-import { BookOpen, Sparkles, Gift, Gamepad2, Flame } from 'lucide-react';
+import { BookOpen, Sparkles, Gift, Gamepad2, Flame, Zap } from 'lucide-react';
 import type { StudentDashboardLocale } from '@/lib/studentDashboardCopy';
 
 type StudentDashboardCopy = {
@@ -89,6 +89,13 @@ export default function StudentLessonsDashboard({
       href: '/games/frog-verbs',
       icon: Sparkles,
       color: 'border-lime-200 bg-lime-50/80 text-lime-900',
+      status: locale === 'it' ? 'Gioca ora' : 'Play now',
+    },
+    {
+      label: 'ArkanING',
+      href: '/games/arkaning',
+      icon: Zap,
+      color: 'border-sky-200 bg-sky-50/80 text-sky-900',
       status: locale === 'it' ? 'Gioca ora' : 'Play now',
     },
     {

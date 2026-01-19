@@ -1086,6 +1086,7 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
             },
             lyricConfig: true,
             composerConfig: true,
+            arkaningConfig: true,
             lyricAttempts: {
               where: { studentId },
               orderBy: { createdAt: 'desc' },
@@ -1127,6 +1128,7 @@ export async function getLessonById(lessonId: string) {
         },
         lyricConfig: true,
         composerConfig: true,
+        arkaningConfig: true,
       },
     });
     return lesson;
@@ -1161,6 +1163,7 @@ export async function getLessonByShareId(shareId: string) {
         },
         lyricConfig: true,
         composerConfig: true,
+        arkaningConfig: true,
         teacher: {
           select: {
             id: true,

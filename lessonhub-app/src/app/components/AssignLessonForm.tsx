@@ -419,7 +419,7 @@ export default function AssignLessonForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
             <Label htmlFor="start-date">Set Start Date</Label>
             <Input id="start-date" type="datetime-local" value={masterStartDate} onChange={handleMasterStartDateChange} disabled={notificationOption === 'none'} className="w-full" />
@@ -427,28 +427,6 @@ export default function AssignLessonForm({
         <div className="space-y-2">
             <Label htmlFor="deadline">Set Due Date</Label>
             <Input id="deadline" type="datetime-local" value={masterDeadline} onChange={handleMasterDeadlineChange} className="w-full" />
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="search">Search Students</Label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
-              <Input id="search" type="search" placeholder="Filter by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
-            </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="class-filter">Filter by Class</Label>
-          <select
-            id="class-filter"
-            className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-            value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
-          >
-            <option value="all">All students</option>
-            <option value="none">No class</option>
-            {classes.filter(c => c.isActive).map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
         </div>
       </div>
 
@@ -531,6 +509,31 @@ export default function AssignLessonForm({
             <Label htmlFor="none">Don&apos;t notify</Label>
           </div>
         </RadioGroup>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+            <Label htmlFor="search">Search Students</Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+              <Input id="search" type="search" placeholder="Filter by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+            </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="class-filter">Filter by Class</Label>
+          <select
+            id="class-filter"
+            className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+          >
+            <option value="all">All students</option>
+            <option value="none">No class</option>
+            {classes.filter(c => c.isActive).map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="flex items-center justify-between rounded-md border bg-muted/50 px-3 py-2 text-sm">

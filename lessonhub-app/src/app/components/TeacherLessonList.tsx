@@ -89,6 +89,7 @@ const lessonTypeEmojis: Record<LessonType, string> = {
   [LessonType.LEARNING_SESSION]: '🧠',
   [LessonType.LYRIC]: '🎵',
   [LessonType.COMPOSER]: '🧩',
+  [LessonType.ARKANING]: '🕹️',
 };
 
 const lessonTypeLabels: Record<LessonType, string> = {
@@ -98,6 +99,7 @@ const lessonTypeLabels: Record<LessonType, string> = {
   [LessonType.LEARNING_SESSION]: 'Guide',
   [LessonType.LYRIC]: 'Lyric',
   [LessonType.COMPOSER]: 'Composer',
+  [LessonType.ARKANING]: 'ArkanING',
 };
 
 const STORAGE_KEY = 'teacher-dashboard-filters';
@@ -117,7 +119,7 @@ const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   AssignmentStatus.GRADED,
   AssignmentStatus.FAILED,
 ];
-const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = ['all', LessonType.STANDARD, LessonType.FLASHCARD, LessonType.MULTI_CHOICE, LessonType.LEARNING_SESSION, LessonType.LYRIC, LessonType.COMPOSER];
+const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = ['all', LessonType.STANDARD, LessonType.FLASHCARD, LessonType.MULTI_CHOICE, LessonType.LEARNING_SESSION, LessonType.LYRIC, LessonType.COMPOSER, LessonType.ARKANING];
 const normalizeLessonTypeFilter = (value: string | null | undefined): LessonTypeFilterValue => {
   if (!value) return 'all';
   if (value === 'guide' || value === 'guides') return LessonType.LEARNING_SESSION;

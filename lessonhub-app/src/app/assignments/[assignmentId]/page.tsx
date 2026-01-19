@@ -12,6 +12,7 @@ import FlashcardPlayer from "@/app/components/FlashcardPlayer";
 import ComposerLessonPlayer from "@/app/components/ComposerLessonPlayer";
 import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
 import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
+import ArkaningLessonPlayer from "@/app/components/ArkaningLessonPlayer";
 import { marked } from "marked";
 import { AssignmentStatus, LessonType } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
@@ -664,6 +665,7 @@ export default async function AssignmentPage({
   const lyricAudioStorageKey = lesson.lyricConfig?.audioStorageKey ?? null;
   const isLearningSession = lesson.type === LessonType.LEARNING_SESSION;
   const isComposer = lesson.type === LessonType.COMPOSER;
+  const isArkaning = lesson.type === LessonType.ARKANING;
   const showConfetti = serializableAssignment.score === 10;
   const hasExtendedDeadline = Boolean(
     serializableAssignment.originalDeadline &&
@@ -810,6 +812,8 @@ export default async function AssignmentPage({
               lessonTitle={lesson.title}
               copy={lessonCopy.learningSession}
             />
+          ) : isArkaning ? (
+            <ArkaningLessonPlayer config={(lesson as any).arkaningConfig ?? null} />
           ) : (
             <LessonResponseForm
               assignment={serializableAssignment}

@@ -132,6 +132,7 @@ model Lesson {
   multiChoiceQuestions      MultiChoiceQuestion[]
   lyricConfig               LyricLessonConfig?
   composerConfig            ComposerLessonConfig?
+  arkaningConfig            ArkaningLessonConfig?
   lyricAttempts             LyricLessonAttempt[]
   guideCompletions          GuideCompletion[]
 }
@@ -473,6 +474,7 @@ enum LessonType {
   LEARNING_SESSION
   LYRIC
   COMPOSER
+  ARKANING
 }
 
 model ComposerLessonConfig {
@@ -484,6 +486,21 @@ model ComposerLessonConfig {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   lesson         Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model ArkaningLessonConfig {
+  id               String   @id @default(cuid())
+  lessonId         String   @unique
+  questionBank     Json
+  roundsPerCorrect Int      @default(3)
+  pointsPerCorrect Int      @default(10)
+  eurosPerCorrect  Int      @default(5)
+  lives            Int      @default(5)
+  loseLifeOnWrong  Boolean  @default(true)
+  wrongsPerLife    Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  lesson           Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 }
 
 enum AssignmentNotification {
