@@ -205,6 +205,7 @@ export const studentDashboardCopy: Record<
         ASSIGNMENT_GRADED: "Assignment graded",
         BADGE_BONUS: "Badge bonus",
         MANUAL_ADJUSTMENT: "Adjustment",
+        ARKANING_GAME: "ArkanING game",
       },
       categoryLabels: {
         PROGRESSION: "Progression",
@@ -323,6 +324,7 @@ export const studentDashboardCopy: Record<
         ASSIGNMENT_GRADED: "Lezione corretta",
         BADGE_BONUS: "Bonus badge",
         MANUAL_ADJUSTMENT: "Modifica",
+        ARKANING_GAME: "Gioco ArkanING",
       },
       categoryLabels: {
         PROGRESSION: "Progressione",

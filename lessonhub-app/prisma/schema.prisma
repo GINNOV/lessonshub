@@ -412,6 +412,7 @@ model PointTransaction {
   userId       String
   assignmentId String?
   points       Int
+  amountEuro   Decimal?
   reason       PointReason
   note         String?
   createdAt    DateTime     @default(now())
@@ -556,4 +557,5 @@ enum PointReason {
   ASSIGNMENT_GRADED
   BADGE_BONUS
   MANUAL_ADJUSTMENT
+  ARKANING_GAME
 }

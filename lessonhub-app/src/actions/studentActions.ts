@@ -3,7 +3,7 @@
 
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
-import { Role, AssignmentStatus, LessonType } from "@prisma/client";
+import { Role, AssignmentStatus, LessonType, PointReason } from "@prisma/client";
 import { createButton } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email-templates.server";
 import { getStudentGamificationSnapshot } from "@/lib/gamification";
@@ -257,6 +257,14 @@ export async function getLeaderboardData() {
       _sum: { amountEuro: true },
     });
     const goldStarByStudent = new Map(goldStarSums.map((row) => [row.studentId, row._sum.amountEuro ?? 0]));
+    const arkaningSums = await prisma.pointTransaction.groupBy({
+      by: ['userId'],
+      where: { userId: { in: studentIds }, reason: PointReason.ARKANING_GAME },
+      _sum: { amountEuro: true },
+    });
+    const arkaningByStudent = new Map(
+      arkaningSums.map((row) => [row.userId, Number(row._sum.amountEuro ?? 0)]),
+    );
 
     const studentStats = students.map(student => {
       const completedAssignments = student.assignments.filter(a => a.status === AssignmentStatus.COMPLETED || a.status === AssignmentStatus.GRADED);
@@ -296,6 +304,7 @@ export async function getLeaderboardData() {
 
       savings -= extensionSpend;
       savings += goldStarByStudent.get(student.id) ?? 0;
+      savings += arkaningByStudent.get(student.id) ?? 0;
 
       const derivedPoints = student.assignments.reduce(
         (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),
@@ -410,6 +419,10 @@ export async function getStudentLeaderboardProfile(studentId: string) {
       where: { studentId },
       _sum: { amountEuro: true },
     });
+    const arkaningSum = await prisma.pointTransaction.aggregate({
+      where: { userId: studentId, reason: PointReason.ARKANING_GAME },
+      _sum: { amountEuro: true },
+    });
 
     if (!student) return null;
 
@@ -482,6 +495,7 @@ export async function getStudentLeaderboardProfile(studentId: string) {
 
     savings -= extensionSpend;
     savings += goldStarSum._sum.amountEuro ?? 0;
+    savings += Number(arkaningSum._sum.amountEuro ?? 0);
 
     const derivedPoints = student.assignments.reduce(
       (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),

@@ -470,8 +470,12 @@ export default async function GradeSubmissionPage({
         const candidate =
           obj.id ??
           obj.value ??
+          obj.text ??
+          obj.label ??
           obj.optionId ??
           obj.option_id ??
+          obj.selectedOptionId ??
+          obj.selected_option_id ??
           obj.selectedAnswerId ??
           obj.selected_answer_id ??
           obj.answerId ??
@@ -596,6 +600,8 @@ export default async function GradeSubmissionPage({
           obj.answer_id,
           obj.optionId,
           obj.option_id,
+          obj.selectedOptionId,
+          obj.selected_option_id,
           obj.selectedOption,
           obj.selected_option,
           obj.selected,
@@ -608,8 +614,13 @@ export default async function GradeSubmissionPage({
           obj.selectedAnswerText,
           obj.selected_answer_text,
           obj.selectedText,
+          obj.selectedOptionText,
+          obj.selected_option_text,
           obj.answerText,
           obj.answer_text,
+          obj.optionText,
+          obj.option_text,
+          obj.answer,
           obj.text,
         ].find((candidate): candidate is string => typeof candidate === 'string');
 
@@ -668,6 +679,7 @@ export default async function GradeSubmissionPage({
   const correctCount = flashcardAnswers ? Object.values(flashcardAnswers).filter(a => a === 'correct').length : 0;
   const incorrectCount = flashcardAnswers ? Object.values(flashcardAnswers).filter(a => a === 'incorrect').length : 0;
   const multiChoiceAnswers = parseMultiChoiceAnswers();
+  const normalizeOptionText = (value: string) => value.trim().toLowerCase();
   const resolveSelectedOption = (
     question: { options: Array<{ id: string; text: string }> },
     answer?: MultiChoiceAnswer
@@ -681,7 +693,8 @@ export default async function GradeSubmissionPage({
         if (oneBased) return oneBased;
       }
       if (typeof answer?.selectedAnswerText === 'string') {
-        const byText = question.options.find(option => option.text === answer.selectedAnswerText);
+        const normalized = normalizeOptionText(answer.selectedAnswerText);
+        const byText = question.options.find(option => normalizeOptionText(option.text) === normalized);
         if (byText) return byText;
       }
       return null;
@@ -702,8 +715,33 @@ export default async function GradeSubmissionPage({
       if (oneBased) return oneBased;
     }
 
-    const byText = question.options.find(option => option.text === String(selectedValue));
+    const byText = question.options.find(option => normalizeOptionText(option.text) === normalizeOptionText(String(selectedValue)));
     if (byText) return byText;
+    return null;
+  };
+  const resolveSelectedLabel = (
+    question: { options: Array<{ id: string; text: string }> },
+    answer?: MultiChoiceAnswer,
+    selectedOption?: { id: string; text: string } | null
+  ) => {
+    if (selectedOption?.text) return selectedOption.text;
+    const selectedText = typeof answer?.selectedAnswerText === 'string' ? answer.selectedAnswerText.trim() : '';
+    if (selectedText) return selectedText;
+    if (typeof answer?.selectedAnswerIndex === 'number') {
+      const zeroBased = question.options[answer.selectedAnswerIndex];
+      if (zeroBased) return zeroBased.text;
+      const oneBased = question.options[answer.selectedAnswerIndex - 1];
+      if (oneBased) return oneBased.text;
+    }
+    const rawValue = answer?.selectedAnswerId;
+    if (typeof rawValue === 'string' || typeof rawValue === 'number') {
+      const rawText = String(rawValue);
+      const byId = question.options.find(option => option.id === rawText);
+      if (byId) return byId.text;
+      const byText = question.options.find(option => normalizeOptionText(option.text) === normalizeOptionText(rawText));
+      if (byText) return byText.text;
+      return rawText;
+    }
     return null;
   };
   const multiChoiceDetails = multiChoiceQuestions.map((question, index) => {
@@ -716,6 +754,7 @@ export default async function GradeSubmissionPage({
     } else if (typeof answer?.isCorrect === 'boolean') {
       isCorrect = answer.isCorrect;
     }
+    const selectedLabel = resolveSelectedLabel(question, answer, selectedOption);
     return {
       question,
       index,
@@ -723,6 +762,7 @@ export default async function GradeSubmissionPage({
       selectedOption,
       correctOption,
       isCorrect,
+      selectedLabel,
     };
   });
   const multiChoiceSummary = multiChoiceDetails.reduce(
@@ -903,10 +943,20 @@ export default async function GradeSubmissionPage({
                     </div>
                     <div className="space-y-4">
                       {multiChoiceDetails.map(detail => {
-                        const { question, index: questionIndex, selectedOption, correctOption, isCorrect, answer } = detail;
+                        const {
+                          question,
+                          index: questionIndex,
+                          selectedOption,
+                          correctOption,
+                          isCorrect,
+                          answer,
+                          selectedLabel,
+                        } = detail;
                         const hasSelection = Boolean(
                           selectedOption ||
+                          selectedLabel ||
                           answer?.selectedAnswerId ||
+                          typeof answer?.selectedAnswerIndex === 'number' ||
                           typeof answer?.isCorrect === 'boolean'
                         );
                         const fallbackSelectedOptionId =
@@ -927,6 +977,12 @@ export default async function GradeSubmissionPage({
                           statusLabel === 'Incorrect' && 'border border-rose-400/60 bg-rose-900/40 text-rose-100',
                           statusLabel === 'No answer' && 'border border-slate-700 bg-slate-900 text-slate-200'
                         );
+                        const selectedAnswerClasses = cn(
+                          "flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold",
+                          isCorrect === true && "border-emerald-400/60 bg-emerald-900/40 text-emerald-100",
+                          isCorrect === false && "border-rose-400/60 bg-rose-900/40 text-rose-100",
+                          isCorrect === null && "border-slate-700 bg-slate-900 text-slate-200"
+                        );
                         return (
                           <div key={question.id} className="space-y-3 rounded-md border border-slate-800/70 bg-slate-900/70 p-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -940,6 +996,12 @@ export default async function GradeSubmissionPage({
                                 </Badge>
                               )}
                             </div>
+                            {!selectedOption && selectedLabel && (
+                              <div className={selectedAnswerClasses}>
+                                <UserRound className="h-4 w-4" />
+                                <span>Student answer: <span className="font-normal">{selectedLabel}</span></span>
+                              </div>
+                            )}
                             <div className="space-y-2">
                               {question.options.map(option => {
                                 const isSelected = Boolean(

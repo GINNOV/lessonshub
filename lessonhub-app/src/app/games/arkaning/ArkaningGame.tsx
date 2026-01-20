@@ -71,10 +71,12 @@ export default function ArkaningGame({
   questions = DEFAULT_QUESTIONS,
   settings = DEFAULT_SETTINGS,
   embedded = false,
+  assignmentId,
 }: {
   questions?: Question[];
   settings?: ArkaningSettings;
   embedded?: boolean;
+  assignmentId?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playfieldRef = useRef<HTMLDivElement | null>(null);
@@ -218,6 +220,30 @@ export default function ArkaningGame({
       livesEl.innerText = `Lives: ${lives}`;
     };
 
+    const recordOutcome = async (outcome: 'correct' | 'wrong') => {
+      if (!assignmentId) {
+        return {
+          pointsDelta: outcome === 'correct' ? settings.pointsPerCorrect : -PENALTY_POINTS,
+          eurosDelta: outcome === 'correct' ? settings.eurosPerCorrect : -PENALTY_EUROS,
+        };
+      }
+      try {
+        const response = await fetch(`/api/assignments/${assignmentId}/arkaning`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ outcome }),
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          throw new Error(payload?.error || 'Unable to record score.');
+        }
+        return await response.json();
+      } catch {
+        setFeedback('Unable to save score. Please retry.', 'neutral');
+        return null;
+      }
+    };
+
     const setFeedback = (
       message: string,
       variant: 'correct' | 'wrong' | 'neutral',
@@ -357,9 +383,14 @@ export default function ArkaningGame({
       startNextTrip(true);
     };
 
-    const handleCorrectAnswer = () => {
-      points += settings.pointsPerCorrect;
-      euros += settings.eurosPerCorrect;
+    const handleCorrectAnswer = async () => {
+      const result = await recordOutcome('correct');
+      if (!result) {
+        canAnswer = true;
+        return;
+      }
+      points += result.pointsDelta;
+      euros += result.eurosDelta;
       updateHud();
       setFeedback(
         `Correct! You earned ${settings.pointsPerCorrect} points and €${settings.eurosPerCorrect} in savings.`,
@@ -369,9 +400,14 @@ export default function ArkaningGame({
       startRound();
     };
 
-    const handleWrongAnswer = (question: Question) => {
-      points -= PENALTY_POINTS;
-      euros -= PENALTY_EUROS;
+    const handleWrongAnswer = async (question: Question) => {
+      const result = await recordOutcome('wrong');
+      if (!result) {
+        canAnswer = true;
+        return;
+      }
+      points += result.pointsDelta;
+      euros += result.eurosDelta;
       wrongAnswerCount += 1;
       playSound(failSound);
       if (settings.loseLifeOnWrong) {
@@ -393,17 +429,19 @@ export default function ArkaningGame({
         return;
       }
       nextQuestion();
+      canAnswer = true;
     };
 
-    const handleAnswer = (choice: AnswerChoice) => {
+    const handleAnswer = async (choice: AnswerChoice) => {
       if (!isGameStarted || isGameOver || !canAnswer) return;
+      canAnswer = false;
       const source = questions.length ? questions : DEFAULT_QUESTIONS;
       const question = source[(questionIndex - 1 + source.length) % source.length];
       const correct = question.answer === choice;
       if (correct) {
-        handleCorrectAnswer();
+        await handleCorrectAnswer();
       } else {
-        handleWrongAnswer(question);
+        await handleWrongAnswer(question);
       }
     };
 
@@ -664,7 +702,7 @@ export default function ArkaningGame({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('resize', handleResize);
     };
-  }, [questions, settings]);
+  }, [questions, settings, assignmentId]);
 
   return (
     <div

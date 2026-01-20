@@ -344,7 +344,7 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
       },
       orderBy: { gradedAt: 'asc' },
     })
-    const { AssignmentStatus, LessonType } = await import('@prisma/client')
+    const { AssignmentStatus, LessonType, PointReason } = await import('@prisma/client')
     const gradedCount = weekAssignments.filter(a=>a.status===AssignmentStatus.GRADED).length
     const failedCount = weekAssignments.filter(a=>a.status===AssignmentStatus.FAILED).length
     let savingsWeek=0
@@ -361,6 +361,15 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
         savingsWeek -= extraTries * 50;
       }
     }
+    const arkaningWeekSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
+      where: {
+        userId: s.id,
+        reason: PointReason.ARKANING_GAME,
+        createdAt: { gte: start, lte: end },
+      },
+      _sum: { amountEuro: true },
+    });
+    savingsWeek += Number(arkaningWeekSum._sum.amountEuro ?? 0);
 
     const allResults = await (await import('@/lib/prisma')).default.assignment.findMany({
       where: { studentId: s.id, status: { in: [AssignmentStatus.GRADED, AssignmentStatus.FAILED] } },
@@ -382,6 +391,11 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
         savingsTotal -= extraTries * 50;
       }
     }
+    const arkaningTotalSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
+      where: { userId: s.id, reason: PointReason.ARKANING_GAME },
+      _sum: { amountEuro: true },
+    });
+    savingsTotal += Number(arkaningTotalSum._sum.amountEuro ?? 0);
 
     const itemsHtml = weekAssignments.length ? '<ul style="padding-left:18px;color:#1d1c1d;">'+weekAssignments.map(a=>`<li style="margin:6px 0;">${a.lesson?.title||'Lesson'} — <strong>${a.status}</strong>${a.status==='GRADED'&&a.score!==null?` (score: ${a.score}/10)`:''}</li>`).join('')+'</ul>' : '<p style="color:#8898aa;">No graded activity this week — a fresh start awaits! 💪</p>'
     const encouragement = gradedCount>=3 ? 'Fantastic week! Your consistency is building real momentum.' : gradedCount>=1 ? 'Great job — keep that rhythm going into next week!' : 'New week, new start. Even one lesson makes a difference!'

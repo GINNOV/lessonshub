@@ -42,7 +42,13 @@ const normalizeQuestions = (questionBank: unknown): ArkaningQuestion[] => {
     .filter((item): item is ArkaningQuestion => Boolean(item));
 };
 
-export default function ArkaningLessonPlayer({ config }: { config: ArkaningLessonConfig | null }) {
+export default function ArkaningLessonPlayer({
+  config,
+  assignmentId,
+}: {
+  config: ArkaningLessonConfig | null;
+  assignmentId?: string;
+}) {
   const questions = useMemo(
     () => normalizeQuestions(config?.questionBank),
     [config?.questionBank],
@@ -74,5 +80,12 @@ export default function ArkaningLessonPlayer({ config }: { config: ArkaningLesso
     );
   }
 
-  return <ArkaningGame questions={questions} settings={settings} embedded={true} />;
+  return (
+    <ArkaningGame
+      questions={questions}
+      settings={settings}
+      embedded={true}
+      assignmentId={assignmentId}
+    />
+  );
 }
