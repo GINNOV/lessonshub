@@ -11,6 +11,7 @@
     "test": "npm run test:build && node --test tmp/test-dist/__tests__/assignmentNotifications.test.js",
     "test:build": "tsc -p tsconfig.test.json",
     "test:unit": "vitest run",
+    "test:components": "tsx scripts/run-component-tests.ts --staged",
     "prisma:generate": "dotenv -e .env.local -- prisma generate",
     "prisma:push": "dotenv -e .env.local -- prisma db push",
     "prisma:studio": "dotenv -e .env.local -- prisma studio",
@@ -19,7 +20,8 @@
     "prisma:deploy": "dotenv -e .env.local -- prisma migrate deploy",
     "prisma:db:pull": "dotenv -e .env.local -- prisma db pull",
     "prisma:db:push": "dotenv -e .env.local -- prisma db push",
-    "prisma:seed": "PRISMA_CLIENT_ENGINE_TYPE=binary dotenv -e .env.local -- tsx prisma/seed.ts"
+    "prisma:seed": "PRISMA_CLIENT_ENGINE_TYPE=binary dotenv -e .env.local -- tsx prisma/seed.ts",
+    "prepare": "husky install"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -81,6 +83,7 @@
     "dotenv-cli": "^7.4.2",
     "eslint": "^9.38.0",
     "eslint-config-next": "15.5.7",
+    "husky": "^9.1.7",
     "jsdom": "^27.4.0",
     "postcss": "^8.4.38",
     "prisma": "^7.2.0",

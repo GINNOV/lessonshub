@@ -15,6 +15,8 @@
 - `npm run build`: Generate Prisma client (using `.env.local`) and build Next.js.
 - `npm start`: Run the production build.
 - `npm run lint`: Lint with Next/ESLint.
+- `npm run test:unit`: Run Vitest unit tests.
+- `npm run test:components`: Run component tests for changed lesson editors/players (use `-- --all` to run all).
 - Prisma tooling: `npm run prisma:migrate`, `npm run prisma:studio`, `npm run prisma:db:push`, `npm run prisma:generate`.
   - These npm scripts wrap `dotenv -e .env.local`, so Prisma commands automatically pick up DB credentials from `.env.local`.
   - Avoid calling bare `npx prisma …` unless you export `DATABASE_URL` manually; use the npm scripts instead to prevent P1012 (`Environment variable not found`) errors.
@@ -52,8 +54,11 @@
 - Lyric lessons: if the API returns a 500 mentioning LRC columns, run `npm run prisma:migrate` (no extra flags) followed by `npm run prisma:generate` to add the missing `lrcUrl`/`lrcStorageKey` fields. The API now returns explanatory JSON and the editor displays the message in a toast.
 
 ## Testing Guidelines
-- No test runner is configured yet. If adding tests, prefer Vitest + React Testing Library.
-- Co‑locate unit tests as `*.test.ts(x)` next to source; e2e tests may live under `e2e/`.
+- Use Vitest + React Testing Library for unit tests.
+- Co‑locate tests as `*.test.ts(x)` next to source; e2e tests may live under `e2e/`.
+- Lesson editors and lesson players must have smoke tests; update/add tests when these components change.
+- Run `npm run test:components` when modifying lesson editors/players or `src/lib/multiChoiceAnswers.ts` (use `-- --all` to run all).
+- If you want the pre-commit hook active, run `npm run prepare` in a git checkout so Husky can install hooks.
 - Aim for critical path coverage (auth, lesson creation/assignment, payments).
 
 ## Commit & Pull Request Guidelines
