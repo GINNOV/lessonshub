@@ -999,7 +999,7 @@ export default async function GradeSubmissionPage({
                             {!selectedOption && selectedLabel && (
                               <div className={selectedAnswerClasses}>
                                 <UserRound className="h-4 w-4" />
-                                <span>Student answer: <span className="font-normal">{selectedLabel}</span></span>
+                                <span className="font-normal">{selectedLabel}</span>
                               </div>
                             )}
                             <div className="space-y-2">

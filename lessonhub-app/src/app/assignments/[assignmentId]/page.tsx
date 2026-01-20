@@ -545,7 +545,8 @@ export default async function AssignmentPage({
         deadlineLabel: "Scadenza:",
         timeElapsed: "Tempo trascorso",
         originalLabel: "Originale:",
-        viewResultsPrompt: "I risultati sono nascosti finché non tocchi “Vedi risultati”.",
+        viewResultsPrompt:
+          "I risultati sono nascosti finché non tocchi “Vedi risultati”. Non potrai vedere i risultati finché il tuo insegnante non valuterà questa lezione.",
         viewResultsCta: "Vedi risultati",
         deadlineMissedTitle: "Scadenza superata",
         deadlineMissedBody:
@@ -568,7 +569,8 @@ export default async function AssignmentPage({
         deadlineLabel: "Deadline:",
         timeElapsed: "Time elapsed",
         originalLabel: "Original:",
-        viewResultsPrompt: "Your results are hidden until you tap “View Results.”",
+        viewResultsPrompt:
+          "Your results are hidden until you tap “View Results.” You won't be able to see the results until your teacher grades this lesson.",
         viewResultsCta: "View Results",
         deadlineMissedTitle: "Deadline missed",
         deadlineMissedBody:
@@ -1234,7 +1236,7 @@ export default async function AssignmentPage({
                             : "border-slate-700/70 bg-slate-900/70 text-slate-200"
                         )}>
                           <UserRound className="h-4 w-4" />
-                          <span>Student answer: <span className="font-normal">{selectedLabel}</span></span>
+                          <span className="font-normal">{selectedLabel}</span>
                         </div>
                       )}
                       <div className="mt-2 space-y-2">
