@@ -17,7 +17,14 @@ export type MultiChoiceAnswer = {
   isCorrect?: boolean | null
 }
 
-const normalizeOptionText = (value: string) => value.trim().toLowerCase()
+const normalizeOptionText = (value: string) =>
+  value
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[.?!]+$/g, '')
+    .toLowerCase()
+
+export const normalizeMultiChoiceText = (value: string) => normalizeOptionText(value)
 
 export const parseMultiChoiceAnswers = (
   raw: unknown,

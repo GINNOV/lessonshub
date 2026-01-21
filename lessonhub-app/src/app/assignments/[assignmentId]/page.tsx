@@ -19,6 +19,7 @@ import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
 import {
   parseMultiChoiceAnswers,
+  normalizeMultiChoiceText,
   resolveSelectedLabel,
   resolveSelectedOption,
 } from "@/lib/multiChoiceAnswers";
@@ -896,6 +897,10 @@ export default async function AssignmentPage({
                   const studentAnswer = multiChoiceAnswers[q.id];
                   const selectedOption = resolveSelectedOption(q, studentAnswer);
                   const selectedLabel = resolveSelectedLabel(q, studentAnswer, selectedOption);
+                  const correctOption = q.options.find(opt => opt.isCorrect);
+                  const normalizedCorrect = correctOption
+                    ? normalizeMultiChoiceText(correctOption.text)
+                    : null;
                   return (
                     <div key={q.id} className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-slate-100">
                       <p className="font-semibold">
@@ -915,7 +920,10 @@ export default async function AssignmentPage({
                       <div className="mt-2 space-y-2">
                         {q.options.map(opt => {
                           const isSelected = selectedOption?.id === opt.id;
-                          const isCorrect = canRevealAnswers && opt.isCorrect;
+                          const isCorrect = canRevealAnswers && (
+                            opt.isCorrect ||
+                            (normalizedCorrect && normalizeMultiChoiceText(opt.text) === normalizedCorrect)
+                          );
                           return (
                             <div key={opt.id} className={cn(
                               "flex items-center gap-2 rounded-md p-2 border border-transparent",

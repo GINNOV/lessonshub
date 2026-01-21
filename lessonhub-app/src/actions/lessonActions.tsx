@@ -16,6 +16,7 @@ import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions
 import { convertExtraPointsToEuro } from "@/lib/points";
 import { getComposerExtraTries, hashComposerSeed, normalizeComposerWord, parseComposerSentence } from "@/lib/composer";
 import { validateAssignmentForSubmission } from "@/lib/assignmentValidation";
+import { normalizeMultiChoiceText } from "@/lib/multiChoiceAnswers";
 import { marked } from "marked";
 
 export async function getUploadedImages() {
@@ -398,7 +399,11 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
             const selectedOption =
               selectedOptionIndex >= 0 ? q.options[selectedOptionIndex] : null;
             const correctOption = q.options.find(o => o.isCorrect);
-            const isCorrect = selectedOptionId === correctOption?.id;
+            const normalizedSelected = selectedOption ? normalizeMultiChoiceText(selectedOption.text) : null;
+            const normalizedCorrect = correctOption ? normalizeMultiChoiceText(correctOption.text) : null;
+            const isCorrect =
+              selectedOptionId === correctOption?.id ||
+              (normalizedSelected && normalizedCorrect && normalizedSelected === normalizedCorrect);
             if (isCorrect) correctCount++;
             return {
               questionId: q.id,

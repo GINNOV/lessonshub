@@ -18,6 +18,7 @@ import {
   readAssignmentDraft,
   writeAssignmentDraft,
 } from '@/app/components/assignmentDraftStorage';
+import { normalizeMultiChoiceText } from '@/lib/multiChoiceAnswers';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -320,7 +321,13 @@ export default function MultiChoicePlayer({
     let correctCount = 0;
     multiChoiceQuestions.forEach(q => {
       const correctOption = q.options.find(o => o.isCorrect);
-      if (answers[q.id] === correctOption?.id) {
+      const selectedOption = q.options.find(o => o.id === answers[q.id]);
+      const normalizedSelected = selectedOption ? normalizeMultiChoiceText(selectedOption.text) : null;
+      const normalizedCorrect = correctOption ? normalizeMultiChoiceText(correctOption.text) : null;
+      if (
+        answers[q.id] === correctOption?.id ||
+        (normalizedSelected && normalizedCorrect && normalizedSelected === normalizedCorrect)
+      ) {
         correctCount++;
       }
     });
