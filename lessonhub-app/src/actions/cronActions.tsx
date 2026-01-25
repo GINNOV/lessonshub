@@ -10,6 +10,7 @@ import { auth } from "@/auth";
 import { hasAdminPrivileges } from "@/lib/authz";
 import { convertExtraPointsToEuro } from "@/lib/points";
 import { getComposerExtraTries } from "@/lib/composer";
+import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 
 export async function failExpiredAssignments(graceHours: number = 24) {
   try {
@@ -337,7 +338,14 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
         OR: [ { gradedAt: { gte: start, lte: end } }, { assignedAt: { gte: start, lte: end } } ],
         status: { in: [ (await import('@prisma/client')).AssignmentStatus.COMPLETED, (await import('@prisma/client')).AssignmentStatus.GRADED, (await import('@prisma/client')).AssignmentStatus.FAILED ] },
       },
-      include: {
+      select: {
+        status: true,
+        score: true,
+        extraPoints: true,
+        answers: true,
+        deadline: true,
+        originalDeadline: true,
+        gradedAt: true,
         lesson: {
           select: { title: true, price: true, type: true, composerConfig: { select: { maxTries: true } } },
         },
@@ -346,8 +354,10 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
     })
     const { AssignmentStatus, LessonType, PointReason } = await import('@prisma/client')
     const gradedCount = weekAssignments.filter(a=>a.status===AssignmentStatus.GRADED).length
+    const completedCount = weekAssignments.filter(a=>a.status===AssignmentStatus.COMPLETED).length
     const failedCount = weekAssignments.filter(a=>a.status===AssignmentStatus.FAILED).length
     let savingsWeek=0
+    let extensionSpendWeek=0
     for (const a of weekAssignments){
       const price=a.lesson?.price? Number(a.lesson.price.toString()):0;
       if (a.status===AssignmentStatus.FAILED) savingsWeek-=price;
@@ -360,6 +370,9 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
         const extraTries = getComposerExtraTries(a.answers, a.lesson.composerConfig?.maxTries ?? 1);
         savingsWeek -= extraTries * 50;
       }
+      if (isExtendedDeadline(a.deadline, a.originalDeadline)) {
+        extensionSpendWeek += EXTENSION_POINT_COST;
+      }
     }
     const arkaningWeekSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
       where: {
@@ -369,19 +382,32 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
       },
       _sum: { amountEuro: true },
     });
+    const goldStarWeekSum = await (await import('@/lib/prisma')).default.goldStar.aggregate({
+      where: { studentId: s.id, createdAt: { gte: start, lte: end } },
+      _sum: { amountEuro: true },
+    });
+    savingsWeek -= extensionSpendWeek;
     savingsWeek += Number(arkaningWeekSum._sum.amountEuro ?? 0);
+    savingsWeek += Number(goldStarWeekSum._sum.amountEuro ?? 0);
 
     const allResults = await (await import('@/lib/prisma')).default.assignment.findMany({
-      where: { studentId: s.id, status: { in: [AssignmentStatus.GRADED, AssignmentStatus.FAILED] } },
-      include: {
+      where: { studentId: s.id, status: { in: [AssignmentStatus.PENDING, AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] } },
+      select: {
+        status: true,
+        score: true,
+        extraPoints: true,
+        answers: true,
+        deadline: true,
+        originalDeadline: true,
         lesson: { select: { price: true, type: true, composerConfig: { select: { maxTries: true } } } },
       },
     })
     let savingsTotal=0
+    let extensionSpendTotal=0
     for (const a of allResults){
       const price=a.lesson?.price? Number(a.lesson.price.toString()):0;
       if (a.status===AssignmentStatus.FAILED) savingsTotal-=price;
-      else if ((a.score??0)>=0) { savingsTotal+=price; }
+      else if (a.status===AssignmentStatus.GRADED && (a.score??0)>=0) { savingsTotal+=price; }
       if (a.status===AssignmentStatus.GRADED && a.extraPoints) savingsTotal+=convertExtraPointsToEuro(a.extraPoints);
       if (
         a.lesson?.type === LessonType.COMPOSER &&
@@ -390,15 +416,25 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
         const extraTries = getComposerExtraTries(a.answers, a.lesson.composerConfig?.maxTries ?? 1);
         savingsTotal -= extraTries * 50;
       }
+      if (isExtendedDeadline(a.deadline, a.originalDeadline)) {
+        extensionSpendTotal += EXTENSION_POINT_COST;
+      }
     }
     const arkaningTotalSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
       where: { userId: s.id, reason: PointReason.ARKANING_GAME },
       _sum: { amountEuro: true },
     });
+    const goldStarTotalSum = await (await import('@/lib/prisma')).default.goldStar.aggregate({
+      where: { studentId: s.id },
+      _sum: { amountEuro: true },
+    });
+    savingsTotal -= extensionSpendTotal;
     savingsTotal += Number(arkaningTotalSum._sum.amountEuro ?? 0);
+    savingsTotal += Number(goldStarTotalSum._sum.amountEuro ?? 0);
 
     const itemsHtml = weekAssignments.length ? '<ul style="padding-left:18px;color:#1d1c1d;">'+weekAssignments.map(a=>`<li style="margin:6px 0;">${a.lesson?.title||'Lesson'} — <strong>${a.status}</strong>${a.status==='GRADED'&&a.score!==null?` (score: ${a.score}/10)`:''}</li>`).join('')+'</ul>' : '<p style="color:#8898aa;">No graded activity this week — a fresh start awaits! 💪</p>'
-    const encouragement = gradedCount>=3 ? 'Fantastic week! Your consistency is building real momentum.' : gradedCount>=1 ? 'Great job — keep that rhythm going into next week!' : 'New week, new start. Even one lesson makes a difference!'
+    const finishedCount = gradedCount + completedCount;
+    const encouragement = finishedCount>=3 ? 'Fantastic week! Your consistency is building real momentum.' : finishedCount>=1 ? 'Great job — keep that rhythm going into next week!' : 'New week, new start. Even one lesson makes a difference!'
     const quote = quotes[Math.floor(Math.random()*quotes.length)]
 
     const { createButton } = await import('@/lib/email-templates')
@@ -412,6 +448,7 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
         studentName: s.name || 'student',
         weekRange: fmtRange(s.timeZone || undefined),
         gradedCount: String(gradedCount),
+        completedCount: String(completedCount),
         failedCount: String(failedCount),
         savingsWeek: fmtCurrency(savingsWeek),
         savingsTotal: fmtCurrency(savingsTotal),

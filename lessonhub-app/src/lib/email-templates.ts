@@ -299,6 +299,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
       <p style="color:#525f7f;font-size:16px;line-height:24px;">Hi {{studentName}}, here’s a beautiful wrap‑up of your week ({{weekRange}}):</p>
       <div style="background:#f6f9fc;border:1px solid #e6ebf1;border-radius:8px;padding:16px;margin:16px 0;">
         <p style="margin:6px 0;color:#1d1c1d;"><strong>✅ Graded:</strong> {{gradedCount}}</p>
+        <p style="margin:6px 0;color:#1d1c1d;"><strong>🎯 Completed:</strong> {{completedCount}}</p>
         <p style="margin:6px 0;color:#1d1c1d;"><strong>🚫 Failed:</strong> {{failedCount}}</p>
         <p style="margin:6px 0;color:#1d1c1d;"><strong>💶 Savings this week:</strong> €{{savingsWeek}}</p>
         <p style="margin:6px 0;color:#1d1c1d;"><strong>🏦 Total savings to date:</strong> €{{savingsTotal}}</p>

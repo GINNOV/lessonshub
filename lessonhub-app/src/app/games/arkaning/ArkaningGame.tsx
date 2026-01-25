@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Confetti from '@/app/components/Confetti';
 
 type AnswerChoice = 'ing' | 'not-ing';
 
@@ -96,6 +97,9 @@ export default function ArkaningGame({
   const answerIngRef = useRef<HTMLButtonElement | null>(null);
   const answerNotIngRef = useRef<HTMLButtonElement | null>(null);
   const questionPanelRef = useRef<HTMLDivElement | null>(null);
+  const questionProgressRef = useRef<HTMLDivElement | null>(null);
+  const gameOverTitleRef = useRef<HTMLDivElement | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -116,6 +120,8 @@ export default function ArkaningGame({
     const answerIngBtn = answerIngRef.current;
     const answerNotIngBtn = answerNotIngRef.current;
     const questionPanel = questionPanelRef.current;
+    const questionProgressEl = questionProgressRef.current;
+    const gameOverTitleEl = gameOverTitleRef.current;
 
     if (
       !container ||
@@ -135,7 +141,9 @@ export default function ArkaningGame({
       !answerIngBtn ||
       !answerNotIngBtn ||
       !questionPanel ||
-      !playfield
+      !playfield ||
+      !questionProgressEl ||
+      !gameOverTitleEl
     ) {
       return;
     }
@@ -149,6 +157,11 @@ export default function ArkaningGame({
     let isGameOver = false;
     let canAnswer = false;
     let questionIndex = 0;
+    let questionsAnswered = 0;
+    let hadWrongAnswer = false;
+    let shouldEndAfterRound = false;
+    let shouldWinAtEnd = false;
+    let hasRecordedOutcome = false;
 
     let points = 0;
     let euros = 0;
@@ -213,11 +226,17 @@ export default function ArkaningGame({
     };
 
     const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+    const getQuestionSource = () => (questions.length ? questions : DEFAULT_QUESTIONS);
+    const questionTotal = getQuestionSource().length;
 
     const updateHud = () => {
       pointsEl.innerText = `${points} pts`;
       eurosEl.innerText = `€ ${euros}`;
       livesEl.innerText = `Lives: ${lives}`;
+    };
+    const updateQuestionProgress = () => {
+      const remaining = Math.max(0, questionTotal - questionsAnswered);
+      questionProgressEl.innerText = `${remaining} question${remaining === 1 ? '' : 's'} left`;
     };
 
     const recordOutcome = async (outcome: 'correct' | 'wrong') => {
@@ -281,7 +300,7 @@ export default function ArkaningGame({
     };
 
     const nextQuestion = () => {
-      const source = questions.length ? questions : DEFAULT_QUESTIONS;
+      const source = getQuestionSource();
       const question = source[questionIndex % source.length];
       questionIndex += 1;
       questionEl.innerText = question.prompt;
@@ -383,12 +402,60 @@ export default function ArkaningGame({
       startNextTrip(true);
     };
 
+    const recordGameOutcome = async (won: boolean) => {
+      if (!assignmentId || hasRecordedOutcome) return;
+      hasRecordedOutcome = true;
+      await fetch(`/api/assignments/${assignmentId}/arkaning/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ outcome: won ? 'win' : 'lose' }),
+      }).catch(() => {});
+    };
+
+    const finalizeGame = (won: boolean) => {
+      isGameOver = true;
+      canAnswer = false;
+      roundState = 'idle';
+      countdownEl.innerText = '';
+      countdownEl.classList.add('hidden');
+      gameOverTitleEl.textContent = won ? 'Lesson Complete' : 'Game Over';
+      gameOverTitleEl.className = `text-3xl font-black uppercase tracking-[0.25em] ${
+        won ? 'text-emerald-200' : 'text-rose-200'
+      }`;
+      setShowConfetti(won);
+      recordGameOutcome(won);
+      gameOverScreen.classList.remove('hidden');
+      const scoreEl = gameOverScreen.querySelector('[data-score]');
+      if (scoreEl) {
+        scoreEl.textContent = `€${euros} • ${points} pts`;
+      }
+    };
+
+    const registerAnswer = (wasCorrect: boolean) => {
+      questionsAnswered += 1;
+      if (!wasCorrect) {
+        hadWrongAnswer = true;
+      }
+      updateQuestionProgress();
+      if (questionsAnswered >= questionTotal) {
+        if (wasCorrect) {
+          shouldEndAfterRound = true;
+          shouldWinAtEnd = !hadWrongAnswer;
+        } else {
+          finalizeGame(false);
+        }
+        return true;
+      }
+      return false;
+    };
+
     const handleCorrectAnswer = async () => {
       const result = await recordOutcome('correct');
       if (!result) {
         canAnswer = true;
         return;
       }
+      const isLast = registerAnswer(true);
       points += result.pointsDelta;
       euros += result.eurosDelta;
       updateHud();
@@ -397,6 +464,10 @@ export default function ArkaningGame({
         'correct',
       );
       canAnswer = false;
+      if (isLast) {
+        startRound();
+        return;
+      }
       startRound();
     };
 
@@ -406,6 +477,7 @@ export default function ArkaningGame({
         canAnswer = true;
         return;
       }
+      const isLast = registerAnswer(false);
       points += result.pointsDelta;
       euros += result.eurosDelta;
       wrongAnswerCount += 1;
@@ -424,8 +496,11 @@ export default function ArkaningGame({
         question.reveal,
       );
       addBrickRow();
+      if (isLast && isGameOver) {
+        return;
+      }
       if (lives <= 0 || checkBricksOverflow()) {
-        endGame();
+        finalizeGame(false);
         return;
       }
       nextQuestion();
@@ -435,7 +510,7 @@ export default function ArkaningGame({
     const handleAnswer = async (choice: AnswerChoice) => {
       if (!isGameStarted || isGameOver || !canAnswer) return;
       canAnswer = false;
-      const source = questions.length ? questions : DEFAULT_QUESTIONS;
+      const source = getQuestionSource();
       const question = source[(questionIndex - 1 + source.length) % source.length];
       const correct = question.answer === choice;
       if (correct) {
@@ -596,6 +671,10 @@ export default function ArkaningGame({
           } else {
             resetRound();
             clearFeedback();
+            if (shouldEndAfterRound) {
+              finalizeGame(shouldWinAtEnd);
+              return;
+            }
             canAnswer = true;
             nextQuestion();
           }
@@ -623,7 +702,14 @@ export default function ArkaningGame({
       euros = 0;
       lives = Math.max(1, settings.lives);
       wrongAnswerCount = 0;
+      questionsAnswered = 0;
+      hadWrongAnswer = false;
+      shouldEndAfterRound = false;
+      shouldWinAtEnd = false;
+      hasRecordedOutcome = false;
+      setShowConfetti(false);
       updateHud();
+      updateQuestionProgress();
       initBricks(START_ROWS);
       resetRound();
       nextQuestion();
@@ -631,19 +717,6 @@ export default function ArkaningGame({
       setFeedback('Answer to launch the ball.', 'neutral');
       startScreen.classList.add('hidden');
       gameOverScreen.classList.add('hidden');
-    };
-
-    const endGame = () => {
-      isGameOver = true;
-      canAnswer = false;
-      roundState = 'idle';
-      countdownEl.innerText = '';
-      countdownEl.classList.add('hidden');
-      gameOverScreen.classList.remove('hidden');
-      const scoreEl = gameOverScreen.querySelector('[data-score]');
-      if (scoreEl) {
-        scoreEl.textContent = `€${euros} • ${points} pts`;
-      }
     };
 
     const handleStartClick = () => {
@@ -686,6 +759,7 @@ export default function ArkaningGame({
     requestAnimationFrame(() => resizeCanvas());
     updateHud();
     resetRound();
+    updateQuestionProgress();
     animationId = requestAnimationFrame(loop);
 
     return () => {
@@ -715,6 +789,11 @@ export default function ArkaningGame({
           ref={containerRef}
           className="relative flex h-full w-full flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-900"
         >
+          {showConfetti ? (
+            <div className="pointer-events-none absolute inset-0 z-30">
+              <Confetti />
+            </div>
+          ) : null}
           <div ref={playfieldRef} className="relative flex-1">
             <canvas
               ref={canvasRef}
@@ -725,6 +804,7 @@ export default function ArkaningGame({
               <div ref={pointsRef}>0 pts</div>
               <div ref={eurosRef}>€ 0</div>
               <div ref={livesRef}>Lives: {settings.lives}</div>
+              <div ref={questionProgressRef}>0 questions left</div>
             </div>
 
             <div
@@ -755,7 +835,12 @@ export default function ArkaningGame({
               className="hidden absolute inset-0 flex items-center justify-center bg-slate-950/95 text-center"
             >
               <div className="max-w-sm space-y-4">
-                <div className="text-3xl font-black uppercase tracking-[0.25em] text-rose-200">Game Over</div>
+                <div
+                  ref={gameOverTitleRef}
+                  className="text-3xl font-black uppercase tracking-[0.25em] text-rose-200"
+                >
+                  Game Over
+                </div>
                 <div data-score className="text-base font-semibold text-slate-100 font-arcade">
                   €0 • 0 pts
                 </div>
