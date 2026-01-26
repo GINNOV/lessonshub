@@ -44,6 +44,9 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
   if (lesson.type === LessonType.LYRIC) {
     redirect(`/dashboard/edit/lyric/${lessonId}`);
   }
+  if (lesson.type === LessonType.NEWS_ARTICLE) {
+    redirect(`/dashboard/edit/news-article/${lessonId}`);
+  }
   
   const [preferences, instructionBooklets] = await Promise.all([
     getTeacherPreferences(),

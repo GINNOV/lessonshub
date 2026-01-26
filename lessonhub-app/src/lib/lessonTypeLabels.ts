@@ -7,6 +7,7 @@ export const LESSON_TYPE_SHORT_LABELS: Record<LessonType, string> = {
   [LessonType.FLASHCARD]: "FLASH",
   [LessonType.MULTI_CHOICE]: "MULTI",
   [LessonType.LEARNING_SESSION]: "SESSION",
+  [LessonType.NEWS_ARTICLE]: "NEWS",
   [LessonType.LYRIC]: "LYRIC",
   [LessonType.COMPOSER]: "COMP",
   [LessonType.ARKANING]: "GAME",

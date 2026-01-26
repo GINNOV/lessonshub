@@ -130,6 +130,7 @@ model Lesson {
   loginEvents               LoginEvent[]
   learningSessionCards      LearningSessionCard[]
   multiChoiceQuestions      MultiChoiceQuestion[]
+  newsArticleConfig         NewsArticleLessonConfig?
   lyricConfig               LyricLessonConfig?
   composerConfig            ComposerLessonConfig?
   arkaningConfig            ArkaningLessonConfig?
@@ -295,6 +296,7 @@ model Assignment {
   lyricDraftMode      String?
   lyricDraftReadSwitches Int?
   lyricDraftUpdatedAt DateTime?
+  newsArticleTapCount Int       @default(0)
 
   @@unique([lessonId, studentId])
 }
@@ -473,9 +475,20 @@ enum LessonType {
   FLASHCARD
   MULTI_CHOICE
   LEARNING_SESSION
+  NEWS_ARTICLE
   LYRIC
   COMPOSER
   ARKANING
+}
+
+model NewsArticleLessonConfig {
+  id          String   @id @default(cuid())
+  lessonId    String   @unique
+  markdown    String   @db.Text
+  maxWordTaps Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 }
 
 model ComposerLessonConfig {
@@ -558,4 +571,5 @@ enum PointReason {
   BADGE_BONUS
   MANUAL_ADJUSTMENT
   ARKANING_GAME
+  NEWS_ARTICLE_TAP
 }

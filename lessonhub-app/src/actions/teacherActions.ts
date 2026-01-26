@@ -286,6 +286,14 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
     const arkaningByStudent = new Map(
       arkaningSums.map((row) => [row.userId, Number(row._sum.amountEuro ?? 0)]),
     );
+    const newsArticleSums = await prisma.pointTransaction.groupBy({
+      by: ['userId'],
+      where: { userId: { in: assignedStudentIds }, reason: PointReason.NEWS_ARTICLE_TAP },
+      _sum: { amountEuro: true },
+    });
+    const newsArticleByStudent = new Map(
+      newsArticleSums.map((row) => [row.userId, Number(row._sum.amountEuro ?? 0)]),
+    );
 
     const studentStats = students
       .map(student => {
@@ -315,6 +323,7 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
         savings -= extensionSpend;
         savings += goldStarByStudent.get(student.id) ?? 0;
         savings += arkaningByStudent.get(student.id) ?? 0;
+        savings += newsArticleByStudent.get(student.id) ?? 0;
 
         const derivedPoints = student.assignments.reduce(
           (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),

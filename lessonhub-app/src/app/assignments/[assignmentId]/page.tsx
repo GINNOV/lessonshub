@@ -13,6 +13,7 @@ import ComposerLessonPlayer from "@/app/components/ComposerLessonPlayer";
 import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
 import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
 import ArkaningLessonPlayer from "@/app/components/ArkaningLessonPlayer";
+import NewsArticleLessonPlayer from "@/app/components/NewsArticleLessonPlayer";
 import { marked } from "marked";
 import { AssignmentStatus, LessonType } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
@@ -240,6 +241,10 @@ export default async function AssignmentPage({
         takeTestAgain: "Ripeti il test",
         exitPracticeMode: "Esci dalla modalità pratica",
         yourRatingLabel: "La tua valutazione:",
+        consultationMode: "Modalità consultazione: niente nuovi punti.",
+        newsRateLabel: "Valuta",
+        newsBannerKicker: "Ultima notizia",
+        newsBannerSubhead: "Leggi, tocca e ascolta",
       }
     : {
         deadlineLabel: "Deadline:",
@@ -263,6 +268,10 @@ export default async function AssignmentPage({
         takeTestAgain: "Take the test again",
         exitPracticeMode: "Exit practice mode",
         yourRatingLabel: "Your Rating:",
+        consultationMode: "Consultation mode: no new points are awarded.",
+        newsRateLabel: "Rate",
+        newsBannerKicker: "Breaking story",
+        newsBannerSubhead: "Read, tap, and listen",
       };
   const lessonCopy = locale === "it"
     ? {
@@ -573,6 +582,12 @@ export default async function AssignmentPage({
     lesson: {
       ...assignment.lesson,
       price: assignment.lesson.price.toNumber(),
+      newsArticleConfig: assignment.lesson.newsArticleConfig
+        ? {
+            markdown: assignment.lesson.newsArticleConfig.markdown,
+            maxWordTaps: assignment.lesson.newsArticleConfig.maxWordTaps ?? null,
+          }
+        : null,
       lyricConfig: assignment.lesson.lyricConfig
         ? {
             ...assignment.lesson.lyricConfig,
@@ -636,7 +651,6 @@ export default async function AssignmentPage({
     }),
   );
 
-  const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
   const showResultsArea =
     (serializableAssignment.status === AssignmentStatus.GRADED ||
       serializableAssignment.status === AssignmentStatus.FAILED) &&
@@ -645,6 +659,7 @@ export default async function AssignmentPage({
     serializableAssignment.status === AssignmentStatus.PENDING &&
     new Date(serializableAssignment.deadline).getTime() < Date.now();
   const deadlineDate = new Date(serializableAssignment.deadline);
+  const deadlineLabel = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(deadlineDate);
   const deadlineStartSource =
     serializableAssignment.startDate ||
     serializableAssignment.assignedAt;
@@ -668,8 +683,12 @@ export default async function AssignmentPage({
   const lyricAudioUrl = lesson.lyricConfig?.audioUrl ?? null;
   const lyricAudioStorageKey = lesson.lyricConfig?.audioStorageKey ?? null;
   const isLearningSession = lesson.type === LessonType.LEARNING_SESSION;
+  const isNewsArticle = lesson.type === LessonType.NEWS_ARTICLE;
   const isComposer = lesson.type === LessonType.COMPOSER;
   const isArkaning = lesson.type === LessonType.ARKANING;
+  const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
+  const showNewsArticleConsultation =
+    isNewsArticle && serializableAssignment.status !== AssignmentStatus.PENDING;
   const multiChoiceAnswers = isMultiChoice
     ? parseMultiChoiceAnswers(serializableAssignment.answers, lesson.multiChoiceQuestions)
     : {};
@@ -748,7 +767,7 @@ export default async function AssignmentPage({
         </div>
       )}
 
-      {showResponseArea ? (
+      {showResponseArea || showNewsArticleConsultation ? (
         <div className="mt-1">
           {!isFlashcard && notesHtml && (
             <Accordion type="single" collapsible className="mb-2 rounded-lg border bg-gray-50 p-4 text-gray-800">
@@ -818,6 +837,24 @@ export default async function AssignmentPage({
               cards={lesson.learningSessionCards ?? []}
               lessonTitle={lesson.title}
               copy={lessonCopy.learningSession}
+            />
+          ) : isNewsArticle && lesson.newsArticleConfig ? (
+            <NewsArticleLessonPlayer
+              assignmentId={serializableAssignment.id}
+              markdown={lesson.newsArticleConfig.markdown}
+              maxWordTaps={lesson.newsArticleConfig.maxWordTaps ?? null}
+              initialTapCount={serializableAssignment.newsArticleTapCount ?? 0}
+              lessonTitle={lesson.title}
+              lessonPreview={lesson.lesson_preview}
+              status={serializableAssignment.status}
+              isPastDue={isPastDue}
+              deadlineLabel={deadlineLabel}
+              initialRating={serializableAssignment.rating ?? null}
+              deadlineLabelText={assignmentUiCopy.deadlineLabel}
+              consultationLabel={assignmentUiCopy.consultationMode}
+              rateLabel={assignmentUiCopy.newsRateLabel}
+              bannerKicker={assignmentUiCopy.newsBannerKicker}
+              bannerSubhead={assignmentUiCopy.newsBannerSubhead}
             />
           ) : isArkaning ? (
             <ArkaningLessonPlayer
@@ -1057,7 +1094,7 @@ export default async function AssignmentPage({
             />
           )}
         </div>
-      ) : !practiceMode ? (
+      ) : !practiceMode && !isNewsArticle ? (
         <div className="mt-8 border-t border-slate-800 pt-6">
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-slate-200">
             <p className="text-sm text-slate-300">

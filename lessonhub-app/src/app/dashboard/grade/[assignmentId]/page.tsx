@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { getSubmissionForGrading } from "@/actions/lessonActions";
-import { LessonType, Role } from "@prisma/client";
+import { LessonType, PointReason, Role } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import GradingForm from "@/app/components/GradingForm";
 import LessonContentView from "@/app/components/LessonContentView";
 import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
@@ -19,6 +20,7 @@ import {
   resolveSelectedLabel,
   resolveSelectedOption,
 } from "@/lib/multiChoiceAnswers";
+import { marked } from "marked";
 
 const normalizeLyricLines = (value: unknown): LyricLine[] => {
   if (!Array.isArray(value)) return [];
@@ -57,6 +59,11 @@ const normalizeLyricLines = (value: unknown): LyricLine[] => {
   });
   return normalized;
 };
+
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+});
 
 const normalizeUserDecimals = <T extends { referralRewardPercent?: unknown; referralRewardMonthlyAmount?: unknown; defaultLessonPrice?: unknown }>(
   user: T | null | undefined
@@ -516,6 +523,40 @@ export default async function GradeSubmissionPage({
       }>)
     : [];
 
+  const newsArticleHtml =
+    submission.lesson.type === LessonType.NEWS_ARTICLE && submission.lesson.newsArticleConfig?.markdown
+      ? ((await marked.parse(submission.lesson.newsArticleConfig.markdown)) as string)
+      : null;
+
+  const newsArticleTapSummary = submission.lesson.type === LessonType.NEWS_ARTICLE
+    ? await (async () => {
+        const transactions = await prisma.pointTransaction.findMany({
+          where: {
+            assignmentId: submission.id,
+            reason: PointReason.NEWS_ARTICLE_TAP,
+          },
+          select: { note: true },
+        });
+        const counts = new Map<string, { label: string; count: number }>();
+        transactions.forEach((tx) => {
+          if (!tx.note) return;
+          const match = tx.note.match(/News Article tap:\s*(.+)$/i);
+          if (!match?.[1]) return;
+          const wordRaw = match[1].trim();
+          if (!wordRaw) return;
+          const key = wordRaw.toLowerCase();
+          const existing = counts.get(key);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            counts.set(key, { label: wordRaw, count: 1 });
+          }
+        });
+        const entries = Array.from(counts.values()).sort((a, b) => b.count - a.count);
+        return { total: transactions.length, entries };
+      })()
+    : null;
+
   return (
     <div>
       <Button variant="link" asChild className="mb-4 pl-0">
@@ -623,6 +664,32 @@ export default async function GradeSubmissionPage({
                   </p>
                 )}
               </div>
+              )}
+              {submission.lesson.type === LessonType.NEWS_ARTICLE && (
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-md border border-slate-800/70 bg-slate-900/70 p-4">
+                    <p className="text-sm font-semibold uppercase text-slate-400">Tap summary</p>
+                    <p className="mt-1 text-2xl font-bold text-emerald-300">
+                      {newsArticleTapSummary?.total ?? 0} taps
+                    </p>
+                    <p className="text-xs text-slate-400">Total word taps recorded.</p>
+                  </div>
+                  {newsArticleTapSummary && newsArticleTapSummary.entries.length > 0 ? (
+                    <div className="space-y-2">
+                      {newsArticleTapSummary.entries.map(({ label, count }) => (
+                        <div
+                          key={`${label}-${count}`}
+                          className="flex items-center justify-between rounded-md border border-slate-800/70 bg-slate-900/70 px-3 py-2 text-sm text-slate-200"
+                        >
+                          <span className="font-semibold">{label}</span>
+                          <span className="text-slate-400">{count} taps</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400">No taps recorded yet.</p>
+                  )}
+                </div>
               )}
 
               {submission.lesson.type === LessonType.MULTI_CHOICE && (
@@ -920,6 +987,28 @@ export default async function GradeSubmissionPage({
                                 </div>
                               </div>
                             ))}
+                          </div>
+                        )}
+                        {submission.lesson.type === LessonType.NEWS_ARTICLE && newsArticleHtml && (
+                          <div className="mt-6 space-y-3">
+                            <h3 className="text-lg font-semibold text-foreground">Article</h3>
+                            <div className="rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-stone-50 to-amber-100/60 p-4 shadow-[0_18px_45px_rgba(120,53,15,0.08)] text-stone-900">
+                              <p className="text-xs uppercase tracking-[0.3em] text-amber-700/80">
+                                LessonHub Times
+                              </p>
+                              <h4 className="mt-2 text-2xl font-semibold text-stone-900">
+                                {serializableSubmission.lesson.title}
+                              </h4>
+                              {serializableSubmission.lesson.lesson_preview && (
+                                <p className="mt-2 text-sm text-stone-700">
+                                  {serializableSubmission.lesson.lesson_preview}
+                                </p>
+                              )}
+                            </div>
+                            <div
+                              className="rounded-3xl border border-stone-200 bg-stone-50/90 p-6 shadow-[0_22px_60px_rgba(24,24,24,0.08)] before:absolute before:inset-0 before:-z-10 before:rounded-3xl before:bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.18),_transparent_55%)] prose prose-stone max-w-none font-serif text-stone-800"
+                              dangerouslySetInnerHTML={{ __html: newsArticleHtml }}
+                            />
                           </div>
                         )}
                         {submission.lesson.type === LessonType.COMPOSER && submission.lesson.composerConfig && (

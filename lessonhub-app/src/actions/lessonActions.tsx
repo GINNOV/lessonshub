@@ -136,6 +136,7 @@ export async function duplicateLesson(lessonId: string) {
           include: { options: true },
         },
         learningSessionCards: true,
+        newsArticleConfig: true,
         lyricConfig: true,
         composerConfig: true,
       },
@@ -226,6 +227,14 @@ export async function duplicateLesson(lessonId: string) {
               },
             }
           : undefined,
+        newsArticleConfig: lesson.newsArticleConfig
+          ? {
+              create: {
+                markdown: lesson.newsArticleConfig.markdown,
+                maxWordTaps: lesson.newsArticleConfig.maxWordTaps ?? null,
+              },
+            }
+          : undefined,
       },
     });
 
@@ -307,6 +316,26 @@ export async function completeFlashcardAssignment(assignmentId: string, studentI
         const assignment = await prisma.assignment.update({
             where: { id: assignmentId, studentId: studentId },
             data: { status: AssignmentStatus.COMPLETED }
+        });
+        revalidatePath('/my-lessons');
+        return { success: true, data: assignment };
+    } catch (error) {
+        return { success: false, error: 'Failed to complete assignment.' };
+    }
+}
+
+export async function completeNewsArticleAssignment(
+  assignmentId: string,
+  studentId: string,
+  rating?: number | null
+) {
+    try {
+        const assignment = await prisma.assignment.update({
+            where: { id: assignmentId, studentId: studentId },
+            data: {
+              status: AssignmentStatus.COMPLETED,
+              rating: typeof rating === 'number' && rating > 0 ? rating : null,
+            }
         });
         revalidatePath('/my-lessons');
         return { success: true, data: assignment };
@@ -1089,6 +1118,7 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
             learningSessionCards: {
               orderBy: { orderIndex: 'asc' },
             },
+            newsArticleConfig: true,
             lyricConfig: true,
             composerConfig: true,
             arkaningConfig: true,
@@ -1131,6 +1161,7 @@ export async function getLessonById(lessonId: string) {
             options: true,
           },
         },
+        newsArticleConfig: true,
         lyricConfig: true,
         composerConfig: true,
         arkaningConfig: true,
@@ -1166,6 +1197,7 @@ export async function getLessonByShareId(shareId: string) {
             options: true,
           },
         },
+        newsArticleConfig: true,
         lyricConfig: true,
         composerConfig: true,
         arkaningConfig: true,
@@ -1253,6 +1285,7 @@ export async function getSubmissionForGrading(assignmentId: string, teacherId: s
                                 options: true,
                             },
                         },
+                        newsArticleConfig: true,
                         lyricConfig: true,
                         composerConfig: true,
                     },
@@ -1301,7 +1334,7 @@ export async function getStudentStats(studentId: string) {
       return { totalValue: 0, totalPoints: student?.totalPoints ?? 0 };
     }
 
-    const [assignments, goldStarsSum, arkaningSum] = await Promise.all([
+    const [assignments, goldStarsSum, arkaningSum, newsArticleSum] = await Promise.all([
       prisma.assignment.findMany({
         where: {
           studentId: studentId,
@@ -1324,6 +1357,10 @@ export async function getStudentStats(studentId: string) {
       }),
       prisma.pointTransaction.aggregate({
         where: { userId: studentId, reason: PointReason.ARKANING_GAME },
+        _sum: { amountEuro: true },
+      }),
+      prisma.pointTransaction.aggregate({
+        where: { userId: studentId, reason: PointReason.NEWS_ARTICLE_TAP },
         _sum: { amountEuro: true },
       }),
     ]);
@@ -1361,6 +1398,7 @@ export async function getStudentStats(studentId: string) {
     const arkaningValue = arkaningSum._sum.amountEuro ?? 0;
     totalValue += goldStarValue;
     totalValue += Number(arkaningValue);
+    totalValue += Number(newsArticleSum._sum.amountEuro ?? 0);
 
     const derivedPoints = assignments.reduce((sum, assignment) => sum + (assignment.pointsAwarded ?? 0), 0);
     const totalPoints = student.totalPoints ?? derivedPoints;

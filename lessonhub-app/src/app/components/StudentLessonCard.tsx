@@ -128,6 +128,7 @@ const lessonTypeImages: Record<LessonType, string> = {
     [LessonType.FLASHCARD]: '/my-lessons/flashcard.png',
     [LessonType.MULTI_CHOICE]: '/my-lessons/multiquestions.png',
     [LessonType.LEARNING_SESSION]: '/my-lessons/learning.png',
+    [LessonType.NEWS_ARTICLE]: '/my-lessons/standard.png',
     [LessonType.LYRIC]: '/my-lessons/learning.png',
     [LessonType.COMPOSER]: '/my-lessons/composer.png',
     [LessonType.ARKANING]: '/my-lessons/standard.png',

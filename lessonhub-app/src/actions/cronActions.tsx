@@ -2,7 +2,7 @@
 'use server';
 
 import prisma from "@/lib/prisma";
-import { AssignmentStatus, Role } from "@prisma/client";
+import { AssignmentStatus, LessonType, Role } from "@prisma/client";
 import { getEmailTemplateByName } from '@/actions/adminActions';
 import { createButton, defaultEmailTemplates } from '@/lib/email-templates';
 import { sendEmail } from '@/lib/email-templates.server';
@@ -73,26 +73,51 @@ export async function failExpiredAssignments(graceHours: number = 24) {
       }
     }
 
+    const newsArticleExpired = await prisma.assignment.findMany({
+      where: {
+        status: AssignmentStatus.PENDING,
+        deadline: { lt: now },
+        lesson: { type: LessonType.NEWS_ARTICLE },
+      },
+      select: { id: true },
+    });
+    if (newsArticleExpired.length > 0) {
+      await prisma.assignment.updateMany({
+        where: { id: { in: newsArticleExpired.map(a => a.id) } },
+        data: { status: AssignmentStatus.COMPLETED },
+      });
+    }
+
     const cutoff = new Date(now.getTime() - graceHours * 60 * 60 * 1000);
     const expired = await prisma.assignment.findMany({
       where: {
         status: AssignmentStatus.PENDING,
         deadline: { lt: cutoff },
       },
-      select: { id: true },
+      select: { id: true, lesson: { select: { type: true } } },
     });
 
     if (expired.length === 0) {
       return { success: true, failedCount: 0, message: "No expired assignments to fail." };
     }
 
-    const ids = expired.map(a => a.id);
-    await prisma.assignment.updateMany({
-      where: { id: { in: ids } },
-      data: { status: AssignmentStatus.FAILED },
-    });
+    const newsArticleIds = expired.filter(a => a.lesson?.type === LessonType.NEWS_ARTICLE).map(a => a.id);
+    const failIds = expired.filter(a => a.lesson?.type !== LessonType.NEWS_ARTICLE).map(a => a.id);
 
-    return { success: true, failedCount: ids.length };
+    if (failIds.length > 0) {
+      await prisma.assignment.updateMany({
+        where: { id: { in: failIds } },
+        data: { status: AssignmentStatus.FAILED },
+      });
+    }
+    if (newsArticleIds.length > 0) {
+      await prisma.assignment.updateMany({
+        where: { id: { in: newsArticleIds } },
+        data: { status: AssignmentStatus.COMPLETED },
+      });
+    }
+
+    return { success: true, failedCount: failIds.length };
   } catch (error) {
     console.error("FAIL_EXPIRED_ASSIGNMENTS_ERROR", error);
     return { success: false, message: "Failed to fail expired assignments." };
@@ -382,12 +407,21 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
       },
       _sum: { amountEuro: true },
     });
+    const newsArticleWeekSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
+      where: {
+        userId: s.id,
+        reason: PointReason.NEWS_ARTICLE_TAP,
+        createdAt: { gte: start, lte: end },
+      },
+      _sum: { amountEuro: true },
+    });
     const goldStarWeekSum = await (await import('@/lib/prisma')).default.goldStar.aggregate({
       where: { studentId: s.id, createdAt: { gte: start, lte: end } },
       _sum: { amountEuro: true },
     });
     savingsWeek -= extensionSpendWeek;
     savingsWeek += Number(arkaningWeekSum._sum.amountEuro ?? 0);
+    savingsWeek += Number(newsArticleWeekSum._sum.amountEuro ?? 0);
     savingsWeek += Number(goldStarWeekSum._sum.amountEuro ?? 0);
 
     const allResults = await (await import('@/lib/prisma')).default.assignment.findMany({
@@ -424,12 +458,17 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
       where: { userId: s.id, reason: PointReason.ARKANING_GAME },
       _sum: { amountEuro: true },
     });
+    const newsArticleTotalSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
+      where: { userId: s.id, reason: PointReason.NEWS_ARTICLE_TAP },
+      _sum: { amountEuro: true },
+    });
     const goldStarTotalSum = await (await import('@/lib/prisma')).default.goldStar.aggregate({
       where: { studentId: s.id },
       _sum: { amountEuro: true },
     });
     savingsTotal -= extensionSpendTotal;
     savingsTotal += Number(arkaningTotalSum._sum.amountEuro ?? 0);
+    savingsTotal += Number(newsArticleTotalSum._sum.amountEuro ?? 0);
     savingsTotal += Number(goldStarTotalSum._sum.amountEuro ?? 0);
 
     const itemsHtml = weekAssignments.length ? '<ul style="padding-left:18px;color:#1d1c1d;">'+weekAssignments.map(a=>`<li style="margin:6px 0;">${a.lesson?.title||'Lesson'} — <strong>${a.status}</strong>${a.status==='GRADED'&&a.score!==null?` (score: ${a.score}/10)`:''}</li>`).join('')+'</ul>' : '<p style="color:#8898aa;">No graded activity this week — a fresh start awaits! 💪</p>'

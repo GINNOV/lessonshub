@@ -12,6 +12,8 @@ interface RatingProps {
   starSize?: number;
   totalStars?: number;
   disabled?: boolean;
+  activeClassName?: string;
+  inactiveClassName?: string;
 }
 
 export default function Rating({
@@ -21,6 +23,8 @@ export default function Rating({
   starSize = 24,
   totalStars = 5,
   disabled = false,
+  activeClassName = "text-yellow-400 fill-yellow-400",
+  inactiveClassName = "text-gray-300",
 }: RatingProps) {
   const [rating, setRating] = useState(initialRating);
   const [hoverValue, setHoverValue] = useState<number | undefined>(undefined);
@@ -45,7 +49,7 @@ export default function Rating({
           size={starSize}
           className={cn(
             "cursor-pointer",
-            (hoverValue || rating) > i ? "text-yellow-400 fill-yellow-400" : "text-gray-300",
+            (hoverValue || rating) > i ? activeClassName : inactiveClassName,
             (disabled || readOnly) && "cursor-not-allowed opacity-50"
           )}
           onClick={() => handleClick(i + 1)}

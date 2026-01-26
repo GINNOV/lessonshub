@@ -6,6 +6,7 @@ import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import {
   completeFlashcardAssignment,
+  completeNewsArticleAssignment,
   submitMultiChoiceAssignment,
   submitStandardAssignment,
   submitComposerAssignment,
@@ -54,6 +55,13 @@ export async function POST(
 
     if (lessonType === LessonType.FLASHCARD) {
       const result = await completeFlashcardAssignment(assignmentId, session.user.id);
+      if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
+      return NextResponse.json(result);
+    }
+
+    if (lessonType === LessonType.NEWS_ARTICLE) {
+      const { rating } = body;
+      const result = await completeNewsArticleAssignment(assignmentId, session.user.id, rating);
       if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
       return NextResponse.json(result);
     }

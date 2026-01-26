@@ -87,6 +87,7 @@ const lessonTypeEmojis: Record<LessonType, string> = {
   [LessonType.FLASHCARD]: '🃏',
   [LessonType.MULTI_CHOICE]: '✅',
   [LessonType.LEARNING_SESSION]: '🧠',
+  [LessonType.NEWS_ARTICLE]: '📰',
   [LessonType.LYRIC]: '🎵',
   [LessonType.COMPOSER]: '🧩',
   [LessonType.ARKANING]: '🕹️',
@@ -97,6 +98,7 @@ const lessonTypeLabels: Record<LessonType, string> = {
   [LessonType.FLASHCARD]: 'Flashcard',
   [LessonType.MULTI_CHOICE]: 'Multi-choice',
   [LessonType.LEARNING_SESSION]: 'Guide',
+  [LessonType.NEWS_ARTICLE]: 'News Article',
   [LessonType.LYRIC]: 'Lyric',
   [LessonType.COMPOSER]: 'Composer',
   [LessonType.ARKANING]: 'ArkanING',
@@ -119,7 +121,17 @@ const STATUS_FILTER_VALUES: StatusFilterValue[] = [
   AssignmentStatus.GRADED,
   AssignmentStatus.FAILED,
 ];
-const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = ['all', LessonType.STANDARD, LessonType.FLASHCARD, LessonType.MULTI_CHOICE, LessonType.LEARNING_SESSION, LessonType.LYRIC, LessonType.COMPOSER, LessonType.ARKANING];
+const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = [
+  'all',
+  LessonType.STANDARD,
+  LessonType.FLASHCARD,
+  LessonType.MULTI_CHOICE,
+  LessonType.LEARNING_SESSION,
+  LessonType.NEWS_ARTICLE,
+  LessonType.LYRIC,
+  LessonType.COMPOSER,
+  LessonType.ARKANING,
+];
 const normalizeLessonTypeFilter = (value: string | null | undefined): LessonTypeFilterValue => {
   if (!value) return 'all';
   if (value === 'guide' || value === 'guides') return LessonType.LEARNING_SESSION;
@@ -475,9 +487,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
           return lesson.price === 0 || !!lesson.guideIsFreeForAll || !!lesson.isFreeForAll;
         }
         if (statusFilter === AssignmentStatus.COMPLETED) {
-          return lesson.assignmentsWithDates.some(
-            a => a.status === AssignmentStatus.COMPLETED || a.status === AssignmentStatus.GRADED
-          );
+          return lesson.assignmentsWithDates.some(a => a.status === AssignmentStatus.COMPLETED);
         }
         return lesson.assignmentsWithDates.some(a => a.status === statusFilter);
       })
@@ -491,6 +501,7 @@ export default function TeacherLessonList({ lessons, classes }: TeacherLessonLis
       })
       .filter(lesson => {
         if (statusFilter === 'past_due') return true;
+        if (statusFilter === AssignmentStatus.COMPLETED) return true;
         const referenceDate = lesson.filterDate ?? new Date(lesson.createdAt);
         const referenceStart = getStartOfDay(referenceDate);
         if (statusFilter === 'free') return true;
