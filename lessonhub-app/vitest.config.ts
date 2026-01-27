@@ -6,6 +6,18 @@ export default defineConfig({
     jsx: 'automatic',
   },
   test: {
+    include: ['src/**/*.{test,spec}.{ts,tsx,js,jsx}', 'tests/**/*.{test,spec}.{ts,tsx,js,jsx}'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.git/**',
+      '**/.cache/**',
+      '**/.output/**',
+      '**/.next/**',
+      '**/coverage/**',
+      '**/tmp/**',
+      '**/tmp/test-dist/**',
+    ],
     environment: 'jsdom',
     setupFiles: ['./tests/setup.tsx'],
     globals: true,

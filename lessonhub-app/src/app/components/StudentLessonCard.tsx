@@ -12,7 +12,7 @@ import { getInitials, cn, getWeekAndDay } from '@/lib/utils';
 import { parseComposerSentence } from '@/lib/composer';
 import LocaleDate from '@/app/components/LocaleDate';
 import { Button } from '@/components/ui/button';
-import { Share2, Users, RotateCw } from 'lucide-react';
+import { Share2, Users, RotateCw, Store } from 'lucide-react';
 import { toast } from 'sonner';
 import { ensureLessonShareLink } from '@/actions/lessonActions';
 import { LessonDifficultyIndicator } from '@/app/components/LessonDifficultySelector';
@@ -55,6 +55,7 @@ type SerializableAssignment = {
   pointsAwarded: number;
   answers: any;
   draftAnswers?: any;
+  marketplacePurchased?: boolean;
   lesson: SerializableLesson;
 };
 
@@ -137,9 +138,10 @@ const lessonTypeImages: Record<LessonType, string> = {
 export default function StudentLessonCard({ assignment, index, copy }: StudentLessonCardProps) {
   const t = copy ?? defaultCopy;
   const { lesson, status, deadline, score, pointsAwarded } = assignment;
+  const isMarketplacePurchased = Boolean(assignment.marketplacePurchased);
   const currentDeadline = new Date(deadline);
   const originalDeadlineDate = assignment.originalDeadline ? new Date(assignment.originalDeadline) : null;
-  const hasExtendedDeadline = Boolean(
+  const hasExtendedDeadline = !isMarketplacePurchased && Boolean(
     originalDeadlineDate && Math.abs(currentDeadline.getTime() - originalDeadlineDate.getTime()) > 60 * 1000
   );
   const isPastDeadline = currentDeadline < new Date();
@@ -204,7 +206,18 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
       lesson.type === LessonType.STANDARD);
   
   const gradedScore = typeof score === 'number' ? score.toString() : t.scoreEmpty;
+  const dueDisplay = isMarketplacePurchased ? 'Anytime' : null;
+  const marketplaceStatus =
+    isMarketplacePurchased && status === AssignmentStatus.PENDING
+      ? {
+          label: 'Unlocked',
+          className: 'bg-amber-400/20 text-amber-100 border border-amber-300/60',
+        }
+      : null;
   const statusMeta = (() => {
+    if (marketplaceStatus) {
+      return marketplaceStatus;
+    }
     if (status === AssignmentStatus.GRADED) {
       return {
         label: t.status.gradedScore.replace('{score}', gradedScore),
@@ -349,7 +362,8 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
             <span className="text-teal-200/90">{typeLabel}</span>
             <span className="font-mono text-white/80">{lessonIdDisplay}</span>
           </div>
-          <div className="absolute right-3 top-3 text-2xl drop-shadow">
+          <div className="absolute right-3 top-3 flex items-center gap-1 text-2xl drop-shadow">
+            {isMarketplacePurchased && '🐷'}
             {score !== null && score < 4 && '💩'}
             {score === 10 && '💯'}
           </div>
@@ -435,6 +449,20 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          {!isMarketplacePurchased && (
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 border border-amber-400/40 bg-amber-500/10 text-amber-100 transition hover:border-amber-300/80 hover:text-white"
+              aria-label="Lesson marketplace"
+              title="Lesson marketplace"
+            >
+              <Link href="/marketplace">
+                <Store className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -478,7 +506,10 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
             <div className="text-right">
               <div className="flex flex-col items-end gap-1">
                 <div className={cn("flex items-center gap-2 font-semibold text-xs sm:text-sm", isPastDeadline ? "text-orange-300" : "text-slate-200")}>
-                  <span>{t.dueLabel} <LocaleDate date={deadline} /></span>
+                  <span>
+                    {t.dueLabel}{' '}
+                    {dueDisplay ? dueDisplay : <LocaleDate date={deadline} />}
+                  </span>
                   {hasExtendedDeadline && (
                     <Badge variant="outline" className="border-cyan-300/60 text-cyan-100">
                       {t.extendedLabel}

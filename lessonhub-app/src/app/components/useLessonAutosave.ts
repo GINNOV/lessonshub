@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { DependencyList } from 'react';
 
 export type AutoSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -30,29 +30,61 @@ export function useLessonAutosave({
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipInitialRef = useRef(true);
+  const depsSignature = useMemo(() => {
+    return dependencies
+      .map((dep) => {
+        if (typeof dep === 'string') return `s:${dep}`;
+        if (typeof dep === 'number') return `n:${dep}`;
+        if (typeof dep === 'boolean') return `b:${dep}`;
+        if (dep === null) return 'null';
+        if (dep === undefined) return 'undefined';
+        return `o:${Object.prototype.toString.call(dep)}`;
+      })
+      .join('|');
+  }, [dependencies]);
+  const prevDepsSignatureRef = useRef<string>(depsSignature);
+  const prevCanSaveRef = useRef<boolean>(canSave);
+  const latestDepsSignatureRef = useRef<string>(depsSignature);
+  const latestCanSaveRef = useRef<boolean>(canSave);
   const savingRef = useRef(false);
 
   useEffect(() => {
+    latestDepsSignatureRef.current = depsSignature;
+  }, [depsSignature]);
+
+  useEffect(() => {
+    latestCanSaveRef.current = canSave;
+  }, [canSave]);
+
+  useLayoutEffect(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
     skipInitialRef.current = true;
+    prevDepsSignatureRef.current = latestDepsSignatureRef.current;
+    prevCanSaveRef.current = latestCanSaveRef.current;
     setStatus('idle');
     setLastSavedAt(null);
   }, [resetKey]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
     if (!enabled || !isEditMode || isSavingBlocked) return;
+    const depsChanged = prevDepsSignatureRef.current !== depsSignature;
+    const canSaveJustEnabled = !prevCanSaveRef.current && canSave;
+    prevDepsSignatureRef.current = depsSignature;
+    prevCanSaveRef.current = canSave;
     if (skipInitialRef.current) {
       skipInitialRef.current = false;
-      return;
+      if (!depsChanged && !canSaveJustEnabled) return;
     }
     if (!canSave) return;
+    if (!depsChanged && !canSaveJustEnabled) return;
+
     timerRef.current = setTimeout(async () => {
       if (savingRef.current) return;
       savingRef.current = true;
@@ -77,7 +109,7 @@ export function useLessonAutosave({
         clearTimeout(timerRef.current);
       }
     };
-  }, [enabled, isEditMode, canSave, isSavingBlocked, delayMs, onSave, dependencies]);
+  }, [enabled, isEditMode, canSave, isSavingBlocked, delayMs, onSave, depsSignature]);
 
   return { status, lastSavedAt };
 }

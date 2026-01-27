@@ -1,7 +1,11 @@
 import React, { useMemo } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act, screen } from '@testing-library/react';
-import { useLessonAutosave, formatAutoSaveStatus } from '@/app/components/useLessonAutosave';
+
+vi.unmock('@/app/components/useLessonAutosave');
+
+let useLessonAutosaveFn: typeof import('@/app/components/useLessonAutosave').useLessonAutosave;
+let formatAutoSaveStatusFn: typeof import('@/app/components/useLessonAutosave').formatAutoSaveStatus;
 
 type HarnessProps = {
   value: string;
@@ -23,7 +27,7 @@ function AutosaveHarness({
   onSave,
 }: HarnessProps) {
   const autoSaveDependencies = useMemo(() => [value], [value]);
-  const { status, lastSavedAt } = useLessonAutosave({
+  const { status, lastSavedAt } = useLessonAutosaveFn({
     enabled,
     isEditMode,
     canSave,
@@ -33,13 +37,32 @@ function AutosaveHarness({
     resetKey,
     delayMs: 500,
   });
-  const message = formatAutoSaveStatus(status, lastSavedAt) || 'idle';
+  const message = formatAutoSaveStatusFn(status, lastSavedAt) || 'idle';
+  return <div>{message}</div>;
+}
+
+function InlineDepsHarness({
+  value,
+  onSave,
+}: Pick<HarnessProps, 'value' | 'onSave'>) {
+  const { status, lastSavedAt } = useLessonAutosaveFn({
+    enabled: true,
+    isEditMode: true,
+    canSave: true,
+    onSave,
+    dependencies: [value],
+    delayMs: 500,
+  });
+  const message = formatAutoSaveStatusFn(status, lastSavedAt) || 'idle';
   return <div>{message}</div>;
 }
 
 describe('useLessonAutosave', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.useFakeTimers();
+    const mod = await import('@/app/components/useLessonAutosave');
+    useLessonAutosaveFn = mod.useLessonAutosave;
+    formatAutoSaveStatusFn = mod.formatAutoSaveStatus;
   });
 
   afterEach(() => {
@@ -115,6 +138,21 @@ describe('useLessonAutosave', () => {
 
     rerender(<AutosaveHarness value="updated" onSave={onSave} resetKey="b" />);
 
+    expect(screen.getByText('idle')).toBeInTheDocument();
+  });
+
+  it('ignores dependency array identity when values are unchanged', async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    const { rerender } = render(<InlineDepsHarness value="same" onSave={onSave} />);
+
+    rerender(<InlineDepsHarness value="same" onSave={onSave} />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(600);
+      await Promise.resolve();
+    });
+
+    expect(onSave).not.toHaveBeenCalled();
     expect(screen.getByText('idle')).toBeInTheDocument();
   });
 });

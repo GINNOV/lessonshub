@@ -12,7 +12,7 @@ import StudentGuideList from '@/app/components/StudentGuideList';
 import StudentFreeLessonList from '@/app/components/StudentFreeLessonList';
 import StudentGamificationPanel from '@/app/components/StudentGamificationPanel';
 import Leaderboard from '@/app/components/Leaderboard';
-import { BookOpen, Sparkles, Gift, Gamepad2, Flame, Zap } from 'lucide-react';
+import { BookOpen, Sparkles, Gift, Gamepad2, Flame, Zap, PiggyBank } from 'lucide-react';
 import type { StudentDashboardLocale } from '@/lib/studentDashboardCopy';
 
 type StudentDashboardCopy = {
@@ -75,7 +75,8 @@ export default function StudentLessonsDashboard({
   const requestedTab = useMemo(() => searchParams?.get('tab') ?? '', [searchParams]);
   const [assignmentFilter, setAssignmentFilter] = useState<StudentLessonFilter | null>('all');
   const [activeTab, setActiveTab] = useState(isPaying ? 'lessons' : 'free');
-  const showAllContent = assignmentFilter === null || assignmentFilter === 'all';
+  const showAllContent =
+    assignmentFilter === null || assignmentFilter === 'all' || assignmentFilter === 'bought';
   const gameTiles = [
     {
       label: 'Invasion',
@@ -144,6 +145,10 @@ export default function StudentLessonsDashboard({
 
   const handleFilterSelect = (filter: StudentLessonFilter) => {
     setAssignmentFilter(filter);
+    if (filter === 'bought') {
+      setActiveTab('bought');
+      return;
+    }
     if (filter !== 'all') {
       setActiveTab('lessons');
     }
@@ -155,6 +160,10 @@ export default function StudentLessonsDashboard({
     if (normalized === 'games') setActiveTab('games');
     if (normalized === 'guides') setActiveTab('guides');
     if (normalized === 'lessons') setActiveTab('lessons');
+    if (normalized === 'bought') {
+      setActiveTab('bought');
+      setAssignmentFilter('bought');
+    }
     if (normalized === 'free' && !isPaying) setActiveTab('free');
   }, [isPaying, requestedTab]);
 
@@ -181,7 +190,18 @@ export default function StudentLessonsDashboard({
         )}
         {isPaying ? (
           showAllContent ? (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <Tabs
+              value={activeTab}
+              onValueChange={(nextTab) => {
+                setActiveTab(nextTab);
+                if (nextTab === 'bought') {
+                  setAssignmentFilter('bought');
+                } else if (nextTab === 'lessons' && assignmentFilter === 'bought') {
+                  setAssignmentFilter('all');
+                }
+              }}
+              className="space-y-6"
+            >
               <TabsList className="mb-2 flex h-auto w-full flex-wrap items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/70 px-2 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
                 <TabsTrigger
                   value="lessons"
@@ -190,6 +210,16 @@ export default function StudentLessonsDashboard({
                   <span className="flex items-center justify-center gap-2">
                     <BookOpen className="h-4 w-4" />
                     {locale === "it" ? "Lezioni" : "Lessons"}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="bought"
+                  className="flex-1 min-w-[140px] rounded-lg border border-transparent px-3 py-2 text-sm font-semibold text-slate-300 transition data-[state=active]:border-amber-400/60 data-[state=active]:bg-slate-800 data-[state=active]:text-amber-200 data-[state=active]:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
+                  onClick={() => setAssignmentFilter('bought')}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <PiggyBank className="h-4 w-4" />
+                    {locale === 'it' ? 'Comprate' : 'Bought'}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger
@@ -216,6 +246,14 @@ export default function StudentLessonsDashboard({
                   assignments={assignments}
                   copy={copy.lessons}
                   filter={assignmentFilter ?? undefined}
+                  onFilterChange={handleFilterSelect}
+                />
+              </TabsContent>
+              <TabsContent value="bought">
+                <StudentLessonList
+                  assignments={assignments}
+                  copy={copy.lessons}
+                  filter="bought"
                   onFilterChange={handleFilterSelect}
                 />
               </TabsContent>

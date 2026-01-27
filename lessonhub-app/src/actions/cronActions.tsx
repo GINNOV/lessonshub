@@ -415,6 +415,14 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
       },
       _sum: { amountEuro: true },
     });
+    const marketplaceWeekSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
+      where: {
+        userId: s.id,
+        reason: PointReason.MARKETPLACE_PURCHASE,
+        createdAt: { gte: start, lte: end },
+      },
+      _sum: { amountEuro: true },
+    });
     const goldStarWeekSum = await (await import('@/lib/prisma')).default.goldStar.aggregate({
       where: { studentId: s.id, createdAt: { gte: start, lte: end } },
       _sum: { amountEuro: true },
@@ -422,6 +430,7 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
     savingsWeek -= extensionSpendWeek;
     savingsWeek += Number(arkaningWeekSum._sum.amountEuro ?? 0);
     savingsWeek += Number(newsArticleWeekSum._sum.amountEuro ?? 0);
+    savingsWeek += Number(marketplaceWeekSum._sum.amountEuro ?? 0);
     savingsWeek += Number(goldStarWeekSum._sum.amountEuro ?? 0);
 
     const allResults = await (await import('@/lib/prisma')).default.assignment.findMany({
@@ -462,6 +471,10 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
       where: { userId: s.id, reason: PointReason.NEWS_ARTICLE_TAP },
       _sum: { amountEuro: true },
     });
+    const marketplaceTotalSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
+      where: { userId: s.id, reason: PointReason.MARKETPLACE_PURCHASE },
+      _sum: { amountEuro: true },
+    });
     const goldStarTotalSum = await (await import('@/lib/prisma')).default.goldStar.aggregate({
       where: { studentId: s.id },
       _sum: { amountEuro: true },
@@ -469,6 +482,7 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
     savingsTotal -= extensionSpendTotal;
     savingsTotal += Number(arkaningTotalSum._sum.amountEuro ?? 0);
     savingsTotal += Number(newsArticleTotalSum._sum.amountEuro ?? 0);
+    savingsTotal += Number(marketplaceTotalSum._sum.amountEuro ?? 0);
     savingsTotal += Number(goldStarTotalSum._sum.amountEuro ?? 0);
 
     const itemsHtml = weekAssignments.length ? '<ul style="padding-left:18px;color:#1d1c1d;">'+weekAssignments.map(a=>`<li style="margin:6px 0;">${a.lesson?.title||'Lesson'} — <strong>${a.status}</strong>${a.status==='GRADED'&&a.score!==null?` (score: ${a.score}/10)`:''}</li>`).join('')+'</ul>' : '<p style="color:#8898aa;">No graded activity this week — a fresh start awaits! 💪</p>'

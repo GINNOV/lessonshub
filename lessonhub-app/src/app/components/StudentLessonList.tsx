@@ -10,7 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 
-export type StudentLessonFilter = 'all' | 'pending' | 'submitted' | 'graded' | 'past_due' | 'failed';
+export type StudentLessonFilter = 'all' | 'pending' | 'submitted' | 'graded' | 'past_due' | 'failed' | 'bought';
 
 type SerializableUser = {
   id: string;
@@ -51,6 +51,7 @@ type SerializableAssignment = {
   pointsAwarded: number;
   answers: any;
   draftAnswers?: any;
+  marketplacePurchased?: boolean;
   lesson: SerializableLesson;
 };
 
@@ -112,6 +113,7 @@ export default function StudentLessonList({
         if (filter === 'graded') return a.status === AssignmentStatus.GRADED;
         if (filter === 'past_due') return a.status === AssignmentStatus.PENDING && new Date(a.deadline) <= now;
         if (filter === 'failed') return a.status === AssignmentStatus.FAILED;
+        if (filter === 'bought') return Boolean(a.marketplacePurchased);
         return true; // all
       })
       .filter(a => {

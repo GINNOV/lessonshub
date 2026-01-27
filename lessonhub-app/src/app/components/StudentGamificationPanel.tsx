@@ -108,6 +108,7 @@ export default function StudentGamificationPanel({
       ASSIGNMENT_GRADED: "Assignment graded",
       BADGE_BONUS: "Badge bonus",
       MANUAL_ADJUSTMENT: "Adjustment",
+      MARKETPLACE_PURCHASE: "Marketplace purchase",
     },
     categoryLabels: copy?.categoryLabels ?? {
       PROGRESSION: "Progression",

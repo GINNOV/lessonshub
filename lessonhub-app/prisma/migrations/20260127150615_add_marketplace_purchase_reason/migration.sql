@@ -1,0 +1,6 @@
+-- AlterEnum
+ALTER TYPE "PointReason" ADD VALUE 'MARKETPLACE_PURCHASE';
+
+-- AlterTable
+ALTER TABLE "NewsArticleLessonConfig" ALTER COLUMN "id" DROP DEFAULT,
+ALTER COLUMN "updatedAt" DROP DEFAULT;

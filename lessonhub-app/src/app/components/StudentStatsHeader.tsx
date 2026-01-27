@@ -59,7 +59,7 @@ interface StudentStatsHeaderProps {
   onFilterSelect?: (filter: StudentLessonFilter) => void;
 }
 
-type StudentLessonFilter = 'all' | 'pending' | 'submitted' | 'graded' | 'past_due' | 'failed';
+type StudentLessonFilter = 'all' | 'pending' | 'submitted' | 'graded' | 'past_due' | 'failed' | 'bought';
 
 // A sleek, reusable component for each individual stat in the summary
 const StatItem = ({

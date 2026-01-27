@@ -9,11 +9,12 @@ export default function PageContainer({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const isLanding = pathname === '/'
   const isFullBleedGame = pathname?.startsWith('/games')
+  const isMarketplace = pathname === '/marketplace'
 
   return (
     <div
       className={cn(
-        isFullBleedGame
+        isFullBleedGame || isMarketplace
           ? 'min-h-[calc(100svh-4rem)] w-screen max-w-none px-0 py-0'
           : isLanding
             ? 'min-h-full'

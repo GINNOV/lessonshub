@@ -1,8 +1,9 @@
 // file: src/app/api/my-lessons/route.ts
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { Role, AssignmentStatus } from "@prisma/client";
+import { Role, AssignmentStatus, PointReason } from "@prisma/client";
 import { getAssignmentsForStudent } from "@/actions/lessonActions";
+import prisma from "@/lib/prisma";
 
 export async function GET() {
   const session = await auth();
@@ -15,6 +16,22 @@ export async function GET() {
 
   try {
     const assignments = await getAssignmentsForStudent(session.user.id);
+    const assignmentIds = assignments.map((assignment) => assignment.id);
+    const marketplacePurchases = assignmentIds.length
+      ? await prisma.pointTransaction.findMany({
+          where: {
+            userId: session.user.id,
+            reason: PointReason.MARKETPLACE_PURCHASE,
+            assignmentId: { in: assignmentIds },
+          },
+          select: { assignmentId: true },
+        })
+      : [];
+    const purchasedAssignmentIds = new Set(
+      marketplacePurchases
+        .map((purchase) => purchase.assignmentId)
+        .filter((id): id is string => Boolean(id)),
+    );
 
     const submittedStatuses = new Set<AssignmentStatus>([
         AssignmentStatus.COMPLETED,
@@ -38,6 +55,7 @@ export async function GET() {
         return {
           ...assignment,
           pointsAwarded: assignment.pointsAwarded ?? 0,
+          marketplacePurchased: purchasedAssignmentIds.has(assignment.id),
           teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
           lesson: {
             ...restOfLesson,

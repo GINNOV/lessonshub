@@ -1334,7 +1334,7 @@ export async function getStudentStats(studentId: string) {
       return { totalValue: 0, totalPoints: student?.totalPoints ?? 0 };
     }
 
-    const [assignments, goldStarsSum, arkaningSum, newsArticleSum] = await Promise.all([
+    const [assignments, goldStarsSum, arkaningSum, newsArticleSum, marketplaceSum] = await Promise.all([
       prisma.assignment.findMany({
         where: {
           studentId: studentId,
@@ -1361,6 +1361,10 @@ export async function getStudentStats(studentId: string) {
       }),
       prisma.pointTransaction.aggregate({
         where: { userId: studentId, reason: PointReason.NEWS_ARTICLE_TAP },
+        _sum: { amountEuro: true },
+      }),
+      prisma.pointTransaction.aggregate({
+        where: { userId: studentId, reason: PointReason.MARKETPLACE_PURCHASE },
         _sum: { amountEuro: true },
       }),
     ]);
@@ -1399,6 +1403,7 @@ export async function getStudentStats(studentId: string) {
     totalValue += goldStarValue;
     totalValue += Number(arkaningValue);
     totalValue += Number(newsArticleSum._sum.amountEuro ?? 0);
+    totalValue += Number(marketplaceSum._sum.amountEuro ?? 0);
 
     const derivedPoints = assignments.reduce((sum, assignment) => sum + (assignment.pointsAwarded ?? 0), 0);
     const totalPoints = student.totalPoints ?? derivedPoints;

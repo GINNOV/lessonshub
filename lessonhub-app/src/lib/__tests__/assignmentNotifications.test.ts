@@ -1,5 +1,4 @@
-import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
+import { describe, it, expect } from 'vitest';
 import { getImmediateStartStudentIds } from '../assignmentNotifications.js';
 
 describe('getImmediateStartStudentIds', () => {
@@ -13,7 +12,7 @@ describe('getImmediateStartStudentIds', () => {
 
     const result = getImmediateStartStudentIds(entries, now);
 
-    assert.deepEqual(result.sort(), ['now', 'past']);
+    expect(result.sort()).toEqual(['now', 'past']);
   });
 
   it('returns an empty array when no entries qualify', () => {
@@ -25,6 +24,6 @@ describe('getImmediateStartStudentIds', () => {
 
     const result = getImmediateStartStudentIds(entries, now);
 
-    assert.deepEqual(result, []);
+    expect(result).toEqual([]);
   });
 });

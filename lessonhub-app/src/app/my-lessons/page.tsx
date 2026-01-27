@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { Role, AssignmentStatus } from "@prisma/client";
+import { Role, AssignmentStatus, PointReason } from "@prisma/client";
 import {
   getAssignmentsForStudent,
   getStudentStats,
@@ -91,6 +91,22 @@ export default async function MyLessonsPage() {
   };
 
   const total = assignments.length;
+  const assignmentIds = assignments.map((assignment) => assignment.id);
+  const marketplacePurchases = assignmentIds.length
+    ? await prisma.pointTransaction.findMany({
+        where: {
+          userId: session.user.id,
+          reason: PointReason.MARKETPLACE_PURCHASE,
+          assignmentId: { in: assignmentIds },
+        },
+        select: { assignmentId: true },
+      })
+    : [];
+  const purchasedAssignmentIds = new Set(
+    marketplacePurchases
+      .map((purchase) => purchase.assignmentId)
+      .filter((id): id is string => Boolean(id)),
+  );
   const now = new Date();
   const getAvailabilityDate = (assignment: typeof assignments[number]) =>
     assignment.startDate || assignment.assignedAt || assignment.deadline;
@@ -160,6 +176,7 @@ export default async function MyLessonsPage() {
       deadline: adjustedDeadline,
       pointsAwarded: assignment.pointsAwarded ?? 0,
       draftAnswers: (assignment as any).draftAnswers ?? null,
+      marketplacePurchased: purchasedAssignmentIds.has(assignment.id),
       // Ensure optional columns missing in some DBs are present for typing
       teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
       lesson: {

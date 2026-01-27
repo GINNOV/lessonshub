@@ -7,6 +7,7 @@ import { convertExtraPointsToEuro } from '@/lib/points';
 import { getComposerExtraTries } from '@/lib/composer';
 import { EXTENSION_POINT_COST, isExtendedDeadline } from '@/lib/lessonExtensions';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -19,6 +20,7 @@ import {
   Swords,
 } from 'lucide-react';
 import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from '@/lib/locale';
+import { getInitials } from '@/lib/utils';
 
 const getCurrencyFormatter = (locale: string) =>
   new Intl.NumberFormat(locale === 'it' ? 'it-IT' : 'en-US', {
@@ -73,7 +75,7 @@ export default async function MyFinancePage({
   }
   const student = await prisma.user.findUnique({
     where: { id: studentId },
-    select: { id: true, name: true, totalPoints: true },
+    select: { id: true, name: true, totalPoints: true, image: true },
   });
 
   if (!student) {
@@ -104,7 +106,7 @@ export default async function MyFinancePage({
     },
   });
 
-  const [goldStarSum, arkaningSum, newsArticleSum, goldStarsList] = await Promise.all([
+  const [goldStarSum, arkaningSum, newsArticleSum, marketplaceSum, goldStarsList] = await Promise.all([
     prisma.goldStar.aggregate({
       where: { studentId },
       _sum: { amountEuro: true },
@@ -116,6 +118,10 @@ export default async function MyFinancePage({
     }),
     prisma.pointTransaction.aggregate({
       where: { userId: studentId, reason: PointReason.NEWS_ARTICLE_TAP },
+      _sum: { amountEuro: true },
+    }),
+    prisma.pointTransaction.aggregate({
+      where: { userId: studentId, reason: PointReason.MARKETPLACE_PURCHASE },
       _sum: { amountEuro: true },
     }),
     prisma.goldStar.findMany({
@@ -190,6 +196,7 @@ export default async function MyFinancePage({
   const goldStarCount = goldStarSum._count.id;
   const arkaning = Number(arkaningSum._sum.amountEuro ?? 0);
   const newsArticle = Number(newsArticleSum._sum.amountEuro ?? 0);
+  const marketplace = Number(marketplaceSum._sum.amountEuro ?? 0);
 
   const savings =
     gradedAdd +
@@ -199,7 +206,8 @@ export default async function MyFinancePage({
     extensionSpend +
     goldStars +
     arkaning +
-    newsArticle;
+    newsArticle +
+    marketplace;
 
   const topExtensions = extensionItems.slice(0, 5);
   const topFailures = failedItems.sort((a, b) => b.amount - a.amount).slice(0, 5);
@@ -210,6 +218,7 @@ export default async function MyFinancePage({
       { key: 'failed lessons', amount: failedDeduct },
       { key: 'composer extra tries', amount: composerPenalty },
       { key: 'arkaning', amount: Math.abs(arkaning) },
+      { key: 'marketplace purchases', amount: Math.abs(marketplace) },
     ];
     const sorted = penaltyPairs.sort((a, b) => b.amount - a.amount);
     return sorted[0]?.amount ? sorted[0].key : null;
@@ -267,9 +276,12 @@ export default async function MyFinancePage({
       <section className="rounded-3xl border border-emerald-400/25 shadow-[0_0_0_1px_rgba(16,185,129,0.25)] bg-slate-950/80 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-800 text-lg font-bold text-slate-100">
-              {(student.name ?? 'S').slice(0, 2).toUpperCase()}
-            </div>
+            <Avatar className="h-14 w-14">
+              <AvatarImage src={student.image ?? ''} alt={student.name ?? 'Student'} />
+              <AvatarFallback className="bg-slate-800 text-lg font-bold text-slate-100">
+                {getInitials(student.name)}
+              </AvatarFallback>
+            </Avatar>
             <div>
               <p className="text-xs uppercase tracking-wide text-slate-400">
                 {locale === 'it' ? 'Finanze Studente' : 'Student Finance'}
