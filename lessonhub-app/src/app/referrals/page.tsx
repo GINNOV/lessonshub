@@ -26,6 +26,7 @@ import {
   Percent,
   RefreshCw,
   BarChart3,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -39,6 +40,7 @@ const referralCopy: Record<
     kicker: string;
     title: string;
     subtitle: string;
+    financeCta: string;
     teacherBadge: string;
     accordionToggle: string;
     accordionTitle: string;
@@ -104,6 +106,7 @@ const referralCopy: Record<
     title: "Referral dashboard",
     subtitle:
       "Track the students who joined through your invite link and see how your referrals are helping the community grow.",
+    financeCta: "Your personal finance achievements are here.",
     teacherBadge: "Teacher view",
     accordionToggle: "Show / hide referral guide",
     accordionTitle: "How Our Referral Program Works",
@@ -205,6 +208,7 @@ const referralCopy: Record<
     title: "Panel de referidos",
     subtitle:
       "Sigue a los estudiantes que se unieron con tu enlace y ve cómo tus referidos ayudan a crecer a la comunidad.",
+    financeCta: "Tus logros financieros personales están aquí.",
     teacherBadge: "Vista profesor",
     accordionToggle: "Mostrar / ocultar guía de referidos",
     accordionTitle: "Cómo funciona nuestro programa de referidos",
@@ -306,6 +310,7 @@ const referralCopy: Record<
     title: "Dashboard referral",
     subtitle:
       "Monitora gli studenti che si sono iscritti con il tuo invito e scopri come i referral fanno crescere la community.",
+    financeCta: "I tuoi risultati finanziari personali sono qui.",
     teacherBadge: "Vista insegnante",
     accordionToggle: "Mostra / nascondi guida referral",
     accordionTitle: "Come funziona il nostro programma referral",
@@ -515,7 +520,14 @@ export default async function ReferralDashboardPage() {
           <p className="text-sm uppercase tracking-wide text-muted-foreground">{copy.kicker}</p>
           <h1 className="text-3xl font-bold mt-2">{copy.title}</h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
-            {copy.subtitle}
+            {copy.subtitle}{' '}
+            <Link
+              href="/myfinance"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-300 hover:text-emerald-200"
+            >
+              <DollarSign className="h-4 w-4" />
+              {copy.financeCta}
+            </Link>
           </p>
         </div>
         {data.viewer.role !== Role.STUDENT && (

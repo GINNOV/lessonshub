@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Check, ChevronLeft, ChevronRight, RotateCw, Search } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export type StudentWithStats = Omit<User, 'defaultLessonPrice'> & {
   totalPoints: number;
@@ -111,6 +112,9 @@ export default function AssignLessonForm({
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [classFilter, setClassFilter] = useState<string>('all'); // 'all' | 'none' | classId
   const [reassigningStudents, setReassigningStudents] = useState<string[]>([]);
+  const [showDateWarning, setShowDateWarning] = useState(false);
+  const [dateWarnings, setDateWarnings] = useState<Array<{ studentName: string; startDate: string; deadline: string }>>([]);
+  const [pendingAssignments, setPendingAssignments] = useState<Array<{ studentId: string; deadline: string; startDate: string }> | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -332,43 +336,19 @@ export default function AssignLessonForm({
     setStartDates(newStartDates);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitAssignments = async (assignmentsToProcess: Array<{ studentId: string; deadline: string; startDate: string }>) => {
     setIsLoading(true);
     setIsSaved(false);
-
-    const assignmentsWithParsedDates = selectedStudents.map((id) => ({
-      studentId: id,
-      deadlineISO: toISOStringWithTimezone(deadlines[id]),
-      startDateISO: toISOStringWithTimezone(startDates[id]),
-    }));
-
-    const studentsWithoutDates = assignmentsWithParsedDates
-      .filter(({ deadlineISO, startDateISO }) => !deadlineISO || !startDateISO)
-      .map(({ studentId }) => studentId);
-
-    if (studentsWithoutDates.length > 0) {
-        const studentNames = studentsWithoutDates.map(id => students.find(s => s.id === id)?.name || 'a student').join(', ');
-        toast.error(`Please provide a start date and deadline for: ${studentNames}`);
-        setIsLoading(false);
-        return;
-    }
 
     const initialAssignedStudents = new Set(existingAssignments.map(a => a.studentId));
     const reassignStudentIds = new Set(
       reassigningStudents.filter((id) => initialAssignedStudents.has(id)),
     );
-    
+
     const studentIdsToUnassign = Array.from(initialAssignedStudents).filter(
       (id) => !selectedStudents.includes(id),
     );
-    
-    const assignmentsToProcess = assignmentsWithParsedDates.map(({ studentId, deadlineISO, startDateISO }) => ({
-        studentId,
-        deadline: deadlineISO as string,
-        startDate: startDateISO as string,
-    }));
-    
+
     const assignmentsToUpdate = assignmentsToProcess.filter(
       (a) => initialAssignedStudents.has(a.studentId) && !reassignStudentIds.has(a.studentId),
     );
@@ -394,31 +374,76 @@ export default function AssignLessonForm({
       });
 
       if (!response.ok) throw new Error((await response.json()).error || 'Failed to update assignments.');
-      
+
       const messages = [];
       if (assignmentsToCreate.length > 0) messages.push(`${assignmentsToCreate.length} assigned`);
       if (assignmentsToUpdate.length > 0) messages.push(`${assignmentsToUpdate.length} updated`);
       if (assignmentsToReassign.length > 0) messages.push(`${assignmentsToReassign.length} reassigned`);
       if (studentIdsToUnassign.length > 0) messages.push(`${studentIdsToUnassign.length} unassigned`);
-      
+
       toast.success(messages.length > 0 ? `Assignments updated: ${messages.join(', ')}.` : 'No changes were made.');
       setIsSaved(true);
       setLastSavedAt(new Date());
       setReassigningStudents([]);
       setTimeout(() => setIsSaved(false), 2000);
-      
+
       router.refresh();
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
       setIsLoading(false);
+      setPendingAssignments(null);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const assignmentsWithParsedDates = selectedStudents.map((id) => ({
+      studentId: id,
+      deadlineISO: toISOStringWithTimezone(deadlines[id]),
+      startDateISO: toISOStringWithTimezone(startDates[id]),
+    }));
+
+    const studentsWithoutDates = assignmentsWithParsedDates
+      .filter(({ deadlineISO, startDateISO }) => !deadlineISO || !startDateISO)
+      .map(({ studentId }) => studentId);
+
+    if (studentsWithoutDates.length > 0) {
+      const studentNames = studentsWithoutDates.map(id => students.find(s => s.id === id)?.name || 'a student').join(', ');
+      toast.error(`Please provide a start date and deadline for: ${studentNames}`);
+      return;
+    }
+
+    const assignmentsToProcess = assignmentsWithParsedDates.map(({ studentId, deadlineISO, startDateISO }) => ({
+      studentId,
+      deadline: deadlineISO as string,
+      startDate: startDateISO as string,
+    }));
+
+    const warnings = assignmentsToProcess
+      .filter((assignment) => new Date(assignment.deadline).getTime() < new Date(assignment.startDate).getTime())
+      .map((assignment) => ({
+        studentName: students.find(s => s.id === assignment.studentId)?.name || 'Student',
+        startDate: assignment.startDate,
+        deadline: assignment.deadline,
+      }));
+
+    if (warnings.length > 0) {
+      setDateWarnings(warnings);
+      setPendingAssignments(assignmentsToProcess);
+      setShowDateWarning(true);
+      return;
+    }
+
+    await submitAssignments(assignmentsToProcess);
   };
   
   const areAllFilteredSelected = filteredStudents.length > 0 && selectedStudents.length >= filteredStudents.length && filteredStudents.every(s => selectedStudents.includes(s.id));
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <>
+      <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
             <Label htmlFor="start-date">Set Start Date</Label>
@@ -700,6 +725,57 @@ export default function AssignLessonForm({
           </p>
         )}
       </div>
-    </form>
+      </form>
+
+      <Dialog open={showDateWarning} onOpenChange={setShowDateWarning}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Due date is before the start date</DialogTitle>
+            <DialogDescription>
+              Some students have a deadline that is earlier than the start date. This can block them from opening the lesson.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            {dateWarnings.slice(0, 5).map((warning) => (
+              <div key={`${warning.studentName}-${warning.deadline}`} className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">{warning.studentName}</p>
+                  <p className="text-xs">
+                    Start: {new Date(warning.startDate).toLocaleString()} · Due: {new Date(warning.deadline).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {dateWarnings.length > 5 && (
+              <p className="text-xs">+ {dateWarnings.length - 5} more students</p>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowDateWarning(false);
+                setPendingAssignments(null);
+              }}
+            >
+              Go back
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                const payload = pendingAssignments;
+                setShowDateWarning(false);
+                if (payload) {
+                  submitAssignments(payload);
+                }
+              }}
+            >
+              Save anyway
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
