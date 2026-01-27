@@ -73,7 +73,14 @@ export default function TeacherClassLeaderboard({ leaderboardData }: TeacherClas
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-100">
                                         {student.totalPoints.toLocaleString()} pts
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-100">€{student.savings.toFixed(2)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                                        <Link
+                                            href={`/myfinance?studentId=${student.id}`}
+                                            className="text-emerald-200 hover:text-emerald-100"
+                                        >
+                                            €{student.savings.toFixed(2)}
+                                        </Link>
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{student.completedCount}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                                         <div className="flex items-center gap-2">

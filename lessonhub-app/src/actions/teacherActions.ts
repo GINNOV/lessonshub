@@ -255,7 +255,6 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
         assignments: {
           where: {
             status: { in: [AssignmentStatus.PENDING, AssignmentStatus.COMPLETED, AssignmentStatus.GRADED, AssignmentStatus.FAILED] },
-            lesson: { teacherId: teacherId },
           },
           select: {
             id: true,

@@ -28,12 +28,16 @@ const getCurrencyFormatter = (locale: string) =>
     maximumFractionDigits: 2,
   });
 
-export default async function MyFinancePage() {
+export default async function MyFinancePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   if (!session) {
     redirect('/signin');
   }
-  if (session.user.role !== Role.STUDENT) {
+  if (session.user.role !== Role.STUDENT && session.user.role !== Role.TEACHER) {
     redirect('/dashboard');
   }
   const headerList = await headers();
@@ -49,7 +53,24 @@ export default async function MyFinancePage() {
   const formatSigned = (value: number) =>
     value === 0 ? formatCurrency(0) : `${value > 0 ? '+' : '-'}${formatCurrency(Math.abs(value))}`;
 
-  const studentId = session.user.id;
+  const query = searchParams ? await searchParams : {};
+  const requestedStudentIdRaw = query?.studentId;
+  const requestedStudentId = Array.isArray(requestedStudentIdRaw)
+    ? requestedStudentIdRaw[0]
+    : requestedStudentIdRaw;
+  const isTeacherView = session.user.role === Role.TEACHER && Boolean(requestedStudentId);
+
+  let studentId = session.user.id;
+  if (isTeacherView && requestedStudentId) {
+    const relation = await prisma.teachersForStudent.findFirst({
+      where: { teacherId: session.user.id, studentId: requestedStudentId },
+      select: { studentId: true },
+    });
+    if (!relation) {
+      redirect('/dashboard');
+    }
+    studentId = requestedStudentId;
+  }
   const student = await prisma.user.findUnique({
     where: { id: studentId },
     select: { id: true, name: true, totalPoints: true },
@@ -252,6 +273,7 @@ export default async function MyFinancePage() {
             <div>
               <p className="text-xs uppercase tracking-wide text-slate-400">
                 {locale === 'it' ? 'Finanze Studente' : 'Student Finance'}
+                {isTeacherView ? ` · ${locale === 'it' ? 'Vista insegnante' : 'Teacher view'}` : ''}
               </p>
               <h1 className="text-2xl font-semibold text-slate-100">{student.name ?? 'Student'}</h1>
               <p className="text-sm text-slate-400">
