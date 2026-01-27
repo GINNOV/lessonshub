@@ -6,6 +6,8 @@ import { AssignmentStatus, PointReason, Role } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { getStudentStats } from '@/actions/lessonActions';
 import { Prisma } from '@prisma/client';
+import { createButton } from '@/lib/email-templates';
+import { sendEmail } from '@/lib/email-templates.server';
 
 const MARKETPLACE_FOREVER_DEADLINE = new Date('2099-12-31T23:59:59.000Z');
 
@@ -29,6 +31,12 @@ export async function purchaseMarketplaceLesson(assignmentId: string) {
         select: {
           title: true,
           price: true,
+        },
+      },
+      student: {
+        select: {
+          name: true,
+          email: true,
         },
       },
     },
@@ -110,6 +118,20 @@ export async function purchaseMarketplaceLesson(assignmentId: string) {
         },
       }),
     ]);
+    if (assignment.student?.email) {
+      const lessonUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
+      const button = createButton('Open Lesson', lessonUrl, '#f59e0b');
+      await sendEmail({
+        to: assignment.student.email,
+        templateName: 'marketplace_purchase',
+        data: {
+          studentName: assignment.student.name || 'student',
+          lessonTitle: assignment.lesson.title,
+          lessonPrice: `€${lessonPrice.toFixed(2)}`,
+          button,
+        },
+      });
+    }
   } catch (error) {
     console.error('Failed to purchase marketplace lesson', error);
     return { success: false, error: 'Unable to complete purchase.' };

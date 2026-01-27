@@ -92,6 +92,23 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
 <p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Questo è un gentile promemoria dal tuo insegnante, {{teacherName}}, per completare il compito: <strong>{{lessonTitle}}</strong>.</p>`,
         buttonColor: '#f59e0b',
     },
+    marketplace_purchase: {
+        subject: '🛍️ Lesson unlocked: {{lessonTitle}}',
+        description: 'Sent after a student purchases a lesson from the marketplace.',
+        category: 'Marketplace',
+        body: `<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Lesson Unlocked</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇺🇸 Hi {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">You just unlocked <strong>{{lessonTitle}}</strong> in the marketplace for <strong>{{lessonPrice}}</strong>. It’s yours forever.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">You can retake it anytime from your dashboard.</p>
+{{button}}
+
+<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Lezione Sbloccata</h1>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">🇮🇹 Ciao {{studentName}},</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Hai appena sbloccato <strong>{{lessonTitle}}</strong> nel marketplace per <strong>{{lessonPrice}}</strong>. È tua per sempre.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px; text-align: left;">Puoi rifarla quando vuoi dalla tua dashboard.</p>
+{{button}}`,
+        buttonColor: '#f59e0b',
+    },
     deadline_reminder: {
         subject: '🔔 Reminder: Assignment "{{lessonTitle}}" is due soon',
         description: 'Sent by the deadline reminder job 24–48 hours before due date (legacy endpoint).',
