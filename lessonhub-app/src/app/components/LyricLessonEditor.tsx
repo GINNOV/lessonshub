@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lesson, LyricLessonConfig, AssignmentNotification } from '@prisma/client';
+import { Lesson, LyricLessonConfig } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,18 +76,6 @@ const createLineId = () => {
     return crypto.randomUUID();
   }
   return `line_${Math.random().toString(36).slice(2, 10)}`;
-};
-
-const formatDateTimeLocal = (value: string | Date | null | undefined) => {
-  if (!value) return '';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
 const normalizeLines = (lines: unknown): LyricLine[] => {
@@ -227,13 +215,6 @@ export default function LyricLessonEditor({
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
   const [selectedBookletId, setSelectedBookletId] = useState<string>('');
-  const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(
-    lesson?.assignment_notification ?? AssignmentNotification.NOT_ASSIGNED
-  );
-  const [scheduledDate, setScheduledDate] = useState(
-    formatDateTimeLocal(lesson?.scheduled_assignment_date ?? null)
-  );
-
   const [audioUrl, setAudioUrl] = useState('');
   const [audioStorageKey, setAudioStorageKey] = useState<string | null>(null);
   const [lrcUrl, setLrcUrl] = useState('');
@@ -279,8 +260,6 @@ export default function LyricLessonEditor({
     setAttachmentUrl(lessonAttachment);
     setAttachmentLinkStatus(lessonAttachment ? 'valid' : 'idle');
     setNotes(lesson.notes || '');
-    setAssignmentNotification(lesson.assignment_notification);
-    setScheduledDate(formatDateTimeLocal(lesson.scheduled_assignment_date));
     setDifficulty(lesson.difficulty ?? 3);
     setIsFreeForAll(Boolean((lesson as any).isFreeForAll));
 
@@ -837,20 +816,6 @@ export default function LyricLessonEditor({
     if (isSubmitting) return;
     if (!validateBeforeSubmit()) return;
 
-    let scheduledDatePayload: Date | null = null;
-    if (assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE) {
-      if (!scheduledDate) {
-        toast.error('Please select a date and time to schedule the assignment.');
-        return;
-      }
-      const parsed = new Date(scheduledDate);
-      if (Number.isNaN(parsed.getTime())) {
-        toast.error('Please provide a valid date and time for the scheduled assignment.');
-        return;
-      }
-      scheduledDatePayload = parsed;
-    }
-
     setIsSubmitting(true);
     try {
       const url = isEditMode ? `/api/lessons/lyric/${lesson!.id}` : '/api/lessons/lyric';
@@ -874,8 +839,6 @@ export default function LyricLessonEditor({
           rawLyrics,
           lines,
           settings: serializeSettings(),
-          assignment_notification: assignmentNotification,
-          scheduled_assignment_date: scheduledDatePayload,
           isFreeForAll,
         }),
       });
@@ -897,17 +860,6 @@ export default function LyricLessonEditor({
     }
   };
 
-  const parseScheduledDate = (value: string) => {
-    if (!value) return null;
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  };
-
-  const scheduledDatePayload =
-    assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE
-      ? parseScheduledDate(scheduledDate)
-      : null;
-
   const cleanedAttachmentUrl = attachmentUrl.trim();
   const attachmentIsAudio =
     Boolean(cleanedAttachmentUrl) && /\.(mp3|wav|ogg|m4a|aac)$/i.test(cleanedAttachmentUrl);
@@ -923,8 +875,7 @@ export default function LyricLessonEditor({
     hasValidLines &&
     Number.isInteger(difficulty) &&
     difficulty >= 1 &&
-    difficulty <= 5 &&
-    (assignmentNotification !== AssignmentNotification.ASSIGN_ON_DATE || Boolean(scheduledDatePayload));
+    difficulty <= 5;
 
   const handleAutoSave = useCallback(async () => {
     if (!lesson) return false;
@@ -946,14 +897,11 @@ export default function LyricLessonEditor({
         rawLyrics,
         lines,
         settings: serializeSettings(),
-        assignment_notification: assignmentNotification,
-        scheduled_assignment_date: scheduledDatePayload,
         isFreeForAll,
       }),
     });
     return response.ok;
   }, [
-    assignmentNotification,
     assignmentText,
     attachmentUrl,
     audioStorageKey,
@@ -968,7 +916,6 @@ export default function LyricLessonEditor({
     notes,
     price,
     rawLyrics,
-    scheduledDatePayload,
     serializeSettings,
     title,
   ]);
@@ -989,8 +936,6 @@ export default function LyricLessonEditor({
       lines,
       settings,
       difficulty,
-      assignmentNotification,
-      scheduledDate,
       isFreeForAll,
     ],
     [
@@ -1008,8 +953,6 @@ export default function LyricLessonEditor({
       lines,
       settings,
       difficulty,
-      assignmentNotification,
-      scheduledDate,
       isFreeForAll,
     ]
   );
@@ -1145,36 +1088,6 @@ export default function LyricLessonEditor({
           placeholder="Additional context students should know before starting."
         />
       </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="assignmentNotification">Assignment Status</Label>
-        <select
-          id="assignmentNotification"
-          value={assignmentNotification}
-          onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
-          disabled={isSubmitting}
-          className="w-full rounded-md border border-border bg-card/70 p-2 text-foreground shadow-sm"
-        >
-          <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
-          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
-          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign to All and Notify Now</option>
-          <option value={AssignmentNotification.ASSIGN_ON_DATE}>Assign on a Specific Date</option>
-        </select>
-      </div>
-
-      {assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE && (
-        <div className="space-y-2">
-          <Label htmlFor="scheduledDate">Scheduled Assignment Date &amp; Time</Label>
-          <Input
-            type="datetime-local"
-            id="scheduledDate"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            disabled={isSubmitting}
-            required
-          />
-        </div>
-      )}
 
       <div className="space-y-2">
         <Label htmlFor="attachmentUrl">Reading Material</Label>

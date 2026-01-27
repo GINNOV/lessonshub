@@ -4,11 +4,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { AssignmentNotification, Lesson } from '@prisma/client';
+import { Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { LessonDifficultySelector } from '@/app/components/LessonDifficultySelector';
 import FileUploadButton from '@/components/FileUploadButton';
@@ -17,6 +18,7 @@ import { Info, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import { formatAutoSaveStatus, useLessonAutosave } from '@/app/components/useLessonAutosave';
+import { marked } from 'marked';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -84,6 +86,7 @@ export default function NewsArticleLessonCreator({
   const [markdown, setMarkdown] = useState('');
   const [maxWordTaps, setMaxWordTaps] = useState('');
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,8 +117,6 @@ export default function NewsArticleLessonCreator({
       notes: lesson.notes || null,
       price: lesson.price,
       difficulty: lesson.difficulty ?? 3,
-      assignment_notification: AssignmentNotification.NOT_ASSIGNED,
-      scheduled_assignment_date: null,
       isFreeForAll: Boolean((lesson as any).isFreeForAll),
       assignment_image_url: lesson.assignment_image_url || null,
       markdown: lesson.newsArticleConfig?.markdown || '',
@@ -176,8 +177,6 @@ export default function NewsArticleLessonCreator({
       notes: notes.trim() || null,
       price: Number(price) || 0,
       difficulty,
-      assignment_notification: AssignmentNotification.NOT_ASSIGNED,
-      scheduled_assignment_date: null,
       isFreeForAll,
       assignment_image_url: assignmentImageUrl,
       markdown: markdown.trim(),
@@ -272,6 +271,10 @@ export default function NewsArticleLessonCreator({
     ],
     resetKey: lesson?.id ?? null,
   });
+  const previewHtml = useMemo(() => {
+    if (!markdown.trim()) return '';
+    return marked.parse(markdown) as string;
+  }, [markdown]);
 
   return (
     <div className="space-y-6">
@@ -300,9 +303,20 @@ export default function NewsArticleLessonCreator({
       </div>
 
       <div className="form-field">
-        <div className="flex items-center">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Label htmlFor="articleMarkdown">Article (Markdown)</Label>
-          <OptionalIndicator />
+          <div className="flex items-center gap-2">
+            <OptionalIndicator />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPreviewOpen(true)}
+              disabled={!markdown.trim()}
+            >
+              Preview article
+            </Button>
+          </div>
         </div>
         <Textarea
           id="articleMarkdown"
@@ -476,6 +490,22 @@ export default function NewsArticleLessonCreator({
           </>
         )}
       </Button>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Article preview</DialogTitle>
+          </DialogHeader>
+          {previewHtml ? (
+            <div
+              className="prose prose-slate max-w-none"
+              dangerouslySetInnerHTML={{ __html: previewHtml }}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">Add markdown to preview.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

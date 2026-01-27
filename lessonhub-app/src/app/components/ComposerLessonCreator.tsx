@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { AssignmentNotification, Lesson } from '@prisma/client';
+import { Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,7 +76,6 @@ export default function ComposerLessonCreator({
   const [questions, setQuestions] = useState<ComposerQuestion[]>([]);
   const [maxTries, setMaxTries] = useState('1');
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
-  const assignmentNotification = AssignmentNotification.NOT_ASSIGNED;
   const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
   const [attachmentUrl, setAttachmentUrl] = useState('');
@@ -419,8 +418,6 @@ export default function ComposerLessonCreator({
     setIsSubmitting(true);
     const url = isEditMode ? `/api/lessons/composer/${lesson?.id}` : '/api/lessons/composer';
     const method = isEditMode ? 'PATCH' : 'POST';
-    const scheduledPayload = null;
-
     try {
       const response = await fetch(url, {
         method,
@@ -436,8 +433,6 @@ export default function ComposerLessonCreator({
           maxTries: Number(maxTries),
           price: parseFloat(price) || 0,
           difficulty,
-          assignment_notification: assignmentNotification,
-          scheduled_assignment_date: scheduledPayload,
           assignment_image_url: assignmentImageUrl,
           attachment_url: attachmentUrl,
           soundcloud_url: soundcloudUrl,
@@ -499,8 +494,6 @@ export default function ComposerLessonCreator({
         maxTries: maxTriesValue,
         price: parseFloat(price) || 0,
         difficulty,
-        assignment_notification: assignmentNotification,
-        scheduled_assignment_date: null,
         assignment_image_url: assignmentImageUrl,
         attachment_url: attachmentUrl,
         soundcloud_url: soundcloudUrl,
@@ -510,7 +503,6 @@ export default function ComposerLessonCreator({
     return response.ok;
   }, [
     assignmentImageUrl,
-    assignmentNotification,
     assignmentText,
     attachmentUrl,
     contextText,

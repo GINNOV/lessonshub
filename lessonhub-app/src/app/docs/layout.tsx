@@ -5,6 +5,8 @@ import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from '@/lib/locale';
 import DocsSidebar from './DocsSidebar';
+import docsMetaEn from '@/pages/docs/_meta.json';
+import docsMetaIt from '@/pages/docs/it/_meta.json';
 
 export const metadata = {
   title: 'LessonHub Documentation',
@@ -18,11 +20,10 @@ async function getDocsMeta(locale: string) {
     return JSON.parse(content) as Record<string, string>;
   } catch (error) {
     console.error(`Error reading _meta.json for locale ${locale}:`, error);
-    // Fallback to English if Italian fails
     if (locale === 'it') {
-        return getDocsMeta('en');
+      return (docsMetaIt as Record<string, string>) ?? (docsMetaEn as Record<string, string>);
     }
-    return {};
+    return (docsMetaEn as Record<string, string>) ?? {};
   }
 }
 

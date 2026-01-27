@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Lesson, Flashcard as PrismaFlashcard, AssignmentNotification } from '@prisma/client';
+import { Lesson, Flashcard as PrismaFlashcard } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -140,18 +140,6 @@ const isBlobHosted = (url: string | null): boolean => {
   }
 };
 
-const formatDateTimeLocal = (value: string | Date | null | undefined) => {
-  if (!value) return '';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
 export default function FlashcardCreator({ lesson, teacherPreferences, instructionBooklets = [] }: FlashcardCreatorProps) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -197,8 +185,6 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
 
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
-  const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(AssignmentNotification.NOT_ASSIGNED);
-  const [scheduledDate, setScheduledDate] = useState('');
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
   const [flashcards, setFlashcards] = useState<FlashcardState[]>([{ term: '', definition: '', termImageUrl: null, definitionImageUrl: null }]);
   const [isLoading, setIsLoading] = useState(false);
@@ -226,8 +212,6 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
       setContextText(lesson.context_text || '');
       setAttachmentUrl(lesson.attachment_url || '');
       setNotes(lesson.notes || '');
-      setAssignmentNotification(lesson.assignment_notification);
-      setScheduledDate(formatDateTimeLocal(lesson.scheduled_assignment_date));
       setDifficulty(lesson.difficulty ?? 3);
       setIsFreeForAll(Boolean((lesson as any).isFreeForAll));
       if (lesson.flashcards && lesson.flashcards.length > 0) {
@@ -394,22 +378,6 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
       return;
     }
 
-    let scheduledDatePayload: Date | null = null;
-    if (assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE) {
-      if (!scheduledDate) {
-        toast.error('Please select a date and time to schedule the assignment.');
-        setIsLoading(false);
-        return;
-      }
-      const parsed = new Date(scheduledDate);
-      if (Number.isNaN(parsed.getTime())) {
-        toast.error('Please provide a valid date and time for the scheduled assignment.');
-        setIsLoading(false);
-        return;
-      }
-      scheduledDatePayload = parsed;
-    }
-
     const url = isEditMode ? `/api/lessons/flashcard/${lesson!.id}` : '/api/lessons/flashcard';
     const method = isEditMode ? 'PATCH' : 'POST';
 
@@ -429,8 +397,6 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
             notes,
             difficulty,
             flashcards: validFlashcards,
-            assignment_notification: assignmentNotification,
-            scheduled_assignment_date: scheduledDatePayload,
             isFreeForAll,
         }),
       });
@@ -451,25 +417,13 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
     }
   };
 
-  const parseScheduledDate = (value: string) => {
-    if (!value) return null;
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  };
-
-  const scheduledDatePayload =
-    assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE
-      ? parseScheduledDate(scheduledDate)
-      : null;
-
   const canAutoSave =
     isEditMode &&
     title.trim().length > 0 &&
     validFlashcards.length > 0 &&
     Number.isInteger(difficulty) &&
     difficulty >= 1 &&
-    difficulty <= 5 &&
-    (assignmentNotification !== AssignmentNotification.ASSIGN_ON_DATE || Boolean(scheduledDatePayload));
+    difficulty <= 5;
 
   const handleAutoSave = useCallback(async () => {
     if (!lesson) return false;
@@ -488,15 +442,12 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
         notes,
         difficulty,
         flashcards: validFlashcards,
-        assignment_notification: assignmentNotification,
-        scheduled_assignment_date: scheduledDatePayload,
         isFreeForAll,
       }),
     });
     return response.ok;
   }, [
     assignmentImageUrl,
-    assignmentNotification,
     assignmentText,
     attachmentUrl,
     contextText,
@@ -506,7 +457,6 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
     lessonPreview,
     notes,
     price,
-    scheduledDatePayload,
     soundcloudUrl,
     title,
     validFlashcards,
@@ -525,8 +475,6 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
       notes,
       difficulty,
       validFlashcards,
-      assignmentNotification,
-      scheduledDate,
       isFreeForAll,
     ],
     [
@@ -541,8 +489,6 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
       notes,
       difficulty,
       validFlashcards,
-      assignmentNotification,
-      scheduledDate,
       isFreeForAll,
     ]
   );
@@ -756,36 +702,6 @@ export default function FlashcardCreator({ lesson, teacherPreferences, instructi
         </div>
         <Textarea id="notes" placeholder="These notes will be visible to students on the assignment page." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </div>
-
-      <div className="form-field">
-        <Label htmlFor="assignmentNotification">Assignment Status</Label>
-        <select
-          id="assignmentNotification"
-          value={assignmentNotification}
-          onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
-          disabled={isLoading}
-          className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
-        >
-          <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
-          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
-          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign to All and Notify Now</option>
-          <option value={AssignmentNotification.ASSIGN_ON_DATE}>Assign on a Specific Date</option>
-        </select>
-      </div>
-
-      {assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE && (
-        <div className="form-field">
-          <Label htmlFor="scheduledDate">Scheduled Assignment Date &amp; Time</Label>
-          <Input
-            type="datetime-local"
-            id="scheduledDate"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-        </div>
-      )}
 
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">

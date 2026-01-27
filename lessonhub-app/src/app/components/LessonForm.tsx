@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Lesson, AssignmentNotification } from '@prisma/client';
+import { Lesson } from '@prisma/client';
 import ImageBrowser from './ImageBrowser'; 
 import { getWeekAndDay } from '@/lib/utils';
 import { Info, Upload } from 'lucide-react';
@@ -107,7 +107,6 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
-  const assignmentNotification = AssignmentNotification.NOT_ASSIGNED;
   const [difficulty, setDifficulty] = useState<number>(lesson?.difficulty ?? 3);
   const [selectedBookletId, setSelectedBookletId] = useState('');
   const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
@@ -345,8 +344,6 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
           soundcloud_url: soundcloudUrl,
           attachment_url: attachmentUrl,
           notes,
-          assignment_notification: assignmentNotification,
-          scheduled_assignment_date: null,
           isFreeForAll,
         }),
       });
@@ -390,15 +387,12 @@ export default function LessonForm({ lesson, teacherPreferences, instructionBook
         soundcloud_url: soundcloudUrl,
         attachment_url: attachmentUrl,
         notes,
-        assignment_notification: assignmentNotification,
-        scheduled_assignment_date: null,
         isFreeForAll,
       }),
     });
     return response.ok;
   }, [
     assignmentImageUrl,
-    assignmentNotification,
     assignmentText,
     attachmentUrl,
     contextText,

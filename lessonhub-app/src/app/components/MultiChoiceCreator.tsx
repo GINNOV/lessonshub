@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption as PrismaOption, AssignmentNotification } from '@prisma/client';
+import { Lesson, MultiChoiceQuestion as PrismaQuestion, MultiChoiceOption as PrismaOption } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -174,7 +174,6 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
   const [linkStatus, setLinkStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
   const [notes, setNotes] = useState(teacherPreferences?.defaultLessonNotes || '');
-  const assignmentNotification = AssignmentNotification.NOT_ASSIGNED;
   const [questions, setQuestions] = useState<QuestionState[]>([{ question: '', options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }] }]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -372,8 +371,6 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
       return;
     }
 
-    const scheduledDatePayload: Date | null = null;
-
     const url = isEditMode ? `/api/lessons/multi-choice/${lesson.id}` : '/api/lessons/multi-choice';
     const method = isEditMode ? 'PATCH' : 'POST';
 
@@ -392,8 +389,6 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
                 notes,
                 difficulty,
                 questions,
-                assignment_notification: assignmentNotification,
-                scheduled_assignment_date: scheduledDatePayload,
                 isFreeForAll,
             }),
         });
@@ -432,15 +427,12 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
         notes,
         difficulty,
         questions,
-        assignment_notification: assignmentNotification,
-        scheduled_assignment_date: null,
         isFreeForAll,
       }),
     });
     return response.ok;
   }, [
     assignmentImageUrl,
-    assignmentNotification,
     assignmentText,
     attachmentUrl,
     difficulty,

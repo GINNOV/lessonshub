@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lesson, AssignmentNotification } from '@prisma/client';
+import { Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -112,18 +112,6 @@ const parseLearningSessionCsv = (content: string): LearningSessionCardState[] =>
   }, []);
 };
 
-const formatDateTimeLocal = (value: string | Date | null | undefined) => {
-  if (!value) return '';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
 export default function LearningSessionCreator({
   lesson,
   teacherPreferences,
@@ -163,12 +151,6 @@ export default function LearningSessionCreator({
   const [isImporting, setIsImporting] = useState(false);
   const [selectedBookletId, setSelectedBookletId] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [assignmentNotification, setAssignmentNotification] = useState<AssignmentNotification>(
-    lesson?.assignment_notification ?? AssignmentNotification.NOT_ASSIGNED
-  );
-  const [scheduledDate, setScheduledDate] = useState(
-    formatDateTimeLocal(lesson?.scheduled_assignment_date ?? null)
-  );
   const [isFreeForAll, setIsFreeForAll] = useState<boolean>(lesson?.isFreeForAll ?? false);
 
   const downloadLearningSessionTemplate = () => {
@@ -287,20 +269,6 @@ export default function LearningSessionCreator({
       return;
     }
 
-    let scheduledDatePayload: Date | null = null;
-    if (assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE) {
-      if (!scheduledDate) {
-        toast.error('Please select a date and time to schedule the assignment.');
-        return;
-      }
-      const parsed = new Date(scheduledDate);
-      if (Number.isNaN(parsed.getTime())) {
-        toast.error('Please provide a valid date and time for the scheduled assignment.');
-        return;
-      }
-      scheduledDatePayload = parsed;
-    }
-
     setIsLoading(true);
     const endpoint = isEditMode
       ? `/api/lessons/learning-session/${lesson!.id}`
@@ -319,8 +287,6 @@ export default function LearningSessionCreator({
           difficulty,
           cards,
           guideCardImage,
-          assignment_notification: assignmentNotification,
-          scheduled_assignment_date: scheduledDatePayload,
           isFreeForAll,
         }),
       });
@@ -340,25 +306,13 @@ export default function LearningSessionCreator({
     }
   };
 
-  const parseScheduledDate = (value: string) => {
-    if (!value) return null;
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  };
-
-  const scheduledDatePayload =
-    assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE
-      ? parseScheduledDate(scheduledDate)
-      : null;
-
   const canAutoSave =
     isEditMode &&
     title.trim().length > 0 &&
     validCards.length > 0 &&
     Number.isInteger(difficulty) &&
     difficulty >= 1 &&
-    difficulty <= 5 &&
-    (assignmentNotification !== AssignmentNotification.ASSIGN_ON_DATE || Boolean(scheduledDatePayload));
+    difficulty <= 5;
 
   const handleAutoSave = useCallback(async () => {
     if (!lesson) return false;
@@ -373,14 +327,11 @@ export default function LearningSessionCreator({
         difficulty,
         cards,
         guideCardImage,
-        assignment_notification: assignmentNotification,
-        scheduled_assignment_date: scheduledDatePayload,
         isFreeForAll,
       }),
     });
     return response.ok;
   }, [
-    assignmentNotification,
     assignmentText,
     cards,
     difficulty,
@@ -389,7 +340,6 @@ export default function LearningSessionCreator({
     lesson,
     lessonPreview,
     price,
-    scheduledDatePayload,
     title,
   ]);
 
@@ -402,8 +352,6 @@ export default function LearningSessionCreator({
       difficulty,
       cards,
       guideCardImage,
-      assignmentNotification,
-      scheduledDate,
       isFreeForAll,
     ],
     [
@@ -414,8 +362,6 @@ export default function LearningSessionCreator({
       difficulty,
       cards,
       guideCardImage,
-      assignmentNotification,
-      scheduledDate,
       isFreeForAll,
     ]
   );
@@ -564,36 +510,6 @@ export default function LearningSessionCreator({
           rows={5}
         />
       </div>
-
-      <div className="form-field">
-        <Label htmlFor="assignmentNotification">Assignment Status</Label>
-        <select
-          id="assignmentNotification"
-          value={assignmentNotification}
-          onChange={(e) => setAssignmentNotification(e.target.value as AssignmentNotification)}
-          disabled={isLoading}
-          className="w-full rounded-md border border-input bg-background text-foreground p-2 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value={AssignmentNotification.NOT_ASSIGNED}>Save only</option>
-          <option value={AssignmentNotification.ASSIGN_WITHOUT_NOTIFICATION}>Assign to All Students Now</option>
-          <option value={AssignmentNotification.ASSIGN_AND_NOTIFY}>Assign to All and Notify Now</option>
-          <option value={AssignmentNotification.ASSIGN_ON_DATE}>Assign on a Specific Date</option>
-        </select>
-      </div>
-
-      {assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE && (
-        <div className="form-field">
-          <Label htmlFor="scheduledDate">Scheduled Assignment Date &amp; Time</Label>
-          <Input
-            type="datetime-local"
-            id="scheduledDate"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-        </div>
-      )}
 
       <div className="space-y-4">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">

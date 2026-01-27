@@ -105,7 +105,6 @@ export default function StudentLessonList({
       return availability <= now;
     };
     return (assignments || [])
-      .filter((a) => (a.status === AssignmentStatus.PENDING ? isAvailable(a) : true))
       .filter(a => {
         // Status filter (only keep the requested ones)
         if (filter === 'pending') return a.status === AssignmentStatus.PENDING && new Date(a.deadline) > now;

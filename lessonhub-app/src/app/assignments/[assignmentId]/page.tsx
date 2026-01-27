@@ -621,6 +621,35 @@ export default async function AssignmentPage({
     lyricDraftUpdatedAt: assignment.lyricDraftUpdatedAt,
   };
 
+  const isStudentOwner = session.user.id === serializableAssignment.studentId;
+  const availabilitySource =
+    serializableAssignment.startDate ||
+    serializableAssignment.assignedAt ||
+    serializableAssignment.deadline;
+  const availabilityDate = availabilitySource ? new Date(availabilitySource) : null;
+  const isAvailable =
+    !availabilityDate ||
+    Number.isNaN(availabilityDate.getTime()) ||
+    availabilityDate <= new Date();
+  const isEarlyAccessLocked =
+    isStudentOwner &&
+    serializableAssignment.status === AssignmentStatus.PENDING &&
+    !isAvailable;
+
+  const earlyAccessCopy = locale === "it"
+    ? {
+        title: "Questa lezione si sblocca presto",
+        body: "Non puoi ancora iniziare questa lezione. Hai ricevuto un avviso in anticipo perché stai facendo un ottimo lavoro.",
+        availability: "Sarà disponibile il",
+        cta: "Torna alle mie lezioni",
+      }
+    : {
+        title: "This lesson unlocks soon",
+        body: "You can’t start this lesson yet. You’re getting an early heads-up because you’re doing great.",
+        availability: "It opens on",
+        cta: "Back to My Lessons",
+      };
+
   const { lesson } = serializableAssignment;
   const practiceEligible =
     (serializableAssignment.status === AssignmentStatus.GRADED ||
@@ -671,7 +700,6 @@ export default async function AssignmentPage({
   const deadlineProgress = deadlineWindowMs && deadlineWindowMs > 0 && deadlineElapsedMs !== null
     ? Math.min(100, Math.max(0, Math.round((deadlineElapsedMs / deadlineWindowMs) * 100)))
     : null;
-  const isStudentOwner = session.user.id === serializableAssignment.studentId;
   const canRequestExtension = isStudentOwner && serializableAssignment.status === AssignmentStatus.PENDING;
   const canRevealAnswers =
     serializableAssignment.status === AssignmentStatus.GRADED ||
@@ -724,6 +752,28 @@ export default async function AssignmentPage({
     }
     return {};
   })();
+
+  if (isEarlyAccessLocked && availabilityDate) {
+    return (
+      <div className="mx-auto max-w-3xl rounded-3xl border border-slate-800/70 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+        <h1 className="text-3xl font-bold text-slate-100">{earlyAccessCopy.title}</h1>
+        <p className="mt-3 text-slate-300">{earlyAccessCopy.body}</p>
+        <div className="mt-5 rounded-2xl border border-teal-400/30 bg-teal-500/10 p-4 text-teal-100">
+          <p className="text-sm font-semibold uppercase tracking-wide text-teal-200">
+            {earlyAccessCopy.availability}
+          </p>
+          <p className="text-lg font-bold">
+            <LocaleDate date={availabilityDate.toISOString()} />
+          </p>
+        </div>
+        <div className="mt-6">
+          <Button asChild variant="secondary">
+            <Link href="/my-lessons">{earlyAccessCopy.cta}</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
   const questionItems = Array.isArray(lesson.questions)
     ? (lesson.questions as any[]).map((item) => {
         if (typeof item === "string") return { question: item, expectedAnswer: "" };

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AssignmentNotification, Lesson } from '@prisma/client';
+import { Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -118,7 +118,6 @@ export default function ArkaningLessonCreator({
   const [loseLifeOnWrong, setLoseLifeOnWrong] = useState(true);
   const [wrongsPerLife, setWrongsPerLife] = useState('1');
 
-  const assignmentNotification = AssignmentNotification.NOT_ASSIGNED;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -281,8 +280,6 @@ export default function ArkaningLessonCreator({
           wrongsPerLife: Number(wrongsPerLife),
           price: parseFloat(price) || 0,
           difficulty,
-          assignment_notification: assignmentNotification,
-          scheduled_assignment_date: null,
           assignment_image_url: assignmentImageUrl,
           isFreeForAll,
         }),
@@ -362,8 +359,6 @@ export default function ArkaningLessonCreator({
         wrongsPerLife: Number(wrongsPerLife),
         price: parseFloat(price) || 0,
         difficulty,
-        assignment_notification: assignmentNotification,
-        scheduled_assignment_date: null,
         assignment_image_url: assignmentImageUrl,
         isFreeForAll,
       }),
@@ -371,7 +366,6 @@ export default function ArkaningLessonCreator({
     return response.ok;
   }, [
     assignmentImageUrl,
-    assignmentNotification,
     assignmentText,
     contextText,
     difficulty,
