@@ -967,13 +967,14 @@ export async function getAssignmentsForStudent(studentId: string) {
     try {
         const student = await prisma.user.findUnique({
             where: { id: studentId },
-            select: { isSuspended: true, isTakingBreak: true } // Select the new field
+            select: { isSuspended: true, isTakingBreak: true, isPaying: true }
         });
 
         // If suspended or taking a break, return no assignments
         if (!student || student.isSuspended || student.isTakingBreak) {
             return [];
         }
+        const enforceFreeOnly = !student.isPaying;
 
         // Select explicit scalar fields to avoid querying optional columns
         // that may not exist yet in some environments (e.g., teacherAnswerComments).
@@ -1062,27 +1063,42 @@ export async function getAssignmentsForStudent(studentId: string) {
             ...baseLessonSelect,
             isFreeForAll: true,
         } as const;
+        const isLessonFree = (lesson: unknown) => {
+            const maybeLesson = lesson as {
+                isFreeForAll?: boolean;
+                guideIsFreeForAll?: boolean;
+            } | null;
+            return Boolean(maybeLesson?.isFreeForAll || maybeLesson?.guideIsFreeForAll);
+        };
 
         try {
-            return await fetchAssignments(lessonSelectWithFreeFlags);
+            const assignments = await fetchAssignments(lessonSelectWithFreeFlags);
+            return enforceFreeOnly
+                ? assignments.filter((assignment) => isLessonFree(assignment.lesson))
+                : assignments;
         } catch (err: unknown) {
             const message = (err as Error)?.message || '';
             if (message.includes('guideIsFreeForAll')) {
                 console.warn('Lesson guide free flag missing; falling back to isFreeForAll only.');
                 try {
-                    return await fetchAssignments(lessonSelectWithIsFree);
+                    const assignments = await fetchAssignments(lessonSelectWithIsFree);
+                    return enforceFreeOnly
+                        ? assignments.filter((assignment) => isLessonFree(assignment.lesson))
+                        : assignments;
                 } catch (innerErr: unknown) {
                     const innerMessage = (innerErr as Error)?.message || '';
                     if (innerMessage.includes('isFreeForAll')) {
                         console.warn('Lesson free flags missing; falling back without select.');
-                        return fetchAssignments(baseLessonSelect);
+                        const assignments = await fetchAssignments(baseLessonSelect);
+                        return enforceFreeOnly ? [] : assignments;
                     }
                     throw innerErr;
                 }
             }
             if (message.includes('isFreeForAll')) {
                 console.warn('Lesson free flag missing; falling back without select.');
-                return fetchAssignments(baseLessonSelect);
+                const assignments = await fetchAssignments(baseLessonSelect);
+                return enforceFreeOnly ? [] : assignments;
             }
             throw err;
         }
