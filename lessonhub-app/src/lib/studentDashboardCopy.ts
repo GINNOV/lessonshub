@@ -25,6 +25,8 @@ export const studentDashboardCopy: Record<
       searchPlaceholder: string;
       empty: string;
       browseTeachers: string;
+      lessonsCountLabel: string;
+      weekLabel: string;
       card: {
         viewResults: string;
         practiceAgain: string;
