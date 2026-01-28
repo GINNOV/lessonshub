@@ -254,6 +254,10 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
   const typeLabel = LESSON_TYPE_SHORT_LABELS[lesson.type] || 'LESSON';
 
   const lessonIdDisplay = `Lesson ${getWeekAndDay(currentDeadline)}`;
+  const showMarketplaceIcon =
+    !isMarketplacePurchased &&
+    (status === AssignmentStatus.FAILED ||
+      (status === AssignmentStatus.PENDING && isPastDeadline));
 
   const copyToClipboard = async (text: string) => {
     if (navigator?.clipboard?.writeText) {
@@ -449,7 +453,7 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-          {!isMarketplacePurchased && (
+          {showMarketplaceIcon && (
             <Button
               asChild
               variant="ghost"
