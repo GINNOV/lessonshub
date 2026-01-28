@@ -1246,6 +1246,7 @@ export default async function AssignmentPage({
         <StudentExtensionRequest
           assignmentId={serializableAssignment.id}
           disabled={studentExtensionUsed}
+          locale={locale}
         />
       )}
       {isPastDue && (

@@ -92,6 +92,7 @@ type StudentLessonCardCopy = {
   shareLinkReady: string;
   shareLinkCopyError: string;
   dueLabel: string;
+  extendableLabel: string;
   extendedLabel: string;
   originalLabel: string;
 };
@@ -122,6 +123,7 @@ const defaultCopy: StudentLessonCardCopy = {
   shareLinkReady: 'Lesson link ready to share.',
   shareLinkCopyError: 'Unable to copy share link.',
   dueLabel: 'Due',
+  extendableLabel: 'Extendable',
   extendedLabel: 'Updated',
   originalLabel: 'Original:',
 };
@@ -239,7 +241,11 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
       lesson.type === LessonType.STANDARD);
   
   const gradedScore = typeof score === 'number' ? score.toString() : t.scoreEmpty;
-  const dueDisplay = isMarketplacePurchased ? 'Anytime' : null;
+  const dueDisplay = isMarketplacePurchased
+    ? 'Anytime'
+    : status === AssignmentStatus.PENDING && isPastDeadline
+      ? t.extendableLabel
+      : null;
   const marketplaceStatus =
     isMarketplacePurchased && status === AssignmentStatus.PENDING
       ? {
@@ -289,8 +295,7 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
   const lessonIdDisplay = `Lesson ${getWeekAndDay(currentDeadline)}`;
   const showMarketplaceIcon =
     !isMarketplacePurchased &&
-    (status === AssignmentStatus.FAILED ||
-      (status === AssignmentStatus.PENDING && isPastDeadline));
+    status === AssignmentStatus.FAILED;
 
   const copyToClipboard = async (text: string) => {
     if (navigator?.clipboard?.writeText) {
@@ -544,8 +549,7 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
               <div className="flex flex-col items-end gap-1">
                 <div className={cn("flex items-center gap-2 text-[11px] font-normal", isPastDeadline ? "text-orange-300" : "text-slate-400")}>
                   <span>
-                    {t.dueLabel}{' '}
-                    {dueDisplay ? dueDisplay : <LocaleDate date={deadline} />}
+                    {dueDisplay ? dueDisplay : <>{t.dueLabel} <LocaleDate date={deadline} /></>}
                   </span>
                   {hasExtendedDeadline && (
                     <Badge variant="outline" className="border-rose-400/70 bg-rose-500/15 text-rose-100">
