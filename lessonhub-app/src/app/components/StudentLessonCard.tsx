@@ -51,6 +51,7 @@ type SerializableAssignment = {
   status: AssignmentStatus;
   deadline: Date | string;
   originalDeadline: Date | string | null;
+  extensionUsed?: boolean;
   score: number | null;
   pointsAwarded: number;
   answers: any;
@@ -141,9 +142,9 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
   const isMarketplacePurchased = Boolean(assignment.marketplacePurchased);
   const currentDeadline = new Date(deadline);
   const originalDeadlineDate = assignment.originalDeadline ? new Date(assignment.originalDeadline) : null;
-  const hasExtendedDeadline = !isMarketplacePurchased && Boolean(
-    originalDeadlineDate && Math.abs(currentDeadline.getTime() - originalDeadlineDate.getTime()) > 60 * 1000
-  );
+  const hasExtendedDeadline =
+    !isMarketplacePurchased &&
+    Boolean(assignment.extensionUsed && originalDeadlineDate);
   const isPastDeadline = currentDeadline < new Date();
   const isComplete = status === AssignmentStatus.COMPLETED || status === AssignmentStatus.GRADED || status === AssignmentStatus.FAILED;
   const [shareId, setShareId] = useState<string | null>(lesson.public_share_id);
@@ -153,7 +154,7 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
   const difficultyLabel =
     t.difficultyLabels?.[normalizedDifficulty - 1] ??
     defaultCopy.difficultyLabels[normalizedDifficulty - 1];
-  const completionPercent = (() => {
+  const progressState = (() => {
     const draftAnswers = assignment.draftAnswers;
     const hasDraftAnswers = draftAnswers && typeof draftAnswers === 'object';
     if (lesson.type === LessonType.COMPOSER && lesson.composerConfig?.hiddenSentence) {
@@ -169,7 +170,10 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
         : Array.isArray(assignment.answers)
           ? assignment.answers.filter((answer) => (answer as { selectedWord?: string })?.selectedWord?.trim()).length
           : 0;
-      return totalWords > 0 ? Math.round((answeredCount / totalWords) * 100) : 0;
+      return {
+        percent: totalWords > 0 ? Math.round((answeredCount / totalWords) * 100) : 0,
+        hasProgress: answeredCount > 0,
+      };
     }
     if (lesson.type === LessonType.MULTI_CHOICE && lesson.multiChoiceCount) {
       const total = lesson.multiChoiceCount;
@@ -178,7 +182,10 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
         : Array.isArray(assignment.answers)
           ? assignment.answers.length
           : 0;
-      return total > 0 ? Math.round((answeredCount / total) * 100) : 0;
+      return {
+        percent: total > 0 ? Math.round((answeredCount / total) * 100) : 0,
+        hasProgress: answeredCount > 0,
+      };
     }
     if (lesson.type === LessonType.STANDARD && lesson.questionCount) {
       const total = lesson.questionCount;
@@ -193,12 +200,38 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
               return false;
             }).length
           : 0;
-      return total > 0 ? Math.round((answeredCount / total) * 100) : 0;
+      return {
+        percent: total > 0 ? Math.round((answeredCount / total) * 100) : 0,
+        hasProgress: answeredCount > 0,
+      };
     }
-    return lesson.completionCount > 0
-      ? Math.round((lesson.submittedCount / lesson.completionCount) * 100)
-      : 0;
+    const fallbackHasProgress = (() => {
+      if (Array.isArray(draftAnswers)) {
+        return draftAnswers.some((value: unknown) =>
+          typeof value === 'string' ? value.trim() : Boolean(value),
+        );
+      }
+      if (draftAnswers && typeof draftAnswers === 'object') {
+        return Object.keys(draftAnswers as Record<string, unknown>).length > 0;
+      }
+      if (Array.isArray(assignment.answers)) {
+        return assignment.answers.length > 0;
+      }
+      if (assignment.answers && typeof assignment.answers === 'object') {
+        return Object.keys(assignment.answers as Record<string, unknown>).length > 0;
+      }
+      return false;
+    })();
+    return {
+      percent:
+        lesson.completionCount > 0
+          ? Math.round((lesson.submittedCount / lesson.completionCount) * 100)
+          : 0,
+      hasProgress: fallbackHasProgress,
+    };
   })();
+  const completionPercent = progressState.percent;
+  const hasStarted = isComplete || progressState.hasProgress;
   const canPractice =
     (status === AssignmentStatus.GRADED || status === AssignmentStatus.FAILED) &&
     (lesson.type === LessonType.FLASHCARD ||
@@ -394,7 +427,7 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
           labels={t.difficultyLabels}
           srLabel={`${t.difficultySrPrefix} ${difficultyLabel}`}
         />
-        {!isComplete && (
+        {!isComplete && hasStarted && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-400">
               <span>Completion</span>
@@ -509,13 +542,13 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
           ) : (
             <div className="text-right">
               <div className="flex flex-col items-end gap-1">
-                <div className={cn("flex items-center gap-2 font-semibold text-xs sm:text-sm", isPastDeadline ? "text-orange-300" : "text-slate-200")}>
+                <div className={cn("flex items-center gap-2 text-[11px] font-normal", isPastDeadline ? "text-orange-300" : "text-slate-400")}>
                   <span>
                     {t.dueLabel}{' '}
                     {dueDisplay ? dueDisplay : <LocaleDate date={deadline} />}
                   </span>
                   {hasExtendedDeadline && (
-                    <Badge variant="outline" className="border-cyan-300/60 text-cyan-100">
+                    <Badge variant="outline" className="border-rose-400/70 bg-rose-500/15 text-rose-100">
                       {t.extendedLabel}
                     </Badge>
                   )}

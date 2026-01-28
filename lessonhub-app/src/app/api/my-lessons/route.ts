@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { Role, AssignmentStatus, PointReason } from "@prisma/client";
 import { getAssignmentsForStudent } from "@/actions/lessonActions";
 import prisma from "@/lib/prisma";
+import { EXTENSION_POINT_COST } from "@/lib/lessonExtensions";
 
 export async function GET() {
   const session = await auth();
@@ -27,9 +28,25 @@ export async function GET() {
           select: { assignmentId: true },
         })
       : [];
+    const extensionTransactions = assignmentIds.length
+      ? await prisma.pointTransaction.findMany({
+          where: {
+            userId: session.user.id,
+            assignmentId: { in: assignmentIds },
+            points: -EXTENSION_POINT_COST,
+            note: { contains: "Lesson extension" },
+          },
+          select: { assignmentId: true },
+        })
+      : [];
     const purchasedAssignmentIds = new Set(
       marketplacePurchases
         .map((purchase) => purchase.assignmentId)
+        .filter((id): id is string => Boolean(id)),
+    );
+    const extendedAssignmentIds = new Set(
+      extensionTransactions
+        .map((transaction) => transaction.assignmentId)
         .filter((id): id is string => Boolean(id)),
     );
 
@@ -56,6 +73,7 @@ export async function GET() {
           ...assignment,
           pointsAwarded: assignment.pointsAwarded ?? 0,
           marketplacePurchased: purchasedAssignmentIds.has(assignment.id),
+          extensionUsed: extendedAssignmentIds.has(assignment.id),
           teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
           lesson: {
             ...restOfLesson,

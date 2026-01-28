@@ -18,6 +18,7 @@ import WhatsNewDialog from "@/app/components/WhatsNewDialog";
 import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
+import { EXTENSION_POINT_COST } from "@/lib/lessonExtensions";
 import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from "@/lib/locale";
 import { studentDashboardCopy, StudentDashboardLocale } from "@/lib/studentDashboardCopy";
 
@@ -102,9 +103,25 @@ export default async function MyLessonsPage() {
         select: { assignmentId: true },
       })
     : [];
+  const extensionTransactions = assignmentIds.length
+    ? await prisma.pointTransaction.findMany({
+        where: {
+          userId: session.user.id,
+          assignmentId: { in: assignmentIds },
+          points: -EXTENSION_POINT_COST,
+          note: { contains: 'Lesson extension' },
+        },
+        select: { assignmentId: true },
+      })
+    : [];
   const purchasedAssignmentIds = new Set(
     marketplacePurchases
       .map((purchase) => purchase.assignmentId)
+      .filter((id): id is string => Boolean(id)),
+  );
+  const extendedAssignmentIds = new Set(
+    extensionTransactions
+      .map((transaction) => transaction.assignmentId)
       .filter((id): id is string => Boolean(id)),
   );
   const now = new Date();
@@ -165,10 +182,7 @@ export default async function MyLessonsPage() {
           })()
         : assignment.deadline;
 
-    const normalizedOriginalDeadline =
-      adjustedDeadline !== assignment.deadline
-        ? adjustedDeadline
-        : assignment.originalDeadline ?? null;
+    const normalizedOriginalDeadline = assignment.originalDeadline ?? null;
 
     return {
       ...assignment,
@@ -177,6 +191,7 @@ export default async function MyLessonsPage() {
       pointsAwarded: assignment.pointsAwarded ?? 0,
       draftAnswers: (assignment as any).draftAnswers ?? null,
       marketplacePurchased: purchasedAssignmentIds.has(assignment.id),
+      extensionUsed: extendedAssignmentIds.has(assignment.id),
       // Ensure optional columns missing in some DBs are present for typing
       teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
       lesson: {

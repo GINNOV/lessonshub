@@ -2,7 +2,7 @@
 import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { AssignmentStatus, LessonType } from '@prisma/client';
+import { AssignmentStatus, LessonType, PointReason } from '@prisma/client';
 
 export async function POST(
   request: Request,
@@ -32,6 +32,18 @@ export async function POST(
   }
 
   if (assignment.status !== AssignmentStatus.PENDING) {
+    return NextResponse.json({ success: true });
+  }
+
+  const marketplacePurchase = await prisma.pointTransaction.findFirst({
+    where: {
+      assignmentId,
+      userId: session.user.id,
+      reason: PointReason.MARKETPLACE_PURCHASE,
+    },
+    select: { id: true },
+  });
+  if (marketplacePurchase) {
     return NextResponse.json({ success: true });
   }
 

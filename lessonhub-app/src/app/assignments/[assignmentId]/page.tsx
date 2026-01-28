@@ -15,7 +15,7 @@ import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
 import ArkaningLessonPlayer from "@/app/components/ArkaningLessonPlayer";
 import NewsArticleLessonPlayer from "@/app/components/NewsArticleLessonPlayer";
 import { marked } from "marked";
-import { AssignmentStatus, LessonType } from "@prisma/client";
+import { AssignmentStatus, LessonType, PointReason } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
 import {
@@ -679,6 +679,15 @@ export default async function AssignmentPage({
       select: { id: true },
     }),
   );
+  const marketplacePurchase = await prisma.pointTransaction.findFirst({
+    where: {
+      assignmentId: serializableAssignment.id,
+      userId: serializableAssignment.studentId,
+      reason: PointReason.MARKETPLACE_PURCHASE,
+    },
+    select: { id: true },
+  });
+  const isMarketplacePurchased = Boolean(marketplacePurchase);
 
   const showResultsArea =
     (serializableAssignment.status === AssignmentStatus.GRADED ||
@@ -714,7 +723,9 @@ export default async function AssignmentPage({
   const isNewsArticle = lesson.type === LessonType.NEWS_ARTICLE;
   const isComposer = lesson.type === LessonType.COMPOSER;
   const isArkaning = lesson.type === LessonType.ARKANING;
-  const showResponseArea = serializableAssignment.status === AssignmentStatus.PENDING;
+  const showResponseArea =
+    serializableAssignment.status === AssignmentStatus.PENDING ||
+    (isArkaning && isMarketplacePurchased);
   const showNewsArticleConsultation =
     isNewsArticle && serializableAssignment.status !== AssignmentStatus.PENDING;
   const multiChoiceAnswers = isMultiChoice
