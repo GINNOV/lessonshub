@@ -228,10 +228,6 @@ export default function Navbar() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>
-                      <div className="text-sm font-normal text-slate-400">{session.user.email}</div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
                     {user?.role === Role.ADMIN && (
                       <>
                         <DropdownMenuItem asChild>
@@ -254,22 +250,14 @@ export default function Navbar() {
                         </DropdownMenuItem>
                       </>
                     )}
-                    {user?.role === Role.TEACHER && (
-                      <>
-                        <DropdownMenuItem asChild>
-                          <Link href="/dashboard/classes">{copy.manageClasses}</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setIsClassNotesDialogOpen(true)}>
-                          {copy.sendNotes}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/dashboard/settings">{copy.settings}</Link>
-                        </DropdownMenuItem>
-                      </>
-                    )}
                     {hasAdminAccess && user?.role !== Role.ADMIN && (
                       <DropdownMenuItem asChild>
                         <Link href="/admin">{copy.adminDashboard}</Link>
+                      </DropdownMenuItem>
+                    )}
+                    {user?.role === Role.TEACHER && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard/classes">{copy.manageClasses}</Link>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem asChild>
@@ -283,6 +271,16 @@ export default function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link href="/referrals">{copy.referralDashboard}</Link>
                     </DropdownMenuItem>
+                    {user?.role === Role.TEACHER && (
+                      <>
+                        <DropdownMenuItem onSelect={() => setIsClassNotesDialogOpen(true)}>
+                          {copy.sendNotes}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/dashboard/settings">{copy.settings}</Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     {user?.role !== Role.TEACHER && (
                       <DropdownMenuItem onSelect={() => setIsFeedbackDialogOpen(true)}>
                         {copy.sendFeedback}

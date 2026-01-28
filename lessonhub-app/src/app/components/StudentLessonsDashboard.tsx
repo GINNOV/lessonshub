@@ -219,7 +219,7 @@ export default function StudentLessonsDashboard({
                 >
                   <span className="flex items-center justify-center gap-2">
                     <PiggyBank className="h-4 w-4" />
-                    {locale === 'it' ? 'Comprate' : 'Bought'}
+                    {locale === 'it' ? 'Mercato' : 'Bought'}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger

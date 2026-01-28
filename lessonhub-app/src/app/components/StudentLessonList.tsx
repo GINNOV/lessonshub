@@ -61,6 +61,8 @@ interface StudentLessonListProps {
     searchPlaceholder: string;
     empty: string;
     browseTeachers: string;
+    lessonsCountLabel: string;
+    weekLabel: string;
     card?: React.ComponentProps<typeof StudentLessonCard>['copy'];
   };
   filter?: StudentLessonFilter;
@@ -188,9 +190,16 @@ export default function StudentLessonList({
                   >
                     <AccordionTrigger className="py-4 text-slate-200 hover:no-underline">
                       <div className="flex w-full flex-wrap items-center justify-between gap-3">
-                        <WeekDivider weekNumber={group.weekNo} year={group.year} />
+                        <WeekDivider
+                          weekNumber={group.weekNo}
+                          year={group.year}
+                          label={copy?.weekLabel}
+                        />
                         <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                          {group.items.length} lessons
+                          {(copy?.lessonsCountLabel ?? "{count} lessons").replace(
+                            "{count}",
+                            String(group.items.length),
+                          )}
                         </span>
                       </div>
                     </AccordionTrigger>

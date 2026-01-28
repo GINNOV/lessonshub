@@ -3,12 +3,14 @@
 export default function WeekDivider({
   weekNumber,
   year,
+  label,
   className,
   dividerClassName,
   labelClassName,
 }: {
   weekNumber: number;
   year?: number;
+  label?: string;
   className?: string;
   dividerClassName?: string;
   labelClassName?: string;
@@ -23,7 +25,7 @@ export default function WeekDivider({
       >
         <span role="img" aria-label="Calendar">🗓️</span>
         <span>
-          Week {weekNumber}
+          {label ?? 'Week'} {weekNumber}
           {year ? ` • ${year}` : ''}
         </span>
       </div>

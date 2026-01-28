@@ -14,6 +14,7 @@ import {
   getStudentGamification,
 } from "@/actions/studentActions";
 import React from "react";
+import Link from "next/link";
 import WhatsNewDialog from "@/app/components/WhatsNewDialog";
 import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 import prisma from "@/lib/prisma";
@@ -46,18 +47,43 @@ export default async function MyLessonsPage() {
   // If the user is taking a break, show the message and stop further data fetching.
   if (isTakingBreak) {
     return (
-      <div className="text-center p-8 border rounded-lg bg-gray-50">
-        <h2 className="text-2xl font-bold mb-4">Lessons Paused</h2>
-        <p className="max-w-prose mx-auto">
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center text-slate-100 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-slate-700 bg-slate-950/70 text-2xl">
+          ⏸️
+        </div>
+        <h2 className="text-2xl font-bold mb-3">Lessons Paused</h2>
+        <p className="mx-auto max-w-prose text-slate-300">
           🇺🇸 You&apos;ve chosen to pause your journey. Reactivate your account
           to restart your lessons. Just click your avatar in the top right and
           select Profile. The rest is history.
         </p>
-        <p className="max-w-prose mx-auto mt-4">
+        <p className="mx-auto mt-4 max-w-prose text-slate-300">
           🇮🇹 Hai scelto di mettere in pausa il tuo futuro. Riattiva il tuo
           account per riprendere le lezioni. Ti basta cliccare sull’avatar in
           alto a destra e selezionare Profilo. Il resto e&apos; storia.
         </p>
+        <div className="mx-auto mt-6 max-w-prose rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-left text-sm text-slate-300">
+          <p className="font-semibold text-slate-100">Resume lessons</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5">
+            <li>Open Profile.</li>
+            <li>Go to the “Take a break” section.</li>
+            <li>Turn off the pause toggle.</li>
+          </ol>
+          <p className="mt-3 font-semibold text-slate-100">Riprendi le lezioni</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5">
+            <li>Apri Profilo.</li>
+            <li>Vai alla sezione “Take a break”.</li>
+            <li>Disattiva lo switch della pausa.</li>
+          </ol>
+        </div>
+        <div className="mt-6 flex justify-center">
+          <Link
+            href="/profile?tab=delete"
+            className="inline-flex items-center rounded-xl border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] transition hover:brightness-110"
+          >
+            Go to Profile
+          </Link>
+        </div>
       </div>
     );
   }

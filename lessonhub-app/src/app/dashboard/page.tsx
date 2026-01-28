@@ -108,10 +108,10 @@ export default async function DashboardPage({
         <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
         <p className="text-gray-600 mb-8">Quick access to admin tools.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {ADMIN_TILES.map(({ href, label, icon: Icon, color }) => (
-            <Link key={href} href={href} className={`block rounded-xl border ${color} p-8 text-center shadow-sm hover:shadow-lg transition-shadow`}> 
+          {ADMIN_TILES.map(({ href, label, icon: Icon, color, iconClass }) => (
+            <Link key={href} href={href} className={`block rounded-xl border ${color} p-8 text-center shadow-sm hover:shadow-lg transition-shadow`}>
               <div className="flex flex-col items-center gap-3">
-                <Icon className="h-10 w-10" />
+                <Icon className={`h-10 w-10 ${iconClass}`} />
                 <span className="text-lg font-semibold">{label}</span>
               </div>
             </Link>

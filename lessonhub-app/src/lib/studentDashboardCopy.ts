@@ -137,6 +137,8 @@ export const studentDashboardCopy: Record<
       searchPlaceholder: "Search by title or teacher...",
       empty: "You have no assignments yet.",
       browseTeachers: "Browse teachers directory",
+      lessonsCountLabel: "{count} lessons",
+      weekLabel: "Week",
       card: {
         viewResults: "View Results",
         practiceAgain: "Practice this lesson again",
@@ -246,7 +248,7 @@ export const studentDashboardCopy: Record<
       assignmentSummary: "IL MIO LAVORO",
       assignmentSummaryBadge: "FILTRI",
       labels: {
-        total: "Totale",
+        total: "TUTTE",
         pending: "In corso",
         submitted: "Inviati",
         graded: "Corretti",
@@ -258,6 +260,8 @@ export const studentDashboardCopy: Record<
       searchPlaceholder: "Cerca per titolo o insegnante...",
       empty: "Non hai ancora compiti assegnati.",
       browseTeachers: "Vai al catalogo insegnanti",
+      lessonsCountLabel: "{count} lezioni",
+      weekLabel: "Settimana",
       card: {
         viewResults: "Vedi risultati",
         practiceAgain: "Ripeti questa lezione",
@@ -266,8 +270,8 @@ export const studentDashboardCopy: Record<
         viewTeacherTitle: "Vedi il profilo di {teacher}",
         unassignedTeacher: "Non assegnato",
         unassignedTeacherAlt: "Insegnante non assegnato",
-        submittedCountTitle: "{submitted} su {total} studenti hanno inviato",
-        submittedCountShort: "{submitted} su {total}",
+        submittedCountTitle: "{submitted} di {total} studenti hanno inviato",
+        submittedCountShort: "{submitted} di {total}",
         difficultyLabels: ["Facilissimo", "Accessibile", "Intermedio", "Impegnativo", "Avanzato"],
         difficultySrPrefix: "Difficoltà lezione:",
         status: {
