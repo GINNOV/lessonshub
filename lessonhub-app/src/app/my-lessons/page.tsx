@@ -136,7 +136,8 @@ export default async function MyLessonsPage() {
     (a) =>
       a.status === AssignmentStatus.PENDING &&
       isAvailable(a) &&
-      new Date(a.deadline) > now,
+      new Date(a.deadline) > now &&
+      !purchasedAssignmentIds.has(a.id),
   ).length;
   const submitted = assignments.filter(
     (a) => a.status === AssignmentStatus.COMPLETED,

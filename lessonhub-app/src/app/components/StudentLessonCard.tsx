@@ -249,8 +249,8 @@ export default function StudentLessonCard({ assignment, index, copy }: StudentLe
   const marketplaceStatus =
     isMarketplacePurchased && status === AssignmentStatus.PENDING
       ? {
-          label: 'Unlocked',
-          className: 'bg-amber-400/20 text-amber-100 border border-amber-300/60',
+          label: 'Purchased',
+          className: 'bg-emerald-400/20 text-emerald-100 border border-emerald-300/60',
         }
       : null;
   const statusMeta = (() => {
