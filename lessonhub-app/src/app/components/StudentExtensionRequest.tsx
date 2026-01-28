@@ -7,12 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Clock, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
-type ExtensionLocale = 'en' | 'it';
-
 interface StudentExtensionRequestProps {
   assignmentId: string;
   disabled?: boolean;
-  locale?: ExtensionLocale;
+  locale?: string;
 }
 
 export default function StudentExtensionRequest({
@@ -22,7 +20,8 @@ export default function StudentExtensionRequest({
 }: StudentExtensionRequestProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-  const copy = locale === 'it'
+  const normalizedLocale = locale.toLowerCase();
+  const copy = normalizedLocale.startsWith('it')
     ? {
         title: 'Serve più tempo?',
         body: 'Richiedi una proroga di 48 ore per 200 punti. Una proroga per lezione.',

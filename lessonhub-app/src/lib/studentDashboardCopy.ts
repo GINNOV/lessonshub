@@ -51,6 +51,7 @@ export const studentDashboardCopy: Record<
         shareLinkReady: string;
         shareLinkCopyError: string;
         dueLabel: string;
+        extendableLabel: string;
         extendedLabel: string;
         originalLabel: string;
       };
