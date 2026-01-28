@@ -220,7 +220,7 @@ export async function sendStartDateNotifications(referenceDate?: Date, lookahead
   const notifiedIds: string[] = [];
   for (const assignment of assignmentsToNotify) {
     if (assignment.student.email && assignment.lesson.teacher) {
-      const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
+      const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
       const tz = assignment.student.timeZone || undefined;
       let deadlineStr: string;
       try {

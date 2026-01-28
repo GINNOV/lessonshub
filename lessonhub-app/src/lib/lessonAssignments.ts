@@ -70,10 +70,24 @@ export async function autoAssignLessonToAllStudents({
     return;
   }
 
-  const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
+  const assignments = await prisma.assignment.findMany({
+    where: {
+      lessonId,
+      studentId: { in: students.map((student) => student.id) },
+    },
+    select: { id: true, studentId: true },
+  });
+  const assignmentByStudentId = new Map(
+    assignments.map((assignment) => [assignment.studentId, assignment.id]),
+  );
+
   for (const student of students) {
     if (!student.email) continue;
 
+    const assignmentId = assignmentByStudentId.get(student.id);
+    const assignmentUrl = assignmentId
+      ? `${process.env.AUTH_URL}/assignments/${assignmentId}`
+      : `${process.env.AUTH_URL}/my-lessons`;
     const deadlineStr = formatDeadline(defaultDeadline, student.timeZone);
     await sendEmail({
       to: student.email,

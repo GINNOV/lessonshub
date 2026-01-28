@@ -60,7 +60,7 @@ export async function PATCH(req: Request) {
       if (!student?.email || !lesson?.teacher) {
         return false;
       }
-      const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
+      const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
       const deadlineStr = formatDeadline(new Date(assignment.deadline), student.timeZone);
       await sendEmail({
         to: student.email,
@@ -125,14 +125,27 @@ export async function PATCH(req: Request) {
           select: { id: true, email: true, name: true, timeZone: true },
         });
 
+        const newlyCreatedAssignments = await prisma.assignment.findMany({
+          where: {
+            lessonId,
+            studentId: { in: assignmentsToAssign.map((item) => item.studentId) },
+          },
+          select: { id: true, studentId: true, deadline: true },
+        });
+        const assignmentByStudentId = new Map(
+          newlyCreatedAssignments.map((assignment) => [assignment.studentId, assignment]),
+        );
+
         const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, include: { teacher: true }});
         if (lesson) {
             for (const student of newlyAssignedStudents) {
                 if (student.email) {
-                    const assignmentUrl = `${process.env.AUTH_URL}/my-lessons`;
-                    // Find this student's deadline from payload to personalize the email
-                    const assigned = assignmentsToAssign.find((i) => i.studentId === student.id);
-                    const deadlineStr = assigned ? formatDeadline(new Date(assigned.deadline), student.timeZone) : '';
+                    const assignment = assignmentByStudentId.get(student.id);
+                    const assignmentUrl = assignment
+                      ? `${process.env.AUTH_URL}/assignments/${assignment.id}`
+                      : `${process.env.AUTH_URL}/my-lessons`;
+                    const deadlineSource = assignment?.deadline ?? assignmentsToAssign.find((i) => i.studentId === student.id)?.deadline;
+                    const deadlineStr = deadlineSource ? formatDeadline(new Date(deadlineSource), student.timeZone) : '';
                     await sendEmail({
                         to: student.email,
                         templateName: 'new_assignment',
