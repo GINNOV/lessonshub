@@ -645,7 +645,7 @@ export default async function AssignmentPage({
       }
     : {
         title: "This lesson unlocks soon",
-        body: "You can’t start this lesson yet. You’re getting an early heads-up because you’re doing great. You'll receive a notification when it's available. an email when it's available.",
+        body: "You can’t start this lesson yet. You’re getting an early heads-up because you’re doing great. You'll receive a notification when it's available.",
         availability: "It opens on",
         cta: "Back to My Lessons",
       };
