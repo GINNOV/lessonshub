@@ -639,13 +639,13 @@ export default async function AssignmentPage({
   const earlyAccessCopy = locale === "it"
     ? {
         title: "Questa lezione si sblocca presto",
-        body: "Non puoi ancora iniziare questa lezione. Hai ricevuto un avviso in anticipo perché stai facendo un ottimo lavoro.",
+        body: "Non puoi ancora iniziare questa lezione. Hai ricevuto un avviso in anticipo perché stai facendo un ottimo lavoro. Appena la lezione è disponibile, riceverai una notifica.",
         availability: "Sarà disponibile il",
         cta: "Torna alle mie lezioni",
       }
     : {
         title: "This lesson unlocks soon",
-        body: "You can’t start this lesson yet. You’re getting an early heads-up because you’re doing great.",
+        body: "You can’t start this lesson yet. You’re getting an early heads-up because you’re doing great. You'll receive a notification when it's available. an email when it's available.",
         availability: "It opens on",
         cta: "Back to My Lessons",
       };

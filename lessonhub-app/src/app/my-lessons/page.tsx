@@ -316,7 +316,10 @@ export default async function MyLessonsPage() {
   }) as StudentDashboardLocale;
   const copy = studentDashboardCopy[locale];
   const activeBanners = await prisma.studentBanner.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      OR: [{ locale: null }, { locale }],
+    },
     orderBy: [{ order: "asc" }, { createdAt: "desc" }],
   });
   const bannerCopies = activeBanners.map((banner) => ({

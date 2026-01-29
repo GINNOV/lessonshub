@@ -237,7 +237,7 @@ export default function StudentLessonsDashboard({
                 >
                   <span className="flex items-center justify-center gap-2">
                     <Gamepad2 className="h-4 w-4" />
-                    {locale === 'it' ? 'Giochi' : 'Games'}
+                    {locale === 'it' ? 'Area giochi' : 'Playground'}
                   </span>
                 </TabsTrigger>
               </TabsList>
@@ -314,7 +314,7 @@ export default function StudentLessonsDashboard({
               >
                 <span className="flex items-center justify-center gap-2">
                   <Gamepad2 className="h-4 w-4" />
-                  {locale === 'it' ? 'Giochi' : 'Games'}
+                  {locale === 'it' ? 'Area giochi' : 'Playground'}
                 </span>
               </TabsTrigger>
             </TabsList>

@@ -554,6 +554,7 @@ model StudentBanner {
   body      String
   ctaText   String
   ctaHref   String   @default("/profile?tab=status")
+  locale    String?
   order     Int      @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())

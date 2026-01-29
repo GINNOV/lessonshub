@@ -223,6 +223,13 @@ export async function createBadgeAction(formData: FormData) {
   }
 }
 
+const normalizeBannerLocale = (raw: FormDataEntryValue | null) => {
+  const value = String(raw ?? "").trim().toLowerCase();
+  if (!value) return null;
+  if (value === "en" || value === "it") return value;
+  return null;
+};
+
 export async function createStudentBannerAction(formData: FormData) {
   const session = await auth();
   if (!session?.user || !hasAdminPrivileges(session.user)) {
@@ -236,6 +243,7 @@ export async function createStudentBannerAction(formData: FormData) {
   const ctaHref = String(formData.get("ctaHref") ?? "").trim() || "/profile?tab=status";
   const orderValue = Number(formData.get("order") ?? 0);
   const order = Number.isFinite(orderValue) ? orderValue : 0;
+  const locale = normalizeBannerLocale(formData.get("locale"));
 
   if (!kicker || !title || !body || !ctaText) {
     return { success: false, error: "All fields are required." };
@@ -250,6 +258,7 @@ export async function createStudentBannerAction(formData: FormData) {
         ctaText,
         ctaHref,
         order,
+        locale,
       },
     });
     revalidatePath("/admin/banners");
@@ -323,6 +332,23 @@ export async function toggleStudentBannerAction(bannerId: string, isActive: bool
   }
 }
 
+export async function deleteStudentBannerAction(bannerId: string) {
+  const session = await auth();
+  if (!session?.user || !hasAdminPrivileges(session.user)) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await prisma.studentBanner.delete({ where: { id: bannerId } });
+    revalidatePath("/admin/banners");
+    revalidatePath("/my-lessons");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete banner", error);
+    return { success: false, error: "Unable to delete banner." };
+  }
+}
+
 export async function updateStudentBannerAction(formData: FormData) {
   const session = await auth();
   if (!session?.user || !hasAdminPrivileges(session.user)) {
@@ -337,6 +363,7 @@ export async function updateStudentBannerAction(formData: FormData) {
   const ctaHref = String(formData.get("ctaHref") ?? "").trim() || "/profile?tab=status";
   const orderValue = Number(formData.get("order") ?? 0);
   const order = Number.isFinite(orderValue) ? orderValue : 0;
+  const locale = normalizeBannerLocale(formData.get("locale"));
 
   if (!id || !kicker || !title || !body || !ctaText) {
     return { success: false, error: "All fields are required." };
@@ -345,7 +372,7 @@ export async function updateStudentBannerAction(formData: FormData) {
   try {
     await prisma.studentBanner.update({
       where: { id },
-      data: { kicker, title, body, ctaText, ctaHref, order },
+      data: { kicker, title, body, ctaText, ctaHref, order, locale },
     });
     revalidatePath("/admin/banners");
     revalidatePath("/my-lessons");
