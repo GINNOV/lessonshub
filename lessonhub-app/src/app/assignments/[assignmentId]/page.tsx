@@ -14,6 +14,7 @@ import LyricLessonPlayer from "@/app/components/LyricLessonPlayer";
 import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
 import ArkaningLessonPlayer from "@/app/components/ArkaningLessonPlayer";
 import NewsArticleLessonPlayer from "@/app/components/NewsArticleLessonPlayer";
+import FlipperLessonPlayer from "@/app/components/FlipperLessonPlayer";
 import { marked } from "marked";
 import { AssignmentStatus, LessonType, PointReason } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
@@ -723,9 +724,10 @@ export default async function AssignmentPage({
   const isNewsArticle = lesson.type === LessonType.NEWS_ARTICLE;
   const isComposer = lesson.type === LessonType.COMPOSER;
   const isArkaning = lesson.type === LessonType.ARKANING;
+  const isFlipper = lesson.type === LessonType.FLIPPER;
   const showResponseArea =
     serializableAssignment.status === AssignmentStatus.PENDING ||
-    (isArkaning && isMarketplacePurchased);
+    ((isArkaning || isFlipper) && isMarketplacePurchased);
   const showNewsArticleConsultation =
     isNewsArticle && serializableAssignment.status !== AssignmentStatus.PENDING;
   const multiChoiceAnswers = isMultiChoice
@@ -920,6 +922,12 @@ export default async function AssignmentPage({
           ) : isArkaning ? (
             <ArkaningLessonPlayer
               config={(lesson as any).arkaningConfig ?? null}
+              assignmentId={serializableAssignment.id}
+            />
+          ) : isFlipper ? (
+            <FlipperLessonPlayer
+              config={(lesson as any).flipperConfig ?? null}
+              tiles={(lesson as any).flipperTiles ?? []}
               assignmentId={serializableAssignment.id}
             />
           ) : (

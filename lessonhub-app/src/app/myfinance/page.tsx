@@ -106,7 +106,7 @@ export default async function MyFinancePage({
     },
   });
 
-  const [goldStarSum, arkaningSum, newsArticleSum, marketplaceSum, goldStarsList] = await Promise.all([
+  const [goldStarSum, arkaningSum, newsArticleSum, flipperSum, marketplaceSum, goldStarsList] = await Promise.all([
     prisma.goldStar.aggregate({
       where: { studentId },
       _sum: { amountEuro: true },
@@ -118,6 +118,10 @@ export default async function MyFinancePage({
     }),
     prisma.pointTransaction.aggregate({
       where: { userId: studentId, reason: PointReason.NEWS_ARTICLE_TAP },
+      _sum: { amountEuro: true },
+    }),
+    prisma.pointTransaction.aggregate({
+      where: { userId: studentId, reason: PointReason.FLIPPER_MATCH },
       _sum: { amountEuro: true },
     }),
     prisma.pointTransaction.aggregate({
@@ -196,6 +200,7 @@ export default async function MyFinancePage({
   const goldStarCount = goldStarSum._count.id;
   const arkaning = Number(arkaningSum._sum.amountEuro ?? 0);
   const newsArticle = Number(newsArticleSum._sum.amountEuro ?? 0);
+  const flipper = Number(flipperSum._sum.amountEuro ?? 0);
   const marketplace = Number(marketplaceSum._sum.amountEuro ?? 0);
 
   const savings =
@@ -207,6 +212,7 @@ export default async function MyFinancePage({
     goldStars +
     arkaning +
     newsArticle +
+    flipper +
     marketplace;
 
   const topExtensions = extensionItems.slice(0, 5);
@@ -218,6 +224,7 @@ export default async function MyFinancePage({
       { key: 'failed lessons', amount: failedDeduct },
       { key: 'composer extra tries', amount: composerPenalty },
       { key: 'arkaning', amount: Math.abs(arkaning) },
+      { key: 'flipper', amount: Math.abs(flipper) },
       { key: 'marketplace purchases', amount: Math.abs(marketplace) },
     ];
     const sorted = penaltyPairs.sort((a, b) => b.amount - a.amount);

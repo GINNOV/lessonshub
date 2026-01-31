@@ -46,6 +46,7 @@ Historically, savings were calculated from assignment outcomes:
 - **Composer extra tries**: -50 euros per extra try
 - **Extension**: -200 euros (per extension)
 - **Gold stars**: +gold star `amountEuro`
+- **Flipper matches**: per-match euro deltas (attempts 1/2/3: +10/+5/+1, then -5 per extra attempt)
 
 ### Reset Event Notes
 

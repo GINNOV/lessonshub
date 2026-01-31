@@ -91,6 +91,7 @@ const lessonTypeEmojis: Record<LessonType, string> = {
   [LessonType.LYRIC]: '🎵',
   [LessonType.COMPOSER]: '🧩',
   [LessonType.ARKANING]: '🕹️',
+  [LessonType.FLIPPER]: '🃏',
 };
 
 const lessonTypeLabels: Record<LessonType, string> = {
@@ -102,6 +103,7 @@ const lessonTypeLabels: Record<LessonType, string> = {
   [LessonType.LYRIC]: 'Lyric',
   [LessonType.COMPOSER]: 'Composer',
   [LessonType.ARKANING]: 'ArkanING',
+  [LessonType.FLIPPER]: 'Flipper',
 };
 
 const STORAGE_KEY = 'teacher-dashboard-filters';
@@ -131,6 +133,7 @@ const LESSON_TYPE_FILTER_VALUES: LessonTypeFilterValue[] = [
   LessonType.LYRIC,
   LessonType.COMPOSER,
   LessonType.ARKANING,
+  LessonType.FLIPPER,
 ];
 const normalizeLessonTypeFilter = (value: string | null | undefined): LessonTypeFilterValue => {
   if (!value) return 'all';

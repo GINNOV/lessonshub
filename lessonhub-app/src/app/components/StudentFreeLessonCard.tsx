@@ -41,6 +41,7 @@ const lessonTypeImages: Record<LessonType, string> = {
     [LessonType.LYRIC]: '/my-lessons/learning.png',
     [LessonType.COMPOSER]: '/my-lessons/composer.png',
     [LessonType.ARKANING]: '/my-lessons/standard.png',
+    [LessonType.FLIPPER]: '/my-lessons/flashcard.png',
 };
 
 export default function StudentFreeLessonCard({ lesson }: StudentFreeLessonCardProps) {

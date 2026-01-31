@@ -134,8 +134,10 @@ model Lesson {
   lyricConfig               LyricLessonConfig?
   composerConfig            ComposerLessonConfig?
   arkaningConfig            ArkaningLessonConfig?
+  flipperConfig             FlipperLessonConfig?
   lyricAttempts             LyricLessonAttempt[]
   guideCompletions          GuideCompletion[]
+  flipperTiles              FlipperTile[]
 }
 
 model Flashcard {
@@ -479,6 +481,7 @@ enum LessonType {
   LYRIC
   COMPOSER
   ARKANING
+  FLIPPER
 }
 
 model NewsArticleLessonConfig {
@@ -515,6 +518,27 @@ model ArkaningLessonConfig {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   lesson           Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model FlipperLessonConfig {
+  id                    String   @id @default(cuid())
+  lessonId              String   @unique
+  attemptsBeforePenalty Int      @default(3)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  lesson                Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model FlipperTile {
+  id        String   @id @default(cuid())
+  lessonId  String
+  imageUrl  String
+  word      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
 }
 
 enum AssignmentNotification {
@@ -574,4 +598,5 @@ enum PointReason {
   ARKANING_GAME
   NEWS_ARTICLE_TAP
   MARKETPLACE_PURCHASE
+  FLIPPER_MATCH
 }

@@ -41,11 +41,16 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
     redirect("/dashboard");
   }
 
-  if (lesson.type === LessonType.LYRIC) {
+  const lessonTypeWithFlipper = lesson.type as LessonType | "FLIPPER";
+
+  if (lessonTypeWithFlipper === LessonType.LYRIC) {
     redirect(`/dashboard/edit/lyric/${lessonId}`);
   }
-  if (lesson.type === LessonType.NEWS_ARTICLE) {
+  if (lessonTypeWithFlipper === LessonType.NEWS_ARTICLE) {
     redirect(`/dashboard/edit/news-article/${lessonId}`);
+  }
+  if (lessonTypeWithFlipper === "FLIPPER") {
+    redirect(`/dashboard/edit/flipper/${lessonId}`);
   }
   
   const [preferences, instructionBooklets] = await Promise.all([
@@ -69,7 +74,7 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
     price: lesson.price.toNumber(),
   };
   const editorDocHref = (() => {
-    switch (lesson.type) {
+    switch (lessonTypeWithFlipper) {
       case LessonType.STANDARD:
         return "/docs/teachers/lesson-editors/standard";
       case LessonType.FLASHCARD:
@@ -80,6 +85,8 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
         return "/docs/teachers/lesson-editors/guide";
       case LessonType.COMPOSER:
         return "/docs/teachers/lesson-editors/composer";
+      case "FLIPPER":
+        return "/docs/teachers/lesson-editors/flipper";
       default:
         return "/docs/teachers/lesson-editors/standard";
     }
@@ -99,35 +106,35 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
             Lesson editor docs
           </Link>
         </div>
-        {lesson.type === LessonType.STANDARD && (
+        {lessonTypeWithFlipper === LessonType.STANDARD && (
           <LessonForm
             lesson={serializableLesson}
             teacherPreferences={serializablePreferences}
             instructionBooklets={serializableBooklets}
           />
         )}
-        {lesson.type === LessonType.FLASHCARD && (
+        {lessonTypeWithFlipper === LessonType.FLASHCARD && (
           <FlashcardCreator
             lesson={serializableLesson}
             teacherPreferences={serializablePreferences}
             instructionBooklets={serializableBooklets}
           />
         )}
-        {lesson.type === LessonType.MULTI_CHOICE && (
+        {lessonTypeWithFlipper === LessonType.MULTI_CHOICE && (
           <MultiChoiceCreator
             lesson={serializableLesson}
             teacherPreferences={serializablePreferences}
             instructionBooklets={serializableBooklets}
           />
         )}
-        {lesson.type === LessonType.LEARNING_SESSION && (
+        {lessonTypeWithFlipper === LessonType.LEARNING_SESSION && (
           <LearningSessionCreator
             lesson={serializableLesson}
             teacherPreferences={serializablePreferences}
             instructionBooklets={serializableBooklets}
           />
         )}
-        {lesson.type === LessonType.COMPOSER && (
+        {lessonTypeWithFlipper === LessonType.COMPOSER && (
           <ComposerLessonCreator
             lesson={serializableLesson as any}
             teacherPreferences={serializablePreferences}

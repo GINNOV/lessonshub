@@ -293,6 +293,14 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
     const newsArticleByStudent = new Map(
       newsArticleSums.map((row) => [row.userId, Number(row._sum.amountEuro ?? 0)]),
     );
+    const flipperSums = await prisma.pointTransaction.groupBy({
+      by: ['userId'],
+      where: { userId: { in: assignedStudentIds }, reason: PointReason.FLIPPER_MATCH },
+      _sum: { amountEuro: true },
+    });
+    const flipperByStudent = new Map(
+      flipperSums.map((row) => [row.userId, Number(row._sum.amountEuro ?? 0)]),
+    );
     const marketplaceSums = await prisma.pointTransaction.groupBy({
       by: ['userId'],
       where: { userId: { in: assignedStudentIds }, reason: PointReason.MARKETPLACE_PURCHASE },
@@ -331,6 +339,7 @@ export async function getLeaderboardDataForTeacher(teacherId: string, classId?: 
         savings += goldStarByStudent.get(student.id) ?? 0;
         savings += arkaningByStudent.get(student.id) ?? 0;
         savings += newsArticleByStudent.get(student.id) ?? 0;
+        savings += flipperByStudent.get(student.id) ?? 0;
         savings += marketplaceByStudent.get(student.id) ?? 0;
 
         const derivedPoints = student.assignments.reduce(

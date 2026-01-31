@@ -273,6 +273,14 @@ export async function getLeaderboardData() {
     const newsArticleByStudent = new Map(
       newsArticleSums.map((row) => [row.userId, Number(row._sum.amountEuro ?? 0)]),
     );
+    const flipperSums = await prisma.pointTransaction.groupBy({
+      by: ['userId'],
+      where: { userId: { in: studentIds }, reason: PointReason.FLIPPER_MATCH },
+      _sum: { amountEuro: true },
+    });
+    const flipperByStudent = new Map(
+      flipperSums.map((row) => [row.userId, Number(row._sum.amountEuro ?? 0)]),
+    );
     const marketplaceSums = await prisma.pointTransaction.groupBy({
       by: ['userId'],
       where: { userId: { in: studentIds }, reason: PointReason.MARKETPLACE_PURCHASE },
@@ -322,6 +330,7 @@ export async function getLeaderboardData() {
       savings += goldStarByStudent.get(student.id) ?? 0;
       savings += arkaningByStudent.get(student.id) ?? 0;
       savings += newsArticleByStudent.get(student.id) ?? 0;
+      savings += flipperByStudent.get(student.id) ?? 0;
       savings += marketplaceByStudent.get(student.id) ?? 0;
 
       const derivedPoints = student.assignments.reduce(
@@ -437,13 +446,17 @@ export async function getStudentLeaderboardProfile(studentId: string) {
       where: { studentId },
       _sum: { amountEuro: true },
     });
-    const [arkaningSum, newsArticleSum, marketplaceSum] = await Promise.all([
+    const [arkaningSum, newsArticleSum, flipperSum, marketplaceSum] = await Promise.all([
       prisma.pointTransaction.aggregate({
         where: { userId: studentId, reason: PointReason.ARKANING_GAME },
         _sum: { amountEuro: true },
       }),
       prisma.pointTransaction.aggregate({
         where: { userId: studentId, reason: PointReason.NEWS_ARTICLE_TAP },
+        _sum: { amountEuro: true },
+      }),
+      prisma.pointTransaction.aggregate({
+        where: { userId: studentId, reason: PointReason.FLIPPER_MATCH },
         _sum: { amountEuro: true },
       }),
       prisma.pointTransaction.aggregate({
@@ -523,9 +536,10 @@ export async function getStudentLeaderboardProfile(studentId: string) {
 
     savings -= extensionSpend;
     savings += goldStarSum._sum.amountEuro ?? 0;
-    savings += Number(arkaningSum._sum.amountEuro ?? 0);
-    savings += Number(newsArticleSum._sum.amountEuro ?? 0);
-    savings += Number(marketplaceSum._sum.amountEuro ?? 0);
+      savings += Number(arkaningSum._sum.amountEuro ?? 0);
+      savings += Number(newsArticleSum._sum.amountEuro ?? 0);
+      savings += Number(flipperSum._sum.amountEuro ?? 0);
+      savings += Number(marketplaceSum._sum.amountEuro ?? 0);
 
     const derivedPoints = student.assignments.reduce(
       (sum, assignment) => sum + (assignment.pointsAwarded ?? 0),

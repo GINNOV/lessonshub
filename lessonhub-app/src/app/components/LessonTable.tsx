@@ -94,6 +94,8 @@ export default function LessonTable({
             return `/dashboard/edit/lyric/${lesson.id}`;
         case LessonType.ARKANING:
             return `/dashboard/edit/arkaning/${lesson.id}`;
+        case LessonType.FLIPPER:
+            return `/dashboard/edit/flipper/${lesson.id}`;
         case LessonType.NEWS_ARTICLE:
             return `/dashboard/edit/news-article/${lesson.id}`;
         default:

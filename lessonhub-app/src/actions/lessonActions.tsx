@@ -139,6 +139,8 @@ export async function duplicateLesson(lessonId: string) {
         newsArticleConfig: true,
         lyricConfig: true,
         composerConfig: true,
+        flipperConfig: true,
+        flipperTiles: true,
       },
     });
 
@@ -233,6 +235,21 @@ export async function duplicateLesson(lessonId: string) {
                 markdown: lesson.newsArticleConfig.markdown,
                 maxWordTaps: lesson.newsArticleConfig.maxWordTaps ?? null,
               },
+            }
+          : undefined,
+        flipperConfig: lesson.flipperConfig
+          ? {
+              create: {
+                attemptsBeforePenalty: lesson.flipperConfig.attemptsBeforePenalty ?? 3,
+              },
+            }
+          : undefined,
+        flipperTiles: lesson.flipperTiles.length
+          ? {
+              create: lesson.flipperTiles.map((tile) => ({
+                imageUrl: tile.imageUrl,
+                word: tile.word,
+              })),
             }
           : undefined,
       },
@@ -1138,6 +1155,8 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
             lyricConfig: true,
             composerConfig: true,
             arkaningConfig: true,
+            flipperConfig: true,
+            flipperTiles: true,
             lyricAttempts: {
               where: { studentId },
               orderBy: { createdAt: 'desc' },
@@ -1181,6 +1200,8 @@ export async function getLessonById(lessonId: string) {
         lyricConfig: true,
         composerConfig: true,
         arkaningConfig: true,
+        flipperConfig: true,
+        flipperTiles: true,
       },
     });
     return lesson;
@@ -1217,6 +1238,8 @@ export async function getLessonByShareId(shareId: string) {
         lyricConfig: true,
         composerConfig: true,
         arkaningConfig: true,
+        flipperConfig: true,
+        flipperTiles: true,
         teacher: {
           select: {
             id: true,
@@ -1350,7 +1373,7 @@ export async function getStudentStats(studentId: string) {
       return { totalValue: 0, totalPoints: student?.totalPoints ?? 0 };
     }
 
-    const [assignments, goldStarsSum, arkaningSum, newsArticleSum, marketplaceSum] = await Promise.all([
+    const [assignments, goldStarsSum, arkaningSum, newsArticleSum, flipperSum, marketplaceSum] = await Promise.all([
       prisma.assignment.findMany({
         where: {
           studentId: studentId,
@@ -1377,6 +1400,10 @@ export async function getStudentStats(studentId: string) {
       }),
       prisma.pointTransaction.aggregate({
         where: { userId: studentId, reason: PointReason.NEWS_ARTICLE_TAP },
+        _sum: { amountEuro: true },
+      }),
+      prisma.pointTransaction.aggregate({
+        where: { userId: studentId, reason: PointReason.FLIPPER_MATCH },
         _sum: { amountEuro: true },
       }),
       prisma.pointTransaction.aggregate({
@@ -1419,6 +1446,7 @@ export async function getStudentStats(studentId: string) {
     totalValue += goldStarValue;
     totalValue += Number(arkaningValue);
     totalValue += Number(newsArticleSum._sum.amountEuro ?? 0);
+    totalValue += Number(flipperSum._sum.amountEuro ?? 0);
     totalValue += Number(marketplaceSum._sum.amountEuro ?? 0);
 
     const derivedPoints = assignments.reduce((sum, assignment) => sum + (assignment.pointsAwarded ?? 0), 0);

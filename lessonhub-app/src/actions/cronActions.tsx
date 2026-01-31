@@ -135,6 +135,8 @@ export async function sendDeadlineReminders() {
         gte: now,
         lte: twentyFourHoursFromNow,
       },
+      // Avoid emailing students who are marked as taking a break.
+      student: { isTakingBreak: false },
       reminderSentAt: null,
     },
     include: {
@@ -197,6 +199,8 @@ export async function sendStartDateNotifications(referenceDate?: Date, lookahead
       status: AssignmentStatus.PENDING,
       notifyOnStartDate: true,
       startDate: { lte: windowEnd },
+      // Avoid emailing students who are marked as taking a break.
+      student: { isTakingBreak: false },
     },
     include: {
       student: true,
@@ -415,6 +419,14 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
       },
       _sum: { amountEuro: true },
     });
+    const flipperWeekSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
+      where: {
+        userId: s.id,
+        reason: PointReason.FLIPPER_MATCH,
+        createdAt: { gte: start, lte: end },
+      },
+      _sum: { amountEuro: true },
+    });
     const marketplaceWeekSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
       where: {
         userId: s.id,
@@ -430,6 +442,7 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
     savingsWeek -= extensionSpendWeek;
     savingsWeek += Number(arkaningWeekSum._sum.amountEuro ?? 0);
     savingsWeek += Number(newsArticleWeekSum._sum.amountEuro ?? 0);
+    savingsWeek += Number(flipperWeekSum._sum.amountEuro ?? 0);
     savingsWeek += Number(marketplaceWeekSum._sum.amountEuro ?? 0);
     savingsWeek += Number(goldStarWeekSum._sum.amountEuro ?? 0);
 
@@ -471,6 +484,10 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
       where: { userId: s.id, reason: PointReason.NEWS_ARTICLE_TAP },
       _sum: { amountEuro: true },
     });
+    const flipperTotalSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
+      where: { userId: s.id, reason: PointReason.FLIPPER_MATCH },
+      _sum: { amountEuro: true },
+    });
     const marketplaceTotalSum = await (await import('@/lib/prisma')).default.pointTransaction.aggregate({
       where: { userId: s.id, reason: PointReason.MARKETPLACE_PURCHASE },
       _sum: { amountEuro: true },
@@ -482,6 +499,7 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
     savingsTotal -= extensionSpendTotal;
     savingsTotal += Number(arkaningTotalSum._sum.amountEuro ?? 0);
     savingsTotal += Number(newsArticleTotalSum._sum.amountEuro ?? 0);
+    savingsTotal += Number(flipperTotalSum._sum.amountEuro ?? 0);
     savingsTotal += Number(marketplaceTotalSum._sum.amountEuro ?? 0);
     savingsTotal += Number(goldStarTotalSum._sum.amountEuro ?? 0);
 

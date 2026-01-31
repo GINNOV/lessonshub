@@ -11,4 +11,5 @@ export const LESSON_TYPE_SHORT_LABELS: Record<LessonType, string> = {
   [LessonType.LYRIC]: "LYRIC",
   [LessonType.COMPOSER]: "COMP",
   [LessonType.ARKANING]: "GAME",
+  [LessonType.FLIPPER]: "FLIP",
 };

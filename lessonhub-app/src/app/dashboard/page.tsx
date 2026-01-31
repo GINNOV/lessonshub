@@ -282,6 +282,9 @@ export default async function DashboardPage({
             <DropdownMenuItem asChild>
               <Link href="/dashboard/create/arkaning">ArkanING</Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/create/flipper">Flipper</Link>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
