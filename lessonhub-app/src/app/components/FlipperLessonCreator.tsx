@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Lesson } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -471,11 +472,15 @@ export default function FlipperLessonCreator({
             clearLabel="Remove"
           />
           {assignmentImageUrl && (
-            <img
-              src={assignmentImageUrl}
-              alt="Lesson cover"
-              className="h-36 w-full rounded-xl object-cover"
-            />
+            <div className="relative h-36 w-full overflow-hidden rounded-xl">
+              <Image
+                src={assignmentImageUrl}
+                alt="Lesson cover"
+                fill
+                sizes="(min-width: 768px) 28rem, 100vw"
+                className="object-cover"
+              />
+            </div>
           )}
           <ImageBrowser onSelectImage={setAssignmentImageUrl} />
         </div>
@@ -520,11 +525,15 @@ export default function FlipperLessonCreator({
                 <div className="mt-3 flex flex-col gap-3">
                   <div className="relative">
                     {tile.imageUrl ? (
-                      <img
-                        src={tile.imageUrl}
-                        alt={`Tile ${index + 1}`}
-                        className="h-32 w-full rounded-lg object-cover"
-                      />
+                      <div className="relative h-32 w-full overflow-hidden rounded-lg">
+                        <Image
+                          src={tile.imageUrl}
+                          alt={`Tile ${index + 1}`}
+                          fill
+                          sizes="(min-width: 1024px) 20rem, (min-width: 640px) 45vw, 100vw"
+                          className="object-cover"
+                        />
+                      </div>
                     ) : (
                       <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-slate-700 text-xs text-slate-400">
                         <Upload className="mr-2 h-4 w-4" />

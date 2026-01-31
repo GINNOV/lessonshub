@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import Image from 'next/image';
 import { CheckCircle2, Sparkles } from 'lucide-react';
 import { POINT_TO_EURO_RATE } from '@/lib/points';
 import { cn } from '@/lib/utils';
@@ -70,18 +71,19 @@ export default function FlipperGame({
   const threshold = Math.max(3, attemptsBeforePenalty || 3);
 
   const deck = useMemo(() => {
+    const deckKeySuffix = deckKey;
     const cards = tiles.flatMap((tile) => {
       const safeWord = tile.word.trim();
       return [
         {
-          id: createCardId(),
+          id: `${createCardId()}-${deckKeySuffix}`,
           tileId: tile.id,
           type: 'image' as const,
           imageUrl: tile.imageUrl,
           word: safeWord,
         },
         {
-          id: createCardId(),
+          id: `${createCardId()}-${deckKeySuffix}`,
           tileId: tile.id,
           type: 'word' as const,
           imageUrl: tile.imageUrl,
@@ -153,7 +155,7 @@ export default function FlipperGame({
     }
   };
 
-  const sendCompletion = async () => {
+  const sendCompletion = useCallback(async () => {
     if (!assignmentId || completionSentRef.current) return;
     completionSentRef.current = true;
     await fetch(`/api/assignments/${assignmentId}/flipper/complete`, {
@@ -161,7 +163,7 @@ export default function FlipperGame({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     }).catch(() => {});
-  };
+  }, [assignmentId]);
 
   const handleFlip = (card: FlipperCard) => {
     if (isResolving) return;
@@ -202,7 +204,7 @@ export default function FlipperGame({
       setCompleted(true);
       sendCompletion();
     }
-  }, [matchedTileIds, tiles.length]);
+  }, [matchedTileIds, tiles.length, sendCompletion]);
 
   return (
     <div className="space-y-6">
@@ -280,11 +282,15 @@ export default function FlipperGame({
                   style={{ transform: 'rotateY(180deg)', backfaceVisibility: 'hidden' }}
                 >
                   {card.type === 'image' ? (
-                    <img
-                      src={card.imageUrl}
-                      alt={card.word}
-                      className="h-full w-full rounded-2xl object-cover"
-                    />
+                    <div className="relative h-full w-full overflow-hidden rounded-2xl">
+                      <Image
+                        src={card.imageUrl}
+                        alt={card.word}
+                        fill
+                        sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 100vw"
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <span className="px-3 text-center text-xl font-bold uppercase tracking-wide text-slate-100">
                       {card.word}

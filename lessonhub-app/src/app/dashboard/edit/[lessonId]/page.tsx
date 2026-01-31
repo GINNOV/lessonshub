@@ -43,13 +43,13 @@ export default async function EditLessonPage({ params }: { params: Promise<{ les
 
   const lessonTypeWithFlipper = lesson.type as LessonType | "FLIPPER";
 
-  if (lessonTypeWithFlipper === LessonType.LYRIC) {
+  if (lesson.type === LessonType.LYRIC) {
     redirect(`/dashboard/edit/lyric/${lessonId}`);
   }
-  if (lessonTypeWithFlipper === LessonType.NEWS_ARTICLE) {
+  if (lesson.type === LessonType.NEWS_ARTICLE) {
     redirect(`/dashboard/edit/news-article/${lessonId}`);
   }
-  if (lessonTypeWithFlipper === "FLIPPER") {
+  if (lesson.type === "FLIPPER") {
     redirect(`/dashboard/edit/flipper/${lessonId}`);
   }
   
