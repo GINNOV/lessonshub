@@ -34,6 +34,7 @@ export async function GET() {
         isTakingBreak: true,
         totalPoints: true,
         studentBio: true,
+        aiApiKey: true,
         progressCardTitle: true,
         progressCardBody: true,
         progressCardLinkText: true,
@@ -117,6 +118,7 @@ export async function PATCH(request: NextRequest) {
       isTakingBreak,
       newPassword,
       uiLanguage,
+      aiApiKey,
     } = body as {
       name?: string;
       image?: string;
@@ -128,6 +130,7 @@ export async function PATCH(request: NextRequest) {
       isTakingBreak?: boolean;
       newPassword?: string;
       uiLanguage?: string;
+      aiApiKey?: string | null;
     };
 
     const dataToUpdate: {
@@ -141,6 +144,7 @@ export async function PATCH(request: NextRequest) {
       isTakingBreak?: boolean;
       hashedPassword?: string;
       uiLanguage?: string;
+      aiApiKey?: string | null;
     } = {};
     if (name) dataToUpdate.name = name;
     if (image) dataToUpdate.image = image;
@@ -151,6 +155,19 @@ export async function PATCH(request: NextRequest) {
     if (studentBio !== undefined) dataToUpdate.studentBio = studentBio;
     if (typeof isTakingBreak === 'boolean') dataToUpdate.isTakingBreak = isTakingBreak;
     if (uiLanguage && ['device', 'en', 'it'].includes(uiLanguage)) dataToUpdate.uiLanguage = uiLanguage;
+    if (aiApiKey !== undefined) {
+      if (session.user.role !== 'STUDENT') {
+        return new NextResponse(JSON.stringify({ error: "AI key is only available for students." }), {
+          status: 403,
+        });
+      }
+      if (typeof aiApiKey === 'string') {
+        const trimmedKey = aiApiKey.trim();
+        dataToUpdate.aiApiKey = trimmedKey.length ? trimmedKey : null;
+      } else {
+        dataToUpdate.aiApiKey = null;
+      }
+    }
     if (typeof newPassword === 'string' && newPassword.length >= 8) {
       dataToUpdate.hashedPassword = await bcrypt.hash(newPassword, 12);
     } else if (typeof newPassword === 'string' && newPassword.length > 0 && newPassword.length < 8) {

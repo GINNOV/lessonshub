@@ -86,6 +86,9 @@ export default function NewsArticleLessonCreator({
   const [markdown, setMarkdown] = useState('');
   const [maxWordTaps, setMaxWordTaps] = useState('');
   const [assignmentImageUrl, setAssignmentImageUrl] = useState<string | null>(null);
+  const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [recentUrls, setRecentUrls] = useState<string[]>([]);
+  const [linkStatus, setLinkStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const [isUploading, setIsUploading] = useState(false);
@@ -93,6 +96,15 @@ export default function NewsArticleLessonCreator({
   const lastSavedRef = useRef<string>('');
 
   useEffect(() => {
+    try {
+      const savedUrls = localStorage.getItem('recentAttachmentUrls');
+      if (savedUrls) {
+        setRecentUrls(JSON.parse(savedUrls));
+      }
+    } catch (error) {
+      console.error('Failed to parse recent URLs from localStorage', error);
+    }
+
     if (!lesson) return;
     setTitle(lesson.title);
     setLessonPreview(lesson.lesson_preview || '');
@@ -102,6 +114,7 @@ export default function NewsArticleLessonCreator({
     setDifficulty(lesson.difficulty ?? 3);
     setIsFreeForAll(Boolean((lesson as any).isFreeForAll));
     setAssignmentImageUrl(lesson.assignment_image_url || null);
+    setAttachmentUrl(lesson.attachment_url || '');
     if (lesson.newsArticleConfig) {
       setMarkdown(lesson.newsArticleConfig.markdown || '');
       setMaxWordTaps(
@@ -114,6 +127,7 @@ export default function NewsArticleLessonCreator({
       title: lesson.title,
       lesson_preview: lesson.lesson_preview || '',
       assignment_text: lesson.assignment_text || null,
+      attachment_url: lesson.attachment_url || '',
       notes: lesson.notes || null,
       price: lesson.price,
       difficulty: lesson.difficulty ?? 3,
@@ -123,6 +137,35 @@ export default function NewsArticleLessonCreator({
       maxWordTaps: lesson.newsArticleConfig?.maxWordTaps ?? null,
     });
   }, [lesson]);
+
+  const addUrlToRecents = (url: string) => {
+    if (!url) return;
+    try {
+      const updatedUrls = [url, ...recentUrls.filter((existing) => existing !== url)].slice(0, 3);
+      setRecentUrls(updatedUrls);
+      localStorage.setItem('recentAttachmentUrls', JSON.stringify(updatedUrls));
+    } catch (error) {
+      console.error('Failed to save recent URLs to localStorage', error);
+    }
+  };
+
+  const handleTestLink = async () => {
+    setLinkStatus('testing');
+    try {
+      const response = await fetch('/api/lessons/test-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: attachmentUrl }),
+      });
+      const data = await safeJson(response);
+      setLinkStatus(data?.success ? 'valid' : 'invalid');
+      if (data?.success) {
+        addUrlToRecents(attachmentUrl);
+      }
+    } catch (error) {
+      setLinkStatus('invalid');
+    }
+  };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
@@ -174,6 +217,7 @@ export default function NewsArticleLessonCreator({
       title: title.trim(),
       lesson_preview: lessonPreview.trim(),
       assignment_text: assignmentText.trim() || null,
+      attachment_url: attachmentUrl,
       notes: notes.trim() || null,
       price: Number(price) || 0,
       difficulty,
@@ -185,6 +229,7 @@ export default function NewsArticleLessonCreator({
   }, [
     assignmentImageUrl,
     assignmentText,
+    attachmentUrl,
     difficulty,
     isFreeForAll,
     lessonPreview,
@@ -265,6 +310,7 @@ export default function NewsArticleLessonCreator({
       price,
       difficulty,
       assignmentText,
+      attachmentUrl,
       notes,
       assignmentImageUrl,
       isFreeForAll,
@@ -398,6 +444,49 @@ export default function NewsArticleLessonCreator({
       </div>
 
       <div className="form-field">
+        <div className="flex items-center">
+          <Label htmlFor="attachmentUrl">Reading Material</Label>
+          <OptionalIndicator />
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            type="url"
+            id="attachmentUrl"
+            placeholder="https://example.com"
+            value={attachmentUrl}
+            onChange={(e) => setAttachmentUrl(e.target.value)}
+            disabled={isSubmitting}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleTestLink}
+            disabled={!attachmentUrl || isSubmitting}
+          >
+            {linkStatus === 'testing' && 'Testing...'}
+            {linkStatus === 'idle' && 'Test Link'}
+            {linkStatus === 'valid' && 'Valid'}
+            {linkStatus === 'invalid' && 'Invalid'}
+          </Button>
+        </div>
+        {recentUrls.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+            Recent:
+            {recentUrls.map((url) => (
+              <button
+                key={url}
+                type="button"
+                className="underline"
+                onClick={() => setAttachmentUrl(url)}
+              >
+                {new URL(url).hostname}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="form-field">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2">
             <Label htmlFor="assignmentText">Instructions</Label>
@@ -492,18 +581,20 @@ export default function NewsArticleLessonCreator({
       </Button>
 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-5xl overflow-hidden">
           <DialogHeader>
             <DialogTitle>Article preview</DialogTitle>
           </DialogHeader>
-          {previewHtml ? (
-            <div
-              className="prose prose-slate max-w-none"
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">Add markdown to preview.</p>
-          )}
+          <div className="max-h-[75vh] overflow-y-auto pr-2">
+            {previewHtml ? (
+              <div
+                className="prose max-w-none text-foreground dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Add markdown to preview.</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

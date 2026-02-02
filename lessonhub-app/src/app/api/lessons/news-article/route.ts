@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     scheduled_assignment_date,
     isFreeForAll,
     assignment_image_url,
+    attachment_url,
     markdown,
     maxWordTaps,
   } = body;
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
         teacherId: session.user.id,
         isFreeForAll: Boolean(isFreeForAll),
         assignment_image_url,
+        attachment_url,
         newsArticleConfig: {
           create: {
             markdown,

@@ -3,7 +3,6 @@
 
 import { useState, useTransition } from 'react';
 import { BookUser, Coffee, BookOpen, AlertTriangle, CheckCircle2, FolderOpen, BookMarked, Loader2, CalendarDays } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getWeekdays } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -156,77 +155,75 @@ export default function TeacherStatsHeader({ stats, calendarAssignments }: Teach
   };
 
   return (
-    <Card className="mb-6 border border-slate-800/70 bg-slate-950/70 shadow-2xl backdrop-blur-sm">
-      <CardContent className="space-y-8">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            icon={BookUser}
-            value={stats.totalStudents}
-            label="Enrolled Students"
-            colorClassName="bg-blue-500"
-          />
-          <StatCard
-            icon={Coffee}
-            value={stats.studentsOnBreak}
-            label="Students on Break"
-            colorClassName="bg-amber-400"
-          />
-          <StatCard
-            icon={BookOpen}
-            value={stats.totalLessons}
-            label="Total Lessons Delivered"
-            colorClassName="bg-emerald-500"
-            onClick={() => triggerQuickFilter('all')}
-            isActive={activeQuickFilter === 'all'}
-            isLoading={isPending && pendingFilter === 'all'}
-          />
-          <ScheduleCard
-            weekdays={weekdays}
-            lessonsThisWeek={stats.lessonsThisWeek}
-            selectedDay={selectedDay}
-            onDayClick={handleDayClick}
-            onCalendarClick={() => setIsCalendarOpen(true)}
-          />
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <StatCard
-            icon={AlertTriangle}
-            value={stats.pastDueLessons}
-            label="Lessons Past Due"
-            colorClassName="bg-red-500"
-            onClick={() => triggerQuickFilter('past_due')}
-            isActive={activeQuickFilter === 'past_due'}
-            isLoading={isPending && pendingFilter === 'past_due'}
-          />
-          <StatCard
-            icon={CheckCircle2}
-            value={stats.completedLessons}
-            label="Lessons Completed"
-            colorClassName="bg-indigo-500"
-            onClick={() => triggerQuickFilter('completed')}
-            isActive={activeQuickFilter === 'completed'}
-            isLoading={isPending && pendingFilter === 'completed'}
-          />
-          <StatCard
-            icon={FolderOpen}
-            value={stats.emptyLessons}
-            label="Empty Lessons"
-            colorClassName="bg-slate-600"
-            onClick={() => triggerQuickFilter('empty')}
-            isActive={activeQuickFilter === 'empty'}
-            isLoading={isPending && pendingFilter === 'empty'}
-          />
-          <StatCard
-            icon={BookMarked}
-            value={stats.visibleGuides}
-            label="Guides Available"
-            colorClassName="bg-purple-500"
-            onClick={() => triggerQuickFilter('guides')}
-            isActive={activeQuickFilter === 'guides'}
-            isLoading={isPending && pendingFilter === 'guides'}
-          />
-        </div>
-      </CardContent>
+    <div className="mb-6 space-y-8">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={BookUser}
+          value={stats.totalStudents}
+          label="Enrolled Students"
+          colorClassName="bg-blue-500"
+        />
+        <StatCard
+          icon={Coffee}
+          value={stats.studentsOnBreak}
+          label="Students on Break"
+          colorClassName="bg-amber-400"
+        />
+        <StatCard
+          icon={BookOpen}
+          value={stats.totalLessons}
+          label="Total Lessons Delivered"
+          colorClassName="bg-emerald-500"
+          onClick={() => triggerQuickFilter('all')}
+          isActive={activeQuickFilter === 'all'}
+          isLoading={isPending && pendingFilter === 'all'}
+        />
+        <ScheduleCard
+          weekdays={weekdays}
+          lessonsThisWeek={stats.lessonsThisWeek}
+          selectedDay={selectedDay}
+          onDayClick={handleDayClick}
+          onCalendarClick={() => setIsCalendarOpen(true)}
+        />
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <StatCard
+          icon={AlertTriangle}
+          value={stats.pastDueLessons}
+          label="Lessons Past Due"
+          colorClassName="bg-red-500"
+          onClick={() => triggerQuickFilter('past_due')}
+          isActive={activeQuickFilter === 'past_due'}
+          isLoading={isPending && pendingFilter === 'past_due'}
+        />
+        <StatCard
+          icon={CheckCircle2}
+          value={stats.completedLessons}
+          label="Lessons Completed"
+          colorClassName="bg-indigo-500"
+          onClick={() => triggerQuickFilter('completed')}
+          isActive={activeQuickFilter === 'completed'}
+          isLoading={isPending && pendingFilter === 'completed'}
+        />
+        <StatCard
+          icon={FolderOpen}
+          value={stats.emptyLessons}
+          label="Empty Lessons"
+          colorClassName="bg-slate-600"
+          onClick={() => triggerQuickFilter('empty')}
+          isActive={activeQuickFilter === 'empty'}
+          isLoading={isPending && pendingFilter === 'empty'}
+        />
+        <StatCard
+          icon={BookMarked}
+          value={stats.visibleGuides}
+          label="Guides Available"
+          colorClassName="bg-purple-500"
+          onClick={() => triggerQuickFilter('guides')}
+          isActive={activeQuickFilter === 'guides'}
+          isLoading={isPending && pendingFilter === 'guides'}
+        />
+      </div>
       <Dialog open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
         <DialogContent className="max-w-6xl">
           <DialogHeader>
@@ -235,6 +232,6 @@ export default function TeacherStatsHeader({ stats, calendarAssignments }: Teach
           <ScheduleMapCalendar assignments={calendarAssignments} />
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }

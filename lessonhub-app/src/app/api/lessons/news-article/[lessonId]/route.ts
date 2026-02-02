@@ -27,6 +27,7 @@ export async function PATCH(
     scheduled_assignment_date,
     isFreeForAll,
     assignment_image_url,
+    attachment_url,
     markdown,
     maxWordTaps,
   } = body;
@@ -91,6 +92,7 @@ export async function PATCH(
         assignment_text,
         notes,
         assignment_image_url,
+        attachment_url,
         difficulty: difficultyValue,
         assignment_notification: assignmentNotification,
         scheduled_assignment_date: scheduledAssignmentDate,

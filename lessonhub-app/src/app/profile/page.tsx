@@ -50,6 +50,7 @@ export default async function ProfilePage() {
     progressCardLinkText: user.progressCardLinkText,
     progressCardLinkUrl: user.progressCardLinkUrl,
     assignmentSummaryFooter: user.assignmentSummaryFooter,
+    aiApiKey: (user as any).aiApiKey ?? null,
     uiLanguage: (user as any).uiLanguage ?? "device",
   } as any;
 

@@ -4,6 +4,7 @@ type ProfileTabs = {
   profile: string;
   about: string;
   billing: string;
+  ai: string;
   password: string;
   delete: string;
   privacy: string;
@@ -59,6 +60,13 @@ type ProfileCopy = {
     couponHint: string;
     support: string;
     supportEmail: string;
+  };
+  ai: {
+    title: string;
+    description: string;
+    keyLabel: string;
+    keyPlaceholder: string;
+    keyHint: string;
   };
   password: {
     title: string;
@@ -118,6 +126,7 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       profile: "Profile",
       about: "About me",
       billing: "Billing",
+      ai: "AI",
       password: "Password",
       delete: "Break / delete",
       privacy: "Privacy",
@@ -174,6 +183,14 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
         "Received a code from your teacher or the billing team? Enter it above to activate your plan.",
       support: "Need help with billing? Email",
       supportEmail: "billing@quantifythis.com",
+    },
+    ai: {
+      title: "AI Assistance",
+      description:
+        "AI can help you learn faster and tailor practice to your needs. Use it to understand, explore, and personalize your study plan — not to copy/paste homework answers.",
+      keyLabel: "AI key",
+      keyPlaceholder: "Paste your API key",
+      keyHint: "Stored only on your account and used for your future AI features.",
     },
     password: {
       title: "Change Password",
@@ -236,6 +253,7 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       profile: "Profilo",
       about: "Chi sono",
       billing: "Abbonamento",
+      ai: "AI",
       password: "Password",
       delete: "Pausa / elimina",
       privacy: "Privacy",
@@ -296,6 +314,14 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
         "Hai ricevuto un codice dal tuo insegnante o dal team billing? Inseriscilo qui per attivare il piano.",
       support: "Serve aiuto con i pagamenti? Scrivi a",
       supportEmail: "billing@quantifythis.com",
+    },
+    ai: {
+      title: "AI per lo studio",
+      description:
+        "L'AI puo aiutarti a imparare piu velocemente e in modo personalizzato. Usala per capire, esplorare e migliorare il tuo studio — non per copiare e incollare i compiti.",
+      keyLabel: "Chiave AI",
+      keyPlaceholder: "Incolla la tua API key",
+      keyHint: "Salvata solo sul tuo account e usata per future funzioni AI.",
     },
     password: {
       title: "Cambia password",

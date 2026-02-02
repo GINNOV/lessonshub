@@ -30,6 +30,7 @@ import {
   Info,
   KeyRound,
   ShieldCheck,
+  Sparkles,
   Trash2,
   User as UserIcon,
 } from "lucide-react";
@@ -108,6 +109,7 @@ export default function ProfileForm({
   })();
   const [teacherBio, setTeacherBio] = useState(user?.teacherBio ?? "");
   const [studentBio, setStudentBio] = useState(user?.studentBio ?? "");
+  const [aiApiKey, setAiApiKey] = useState((user as any)?.aiApiKey ?? "");
   const [isSubmittingBio, setIsSubmittingBio] = useState(false);
   const [isPaying, setIsPaying] = useState(user?.isPaying ?? false);
   const [couponCode, setCouponCode] = useState("");
@@ -216,6 +218,7 @@ export default function ProfileForm({
     };
     if (user?.role === Role.STUDENT) {
       payload.studentBio = studentBio;
+      payload.aiApiKey = aiApiKey;
     }
 
     const response = await fetch(apiRoute, {
@@ -238,7 +241,7 @@ export default function ProfileForm({
             weeklySummaryOptOut,
             lessonAutoSaveOptOut,
             uiLanguage,
-            ...(user?.role === Role.STUDENT ? { studentBio } : {}),
+            ...(user?.role === Role.STUDENT ? { studentBio, aiApiKey } : {}),
           } as any,
         });
       }
@@ -362,6 +365,12 @@ export default function ProfileForm({
         label: copy.tabs.privacy,
         visible: !isAdmin,
         icon: ShieldCheck,
+      },
+      {
+        value: "ai",
+        label: copy.tabs.ai,
+        visible: user?.role === Role.STUDENT,
+        icon: Sparkles,
       },
       {
         value: "password",
@@ -684,6 +693,38 @@ export default function ProfileForm({
                 .
               </p>
             </div>
+          </div>
+        </TabsContent>
+      )}
+
+      {user?.role === Role.STUDENT && (
+        <TabsContent value="ai" className="mt-4">
+          <div className="mt-2 rounded-2xl border border-slate-800/70 bg-slate-950/70 p-6 shadow-2xl backdrop-blur-sm">
+            <h2 className="mb-3 text-2xl font-semibold text-slate-100">{copy.ai.title}</h2>
+            <p className="text-sm text-slate-400">{copy.ai.description}</p>
+            <form onSubmit={handleProfileSubmit} className="mt-5 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="ai-api-key" className="text-sm font-semibold text-slate-100">
+                  {copy.ai.keyLabel}
+                </Label>
+                <Input
+                  id="ai-api-key"
+                  type="password"
+                  value={aiApiKey}
+                  onChange={(e) => setAiApiKey(e.target.value)}
+                  placeholder={copy.ai.keyPlaceholder}
+                  className="rounded-xl border-slate-800 bg-slate-900/70 text-slate-100"
+                />
+                <p className="text-xs text-slate-500">{copy.ai.keyHint}</p>
+              </div>
+              <Button
+                type="submit"
+                disabled={isSubmittingProfile || isUploading}
+                className="border border-teal-300/50 bg-gradient-to-r from-teal-400 to-emerald-500 text-slate-950 shadow-[0_12px_35px_rgba(45,212,191,0.35)] hover:brightness-110"
+              >
+                {isSubmittingProfile ? copy.profile.saving : copy.profile.save}
+              </Button>
+            </form>
           </div>
         </TabsContent>
       )}

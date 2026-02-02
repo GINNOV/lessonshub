@@ -62,6 +62,7 @@ model User {
   defaultLessonInstructions String?   @db.Text
   teacherBio                String?   @db.Text
   studentBio                String?   @db.Text
+  aiApiKey                  String?   @db.Text
   lyricLessonAttempts       LyricLessonAttempt[]
   guideCompletions          GuideCompletion[]
   instructionBooklets       InstructionBooklet[]
