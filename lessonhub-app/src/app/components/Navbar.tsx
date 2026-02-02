@@ -9,7 +9,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -18,68 +17,10 @@ import { Role } from "@prisma/client";
 import { stopImpersonation } from "@/actions/adminActions";
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
-import TeacherClassNotesDialog from "./TeacherClassNotesDialog";
-import FeedbackDialog from "./FeedbackDialog";
-import { requestWhatsNewDialog } from "./WhatsNewDialog";
-import RateTeacherDialog from "./RateTeacherDialog";
 import { cn } from "@/lib/utils";
 import { resolveLocale, UiLanguagePreference } from "@/lib/locale";
+import { navCopy, NavLocale } from "@/lib/navCopy";
 import { Home } from "lucide-react";
-
-type NavLocale = 'en' | 'it';
-
-const navTranslations: Record<NavLocale, Record<string, string>> = {
-  en: {
-    impersonatingPrefix: 'You are impersonating',
-    stopImpersonating: 'Stop Impersonating',
-    userManagement: 'User Management',
-    lessonManagement: 'Lesson Management',
-    referralDashboard: 'Referral Dashboard',
-    emailEditor: 'Email Editor',
-    dashboardSettings: 'Dashboard Settings',
-    cronTestPage: 'Cron Test Page',
-    manageClasses: 'Manage Classes',
-    settings: 'Settings',
-    sendNotes: 'Send notes to students',
-    profile: 'Profile',
-    adminDashboard: 'Admin dashboard',
-    whatsNew: "What's new",
-    rateTeacher: 'Rate your teacher',
-    sendFeedback: 'Send Feedback',
-    signOut: 'Sign Out',
-    benefits: 'Benefits',
-    testimonials: 'Testimonials',
-    signIn: 'Sign In',
-    startFreeTrial: 'Start Free Trial',
-    myFinance: 'My Finance',
-    marketplace: 'Marketplace',
-  },
-  it: {
-    impersonatingPrefix: 'Stai impersonando',
-    stopImpersonating: 'Interrompi impersonificazione',
-    userManagement: 'Gestione utenti',
-    lessonManagement: 'Gestione lezioni',
-    referralDashboard: 'Dashboard referenze',
-    emailEditor: 'Editor email',
-    dashboardSettings: 'Impostazioni dashboard',
-    cronTestPage: 'Pagina test cron',
-    manageClasses: 'Gestisci classi',
-    settings: 'Impostazioni',
-    sendNotes: 'Invia note agli studenti',
-    profile: 'Profilo',
-    adminDashboard: 'Dashboard admin',
-    whatsNew: 'Novità',
-    rateTeacher: 'Valuta il tuo insegnante',
-    sendFeedback: 'Invia feedback',
-    signOut: 'Esci',
-    benefits: 'Vantaggi',
-    testimonials: 'Testimonianze',
-    signIn: 'Accedi',
-    startFreeTrial: 'Inizia prova gratuita',
-    myFinance: 'Le mie finanze',
-    marketplace: 'Mercato',
-  },
-};
 
 type FestiveTheme = {
   name: string;
@@ -110,14 +51,10 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const user = session?.user as any;
-  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
-  const [isClassNotesDialogOpen, setIsClassNotesDialogOpen] = useState(false);
-  const [isRateTeacherDialogOpen, setIsRateTeacherDialogOpen] = useState(false);
   const [locale, setLocale] = useState<NavLocale>('en');
-  const hasAdminAccess = user && (user.role === Role.ADMIN || user.hasAdminPortalAccess);
   const isLanding = pathname === '/';
   const isMarketplace = pathname === '/marketplace';
-  const copy = navTranslations[locale];
+  const copy = navCopy[locale];
   const festiveTheme = monthThemes[new Date().getMonth()] ?? monthThemes[11];
   const marketplaceTheme: FestiveTheme = {
     name: 'Marketplace Glow',
@@ -232,76 +169,11 @@ export default function Navbar() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    {user?.role === Role.ADMIN && (
-                      <>
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin/cron">{copy.cronTestPage}</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin/settings">{copy.dashboardSettings}</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin/emails">{copy.emailEditor}</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin/lessons">{copy.lessonManagement}</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin/referrals">{copy.referralDashboard}</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin/users">{copy.userManagement}</Link>
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {hasAdminAccess && user?.role !== Role.ADMIN && (
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin">{copy.adminDashboard}</Link>
-                      </DropdownMenuItem>
-                    )}
-                    {user?.role === Role.TEACHER && (
-                      <DropdownMenuItem asChild>
-                        <Link href="/dashboard/classes">{copy.manageClasses}</Link>
-                      </DropdownMenuItem>
-                    )}
                     <DropdownMenuItem asChild>
-                      <Link href="/marketplace">{copy.marketplace}</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/myfinance">{copy.myFinance}</Link>
+                      <Link href="/extras">{copy.extras}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/profile">{copy.profile}</Link>
-                    </DropdownMenuItem>
-                    {user?.role === Role.STUDENT && (
-                      <DropdownMenuItem onSelect={() => setIsRateTeacherDialogOpen(true)}>
-                        {copy.rateTeacher}
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem asChild>
-                      <Link href="/referrals">{copy.referralDashboard}</Link>
-                    </DropdownMenuItem>
-                    {user?.role !== Role.TEACHER && (
-                      <DropdownMenuItem onSelect={() => setIsFeedbackDialogOpen(true)}>
-                        {copy.sendFeedback}
-                      </DropdownMenuItem>
-                    )}
-                    {user?.role === Role.TEACHER && (
-                      <>
-                        <DropdownMenuItem onSelect={() => setIsClassNotesDialogOpen(true)}>
-                          {copy.sendNotes}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/dashboard/settings">{copy.settings}</Link>
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        requestWhatsNewDialog();
-                      }}
-                    >
-                      {copy.whatsNew}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
@@ -309,45 +181,6 @@ export default function Navbar() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
-                {user?.role === Role.STUDENT && (
-                  <RateTeacherDialog
-                    open={isRateTeacherDialogOpen}
-                    onOpenChange={setIsRateTeacherDialogOpen}
-                    copy={
-                      locale === 'it'
-                        ? {
-                            title: 'Valuta il tuo insegnante',
-                            description:
-                              "Le tue risposte restano anonime agli insegnanti. Gli amministratori revisionano i feedback per mantenere alta la qualità delle lezioni.",
-                            chooseTeacher: 'Scegli un insegnante',
-                            loadingTeachers: 'Caricamento...',
-                            noTeachers: 'Nessun insegnante trovato',
-                            overallLabel: 'Impressione generale:',
-                            commentsLabel: 'Qualcos’altro?',
-                            commentsPlaceholder:
-                              'Condividi punti di forza o aspetti da migliorare. Sii breve e specifico.',
-                            cancel: 'Annulla',
-                            submit: 'Invia valutazione',
-                            submitting: 'Invio...',
-                            ratingFields: {
-                              contentQuality: 'Qualità dei contenuti',
-                              helpfulness: 'Disponibilità',
-                              communication: 'Comunicazione',
-                              valueForMoney: 'Rapporto qualità/prezzo',
-                            },
-                            toastLoadError: 'Impossibile caricare la lista insegnanti. Riprova.',
-                            toastSelectTeacher: 'Seleziona un insegnante da valutare.',
-                            toastSubmitSuccess: 'Grazie per il tuo feedback.',
-                            toastSubmitError: 'Impossibile inviare la valutazione al momento.',
-                          }
-                        : undefined
-                    }
-                  />
-                )}
-                {user?.role === Role.TEACHER && (
-                  <TeacherClassNotesDialog open={isClassNotesDialogOpen} onOpenChange={setIsClassNotesDialogOpen} />
-                )}
               </>
             ) : (
               <div className="flex items-center gap-3">
