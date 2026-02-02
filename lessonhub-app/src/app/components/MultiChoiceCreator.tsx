@@ -392,7 +392,10 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
                 isFreeForAll,
             }),
         });
-        if (!response.ok) throw new Error('Failed to save lesson');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to save lesson');
+        }
         toast.success('Lesson saved successfully!');
         router.push('/dashboard');
         router.refresh();
