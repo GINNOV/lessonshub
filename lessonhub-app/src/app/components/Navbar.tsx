@@ -51,6 +51,8 @@ const navTranslations: Record<NavLocale, Record<string, string>> = {
     testimonials: 'Testimonials',
     signIn: 'Sign In',
     startFreeTrial: 'Start Free Trial',
+    myFinance: 'My Finance',
+    marketplace: 'Marketplace',
   },
   it: {
     impersonatingPrefix: 'Stai impersonando',
@@ -74,6 +76,8 @@ const navTranslations: Record<NavLocale, Record<string, string>> = {
     testimonials: 'Testimonianze',
     signIn: 'Accedi',
     startFreeTrial: 'Inizia prova gratuita',
+    myFinance: 'Le mie finanze',
+    marketplace: 'Mercato',
   },
 };
 
@@ -261,6 +265,12 @@ export default function Navbar() {
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem asChild>
+                      <Link href="/marketplace">{copy.marketplace}</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/myfinance">{copy.myFinance}</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/profile">{copy.profile}</Link>
                     </DropdownMenuItem>
                     {user?.role === Role.STUDENT && (
@@ -271,6 +281,11 @@ export default function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link href="/referrals">{copy.referralDashboard}</Link>
                     </DropdownMenuItem>
+                    {user?.role !== Role.TEACHER && (
+                      <DropdownMenuItem onSelect={() => setIsFeedbackDialogOpen(true)}>
+                        {copy.sendFeedback}
+                      </DropdownMenuItem>
+                    )}
                     {user?.role === Role.TEACHER && (
                       <>
                         <DropdownMenuItem onSelect={() => setIsClassNotesDialogOpen(true)}>
@@ -280,11 +295,6 @@ export default function Navbar() {
                           <Link href="/dashboard/settings">{copy.settings}</Link>
                         </DropdownMenuItem>
                       </>
-                    )}
-                    {user?.role !== Role.TEACHER && (
-                      <DropdownMenuItem onSelect={() => setIsFeedbackDialogOpen(true)}>
-                        {copy.sendFeedback}
-                      </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
                       onSelect={() => {
