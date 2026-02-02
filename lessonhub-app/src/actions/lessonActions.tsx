@@ -347,15 +347,53 @@ export async function completeNewsArticleAssignment(
   rating?: number | null
 ) {
     try {
-        const assignment = await prisma.assignment.update({
-            where: { id: assignmentId, studentId: studentId },
+        const assignment = await prisma.assignment.findFirst({
+          where: { id: assignmentId, studentId },
+          include: {
+            lesson: { select: { price: true } },
+            student: { select: { totalPoints: true } },
+          },
+        });
+        if (!assignment) {
+          return { success: false, error: 'Assignment not found or unauthorized.' };
+        }
+
+        const tapCount = assignment.newsArticleTapCount ?? 0;
+        const lessonPrice = assignment.lesson.price?.toNumber?.() ?? Number(assignment.lesson.price ?? 0);
+        const penaltyEuros = tapCount < 6 ? lessonPrice * 3 : 0;
+        const penaltyPoints = Math.round(penaltyEuros * 100);
+
+        const updatedAssignment = await prisma.$transaction(async (tx) => {
+          const updated = await tx.assignment.update({
+            where: { id: assignmentId },
             data: {
               status: AssignmentStatus.COMPLETED,
               rating: typeof rating === 'number' && rating > 0 ? rating : null,
-            }
+            },
+          });
+
+          if (penaltyPoints > 0) {
+            const currentPoints = assignment.student?.totalPoints ?? 0;
+            await tx.user.update({
+              where: { id: studentId },
+              data: { totalPoints: currentPoints - penaltyPoints },
+            });
+            await tx.pointTransaction.create({
+              data: {
+                userId: studentId,
+                assignmentId,
+                points: -penaltyPoints,
+                amountEuro: new Prisma.Decimal(-penaltyEuros),
+                reason: PointReason.NEWS_ARTICLE_TAP,
+                note: `News Article penalty: ${tapCount} taps`,
+              },
+            });
+          }
+
+          return updated;
         });
         revalidatePath('/my-lessons');
-        return { success: true, data: assignment };
+        return { success: true, data: updatedAssignment };
     } catch (error) {
         return { success: false, error: 'Failed to complete assignment.' };
     }

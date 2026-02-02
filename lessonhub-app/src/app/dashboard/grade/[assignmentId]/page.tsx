@@ -538,6 +538,7 @@ export default async function GradeSubmissionPage({
           select: { note: true },
         });
         const counts = new Map<string, { label: string; count: number }>();
+        let tapTotal = 0;
         transactions.forEach((tx) => {
           if (!tx.note) return;
           const match = tx.note.match(/News Article tap:\s*(.+)$/i);
@@ -551,9 +552,10 @@ export default async function GradeSubmissionPage({
           } else {
             counts.set(key, { label: wordRaw, count: 1 });
           }
+          tapTotal += 1;
         });
         const entries = Array.from(counts.values()).sort((a, b) => b.count - a.count);
-        return { total: transactions.length, entries };
+        return { total: tapTotal, entries };
       })()
     : null;
 

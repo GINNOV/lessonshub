@@ -18,7 +18,11 @@ import {
   readAssignmentDraft,
   writeAssignmentDraft,
 } from '@/app/components/assignmentDraftStorage';
-import { normalizeMultiChoiceText } from '@/lib/multiChoiceAnswers';
+import {
+  normalizeMultiChoiceText,
+  parseMultiChoiceAnswers,
+  resolveSelectedOption,
+} from '@/lib/multiChoiceAnswers';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -119,6 +123,31 @@ export default function MultiChoicePlayer({
   const { multiChoiceQuestions } = assignment.lesson;
   const isPractice = mode === 'practice';
   const isPending = assignment.status === 'PENDING';
+  const normalizeDraftAnswers = useCallback(
+    (raw: unknown) => {
+      const parsed = parseMultiChoiceAnswers(raw, multiChoiceQuestions);
+      return multiChoiceQuestions.reduce<Record<string, string>>((acc, question) => {
+        const selected = resolveSelectedOption(question, parsed[question.id]);
+        if (selected?.id) {
+          acc[question.id] = selected.id;
+        }
+        return acc;
+      }, {});
+    },
+    [multiChoiceQuestions],
+  );
+  const filterAnswers = useCallback(
+    (current: Record<string, string>) => {
+      const allowed = new Set(multiChoiceQuestions.map(question => question.id));
+      return Object.entries(current).reduce<Record<string, string>>((acc, [key, value]) => {
+        if (allowed.has(key) && typeof value === 'string' && value.trim()) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
+    },
+    [multiChoiceQuestions],
+  );
 
   const draftAnswers = useMemo(() => {
     if (!assignment.draftAnswers || typeof assignment.draftAnswers !== 'object') return null;
@@ -140,11 +169,11 @@ export default function MultiChoicePlayer({
       const shouldUseLocal = localDraft && localDraft.updatedAt > serverUpdatedAt;
       if (shouldUseLocal) {
         restoredFromLocalRef.current = true;
-        setAnswers({ ...localDraft.data.answers });
+        setAnswers(normalizeDraftAnswers(localDraft.data.answers));
         setRating(typeof localDraft.data.rating === 'number' ? localDraft.data.rating : 0);
         setLastSavedAt(new Date(localDraft.updatedAt));
       } else if (draftAnswers) {
-        setAnswers({ ...draftAnswers });
+        setAnswers(normalizeDraftAnswers(draftAnswers));
         setRating(assignment.draftRating ?? 0);
         setLastSavedAt(assignment.draftUpdatedAt ? new Date(assignment.draftUpdatedAt) : null);
       } else {
@@ -159,22 +188,25 @@ export default function MultiChoicePlayer({
 
   useEffect(() => {
     if (isPractice || !isPending) return;
+    const filtered = filterAnswers(answers);
     draftRef.current = {
-      answers,
+      answers: filtered,
       rating,
     };
     if (autoSaveEnabled) {
       writeAssignmentDraft(draftKey, draftRef.current);
     }
-  }, [answers, autoSaveEnabled, draftKey, isPending, isPractice, rating]);
+  }, [answers, autoSaveEnabled, draftKey, filterAnswers, isPending, isPractice, rating]);
 
   const handleValueChange = (questionId: string, value: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
 
   const handleSubmit = async () => {
+    const filteredAnswers = filterAnswers(answers);
+    const hasAllAnswers = multiChoiceQuestions.every(question => Boolean(filteredAnswers[question.id]));
     if (isPractice) {
-      if (Object.keys(answers).length !== multiChoiceQuestions.length) {
+      if (!hasAllAnswers) {
         toast.error(t.practiceAnswerAll);
         return;
       }
@@ -185,7 +217,7 @@ export default function MultiChoicePlayer({
       toast.error(t.deadlinePassed);
       return;
     }
-    if (Object.keys(answers).length !== multiChoiceQuestions.length) {
+    if (!hasAllAnswers) {
       toast.error(t.submitAnswerAll);
       return;
     }
@@ -193,7 +225,7 @@ export default function MultiChoicePlayer({
     const result = await submitMultiChoiceAssignment(
       assignment.id,
       assignment.studentId,
-      answers,
+      filteredAnswers,
       rating > 0 ? rating : undefined
     );
 
