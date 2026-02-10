@@ -3,9 +3,13 @@ import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { LessonType, PointReason } from '@prisma/client';
-
-const POINTS_PER_TAP = 50;
-const EUROS_PER_TAP = 0.5;
+import {
+  NEWS_ARTICLE_BASE_EUROS,
+  NEWS_ARTICLE_BASE_POINTS,
+  NEWS_ARTICLE_REPEAT_EUROS,
+  NEWS_ARTICLE_REPEAT_POINTS,
+  normalizeNewsArticleWord,
+} from '@/lib/newsArticle';
 
 export async function POST(
   request: Request,
@@ -18,7 +22,9 @@ export async function POST(
 
   const { assignmentId } = await params;
   const body = await request.json().catch(() => ({}));
-  const word = typeof body?.word === 'string' ? body.word.trim() : '';
+  const wordRaw = typeof body?.word === 'string' ? body.word.trim() : '';
+  const normalizedWord = normalizeNewsArticleWord(wordRaw);
+  const hasWord = Boolean(normalizedWord);
 
   const assignment = await prisma.assignment.findFirst({
     where: { id: assignmentId, studentId: session.user.id },
@@ -49,8 +55,28 @@ export async function POST(
         where: { id: session.user.id },
         select: { totalPoints: true },
       });
+
+      let isRepeatTap = false;
+      if (hasWord) {
+        const existing = await tx.pointTransaction.findFirst({
+          where: {
+            assignmentId,
+            reason: PointReason.NEWS_ARTICLE_TAP,
+            note: {
+              contains: `News Article tap: ${normalizedWord}`,
+              mode: 'insensitive',
+            },
+          },
+          select: { id: true },
+        });
+        isRepeatTap = Boolean(existing);
+      }
+
+      const pointsDelta = isRepeatTap ? NEWS_ARTICLE_REPEAT_POINTS : NEWS_ARTICLE_BASE_POINTS;
+      const eurosDelta = isRepeatTap ? NEWS_ARTICLE_REPEAT_EUROS : NEWS_ARTICLE_BASE_EUROS;
+
       const currentPoints = user?.totalPoints ?? 0;
-      const nextPoints = currentPoints + POINTS_PER_TAP;
+      const nextPoints = currentPoints + pointsDelta;
 
       const updatedAssignment = await tx.assignment.update({
         where: { id: assignmentId },
@@ -67,24 +93,26 @@ export async function POST(
         data: {
           userId: session.user.id,
           assignmentId,
-          points: POINTS_PER_TAP,
-          amountEuro: EUROS_PER_TAP,
+          points: pointsDelta,
+          amountEuro: eurosDelta,
           reason: PointReason.NEWS_ARTICLE_TAP,
-          note: word ? `News Article tap: ${word}` : 'News Article tap',
+          note: hasWord ? `News Article tap: ${normalizedWord}` : 'News Article tap',
         },
       });
 
       return {
         tapCount: updatedAssignment.newsArticleTapCount,
         totalPoints: nextPoints,
+        pointsDelta,
+        eurosDelta,
       };
     });
 
     return NextResponse.json(
       {
         tapCount: result.tapCount,
-        pointsDelta: POINTS_PER_TAP,
-        eurosDelta: EUROS_PER_TAP,
+        pointsDelta: result.pointsDelta,
+        eurosDelta: result.eurosDelta,
         totalPoints: result.totalPoints,
       },
       { status: 200 },

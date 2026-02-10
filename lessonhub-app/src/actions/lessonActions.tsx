@@ -14,6 +14,11 @@ import { awardBadgesForStudent, calculateAssignmentPoints } from "@/lib/gamifica
 import { hasAdminPrivileges } from "@/lib/authz";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 import { convertExtraPointsToEuro } from "@/lib/points";
+import {
+  extractUniqueNewsArticleWords,
+  getNewsArticlePenaltyRate,
+  normalizeNewsArticleWord,
+} from "@/lib/newsArticle";
 import { getComposerExtraTries, hashComposerSeed, normalizeComposerWord, parseComposerSentence } from "@/lib/composer";
 import { validateAssignmentForSubmission } from "@/lib/assignmentValidation";
 import { normalizeMultiChoiceText } from "@/lib/multiChoiceAnswers";
@@ -350,7 +355,7 @@ export async function completeNewsArticleAssignment(
         const assignment = await prisma.assignment.findFirst({
           where: { id: assignmentId, studentId },
           include: {
-            lesson: { select: { price: true } },
+            lesson: { select: { price: true, newsArticleConfig: true } },
             student: { select: { totalPoints: true } },
           },
         });
@@ -358,10 +363,37 @@ export async function completeNewsArticleAssignment(
           return { success: false, error: 'Assignment not found or unauthorized.' };
         }
 
-        const tapCount = assignment.newsArticleTapCount ?? 0;
         const lessonPrice = assignment.lesson.price?.toNumber?.() ?? Number(assignment.lesson.price ?? 0);
-        const penaltyEuros = tapCount < 6 ? lessonPrice * 3 : 0;
+        const markdown = assignment.lesson.newsArticleConfig?.markdown ?? '';
+
+        const tapTransactions = await prisma.pointTransaction.findMany({
+          where: {
+            assignmentId,
+            reason: PointReason.NEWS_ARTICLE_TAP,
+          },
+          select: { note: true },
+        });
+
+        const tappedWords = new Set<string>();
+        tapTransactions.forEach((tx) => {
+          if (!tx.note) return;
+          const match = tx.note.match(/News Article tap:\s*(.+)$/i);
+          if (!match?.[1]) return;
+          const normalized = normalizeNewsArticleWord(match[1]);
+          if (normalized.length >= 5) {
+            tappedWords.add(normalized);
+          }
+        });
+
+        const totalWords = extractUniqueNewsArticleWords(markdown);
+        const totalWordCount = totalWords.size;
+        const uniqueTapCount = tappedWords.size;
+        const tapRatio = totalWordCount > 0 ? uniqueTapCount / totalWordCount : 0;
+
+        const penaltyRate = totalWordCount > 0 ? getNewsArticlePenaltyRate(tapRatio) : 0;
+        const penaltyEuros = lessonPrice * penaltyRate;
         const penaltyPoints = Math.round(penaltyEuros * 100);
+        const tapPercent = totalWordCount > 0 ? Math.round(tapRatio * 100) : 0;
 
         const updatedAssignment = await prisma.$transaction(async (tx) => {
           const updated = await tx.assignment.update({
@@ -385,7 +417,7 @@ export async function completeNewsArticleAssignment(
                 points: -penaltyPoints,
                 amountEuro: new Prisma.Decimal(-penaltyEuros),
                 reason: PointReason.NEWS_ARTICLE_TAP,
-                note: `News Article penalty: ${tapCount} taps`,
+                note: `News Article penalty: ${uniqueTapCount}/${totalWordCount} unique words (${tapPercent}%)`,
               },
             });
           }

@@ -353,13 +353,13 @@ export default function NewsArticleLessonPlayer({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="bg-amber-200/70 text-amber-900">
-              +50 pts / €0.50 per tap
+              Up to +50 pts / €0.50 per new word
             </Badge>
             <Badge variant="secondary" className="bg-stone-200/80 text-stone-800">
               {hasTapLimit ? `${tapsRemaining} taps left` : `${tapCount} taps`}
             </Badge>
             <Badge variant="secondary" className="bg-emerald-200/70 text-emerald-900">
-              {tapCount * 50} pts / €{(tapCount * 0.5).toFixed(2)}
+              Repeat taps: +5 pts / €0.005
             </Badge>
           </div>
         </div>
