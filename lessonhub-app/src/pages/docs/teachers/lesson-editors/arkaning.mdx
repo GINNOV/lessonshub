@@ -46,3 +46,28 @@ prompt,answer,reveal
 - Lives end the session when they reach zero.
 
 Use the ArkanING lesson type when you want short, repeatable grammar practice with arcade feedback.
+
+## AI Prompt Template
+
+Use this prompt to generate copy-paste ready content:
+
+```text
+Topic: <paste topic>
+Level (CEFR A1-C2): <paste level>
+
+Create an ARKANING lesson for LessonHub using the topic and level above. Output ONLY the following 5 sections, exactly in this order, with no extra text:
+Title:
+Suggested cost:
+Instructions:
+CSV:
+Additional information:
+
+Rules:
+- Suggested cost must be a teacher-charged price range in euros for a single 50-60 min online private language lesson in Italy. Use €15-€25 for standard/beginner lessons and €25-€40 for advanced/specialized/premium lessons. Choose one range and output it like "€18-€28".
+- Use the topic and level to control vocabulary, grammar, and question difficulty.
+- Instructions must be 1–3 short, practical sentences.
+- CSV must follow this header schema exactly: prompt,answer,reveal
+- answer must be ing or not-ing.
+- Provide 12–20 rows.
+- Additional information may include recommended game settings (rounds, lives) only if you need to clarify. Otherwise write "None".
+```

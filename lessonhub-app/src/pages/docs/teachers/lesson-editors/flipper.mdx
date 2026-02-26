@@ -20,3 +20,26 @@ Use the Flipper lesson type to create a memory-style matching game where student
 - Use clear, high-contrast images.
 - Keep words short so they remain readable on mobile screens.
 - Use similar image sizes to keep the grid clean.
+
+## AI Prompt Template
+
+Use this prompt to generate copy-paste ready content:
+
+```text
+Topic: <paste topic>
+Level (CEFR A1-C2): <paste level>
+
+Create a FLIPPER lesson for LessonHub using the topic and level above. Output ONLY the following 5 sections, exactly in this order, with no extra text:
+Title:
+Suggested cost:
+Instructions:
+CSV:
+Additional information:
+
+Rules:
+- Suggested cost must be a teacher-charged price range in euros for a single 50-60 min online private language lesson in Italy. Use €15-€25 for standard/beginner lessons and €25-€40 for advanced/specialized/premium lessons. Choose one range and output it like "€18-€28".
+- Use the topic and level to control vocabulary, grammar, and question difficulty.
+- Instructions must be 1–3 short, practical sentences.
+- CSV must be "N/A".
+- Additional information must include 12 tiles as a list: each line should include the word and a short image description to guide image selection. Keep lines short.
+```

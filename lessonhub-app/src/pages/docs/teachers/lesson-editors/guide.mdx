@@ -1,3 +1,27 @@
 # Guide Lesson Editor
 
 This documentation is coming soon. It will cover the fields, workflows, and best practices for building guides.
+
+## AI Prompt Template
+
+Use this prompt to generate copy-paste ready content:
+
+```text
+Topic: <paste topic>
+Level (CEFR A1-C2): <paste level>
+
+Create a LEARNING_SESSION lesson (Guide) for LessonHub using the topic and level above. Output ONLY the following 5 sections, exactly in this order, with no extra text:
+Title:
+Suggested cost:
+Instructions:
+CSV:
+Additional information:
+
+Rules:
+- Suggested cost must be a teacher-charged price range in euros for a single 50-60 min online private language lesson in Italy. Use €15-€25 for standard/beginner lessons and €25-€40 for advanced/specialized/premium lessons. Choose one range and output it like "€18-€28".
+- Use the topic and level to control vocabulary, grammar, and question difficulty.
+- Instructions must be 1–3 short, practical sentences.
+- CSV must follow this header schema exactly: content1,content2,content3,content4,extra
+- Provide 6–12 rows. content1 and content2 are required; other columns can be empty.
+- Additional information should be empty unless needed. If not needed, write "None".
+```
