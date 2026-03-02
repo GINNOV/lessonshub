@@ -8,7 +8,7 @@ const orbitron = Orbitron({ subsets: ['latin'], weight: ['500', '700'] })
 const arcade = Press_Start_2P({ subsets: ['latin'], weight: ['400'] })
 
 const MAGIC_ANSWER = 'pipierno'
-const YOUTUBE_EMBED_URL = ''
+const YOUTUBE_EMBED_URL = 'https://www.youtube.com/embed/-IBHIgLXqBM?si=kdd5BlvAkRejkMhF'
 
 const makeRainColumns = (count: number) =>
   Array.from({ length: count }, (_, index) => ({
