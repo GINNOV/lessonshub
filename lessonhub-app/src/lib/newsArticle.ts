@@ -1,5 +1,7 @@
 const WORD_REGEX = /[A-Za-zÀ-ÖØ-öø-ÿ]+/g;
 const WORD_CLEAN_REGEX = /[^a-z0-9à-öø-ÿ]/gi;
+export const NEWS_ARTICLE_INTERACTIVE_WORD_REGEX = /[A-Za-zÀ-ÖØ-öø-ÿ0-9'’]+/g;
+export const NEWS_ARTICLE_TAP_NOTE_PREFIX = 'News Article tap:';
 
 export const NEWS_ARTICLE_BASE_POINTS = 50;
 export const NEWS_ARTICLE_BASE_EUROS = 0.5;
@@ -10,6 +12,24 @@ export const NEWS_ARTICLE_MIN_WORD_LENGTH = 5;
 
 export function normalizeNewsArticleWord(word: string) {
   return word.trim().toLowerCase().replace(WORD_CLEAN_REGEX, '');
+}
+
+export function formatNewsArticleTapNote(word: string) {
+  const normalized = normalizeNewsArticleWord(word);
+  return normalized ? `${NEWS_ARTICLE_TAP_NOTE_PREFIX} ${normalized}` : null;
+}
+
+export function parseNewsArticleTapNote(note: string | null | undefined) {
+  if (!note) return null;
+  const trimmed = note.trim();
+  if (!trimmed) return null;
+
+  const prefix = `${NEWS_ARTICLE_TAP_NOTE_PREFIX} `;
+  if (trimmed.length <= prefix.length) return null;
+  if (!trimmed.toLowerCase().startsWith(prefix.toLowerCase())) return null;
+
+  const word = normalizeNewsArticleWord(trimmed.slice(prefix.length));
+  return word || null;
 }
 
 export function extractUniqueNewsArticleWords(markdown: string) {

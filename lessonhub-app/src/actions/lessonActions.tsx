@@ -18,6 +18,7 @@ import {
   extractUniqueNewsArticleWords,
   getNewsArticlePenaltyRate,
   normalizeNewsArticleWord,
+  parseNewsArticleTapNote,
 } from "@/lib/newsArticle";
 import { getComposerExtraTries, hashComposerSeed, normalizeComposerWord, parseComposerSentence } from "@/lib/composer";
 import { validateAssignmentForSubmission } from "@/lib/assignmentValidation";
@@ -376,10 +377,8 @@ export async function completeNewsArticleAssignment(
 
         const tappedWords = new Set<string>();
         tapTransactions.forEach((tx) => {
-          if (!tx.note) return;
-          const match = tx.note.match(/News Article tap:\s*(.+)$/i);
-          if (!match?.[1]) return;
-          const normalized = normalizeNewsArticleWord(match[1]);
+          const normalized = parseNewsArticleTapNote(tx.note);
+          if (!normalized) return;
           if (normalized.length >= 5) {
             tappedWords.add(normalized);
           }

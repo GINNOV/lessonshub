@@ -12,6 +12,7 @@ import { Volume1, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AssignmentStatus } from '@prisma/client';
 import Rating from '@/app/components/Rating';
+import { NEWS_ARTICLE_INTERACTIVE_WORD_REGEX } from '@/lib/newsArticle';
 
 marked.setOptions({
   gfm: true,
@@ -36,7 +37,6 @@ type NewsArticleLessonPlayerProps = {
   bannerSubhead?: string;
 };
 
-const WORD_REGEX = /[A-Za-z0-9']+/g;
 const TTS_RATES = [1, 0.65, 0.01];
 const TTS_PAUSE_MS = [400, 800, 1400];
 
@@ -90,12 +90,12 @@ export default function NewsArticleLessonPlayer({
       }
       if (node.nodeType !== Node.TEXT_NODE) return;
       const text = node.nodeValue || '';
-      WORD_REGEX.lastIndex = 0;
-      if (!WORD_REGEX.test(text)) return;
-      WORD_REGEX.lastIndex = 0;
+      NEWS_ARTICLE_INTERACTIVE_WORD_REGEX.lastIndex = 0;
+      if (!NEWS_ARTICLE_INTERACTIVE_WORD_REGEX.test(text)) return;
+      NEWS_ARTICLE_INTERACTIVE_WORD_REGEX.lastIndex = 0;
       const frag = doc.createDocumentFragment();
       let lastIndex = 0;
-      text.replace(WORD_REGEX, (match, offset) => {
+      text.replace(NEWS_ARTICLE_INTERACTIVE_WORD_REGEX, (match, offset) => {
         if (offset > lastIndex) {
           frag.appendChild(doc.createTextNode(text.slice(lastIndex, offset)));
         }

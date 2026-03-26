@@ -21,6 +21,7 @@ import {
   resolveSelectedOption,
 } from "@/lib/multiChoiceAnswers";
 import { marked } from "marked";
+import { parseNewsArticleTapNote } from "@/lib/newsArticle";
 
 const normalizeLyricLines = (value: unknown): LyricLine[] => {
   if (!Array.isArray(value)) return [];
@@ -538,12 +539,8 @@ export default async function GradeSubmissionPage({
           select: { note: true },
         });
         const counts = new Map<string, { label: string; count: number }>();
-        let tapTotal = 0;
         transactions.forEach((tx) => {
-          if (!tx.note) return;
-          const match = tx.note.match(/News Article tap:\s*(.+)$/i);
-          if (!match?.[1]) return;
-          const wordRaw = match[1].trim();
+          const wordRaw = parseNewsArticleTapNote(tx.note);
           if (!wordRaw) return;
           const key = wordRaw.toLowerCase();
           const existing = counts.get(key);
@@ -552,10 +549,9 @@ export default async function GradeSubmissionPage({
           } else {
             counts.set(key, { label: wordRaw, count: 1 });
           }
-          tapTotal += 1;
         });
         const entries = Array.from(counts.values()).sort((a, b) => b.count - a.count);
-        return { total: tapTotal, entries };
+        return { entries };
       })()
     : null;
 
@@ -672,7 +668,7 @@ export default async function GradeSubmissionPage({
                   <div className="rounded-md border border-slate-800/70 bg-slate-900/70 p-4">
                     <p className="text-sm font-semibold uppercase text-slate-400">Tap summary</p>
                     <p className="mt-1 text-2xl font-bold text-emerald-300">
-                      {newsArticleTapSummary?.total ?? 0} taps
+                      {submission.newsArticleTapCount ?? 0} taps
                     </p>
                     <p className="text-xs text-slate-400">Total word taps recorded.</p>
                   </div>

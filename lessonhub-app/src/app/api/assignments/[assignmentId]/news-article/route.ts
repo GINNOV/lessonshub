@@ -2,21 +2,23 @@
 import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { LessonType, PointReason } from '@prisma/client';
+import { LessonType, PointReason, Role } from '@prisma/client';
 import {
   NEWS_ARTICLE_BASE_EUROS,
   NEWS_ARTICLE_BASE_POINTS,
   NEWS_ARTICLE_REPEAT_EUROS,
   NEWS_ARTICLE_REPEAT_POINTS,
+  formatNewsArticleTapNote,
   normalizeNewsArticleWord,
 } from '@/lib/newsArticle';
+import { validateAssignmentForSubmission } from '@/lib/assignmentValidation';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ assignmentId: string }> },
 ) {
   const session = await auth();
-  if (!session || !session.user) {
+  if (!session?.user?.id || session.user.role !== Role.STUDENT) {
     return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
@@ -24,7 +26,11 @@ export async function POST(
   const body = await request.json().catch(() => ({}));
   const wordRaw = typeof body?.word === 'string' ? body.word.trim() : '';
   const normalizedWord = normalizeNewsArticleWord(wordRaw);
-  const hasWord = Boolean(normalizedWord);
+  const tapNote = formatNewsArticleTapNote(normalizedWord);
+
+  if (!tapNote) {
+    return new NextResponse(JSON.stringify({ error: 'Invalid word tap.' }), { status: 400 });
+  }
 
   const assignment = await prisma.assignment.findFirst({
     where: { id: assignmentId, studentId: session.user.id },
@@ -42,6 +48,17 @@ export async function POST(
     return new NextResponse(JSON.stringify({ error: 'News article assignment not found.' }), { status: 404 });
   }
 
+  const validation = validateAssignmentForSubmission({
+    status: assignment.status,
+    deadline: assignment.deadline,
+  });
+  if (!validation.ok) {
+    return new NextResponse(
+      JSON.stringify({ error: validation.error }),
+      { status: validation.reason === 'deadline' ? 403 : 400 }
+    );
+  }
+
   const maxWordTaps = assignment.lesson.newsArticleConfig.maxWordTaps ?? null;
   if (typeof maxWordTaps === 'number' && maxWordTaps > 0 && assignment.newsArticleTapCount >= maxWordTaps) {
     return new NextResponse(JSON.stringify({ error: 'Tap limit reached.', tapCount: assignment.newsArticleTapCount }), {
@@ -56,22 +73,19 @@ export async function POST(
         select: { totalPoints: true },
       });
 
-      let isRepeatTap = false;
-      if (hasWord) {
-        const existing = await tx.pointTransaction.findFirst({
-          where: {
-            assignmentId,
-            reason: PointReason.NEWS_ARTICLE_TAP,
-            note: {
-              contains: `News Article tap: ${normalizedWord}`,
-              mode: 'insensitive',
-            },
+      const existing = await tx.pointTransaction.findFirst({
+        where: {
+          assignmentId,
+          reason: PointReason.NEWS_ARTICLE_TAP,
+          note: {
+            equals: tapNote,
+            mode: 'insensitive',
           },
-          select: { id: true },
-        });
-        isRepeatTap = Boolean(existing);
-      }
+        },
+        select: { id: true },
+      });
 
+      const isRepeatTap = Boolean(existing);
       const pointsDelta = isRepeatTap ? NEWS_ARTICLE_REPEAT_POINTS : NEWS_ARTICLE_BASE_POINTS;
       const eurosDelta = isRepeatTap ? NEWS_ARTICLE_REPEAT_EUROS : NEWS_ARTICLE_BASE_EUROS;
 
@@ -96,7 +110,7 @@ export async function POST(
           points: pointsDelta,
           amountEuro: eurosDelta,
           reason: PointReason.NEWS_ARTICLE_TAP,
-          note: hasWord ? `News Article tap: ${normalizedWord}` : 'News Article tap',
+          note: tapNote,
         },
       });
 
