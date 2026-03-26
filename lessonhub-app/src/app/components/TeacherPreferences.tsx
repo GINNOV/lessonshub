@@ -11,8 +11,13 @@ import { toast } from 'sonner';
 import { updateTeacherPreferences } from '@/actions/teacherActions';
 import ManageInstructionBookletsLink from '@/app/components/ManageInstructionBookletsLink';
 
-type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
+type SerializableUser = Omit<
+  User,
+  'defaultLessonPrice' | 'referralRewardPercent' | 'referralRewardMonthlyAmount'
+> & {
   defaultLessonPrice: number | null;
+  referralRewardPercent: number | null;
+  referralRewardMonthlyAmount: number | null;
 };
 
 interface TeacherPreferencesProps {

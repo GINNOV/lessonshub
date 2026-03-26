@@ -6,9 +6,9 @@ import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
 import GuideCompletionCTA from "@/app/components/GuideCompletionCTA";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { marked } from "marked";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
+import { renderMarkdown } from "@/lib/markdown";
 
 export default async function GuidePage({ params }: { params: Promise<{ guideId: string }> }) {
   const session = await auth();
@@ -62,8 +62,8 @@ export default async function GuidePage({ params }: { params: Promise<{ guideId:
 
   const [completion] = await Promise.all([completionPromise]);
 
-  const previewHtml = guide.lessonPreview ? await marked.parse(guide.lessonPreview) : null;
-  const instructionsHtml = guide.assignmentText ? await marked.parse(guide.assignmentText) : null;
+  const previewHtml = guide.lessonPreview ? renderMarkdown(guide.lessonPreview) : null;
+  const instructionsHtml = guide.assignmentText ? renderMarkdown(guide.assignmentText) : null;
   const updatedLabel = new Date(guide.updatedAt).toLocaleString(undefined, {
     month: "short",
     day: "numeric",

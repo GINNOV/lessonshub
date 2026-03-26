@@ -1,5 +1,4 @@
 // file: src/app/assignments/[assignmentId]/page.tsx
-import { randomUUID } from "node:crypto";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -15,7 +14,6 @@ import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
 import ArkaningLessonPlayer from "@/app/components/ArkaningLessonPlayer";
 import NewsArticleLessonPlayer from "@/app/components/NewsArticleLessonPlayer";
 import FlipperLessonPlayer from "@/app/components/FlipperLessonPlayer";
-import { marked } from "marked";
 import { AssignmentStatus, LessonType, PointReason } from "@prisma/client";
 import Confetti from "@/app/components/Confetti";
 import { cn } from "@/lib/utils";
@@ -37,11 +35,8 @@ import StudentExtensionRequest from "@/app/components/StudentExtensionRequest";
 import { EXTENSION_POINT_COST } from "@/lib/lessonExtensions";
 import { headers } from "next/headers";
 import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from "@/lib/locale";
-
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
+import { serializeAssignmentForStudentPage } from "@/lib/serializers/assignment";
+import { renderMarkdown } from "@/lib/markdown";
 // --- SVG Icons ---
 // Removed inline icons; using shared content view for attachments
 
@@ -531,96 +526,7 @@ export default async function AssignmentPage({
         teacherFeedbackTitle: "Teacher's feedback",
       };
   
-  const normalizeLyricLines = (value: unknown): LyricLine[] => {
-    if (!Array.isArray(value)) return [];
-    const normalized: LyricLine[] = [];
-    value.forEach((item) => {
-      if (!item || typeof item !== "object") return;
-      const record = item as Record<string, unknown>;
-      const text = typeof record.text === "string" ? record.text : "";
-      if (!text.trim()) return;
-      const id = typeof record.id === "string" ? record.id : randomUUID();
-      const startTimeValue =
-        typeof record.startTime === "number"
-          ? record.startTime
-          : typeof record.startTime === "string" && record.startTime.trim()
-          ? Number(record.startTime)
-          : null;
-      const endTimeValue =
-        typeof record.endTime === "number"
-          ? record.endTime
-          : typeof record.endTime === "string" && record.endTime.trim()
-          ? Number(record.endTime)
-          : null;
-      const hiddenWords =
-        Array.isArray(record.hiddenWords)
-          ? record.hiddenWords.filter((word): word is string => typeof word === "string" && word.trim().length > 0)
-          : undefined;
-      const startTime = Number.isFinite(startTimeValue) ? Number(startTimeValue) : null;
-      const endTime = Number.isFinite(endTimeValue) ? Number(endTimeValue) : null;
-      normalized.push({
-        id,
-        text,
-        startTime,
-        endTime,
-        hiddenWords,
-      });
-    });
-    return normalized;
-  };
-
-  const lyricAttempts = (assignment.lesson.lyricAttempts ?? []).map((attempt) => ({
-    id: attempt.id,
-    scorePercent: attempt.scorePercent ? Number(attempt.scorePercent.toString()) : null,
-    timeTakenSeconds: attempt.timeTakenSeconds ?? null,
-    answers: attempt.answers as Record<string, string[]> | null,
-    readModeSwitchesUsed: typeof attempt.readModeSwitchesUsed === "number" ? attempt.readModeSwitchesUsed : null,
-    createdAt: attempt.createdAt.toISOString(),
-  }));
-
-  const serializableAssignment = {
-    ...assignment,
-    lesson: {
-      ...assignment.lesson,
-      price: assignment.lesson.price.toNumber(),
-      newsArticleConfig: assignment.lesson.newsArticleConfig
-        ? {
-            markdown: assignment.lesson.newsArticleConfig.markdown,
-            maxWordTaps: assignment.lesson.newsArticleConfig.maxWordTaps ?? null,
-          }
-        : null,
-      lyricConfig: assignment.lesson.lyricConfig
-        ? {
-            ...assignment.lesson.lyricConfig,
-            lines: normalizeLyricLines(assignment.lesson.lyricConfig.lines),
-            settings: (assignment.lesson.lyricConfig.settings as LyricLessonSettings | null) ?? null,
-          }
-        : null,
-      lyricAttempts,
-    },
-    answers: assignment.answers as any,
-    lyricDraftAnswers: ((): Record<string, string[]> | null => {
-      if (!assignment.lyricDraftAnswers || typeof assignment.lyricDraftAnswers !== 'object') return null;
-      const result: Record<string, string[]> = {};
-      let hasEntries = false;
-      Object.entries(assignment.lyricDraftAnswers as Record<string, unknown>).forEach(([key, raw]) => {
-        if (!Array.isArray(raw)) return;
-        const arr = raw.every(item => typeof item === 'string')
-          ? (raw as string[])
-          : raw.map(item => (item === null || item === undefined ? '' : String(item)));
-        result[key] = arr;
-        hasEntries = true;
-      });
-      return hasEntries ? result : null;
-    })(),
-    lyricDraftMode:
-      assignment.lyricDraftMode === 'read' || assignment.lyricDraftMode === 'fill'
-        ? assignment.lyricDraftMode
-        : null,
-    lyricDraftReadSwitches:
-      typeof assignment.lyricDraftReadSwitches === 'number' ? assignment.lyricDraftReadSwitches : null,
-    lyricDraftUpdatedAt: assignment.lyricDraftUpdatedAt,
-  };
+  const serializableAssignment = serializeAssignmentForStudentPage(assignment);
 
   const isStudentOwner = session.user.id === serializableAssignment.studentId;
   const availabilitySource =
@@ -666,9 +572,9 @@ export default async function AssignmentPage({
   const practiceExitHref = `/assignments/${serializableAssignment.id}`;
   const viewResultsHref = `/assignments/${serializableAssignment.id}?view=results`;
 
-  const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : null;
-  const notesHtml = lesson.notes ? ((await marked.parse(lesson.notes)) as string) : null;
-  const instructionsHtml = lesson.assignment_text ? ((await marked.parse(lesson.assignment_text)) as string) : null;
+  const contextHtml = lesson.context_text ? renderMarkdown(lesson.context_text) : null;
+  const notesHtml = lesson.notes ? renderMarkdown(lesson.notes) : null;
+  const instructionsHtml = lesson.assignment_text ? renderMarkdown(lesson.assignment_text) : null;
   const studentExtensionUsed = Boolean(
     await prisma.pointTransaction.findFirst({
       where: {
@@ -880,7 +786,7 @@ export default async function AssignmentPage({
               audioUrl={lyricAudioUrl}
               audioStorageKey={lyricAudioStorageKey}
               lines={lesson.lyricConfig.lines}
-              settings={lesson.lyricConfig.settings}
+              settings={(lesson.lyricConfig.settings as LyricLessonSettings | null) ?? null}
               status={serializableAssignment.status}
               existingAttempt={lesson.lyricAttempts?.[0] ?? null}
               timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}
@@ -1154,7 +1060,7 @@ export default async function AssignmentPage({
               audioUrl={lyricAudioUrl}
               audioStorageKey={lyricAudioStorageKey}
               lines={lesson.lyricConfig.lines}
-              settings={lesson.lyricConfig.settings}
+              settings={(lesson.lyricConfig.settings as LyricLessonSettings | null) ?? null}
               status={serializableAssignment.status}
               existingAttempt={lesson.lyricAttempts?.[0] ?? null}
               timingSourceUrl={lesson.lyricConfig.timingSourceUrl ?? null}

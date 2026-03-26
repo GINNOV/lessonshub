@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import AssignStudentsForm from "@/app/components/AssignStudentsForm";
 import { getAssignedStudents } from "@/actions/adminActions";
 import { getAllUsers } from "@/actions/adminActions";
+import { serializeUserDecimalFields } from "@/lib/serializers/user";
 
 async function getTeacher(teacherId: string) {
     return prisma.user.findUnique({ where: { id: teacherId, role: Role.TEACHER } });
@@ -40,8 +41,8 @@ export default async function AssignStudentsPage({ params }: { params: { teacher
         );
     }
 
-    const serializableStudents = assignedStudents.map(s => ({...s, defaultLessonPrice: s.defaultLessonPrice?.toNumber() ?? null }));
-    const serializableAllStudents = allStudents.map(s => ({...s, defaultLessonPrice: s.defaultLessonPrice?.toNumber() ?? null }));
+    const serializableStudents = assignedStudents.map((student) => serializeUserDecimalFields(student)!);
+    const serializableAllStudents = allStudents.map((student) => serializeUserDecimalFields(student)!);
 
     return (
         <div>

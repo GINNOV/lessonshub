@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { LessonType, PointReason } from '@prisma/client';
+import { recordPointsDelta } from '@/lib/assignment-service';
 
 export async function POST(
   request: Request,
@@ -43,31 +44,16 @@ export async function POST(
 
   try {
     const updated = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
-        where: { id: session.user.id },
-        select: { totalPoints: true },
+      const totalPoints = await recordPointsDelta({
+        tx,
+        userId: session.user.id,
+        assignmentId,
+        pointsDelta,
+        amountEuro: eurosDelta,
+        reason: PointReason.ARKANING_GAME,
+        note: outcome === 'correct' ? 'ArkanING correct' : 'ArkanING wrong',
       });
-      const currentPoints = user?.totalPoints ?? 0;
-      const nextPoints = currentPoints + pointsDelta;
-
-      const updatedUser = await tx.user.update({
-        where: { id: session.user.id },
-        data: { totalPoints: nextPoints },
-        select: { totalPoints: true },
-      });
-
-      await tx.pointTransaction.create({
-        data: {
-          userId: session.user.id,
-          assignmentId,
-          points: pointsDelta,
-          amountEuro: eurosDelta,
-          reason: PointReason.ARKANING_GAME,
-          note: outcome === 'correct' ? 'ArkanING correct' : 'ArkanING wrong',
-        },
-      });
-
-      return updatedUser;
+      return { totalPoints };
     });
 
     return NextResponse.json(

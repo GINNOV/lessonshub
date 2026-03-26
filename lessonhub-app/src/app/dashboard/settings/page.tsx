@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { loadLatestUpgradeNote } from "@/lib/whatsNew";
 import { headers } from "next/headers";
 import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from "@/lib/locale";
+import { serializeUserDecimalFields } from "@/lib/serializers/user";
 
 export default async function TeacherSettingsPage() {
   const session = await auth();
@@ -59,18 +60,7 @@ export default async function TeacherSettingsPage() {
     );
   }
 
-const serializableTeacher = {
-  ...teacher,
-  defaultLessonPrice: teacher.defaultLessonPrice
-    ? Number(teacher.defaultLessonPrice.toString())
-    : null,
-  referralRewardPercent: teacher.referralRewardPercent
-    ? Number(teacher.referralRewardPercent.toString())
-    : null,
-  referralRewardMonthlyAmount: teacher.referralRewardMonthlyAmount
-    ? Number(teacher.referralRewardMonthlyAmount.toString())
-    : null,
-};
+  const serializableTeacher = serializeUserDecimalFields(teacher) ?? teacher;
 
   const whatsNewNotes = {
     us: whatsNewUS,

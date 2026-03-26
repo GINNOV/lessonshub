@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { Role, AssignmentStatus, LessonType, PointReason } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { createButton } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email-templates.server";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
@@ -12,6 +13,7 @@ import { ensureBadgeCatalog } from "@/lib/gamification";
 import { getEmailTemplateByName } from "@/actions/adminActions";
 import { convertExtraPointsToEuro, convertEuroToPoints, GOLD_STAR_POINTS, GOLD_STAR_VALUE_EURO } from "@/lib/points";
 import { getComposerExtraTries } from "@/lib/composer";
+import { cacheTags } from "@/lib/cache-tags";
 
 /**
  * Fetches the preferences for the currently logged-in teacher.
@@ -23,15 +25,19 @@ export async function getTeacherPreferences() {
   }
 
   try {
-    const teacher = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        defaultLessonPrice: true,
-        defaultLessonPreview: true,
-        defaultLessonNotes: true,
-        defaultLessonInstructions: true,
-      },
-    });
+    const teacher = await unstable_cache(
+      async (teacherId: string) => prisma.user.findUnique({
+        where: { id: teacherId },
+        select: {
+          defaultLessonPrice: true,
+          defaultLessonPreview: true,
+          defaultLessonNotes: true,
+          defaultLessonInstructions: true,
+        },
+      }),
+      ['teacher-preferences', session.user.id],
+      { revalidate: 60, tags: [cacheTags.teacherDashboard(session.user.id)] }
+    )(session.user.id);
     return teacher;
   } catch (error) {
     console.error("Failed to fetch teacher preferences:", error);
@@ -71,6 +77,11 @@ export async function updateTeacherPreferences(data: TeacherPreferences) {
         revalidatePath('/dashboard/create/flashcard');
         revalidatePath('/dashboard/create/multi-choice');
         revalidatePath('/dashboard/settings');
+        revalidatePath('/dashboard/create/composer');
+        revalidatePath('/dashboard/create/flipper');
+        revalidatePath('/dashboard/create/lyric');
+        revalidatePath('/dashboard/create/learning-session');
+        revalidatePath('/dashboard/create/news-article');
         return { success: true };
 
     } catch (error) {
@@ -207,6 +218,7 @@ export async function updateTeacherBio(teacherBio: string) {
             data: { teacherBio },
         });
         revalidatePath('/teachers');
+        revalidatePath('/profile');
         return { success: true };
     } catch (error) {
         console.error("Failed to update teacher bio:", error);

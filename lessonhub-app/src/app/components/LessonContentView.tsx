@@ -1,15 +1,11 @@
 // file: src/app/components/LessonContentView.tsx
 import Image from "next/image";
 import Link from "next/link";
-import { marked } from "marked";
 import { Lesson } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Paperclip, Eye, Volume2, ExternalLink } from "lucide-react";
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
+import { renderMarkdown } from "@/lib/markdown";
 
 type LessonWithOptionalLyric = Omit<Lesson, 'price'> & {
   price: number;
@@ -50,8 +46,8 @@ export default async function LessonContentView({
   const instructionsTitle = copy?.instructionsTitle ?? "👉🏼 INSTRUCTIONS";
   const materialTitle = copy?.materialTitle ?? "MATERIAL";
   const viewAttachment = copy?.viewAttachment ?? "View Attachment";
-  const assignmentHtml = lesson.assignment_text ? ((await marked.parse(lesson.assignment_text)) as string) : "";
-  const contextHtml = lesson.context_text ? ((await marked.parse(lesson.context_text)) as string) : "";
+  const assignmentHtml = lesson.assignment_text ? renderMarkdown(lesson.assignment_text) : "";
+  const contextHtml = lesson.context_text ? renderMarkdown(lesson.context_text) : "";
 
   const audioUrl = lesson.soundcloud_url || lesson.lyricConfig?.audioUrl || "";
   const isSpotifyAudio = typeof audioUrl === 'string' && /open\.spotify\.com/i.test(audioUrl);

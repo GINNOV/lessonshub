@@ -1,10 +1,11 @@
 // file: src/app/api/my-lessons/route.ts
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { Role, AssignmentStatus, PointReason } from "@prisma/client";
+import { Role, PointReason } from "@prisma/client";
 import { getAssignmentsForStudent } from "@/actions/lessonActions";
 import prisma from "@/lib/prisma";
 import { EXTENSION_POINT_COST } from "@/lib/lessonExtensions";
+import { serializeStudentAssignments } from "@/lib/serializers/assignment";
 
 export async function GET() {
   const session = await auth();
@@ -50,43 +51,9 @@ export async function GET() {
         .filter((id): id is string => Boolean(id)),
     );
 
-    const submittedStatuses = new Set<AssignmentStatus>([
-        AssignmentStatus.COMPLETED,
-        AssignmentStatus.GRADED,
-        AssignmentStatus.FAILED,
-    ]);
-
-    const serializableAssignments = assignments.map(assignment => {
-        const {
-          _count,
-          assignments: lessonAssignments,
-          price,
-          teacher,
-          ...restOfLesson
-        } = assignment.lesson;
-  
-        const submittedCount = (lessonAssignments || []).filter((lessonAssignment) =>
-          submittedStatuses.has(lessonAssignment.status)
-        ).length;
-  
-        return {
-          ...assignment,
-          pointsAwarded: assignment.pointsAwarded ?? 0,
-          marketplacePurchased: purchasedAssignmentIds.has(assignment.id),
-          extensionUsed: extendedAssignmentIds.has(assignment.id),
-          teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
-          lesson: {
-            ...restOfLesson,
-            price: price.toNumber(),
-            isFreeForAll: (restOfLesson as any).isFreeForAll ?? false,
-            completionCount: _count.assignments,
-            submittedCount,
-            teacher: teacher ? {
-                ...teacher,
-                defaultLessonPrice: teacher.defaultLessonPrice?.toNumber() ?? null,
-            } : null,
-          },
-        }
+    const serializableAssignments = serializeStudentAssignments(assignments, {
+      marketplacePurchasedIds: purchasedAssignmentIds,
+      extendedAssignmentIds: extendedAssignmentIds,
     });
 
     return NextResponse.json(serializableAssignments);

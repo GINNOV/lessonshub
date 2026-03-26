@@ -4,10 +4,12 @@
 import prisma from "@/lib/prisma";
 import { BadgeCategory, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { createButton } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email-templates.server";
 import { auth } from "@/auth";
 import { hasAdminPrivileges } from "@/lib/authz";
+import { cacheTags, revalidateAdminLessonViews, revalidateAdminUserViews } from "@/lib/cache-tags";
 
 /**
  * Fetches all users from the database.
@@ -15,11 +17,15 @@ import { hasAdminPrivileges } from "@/lib/authz";
  */
 export async function getAllUsers() {
   try {
-    const users = await prisma.user.findMany({
-      orderBy: {
-        email: 'asc',
-      }
-    });
+    const users = await unstable_cache(
+      async () => prisma.user.findMany({
+        orderBy: {
+          email: 'asc',
+        }
+      }),
+      ['admin-users'],
+      { revalidate: 60, tags: [cacheTags.adminUsers] }
+    )();
     return users;
   } catch (error) {
     console.error("Failed to fetch users:", error);
@@ -33,14 +39,18 @@ export async function getAllUsers() {
  */
 export async function getAllTeachers() {
   try {
-    const teachers = await prisma.user.findMany({
-      where: {
-        role: Role.TEACHER,
-      },
-      orderBy: {
-        email: 'asc',
-      }
-    });
+    const teachers = await unstable_cache(
+      async () => prisma.user.findMany({
+        where: {
+          role: Role.TEACHER,
+        },
+        orderBy: {
+          email: 'asc',
+        }
+      }),
+      ['admin-teachers'],
+      { revalidate: 60, tags: [cacheTags.adminTeachers] }
+    )();
     return teachers;
   } catch (error) {
     console.error("Failed to fetch teachers:", error);
@@ -60,7 +70,7 @@ export async function updateUserRole(userId: string, newRole: Role) {
       where: { id: userId },
       data: { role: newRole },
     });
-    revalidatePath('/admin/users');
+    revalidateAdminUserViews(userId);
     return { success: true };
   } catch (error) {
     console.error("Failed to update user role:", error);
@@ -110,7 +120,7 @@ export async function toggleUserSuspension(userId: string) {
       where: { id: userId },
       data: { isSuspended: !userToUpdate.isSuspended },
     });
-    revalidatePath('/admin/users');
+    revalidateAdminUserViews(userId);
     return { success: true };
   } catch (error) {
     console.error("Failed to toggle user suspension:", error);
@@ -505,15 +515,19 @@ export async function updateEmailTemplate(
  */
 export async function getAllLessons() {
   try {
-    const lessons = await prisma.lesson.findMany({
-      include: {
-        teacher: true,
-        assignments: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const lessons = await unstable_cache(
+      async () => prisma.lesson.findMany({
+        include: {
+          teacher: true,
+          assignments: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      ['admin-lessons'],
+      { revalidate: 60, tags: [cacheTags.adminLessons] }
+    )();
     return lessons;
   } catch (error) {
     console.error("Failed to fetch all lessons:", error);
@@ -533,7 +547,7 @@ export async function reassignLesson(lessonId: string, newTeacherId: string | nu
             where: { id: lessonId },
             data: { teacherId: newTeacherId }
         });
-        revalidatePath('/admin/lessons');
+        revalidateAdminLessonViews();
         return { success: true };
     } catch (error) {
         console.error("Failed to reassign lesson:", error);
@@ -584,7 +598,7 @@ export async function updateLessonPrice(lessonId: string, newPrice: number) {
       where: { id: lessonId },
       data: { price: newPrice },
     });
-    revalidatePath('/admin/lessons');
+    revalidateAdminLessonViews();
     return { success: true };
   } catch (error) {
     console.error("Failed to update lesson price:", error);
@@ -608,7 +622,7 @@ export async function updateUserPayingStatus(userId: string, isPaying: boolean) 
       where: { id: userId },
       data: { isPaying },
     });
-    revalidatePath('/admin/users');
+    revalidateAdminUserViews(userId);
     return { success: true };
   } catch (error) {
     console.error("Failed to update user paying status:", error);

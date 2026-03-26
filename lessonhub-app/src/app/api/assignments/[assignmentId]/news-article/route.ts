@@ -13,6 +13,16 @@ import {
 } from '@/lib/newsArticle';
 import { validateAssignmentForSubmission } from '@/lib/assignmentValidation';
 
+class TapLimitReachedError extends Error {
+  tapCount: number
+
+  constructor(tapCount: number) {
+    super('Tap limit reached.')
+    this.name = 'TapLimitReachedError'
+    this.tapCount = tapCount
+  }
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ assignmentId: string }> },
@@ -60,19 +70,10 @@ export async function POST(
   }
 
   const maxWordTaps = assignment.lesson.newsArticleConfig.maxWordTaps ?? null;
-  if (typeof maxWordTaps === 'number' && maxWordTaps > 0 && assignment.newsArticleTapCount >= maxWordTaps) {
-    return new NextResponse(JSON.stringify({ error: 'Tap limit reached.', tapCount: assignment.newsArticleTapCount }), {
-      status: 400,
-    });
-  }
+  const hasTapLimit = typeof maxWordTaps === 'number' && maxWordTaps > 0
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
-        where: { id: session.user.id },
-        select: { totalPoints: true },
-      });
-
       const existing = await tx.pointTransaction.findFirst({
         where: {
           assignmentId,
@@ -88,19 +89,43 @@ export async function POST(
       const isRepeatTap = Boolean(existing);
       const pointsDelta = isRepeatTap ? NEWS_ARTICLE_REPEAT_POINTS : NEWS_ARTICLE_BASE_POINTS;
       const eurosDelta = isRepeatTap ? NEWS_ARTICLE_REPEAT_EUROS : NEWS_ARTICLE_BASE_EUROS;
+      let tapCount: number;
 
-      const currentPoints = user?.totalPoints ?? 0;
-      const nextPoints = currentPoints + pointsDelta;
+      if (hasTapLimit) {
+        const updatedAssignment = await tx.assignment.updateMany({
+          where: {
+            id: assignmentId,
+            newsArticleTapCount: { lt: maxWordTaps },
+          },
+          data: { newsArticleTapCount: { increment: 1 } },
+        });
 
-      const updatedAssignment = await tx.assignment.update({
-        where: { id: assignmentId },
-        data: { newsArticleTapCount: { increment: 1 } },
-        select: { newsArticleTapCount: true },
-      });
+        if (updatedAssignment.count === 0) {
+          const latestAssignment = await tx.assignment.findUnique({
+            where: { id: assignmentId },
+            select: { newsArticleTapCount: true },
+          });
+          throw new TapLimitReachedError(latestAssignment?.newsArticleTapCount ?? maxWordTaps)
+        }
 
-      await tx.user.update({
+        const latestAssignment = await tx.assignment.findUnique({
+          where: { id: assignmentId },
+          select: { newsArticleTapCount: true },
+        });
+        tapCount = latestAssignment?.newsArticleTapCount ?? maxWordTaps
+      } else {
+        const updatedAssignment = await tx.assignment.update({
+          where: { id: assignmentId },
+          data: { newsArticleTapCount: { increment: 1 } },
+          select: { newsArticleTapCount: true },
+        });
+        tapCount = updatedAssignment.newsArticleTapCount
+      }
+
+      const updatedUser = await tx.user.update({
         where: { id: session.user.id },
-        data: { totalPoints: nextPoints },
+        data: { totalPoints: { increment: pointsDelta } },
+        select: { totalPoints: true },
       });
 
       await tx.pointTransaction.create({
@@ -115,8 +140,8 @@ export async function POST(
       });
 
       return {
-        tapCount: updatedAssignment.newsArticleTapCount,
-        totalPoints: nextPoints,
+        tapCount,
+        totalPoints: updatedUser.totalPoints,
         pointsDelta,
         eurosDelta,
       };
@@ -132,6 +157,11 @@ export async function POST(
       { status: 200 },
     );
   } catch (error) {
+    if (error instanceof TapLimitReachedError) {
+      return new NextResponse(JSON.stringify({ error: error.message, tapCount: error.tapCount }), {
+        status: 400,
+      });
+    }
     console.error('NEWS_ARTICLE_TAP_ERROR', error);
     return new NextResponse(JSON.stringify({ error: 'Failed to record word tap.' }), {
       status: 500,

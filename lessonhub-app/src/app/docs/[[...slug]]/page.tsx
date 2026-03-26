@@ -1,11 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import { notFound } from 'next/navigation';
-import { marked } from 'marked';
 import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { auth } from '@/auth';
 import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from '@/lib/locale';
+import { renderMarkdown } from '@/lib/markdown';
 
 interface PageProps {
   params: Promise<{ 
@@ -102,7 +102,7 @@ export default async function DocPage({ params }: PageProps) {
     notFound();
   }
 
-  const htmlContent = await marked.parse(content);
+  const htmlContent = renderMarkdown(content);
 
   return (
     <div className="prose prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 prose-code:text-accent prose-pre:bg-secondary/50 prose-hr:border-border max-w-none">

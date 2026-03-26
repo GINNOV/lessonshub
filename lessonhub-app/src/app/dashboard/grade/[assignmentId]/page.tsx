@@ -1,5 +1,4 @@
 // file: src/app/dashboard/grade/[assignmentId]/page.tsx
-import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
@@ -9,7 +8,7 @@ import prisma from "@/lib/prisma";
 import GradingForm from "@/app/components/GradingForm";
 import LessonContentView from "@/app/components/LessonContentView";
 import LearningSessionPlayer from "@/app/components/LearningSessionPlayer";
-import type { LyricLine, LyricLessonSettings } from "@/app/components/LyricLessonEditor";
+import type { LyricLine } from "@/app/components/LyricLessonEditor";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -20,69 +19,9 @@ import {
   resolveSelectedLabel,
   resolveSelectedOption,
 } from "@/lib/multiChoiceAnswers";
-import { marked } from "marked";
+import { renderMarkdown } from "@/lib/markdown";
 import { parseNewsArticleTapNote } from "@/lib/newsArticle";
-
-const normalizeLyricLines = (value: unknown): LyricLine[] => {
-  if (!Array.isArray(value)) return [];
-  const normalized: LyricLine[] = [];
-  value.forEach((item) => {
-    if (!item || typeof item !== "object") return;
-    const record = item as Record<string, unknown>;
-    const text = typeof record.text === "string" ? record.text : "";
-    if (!text.trim()) return;
-    const id = typeof record.id === "string" ? record.id : randomUUID();
-    const startTimeValue =
-      typeof record.startTime === "number"
-        ? record.startTime
-        : typeof record.startTime === "string" && record.startTime.trim()
-        ? Number(record.startTime)
-        : null;
-    const endTimeValue =
-      typeof record.endTime === "number"
-        ? record.endTime
-        : typeof record.endTime === "string" && record.endTime.trim()
-        ? Number(record.endTime)
-        : null;
-    const hiddenWords =
-      Array.isArray(record.hiddenWords)
-        ? record.hiddenWords.filter((word): word is string => typeof word === "string" && word.trim().length > 0)
-        : undefined;
-    const startTime = Number.isFinite(startTimeValue) ? Number(startTimeValue) : null;
-    const endTime = Number.isFinite(endTimeValue) ? Number(endTimeValue) : null;
-    normalized.push({
-      id,
-      text,
-      startTime,
-      endTime,
-      hiddenWords,
-    });
-  });
-  return normalized;
-};
-
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
-
-const normalizeUserDecimals = <T extends { referralRewardPercent?: unknown; referralRewardMonthlyAmount?: unknown; defaultLessonPrice?: unknown }>(
-  user: T | null | undefined
-) => {
-  if (!user) return user ?? null;
-  return {
-    ...user,
-    referralRewardPercent: typeof (user as any).referralRewardPercent === 'object' && (user as any).referralRewardPercent?.toNumber
-      ? (user as any).referralRewardPercent.toNumber()
-      : (user as any).referralRewardPercent,
-    referralRewardMonthlyAmount: typeof (user as any).referralRewardMonthlyAmount === 'object' && (user as any).referralRewardMonthlyAmount?.toNumber
-      ? (user as any).referralRewardMonthlyAmount.toNumber()
-      : (user as any).referralRewardMonthlyAmount,
-    defaultLessonPrice: typeof (user as any).defaultLessonPrice === 'object' && (user as any).defaultLessonPrice?.toNumber
-      ? (user as any).defaultLessonPrice.toNumber()
-      : (user as any).defaultLessonPrice,
-  } as T;
-};
+import { serializeSubmissionForGrading } from "@/lib/serializers/assignment";
 
 const sanitizeWord = (value: string) =>
   value
@@ -205,65 +144,24 @@ export default async function GradeSubmissionPage({
     );
   }
 
-  const lyricConfig = submission.lesson.lyricConfig
-    ? {
-        ...submission.lesson.lyricConfig,
-        lines: normalizeLyricLines(submission.lesson.lyricConfig.lines),
-        settings: (submission.lesson.lyricConfig.settings as LyricLessonSettings | null) ?? null,
-      }
-    : null;
-
-  const lessonWithAttempts = submission.lesson as typeof submission.lesson & {
-    lyricAttempts?: Array<{
-      scorePercent: { toString(): string } | number | null;
-      timeTakenSeconds: number | null;
-      answers: unknown;
-      createdAt: Date | string;
-    }>;
-  };
-  const rawLyricAttempts = Array.isArray(lessonWithAttempts.lyricAttempts)
-    ? lessonWithAttempts.lyricAttempts
-    : [];
-
-  const lyricAttempts = rawLyricAttempts.map(attempt => ({
-    scorePercent: attempt.scorePercent ? Number(attempt.scorePercent.toString()) : null,
-    timeTakenSeconds: attempt.timeTakenSeconds ?? null,
-    answers: (attempt.answers as Record<string, string[]> | null) ?? null,
-    readModeSwitchesUsed:
-      typeof attempt.readModeSwitchesUsed === 'number' ? attempt.readModeSwitchesUsed : null,
-    createdAt:
-      attempt.createdAt instanceof Date
-        ? attempt.createdAt.toISOString()
-        : new Date(attempt.createdAt).toISOString(),
-  }));
-
-  const serializableSubmission = {
-    ...submission,
-    student: normalizeUserDecimals(submission.student),
-    teacher: normalizeUserDecimals((submission as any).teacher ?? null),
-    lesson: {
-      ...submission.lesson,
-      price: submission.lesson.price.toNumber(),
-      lyricConfig,
-      lyricAttempts,
-    }
-  };
-  (serializableSubmission as any).lyricDraftAnswers = parseDraftAnswers(submission.lyricDraftAnswers);
-  serializableSubmission.lyricDraftMode = (submission.lyricDraftMode as 'read' | 'fill' | null) ?? null;
-  serializableSubmission.lyricDraftReadSwitches =
-    typeof submission.lyricDraftReadSwitches === 'number' ? submission.lyricDraftReadSwitches : null;
-  serializableSubmission.lyricDraftUpdatedAt = submission.lyricDraftUpdatedAt;
+  const serializableSubmission = serializeSubmissionForGrading(submission);
 
   const flashcards = submission.lesson.flashcards ?? [];
   const multiChoiceQuestions = submission.lesson.multiChoiceQuestions ?? [];
   const lyricLessonConfig = serializableSubmission.lesson.lyricConfig;
   const lyricExistingAttempt = serializableSubmission.lesson.lyricAttempts?.[0] ?? null;
+  const lyricFillBlankDifficulty = (() => {
+    const settings = lyricLessonConfig?.settings;
+    if (settings && typeof settings === 'object' && !Array.isArray(settings)) {
+      const difficulty = (settings as Record<string, unknown>).fillBlankDifficulty;
+      return typeof difficulty === 'number' ? difficulty : 0.2;
+    }
+    return 0.2;
+  })();
   const lyricPreparedLines = lyricLessonConfig
     ? prepareLinesForReview(
         lyricLessonConfig.lines as LyricLine[],
-        typeof lyricLessonConfig.settings?.fillBlankDifficulty === 'number'
-          ? lyricLessonConfig.settings.fillBlankDifficulty
-          : 0.2
+        lyricFillBlankDifficulty
       )
     : [];
 
@@ -526,7 +424,7 @@ export default async function GradeSubmissionPage({
 
   const newsArticleHtml =
     submission.lesson.type === LessonType.NEWS_ARTICLE && submission.lesson.newsArticleConfig?.markdown
-      ? ((await marked.parse(submission.lesson.newsArticleConfig.markdown)) as string)
+      ? renderMarkdown(submission.lesson.newsArticleConfig.markdown)
       : null;
 
   const newsArticleTapSummary = submission.lesson.type === LessonType.NEWS_ARTICLE
@@ -1082,18 +980,3 @@ export default async function GradeSubmissionPage({
     </div>
   );
 }
-  const parseDraftAnswers = (value: unknown): Record<string, string[]> | null => {
-    if (!value || typeof value !== 'object') return null;
-    const result: Record<string, string[]> = {};
-    const entries = Object.entries(value as Record<string, unknown>);
-    let hasEntries = false;
-    entries.forEach(([key, raw]) => {
-      if (!Array.isArray(raw)) return;
-      const arr = raw.every(item => typeof item === 'string')
-        ? (raw as string[])
-        : raw.map(item => (item === null || item === undefined ? '' : String(item)));
-      result[key] = arr;
-      hasEntries = true;
-    });
-    return hasEntries ? result : null;
-  };

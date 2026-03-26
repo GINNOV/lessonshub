@@ -18,7 +18,7 @@ import { Info, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import { formatAutoSaveStatus, useLessonAutosave } from '@/app/components/useLessonAutosave';
-import { marked } from 'marked';
+import { renderMarkdown } from '@/lib/markdown';
 
 type SerializableLesson = Omit<Lesson, 'price'> & {
   price: number;
@@ -319,7 +319,7 @@ export default function NewsArticleLessonCreator({
   });
   const previewHtml = useMemo(() => {
     if (!markdown.trim()) return '';
-    return marked.parse(markdown) as string;
+    return renderMarkdown(markdown);
   }, [markdown]);
 
   return (

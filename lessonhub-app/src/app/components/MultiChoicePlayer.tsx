@@ -184,7 +184,7 @@ export default function MultiChoicePlayer({
     if (!isPending) {
       clearAssignmentDraft(draftKey);
     }
-  }, [assignment.draftRating, assignment.draftUpdatedAt, autoSaveEnabled, draftAnswers, draftKey, isPending, isPractice]);
+  }, [assignment.draftRating, assignment.draftUpdatedAt, autoSaveEnabled, draftAnswers, draftKey, isPending, isPractice, normalizeDraftAnswers]);
 
   useEffect(() => {
     if (isPractice || !isPending) return;

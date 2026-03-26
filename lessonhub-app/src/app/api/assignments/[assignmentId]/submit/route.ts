@@ -3,7 +3,6 @@ export const runtime = 'nodejs';
 
 import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
-import prisma from "@/lib/prisma";
 import {
   completeFlashcardAssignment,
   completeNewsArticleAssignment,
@@ -11,8 +10,8 @@ import {
   submitStandardAssignment,
   submitComposerAssignment,
 } from "@/actions/lessonActions";
-import { validateAssignmentForSubmission } from "@/lib/assignmentValidation";
 import { LessonType, Role } from "@prisma/client";
+import { assertAssignmentSubmittable, findStudentAssignment } from '@/lib/assignment-service';
 
 export async function POST(
   request: NextRequest,
@@ -26,8 +25,7 @@ export async function POST(
   }
 
   const { assignmentId } = await params;
-  const assignment = await prisma.assignment.findUnique({
-    where: { id: assignmentId, studentId: session.user.id },
+  const assignment = await findStudentAssignment(session.user.id, assignmentId, {
     select: {
       lesson: { select: { type: true } },
       deadline: true,
@@ -41,7 +39,7 @@ export async function POST(
     });
   }
   
-  const validation = validateAssignmentForSubmission(assignment);
+  const validation = assertAssignmentSubmittable(assignment);
   if (!validation.ok) {
     return new NextResponse(
       JSON.stringify({ error: validation.error }),

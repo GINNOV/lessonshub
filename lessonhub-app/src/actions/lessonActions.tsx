@@ -4,6 +4,7 @@
 import prisma from "@/lib/prisma";
 import { Role, AssignmentStatus, LessonType, PointReason, Prisma } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
+import { unstable_cache } from 'next/cache'
 import { getEmailTemplateByName } from '@/actions/adminActions';
 import { createButton } from '@/lib/email-templates';
 import { sendEmail } from '@/lib/email-templates.server';
@@ -24,6 +25,14 @@ import { getComposerExtraTries, hashComposerSeed, normalizeComposerWord, parseCo
 import { validateAssignmentForSubmission } from "@/lib/assignmentValidation";
 import { normalizeMultiChoiceText } from "@/lib/multiChoiceAnswers";
 import { marked } from "marked";
+import { cacheTags, revalidateStudentAssignmentViews } from '@/lib/cache-tags';
+import {
+  assertAssignmentEditable,
+  assertAssignmentSubmittable,
+  findStudentAssignment,
+  recordPointsDelta,
+  saveAssignmentDraft,
+} from '@/lib/assignment-service';
 
 export async function getUploadedImages() {
   try {
@@ -335,16 +344,33 @@ export async function assignLessonByShareId(shareId: string, studentId: string) 
 }
 
 export async function completeFlashcardAssignment(assignmentId: string, studentId: string) {
-    try {
-        const assignment = await prisma.assignment.update({
-            where: { id: assignmentId, studentId: studentId },
-            data: { status: AssignmentStatus.COMPLETED }
-        });
-        revalidatePath('/my-lessons');
-        return { success: true, data: assignment };
-    } catch (error) {
-        return { success: false, error: 'Failed to complete assignment.' };
+  try {
+    const assignment = await findStudentAssignment(studentId, assignmentId, {
+      select: {
+        id: true,
+        status: true,
+        deadline: true,
+        lessonId: true,
+      },
+    });
+    const submittable = assertAssignmentSubmittable(assignment);
+    if (!submittable.ok) {
+      return { success: false, error: submittable.error };
     }
+
+    const updatedAssignment = await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: { status: AssignmentStatus.COMPLETED },
+    });
+    revalidateStudentAssignmentViews({
+      assignmentId,
+      studentId,
+      lessonId: assignment?.lessonId ?? null,
+    });
+    return { success: true, data: updatedAssignment };
+  } catch (error) {
+    return { success: false, error: 'Failed to complete assignment.' };
+  }
 }
 
 export async function completeNewsArticleAssignment(
@@ -353,7 +379,7 @@ export async function completeNewsArticleAssignment(
   rating?: number | null
 ) {
     try {
-        const assignment = await prisma.assignment.findFirst({
+        const assignment = await findStudentAssignment(studentId, assignmentId, {
           where: { id: assignmentId, studentId },
           include: {
             lesson: { select: { price: true, newsArticleConfig: true } },
@@ -362,6 +388,10 @@ export async function completeNewsArticleAssignment(
         });
         if (!assignment) {
           return { success: false, error: 'Assignment not found or unauthorized.' };
+        }
+        const submittable = assertAssignmentSubmittable(assignment);
+        if (!submittable.ok) {
+          return { success: false, error: submittable.error };
         }
 
         const lessonPrice = assignment.lesson.price?.toNumber?.() ?? Number(assignment.lesson.price ?? 0);
@@ -404,26 +434,24 @@ export async function completeNewsArticleAssignment(
           });
 
           if (penaltyPoints > 0) {
-            const currentPoints = assignment.student?.totalPoints ?? 0;
-            await tx.user.update({
-              where: { id: studentId },
-              data: { totalPoints: currentPoints - penaltyPoints },
-            });
-            await tx.pointTransaction.create({
-              data: {
-                userId: studentId,
-                assignmentId,
-                points: -penaltyPoints,
-                amountEuro: new Prisma.Decimal(-penaltyEuros),
-                reason: PointReason.NEWS_ARTICLE_TAP,
-                note: `News Article penalty: ${uniqueTapCount}/${totalWordCount} unique words (${tapPercent}%)`,
-              },
+            await recordPointsDelta({
+              tx,
+              userId: studentId,
+              assignmentId,
+              pointsDelta: -penaltyPoints,
+              amountEuro: new Prisma.Decimal(-penaltyEuros),
+              reason: PointReason.NEWS_ARTICLE_TAP,
+              note: `News Article penalty: ${uniqueTapCount}/${totalWordCount} unique words (${tapPercent}%)`,
             });
           }
 
           return updated;
         });
-        revalidatePath('/my-lessons');
+        revalidateStudentAssignmentViews({
+          assignmentId,
+          studentId,
+          lessonId: assignment.lessonId,
+        });
         return { success: true, data: updatedAssignment };
     } catch (error) {
         return { success: false, error: 'Failed to complete assignment.' };
@@ -497,14 +525,13 @@ export async function submitFlashcardAssignment(
 
 export async function submitMultiChoiceAssignment(assignmentId: string, studentId: string, answers: { [key: string]: string }, rating?: number) {
     try {
-        const assignment = await prisma.assignment.findUnique({
-            where: { id: assignmentId, studentId: studentId },
+        const assignment = await findStudentAssignment(studentId, assignmentId, {
             include: { lesson: { include: { multiChoiceQuestions: { include: { options: true }}}}}
         });
         if (!assignment) return { success: false, error: 'Assignment not found' };
-        const validation = validateAssignmentForSubmission(assignment);
-        if (!validation.ok) {
-          return { success: false, error: validation.error };
+        const submittable = assertAssignmentSubmittable(assignment);
+        if (!submittable.ok) {
+          return { success: false, error: submittable.error };
         }
 
         let correctCount = 0;
@@ -543,11 +570,13 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
                 draftUpdatedAt: null,
             }
         });
-        revalidatePath('/my-lessons');
+        revalidateStudentAssignmentViews({
+          assignmentId,
+          studentId,
+          lessonId: assignment.lessonId,
+        });
         await checkAndSendMilestoneEmail(studentId);
-        revalidatePath('/my-lessons');
-    await checkAndSendMilestoneEmail(studentId);
-    return { success: true, data: updatedAssignment };
+        return { success: true, data: updatedAssignment };
     } catch (error) {
         console.error("Failed to submit multi-choice assignment:", error);
         return { success: false, error: 'Failed to submit assignment.' };
@@ -560,28 +589,15 @@ export async function saveMultiChoiceAssignmentDraft(
   data: { answers: Record<string, string>; rating?: number | undefined }
 ) {
   try {
-    const assignment = await prisma.assignment.findFirst({
-      where: { id: assignmentId, studentId },
-      select: { id: true, status: true },
-    });
-    if (!assignment) {
-      return { success: false, error: 'Assignment not found or unauthorized.' };
-    }
-    if (assignment.status !== AssignmentStatus.PENDING) {
-      return { success: false, error: 'Assignment can no longer be edited.' };
-    }
-
-    await prisma.assignment.update({
-      where: { id: assignmentId },
+    return await saveAssignmentDraft({
+      assignmentId,
+      studentId,
       data: {
         draftAnswers: data.answers as Prisma.InputJsonValue,
         draftRating: typeof data.rating === 'number' ? data.rating : null,
         draftUpdatedAt: new Date(),
       },
     });
-    revalidatePath(`/assignments/${assignmentId}`);
-    revalidatePath('/my-lessons');
-    return { success: true };
   } catch (error) {
     console.error('Failed to save multi-choice draft:', error);
     return { success: false, error: 'Unable to save draft right now.' };
@@ -594,28 +610,15 @@ export async function saveComposerAssignmentDraft(
   data: { answers: Record<number, string>; tries: Record<number, number>; rating?: number | undefined }
 ) {
   try {
-    const assignment = await prisma.assignment.findFirst({
-      where: { id: assignmentId, studentId },
-      select: { id: true, status: true },
-    });
-    if (!assignment) {
-      return { success: false, error: 'Assignment not found or unauthorized.' };
-    }
-    if (assignment.status !== AssignmentStatus.PENDING) {
-      return { success: false, error: 'Assignment can no longer be edited.' };
-    }
-
-    await prisma.assignment.update({
-      where: { id: assignmentId },
+    return await saveAssignmentDraft({
+      assignmentId,
+      studentId,
       data: {
         draftAnswers: { answers: data.answers, tries: data.tries } as Prisma.InputJsonValue,
         draftRating: typeof data.rating === 'number' ? data.rating : null,
         draftUpdatedAt: new Date(),
       },
     });
-    revalidatePath(`/assignments/${assignmentId}`);
-    revalidatePath('/my-lessons');
-    return { success: true };
   } catch (error) {
     console.error('Failed to save composer draft:', error);
     return { success: false, error: 'Unable to save draft right now.' };
@@ -628,8 +631,7 @@ export async function submitComposerAssignment(
   data: { answers: Array<{ index: number; word: string; prompt?: string }>; tries?: Record<number, number>; rating?: number }
 ) {
   try {
-    const assignment = await prisma.assignment.findUnique({
-      where: { id: assignmentId, studentId },
+    const assignment = await findStudentAssignment(studentId, assignmentId, {
       include: {
         student: true,
         lesson: {
@@ -643,9 +645,9 @@ export async function submitComposerAssignment(
     if (!assignment || assignment.lesson.type !== LessonType.COMPOSER) {
       return { success: false, error: 'Assignment not found' };
     }
-    const validation = validateAssignmentForSubmission(assignment);
-    if (!validation.ok) {
-      return { success: false, error: validation.error };
+    const submittable = assertAssignmentSubmittable(assignment);
+    if (!submittable.ok) {
+      return { success: false, error: submittable.error };
     }
     if (!assignment.lesson.composerConfig) {
       return { success: false, error: 'Composer configuration is missing.' };
@@ -729,19 +731,13 @@ export async function submitComposerAssignment(
       });
 
       if (pointsPenalty > 0) {
-        const currentPoints = assignment.student?.totalPoints ?? 0;
-        await tx.user.update({
-          where: { id: studentId },
-          data: { totalPoints: currentPoints - pointsPenalty },
-        });
-        await tx.pointTransaction.create({
-          data: {
-            userId: studentId,
-            assignmentId,
-            points: -pointsPenalty,
-            reason: PointReason.MANUAL_ADJUSTMENT,
-            note: `Composer extra tries (${totalExtraTries}) — €${pointsPenalty} fee`,
-          },
+        await recordPointsDelta({
+          tx,
+          userId: studentId,
+          assignmentId,
+          pointsDelta: -pointsPenalty,
+          reason: PointReason.MANUAL_ADJUSTMENT,
+          note: `Composer extra tries (${totalExtraTries}) — €${pointsPenalty} fee`,
         });
       }
 
@@ -762,7 +758,11 @@ export async function submitComposerAssignment(
       });
     }
 
-    revalidatePath('/my-lessons');
+    revalidateStudentAssignmentViews({
+      assignmentId,
+      studentId,
+      lessonId: assignment.lessonId,
+    });
     await checkAndSendMilestoneEmail(studentId);
     return { success: true, data: updatedAssignment };
   } catch (error) {
@@ -777,8 +777,7 @@ export async function submitStandardAssignment(
   data: { answers: string[]; studentNotes: string; rating?: number }
 ) {
   try {
-    const assignment = await prisma.assignment.findFirst({
-      where: { id: assignmentId, studentId },
+    const assignment = await findStudentAssignment(studentId, assignmentId, {
       include: {
         lesson: { include: { teacher: true } },
         student: true,
@@ -787,9 +786,9 @@ export async function submitStandardAssignment(
     if (!assignment) {
       return { success: false, error: "Assignment not found or unauthorized." };
     }
-    const validation = validateAssignmentForSubmission(assignment);
-    if (!validation.ok) {
-      return { success: false, error: validation.error };
+    const submittable = assertAssignmentSubmittable(assignment);
+    if (!submittable.ok) {
+      return { success: false, error: submittable.error };
     }
     const updatedAssignment = await prisma.assignment.update({
       where: { id: assignmentId },
@@ -823,7 +822,11 @@ export async function submitStandardAssignment(
         },
       });
     }
-    revalidatePath('/my-lessons');
+    revalidateStudentAssignmentViews({
+      assignmentId,
+      studentId,
+      lessonId: assignment.lessonId,
+    });
     return { success: true, data: updatedAssignment };
   } catch (error) {
     console.error("Failed to submit standard assignment:", error);
@@ -837,19 +840,9 @@ export async function saveStandardAssignmentDraft(
   data: { answers: string[]; studentNotes: string; rating?: number }
 ) {
   try {
-    const assignment = await prisma.assignment.findFirst({
-      where: { id: assignmentId, studentId },
-      select: { id: true, status: true },
-    });
-    if (!assignment) {
-      return { success: false, error: "Assignment not found or unauthorized." };
-    }
-    if (assignment.status !== AssignmentStatus.PENDING) {
-      return { success: false, error: "Assignment can no longer be edited." };
-    }
-
-    await prisma.assignment.update({
-      where: { id: assignmentId },
+    return await saveAssignmentDraft({
+      assignmentId,
+      studentId,
       data: {
         draftAnswers: data.answers as Prisma.InputJsonValue,
         draftStudentNotes: data.studentNotes || null,
@@ -857,10 +850,6 @@ export async function saveStandardAssignmentDraft(
         draftUpdatedAt: new Date(),
       },
     });
-
-    revalidatePath(`/assignments/${assignmentId}`);
-    revalidatePath('/my-lessons');
-    return { success: true };
   } catch (error) {
     console.error("Failed to save draft:", error);
     return { success: false, error: "Unable to save draft right now." };
@@ -869,54 +858,58 @@ export async function saveStandardAssignmentDraft(
 
 export async function getLessonsForTeacher(teacherId: string) {
   try {
-    const lessons = await prisma.lesson.findMany({
-      where: { teacherId: teacherId },
-      select: {
-        id: true,
-        title: true,
-        type: true,
-        price: true,
-        isFreeForAll: true,
-        guideIsFreeForAll: true,
-        guideIsVisible: true,
-        lesson_preview: true,
-        difficulty: true,
-        assignment_text: true,
-        createdAt: true,
-        updatedAt: true,
-        scheduled_assignment_date: true,
-        guideCardImage: true,
-        teacherId: true,
-        assignments: {
-          select: {
-            status: true,
-            deadline: true,
-            startDate: true,
-            assignedAt: true,
-            student: {
-              select: {
-                teachers: {
-                  where: { teacherId },
-                  select: {
-                    classId: true,
-                    class: {
-                      select: {
-                        id: true,
-                        name: true,
+    const lessons = await unstable_cache(
+      async () => prisma.lesson.findMany({
+        where: { teacherId: teacherId },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          price: true,
+          isFreeForAll: true,
+          guideIsFreeForAll: true,
+          guideIsVisible: true,
+          lesson_preview: true,
+          difficulty: true,
+          assignment_text: true,
+          createdAt: true,
+          updatedAt: true,
+          scheduled_assignment_date: true,
+          guideCardImage: true,
+          teacherId: true,
+          assignments: {
+            select: {
+              status: true,
+              deadline: true,
+              startDate: true,
+              assignedAt: true,
+              student: {
+                select: {
+                  teachers: {
+                    where: { teacherId },
+                    select: {
+                      classId: true,
+                      class: {
+                        select: {
+                          id: true,
+                          name: true,
+                        },
                       },
                     },
                   },
                 },
               },
             },
-          },
-          orderBy: {
-            deadline: 'asc',
+            orderBy: {
+              deadline: 'asc',
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      }),
+      ['teacher-lessons', teacherId],
+      { revalidate: 60, tags: [cacheTags.teacherDashboard(teacherId)] }
+    )();
     return lessons;
   } catch (error) {
     console.error("Failed to fetch lessons for teacher:", error);
@@ -959,26 +952,30 @@ export type HubGuideDetail = {
 
 export async function getHubGuides(): Promise<HubGuideSummary[]> {
   try {
-    const guides = await prisma.lesson.findMany({
-      where: { type: LessonType.LEARNING_SESSION },
-      select: {
-        id: true,
-        title: true,
-        lesson_preview: true,
-        difficulty: true,
-        price: true,
-        updatedAt: true,
-        guideCardImage: true,
-        guideIsVisible: true,
-        guideIsFreeForAll: true,
-        learningSessionCards: {
-          select: {
-            id: true,
+    const guides = await unstable_cache(
+      async () => prisma.lesson.findMany({
+        where: { type: LessonType.LEARNING_SESSION },
+        select: {
+          id: true,
+          title: true,
+          lesson_preview: true,
+          difficulty: true,
+          price: true,
+          updatedAt: true,
+          guideCardImage: true,
+          guideIsVisible: true,
+          guideIsFreeForAll: true,
+          learningSessionCards: {
+            select: {
+              id: true,
+            },
           },
         },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
+        orderBy: { updatedAt: 'desc' },
+      }),
+      ['hub-guides'],
+      { revalidate: 300, tags: [cacheTags.hubGuides] }
+    )();
 
     return guides.map((guide) => ({
       id: guide.id,
@@ -1051,10 +1048,14 @@ export async function getHubGuideById(lessonId: string): Promise<HubGuideDetail 
 
 export async function getAssignmentsForStudent(studentId: string) {
     try {
-        const student = await prisma.user.findUnique({
-            where: { id: studentId },
+        const student = await unstable_cache(
+          async (cachedStudentId: string) => prisma.user.findUnique({
+            where: { id: cachedStudentId },
             select: { isSuspended: true, isTakingBreak: true, isPaying: true }
-        });
+          }),
+          ['student-assignment-student', studentId],
+          { revalidate: 60, tags: [cacheTags.studentLessons(studentId)] }
+        )(studentId);
 
         // If suspended or taking a break, return no assignments
         if (!student || student.isSuspended || student.isTakingBreak) {
@@ -1158,7 +1159,11 @@ export async function getAssignmentsForStudent(studentId: string) {
         };
 
         try {
-            const assignments = await fetchAssignments(lessonSelectWithFreeFlags);
+            const assignments = await unstable_cache(
+              async () => fetchAssignments(lessonSelectWithFreeFlags),
+              ['student-assignments', studentId, 'with-guide-free'],
+              { revalidate: 60, tags: [cacheTags.studentLessons(studentId)] }
+            )();
             return enforceFreeOnly
                 ? assignments.filter((assignment) => isLessonFree(assignment.lesson))
                 : assignments;
@@ -1196,7 +1201,8 @@ export async function getAssignmentsForStudent(studentId: string) {
 
 export async function getAssignmentById(assignmentId: string, studentId: string) {
   try {
-    const assignment = await prisma.assignment.findFirst({
+    const assignment = await unstable_cache(
+      async () => prisma.assignment.findFirst({
       where: {
         id: assignmentId,
         OR: [
@@ -1234,7 +1240,13 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
           },
         },
       },
-    });
+      }),
+      ['assignment-by-id', assignmentId, studentId],
+      {
+        revalidate: 60,
+        tags: [cacheTags.assignment(assignmentId), cacheTags.assignmentPage(assignmentId)],
+      }
+    )();
     return assignment;
   } catch (error) {
     console.error("Failed to fetch assignment:", error);
@@ -1342,29 +1354,33 @@ export async function getLessonByShareId(shareId: string) {
 
 export async function getSubmissionsForLesson(lessonId: string, teacherId: string) {
   try {
-    const submissions = await prisma.assignment.findMany({
-      where: {
-        lessonId: lessonId,
-        lesson: {
-          teacherId: teacherId,
+    const submissions = await unstable_cache(
+      async () => prisma.assignment.findMany({
+        where: {
+          lessonId: lessonId,
+          lesson: {
+            teacherId: teacherId,
+          },
         },
-      },
-      include: {
-        student: {
-          include: {
-            teachers: {
-              where: { teacherId },
-              include: {
-                class: true,
+        include: {
+          student: {
+            include: {
+              teachers: {
+                where: { teacherId },
+                include: {
+                  class: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: {
-        deadline: 'asc',
-      },
-    });
+        orderBy: {
+          deadline: 'asc',
+        },
+      }),
+      ['lesson-submissions', lessonId, teacherId],
+      { revalidate: 60, tags: [cacheTags.lessonSubmissions(lessonId)] }
+    )();
     return submissions;
   } catch (error) {
     console.error("Failed to fetch submissions:", error);
@@ -2060,39 +2076,42 @@ export async function getLessonAverageRating(lessonId: string) {
 
 export async function getFreeForAllLessons(studentId: string) {
   try {
-    // 1. Get IDs of lessons already assigned to the student
-    const assignedLessonIds = await prisma.assignment.findMany({
-      where: { studentId },
-      select: { lessonId: true },
-    });
-    const excludeIds = assignedLessonIds.map(a => a.lessonId).filter(Boolean);
-    const whereClause: Prisma.LessonWhereInput = {
-      isFreeForAll: true,
-      type: { not: LessonType.LEARNING_SESSION },
-    };
+    const lessons = await unstable_cache(
+      async () => {
+        const assignedLessonIds = await prisma.assignment.findMany({
+          where: { studentId },
+          select: { lessonId: true },
+        });
+        const excludeIds = assignedLessonIds.map(a => a.lessonId).filter(Boolean);
+        const whereClause: Prisma.LessonWhereInput = {
+          isFreeForAll: true,
+          type: { not: LessonType.LEARNING_SESSION },
+        };
 
-    // Avoid Prisma's empty-notIn guard which would otherwise hide all free lessons
-    if (excludeIds.length > 0) {
-      whereClause.id = { notIn: excludeIds };
-    }
-
-    // 2. Fetch free lessons not in that list, excluding guides
-    const lessons = await prisma.lesson.findMany({
-      where: whereClause,
-      include: {
-        teacher: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-          },
-        },
-        _count: {
-          select: { assignments: true },
+        if (excludeIds.length > 0) {
+          whereClause.id = { notIn: excludeIds };
         }
+
+        return prisma.lesson.findMany({
+          where: whereClause,
+          include: {
+            teacher: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            _count: {
+              select: { assignments: true },
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+        });
       },
-      orderBy: { createdAt: 'desc' },
-    });
+      ['free-lessons', studentId],
+      { revalidate: 300, tags: [cacheTags.freeLessons(studentId)] }
+    )();
 
     return lessons.map(lesson => ({
       id: lesson.id,
@@ -2160,7 +2179,11 @@ export async function startFreeLesson(lessonId: string) {
       },
     });
 
-    revalidatePath('/my-lessons');
+    revalidateStudentAssignmentViews({
+      assignmentId: newAssignment.id,
+      studentId,
+      lessonId,
+    });
     return { success: true, assignmentId: newAssignment.id };
   } catch (error) {
     console.error("Failed to start free lesson:", error);
@@ -2178,17 +2201,9 @@ export async function saveLyricAssignmentDraft(
   }
 ) {
   try {
-    const assignment = await prisma.assignment.findFirst({
-      where: { id: assignmentId, studentId },
-      select: { id: true, status: true },
-    });
-    if (!assignment) return { success: false, error: 'Assignment not found or unauthorized.' };
-    if (assignment.status !== AssignmentStatus.PENDING) {
-      return { success: false, error: 'Assignment can no longer be edited.' };
-    }
-
-    await prisma.assignment.update({
-      where: { id: assignmentId },
+    return await saveAssignmentDraft({
+      assignmentId,
+      studentId,
       data: {
         lyricDraftAnswers: data.answers as Prisma.InputJsonValue,
         lyricDraftMode: data.mode,
@@ -2196,8 +2211,6 @@ export async function saveLyricAssignmentDraft(
         lyricDraftUpdatedAt: new Date(),
       },
     });
-    revalidatePath(`/assignments/${assignmentId}`);
-    return { success: true };
   } catch (error) {
     console.error('Failed to save lyric draft:', error);
     return { success: false, error: 'Unable to save draft right now.' };

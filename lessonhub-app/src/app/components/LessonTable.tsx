@@ -20,8 +20,13 @@ import { toast } from 'sonner';
 import { Check, Loader2, Search, UserX } from 'lucide-react';
 import LessonPriceEditor from './LessonPriceEditor';
 
-type SerializableUser = Omit<User, 'defaultLessonPrice'> & {
+type SerializableUser = Omit<
+  User,
+  'defaultLessonPrice' | 'referralRewardPercent' | 'referralRewardMonthlyAmount'
+> & {
     defaultLessonPrice: number | null;
+    referralRewardPercent: number | null;
+    referralRewardMonthlyAmount: number | null;
 };
 
 export type SerializableLesson = {

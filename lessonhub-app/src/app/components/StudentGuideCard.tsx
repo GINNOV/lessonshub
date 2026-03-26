@@ -5,9 +5,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Layers } from 'lucide-react';
-import { marked } from 'marked';
 import type { StudentGuideSummary } from '@/app/components/StudentGuideList';
 import { LessonDifficultyIndicator } from '@/app/components/LessonDifficultySelector';
+import { renderInlineMarkdown } from '@/lib/markdown';
 
 interface StudentGuideCardProps {
   guide: StudentGuideSummary;
@@ -33,7 +33,7 @@ export default function StudentGuideCard({ guide }: StudentGuideCardProps) {
   });
 
   const imageSrc = guide.guideCardImage || '/my-guides/defaultcard.png';
-  const previewHtml = useMemo(() => (preview ? (marked.parseInline(preview) as string) : ''), [preview]);
+  const previewHtml = useMemo(() => (preview ? renderInlineMarkdown(preview) : ''), [preview]);
   const priceLabel = currencyFormatter.format(Math.max(guide.price, 0));
 
   return (

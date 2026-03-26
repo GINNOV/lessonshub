@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { parseAcceptLanguage, resolveLocale } from "@/lib/locale";
 import { profileCopy, ProfileLocale } from "@/lib/profileCopy";
+import { serializeUserDecimalFields } from "@/lib/serializers/user";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -39,7 +40,6 @@ export default async function ProfilePage() {
     isSuspended: user.isSuspended,
     isTakingBreak: user.isTakingBreak,
     totalPoints: user.totalPoints,
-    defaultLessonPrice: user.defaultLessonPrice?.toNumber() ?? null,
     defaultLessonPreview: user.defaultLessonPreview,
     defaultLessonNotes: user.defaultLessonNotes,
     defaultLessonInstructions: user.defaultLessonInstructions,
@@ -53,6 +53,7 @@ export default async function ProfilePage() {
     aiApiKey: (user as any).aiApiKey ?? null,
     uiLanguage: (user as any).uiLanguage ?? "device",
   } as any;
+  const profileUser = serializeUserDecimalFields(serializableUser) ?? serializableUser;
 
   const loginEvents = await prisma.loginEvent.findMany({
     where: { userId: user.id },
@@ -91,7 +92,7 @@ export default async function ProfilePage() {
         <h1 className="text-3xl font-bold mb-2">{copy.headerTitle}</h1>
         <p className="text-sm text-slate-500">{copy.headerSubtitle}</p>
       </div>
-      <ProfileForm userToEdit={serializableUser} resolvedLocale={locale} />
+      <ProfileForm userToEdit={profileUser} resolvedLocale={locale} />
       <LoginHistoryCard entries={loginHistory} emptyMessage={copy.loginHistoryEmpty} />
     </div>
   );

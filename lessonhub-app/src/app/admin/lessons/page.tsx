@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { getAllLessons, getAllTeachers } from "@/actions/adminActions";
 import LessonTable from "@/app/components/LessonTable";
 import { Role } from "@prisma/client";
+import { serializeUserDecimalFields } from "@/lib/serializers/user";
 
 export default async function LessonManagementPage({
   searchParams,
@@ -25,16 +26,10 @@ export default async function LessonManagementPage({
   const serializableLessons = lessons.map((lesson) => ({
     ...lesson,
     price: lesson.price.toNumber(),
-    teacher: lesson.teacher ? {
-      ...lesson.teacher,
-      defaultLessonPrice: lesson.teacher.defaultLessonPrice?.toNumber() ?? null,
-    } : null,
+    teacher: serializeUserDecimalFields(lesson.teacher),
   }));
 
-  const serializableTeachers = teachers.map(teacher => ({
-      ...teacher,
-      defaultLessonPrice: teacher.defaultLessonPrice?.toNumber() ?? null,
-  }));
+  const serializableTeachers = teachers.map((teacher) => serializeUserDecimalFields(teacher)!);
 
   const params = await searchParams;
   const searchTerm = typeof params?.search === "string" ? params.search : "";

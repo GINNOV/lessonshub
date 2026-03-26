@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { WhatsNewPayload, WhatsNewLocale } from '@/lib/whatsNew';
+import { renderMarkdown } from '@/lib/markdown';
 
 type WhatsNewDialogProps = {
   notes: Partial<Record<WhatsNewLocale, WhatsNewPayload | null>>;
@@ -63,7 +64,7 @@ function normalizeUpgradeMarkdown(markdown: string): { title: string; html: stri
     return originalLink({ ...token, href: resolved });
   };
 
-  const html = marked.parse(body, { renderer });
+  const html = renderMarkdown(body, { renderer });
 
   return { title, html: typeof html === 'string' ? html : '' };
 }

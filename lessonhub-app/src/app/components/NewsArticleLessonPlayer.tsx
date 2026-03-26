@@ -4,7 +4,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Hypher from 'hypher';
 import english from 'hyphenation.en-us';
-import { marked } from 'marked';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -13,11 +12,7 @@ import { Button } from '@/components/ui/button';
 import { AssignmentStatus } from '@prisma/client';
 import Rating from '@/app/components/Rating';
 import { NEWS_ARTICLE_INTERACTIVE_WORD_REGEX } from '@/lib/newsArticle';
-
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
+import { renderMarkdown } from '@/lib/markdown';
 
 type NewsArticleLessonPlayerProps = {
   assignmentId: string;
@@ -68,10 +63,11 @@ export default function NewsArticleLessonPlayer({
   const [rating, setRating] = useState<number>(0);
   const [localStatus, setLocalStatus] = useState<AssignmentStatus | undefined>(status);
   const speechTokenRef = useRef(0);
+  const meaningRequestRef = useRef(0);
   const meaningCache = useRef<Map<string, string>>(new Map());
   const hypher = useMemo(() => new Hypher(english), []);
 
-  const rawHtml = useMemo(() => (marked.parse(markdown || '') as string) || '', [markdown]);
+  const rawHtml = useMemo(() => renderMarkdown(markdown || '') || '', [markdown]);
   const tapsRemaining = maxWordTaps ? Math.max(maxWordTaps - tapCount, 0) : null;
   const hasTapLimit = typeof maxWordTaps === 'number' && maxWordTaps > 0;
   const isMaxedOut = hasTapLimit && tapCount >= maxWordTaps;
@@ -187,9 +183,14 @@ export default function NewsArticleLessonPlayer({
       toast.error('You have reached the maximum number of word taps.');
       return;
     }
+    const requestToken = meaningRequestRef.current + 1;
+    meaningRequestRef.current = requestToken;
     setActiveWord(word);
+    setMeaning(null);
+    setShowMeaning(false);
     speakWord(word);
     const definition = await fetchMeaning(word);
+    if (meaningRequestRef.current !== requestToken) return;
     setMeaning(definition);
     setShowMeaning(true);
 

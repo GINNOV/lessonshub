@@ -22,6 +22,7 @@ import { headers } from "next/headers";
 import { EXTENSION_POINT_COST } from "@/lib/lessonExtensions";
 import { parseAcceptLanguage, resolveLocale, UiLanguagePreference } from "@/lib/locale";
 import { studentDashboardCopy, StudentDashboardLocale } from "@/lib/studentDashboardCopy";
+import { serializeStudentAssignments } from "@/lib/serializers/assignment";
 
 export default async function MyLessonsPage() {
   const session = await auth();
@@ -178,66 +179,30 @@ export default async function MyLessonsPage() {
     (a) => a.status === AssignmentStatus.FAILED,
   ).length;
 
-  const submittedStatuses = new Set<AssignmentStatus>([
-    AssignmentStatus.COMPLETED,
-    AssignmentStatus.GRADED,
-    AssignmentStatus.FAILED,
-  ]);
+  const serializableAssignments: React.ComponentProps<typeof StudentLessonsDashboard>['assignments'] =
+    serializeStudentAssignments(assignments, {
+      marketplacePurchasedIds: purchasedAssignmentIds,
+      extendedAssignmentIds: extendedAssignmentIds,
+      includeLessonCounts: true,
+    }).map((assignment) => {
+      const isFreeLesson =
+        assignment.lesson.price === 0 ||
+        (assignment.lesson as any).isFreeForAll ||
+        (assignment.lesson as any).guideIsFreeForAll;
+      const adjustedDeadline =
+        isFreeLesson
+          ? (() => {
+              const original = new Date(assignment.deadline);
+              return original < signupFloor ? signupFloor : original;
+            })()
+          : assignment.deadline;
 
-  const serializableAssignments = assignments.map((assignment) => {
-    const {
-      _count,
-      assignments: lessonAssignments,
-      price,
-      teacher,
-      ...restOfLesson
-    } = assignment.lesson;
-
-    const submittedCount = (lessonAssignments || []).filter(
-      (lessonAssignment) => submittedStatuses.has(lessonAssignment.status),
-    ).length;
-
-    const isFreeLesson =
-      price.toNumber() === 0 ||
-      (assignment.lesson as any).isFreeForAll ||
-      (assignment.lesson as any).guideIsFreeForAll;
-    const adjustedDeadline =
-      isFreeLesson
-        ? (() => {
-            const original = new Date(assignment.deadline);
-            return original < signupFloor ? signupFloor : original;
-          })()
-        : assignment.deadline;
-
-    const normalizedOriginalDeadline = assignment.originalDeadline ?? null;
-
-    return {
-      ...assignment,
-      originalDeadline: normalizedOriginalDeadline,
-      deadline: adjustedDeadline,
-      pointsAwarded: assignment.pointsAwarded ?? 0,
-      draftAnswers: (assignment as any).draftAnswers ?? null,
-      marketplacePurchased: purchasedAssignmentIds.has(assignment.id),
-      extensionUsed: extendedAssignmentIds.has(assignment.id),
-      // Ensure optional columns missing in some DBs are present for typing
-      teacherAnswerComments: (assignment as any).teacherAnswerComments ?? null,
-      lesson: {
-        ...restOfLesson,
-        price: price.toNumber(),
-        completionCount: _count.assignments,
-        submittedCount,
-        questionCount: Array.isArray(restOfLesson.questions) ? restOfLesson.questions.length : 0,
-        multiChoiceCount: _count.multiChoiceQuestions ?? 0,
-        teacher: teacher
-          ? {
-              ...teacher,
-              defaultLessonPrice:
-                teacher.defaultLessonPrice?.toNumber() ?? null,
-            }
-          : null,
-      },
-    };
-  });
+      return {
+        ...assignment,
+        originalDeadline: assignment.originalDeadline ?? null,
+        deadline: adjustedDeadline,
+      };
+    });
 
   const gamificationSnapshot = gamification
     ? {
