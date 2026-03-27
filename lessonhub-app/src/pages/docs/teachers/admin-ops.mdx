@@ -34,7 +34,22 @@ LessonHub now supports admin-granted automation tokens so Codex automations can 
 1. Open **Admin > Automation Tokens**.
 2. Choose the teacher account that should own the lessons created by automation.
 3. Create a token and copy it immediately. The full token value is only shown once.
-4. Store the token in your Codex automation or secret manager. Do not paste it into docs, chats, or shared screenshots.
+4. Store the token in `/Users/mario/code/LessonHub/lessonhub-app/.env.automation` under `AUTOMATION_TOKEN`. Do not paste it into docs, chats, or shared screenshots.
+
+### Local Secret File
+
+Use `.env.automation` in the project root for Codex automation secrets and defaults:
+
+```env
+AUTOMATION_TOKEN=your_real_token_here
+DEFAULT_CLASS_ID=your_class_cuid_here
+DEFAULT_CLASS_NAME=Fall 2025
+```
+
+- `AUTOMATION_TOKEN` is required.
+- `DEFAULT_CLASS_ID` is recommended if the automation should always target the same class.
+- If `DEFAULT_CLASS_ID` is omitted, the current terminal test flow falls back to the teacher's active class named `Fall 2025`.
+- `DEFAULT_CLASS_NAME` can be changed if you want a different name-based fallback.
 
 ### Supported Endpoints
 
@@ -113,6 +128,8 @@ curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
 - `assignment.notificationOption` supports `immediate`, `on_start_date`, or `none`.
 - `assignment.reassignExisting` resets existing assignments for the targeted students instead of silently skipping them.
 - `assignment.startDate` and `assignment.deadline` apply to every resolved student in that automation call.
+- A practical default is to send `assignment.classIds` using `DEFAULT_CLASS_ID` from `.env.automation`.
+- In the current test script, lessons are assigned to the configured class automatically. If no class id is configured, the script looks for the teacher's active class named `Fall 2025`.
 
 ### Security Rules
 

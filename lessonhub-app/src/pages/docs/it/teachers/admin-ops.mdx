@@ -34,7 +34,22 @@ LessonHub supporta ora token di automazione concessi dall'amministratore, così 
 1. Apri **Admin > Automation Tokens**.
 2. Scegli l'account insegnante che dovrà risultare proprietario delle lezioni create dall'automazione.
 3. Crea un token e copialo subito. Il valore completo viene mostrato una sola volta.
-4. Salva il token nella tua automazione Codex o nel tuo secret manager. Non inserirlo in documenti, chat o screenshot condivisi.
+4. Salva il token in `/Users/mario/code/LessonHub/lessonhub-app/.env.automation` come `AUTOMATION_TOKEN`. Non inserirlo in documenti, chat o screenshot condivisi.
+
+### File Locale Dei Segreti
+
+Usa `.env.automation` nella root del progetto per i segreti e i default dell'automazione Codex:
+
+```env
+AUTOMATION_TOKEN=your_real_token_here
+DEFAULT_CLASS_ID=your_class_cuid_here
+DEFAULT_CLASS_NAME=Fall 2025
+```
+
+- `AUTOMATION_TOKEN` è obbligatorio.
+- `DEFAULT_CLASS_ID` è consigliato se l'automazione deve assegnare sempre alla stessa classe.
+- Se `DEFAULT_CLASS_ID` non è presente, l'attuale flusso di test da terminale usa come fallback la classe attiva dell'insegnante chiamata `Fall 2025`.
+- `DEFAULT_CLASS_NAME` può essere cambiato se vuoi un fallback basato sul nome diverso.
 
 ### Endpoint Supportati
 
@@ -113,6 +128,8 @@ curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
 - `assignment.notificationOption` supporta `immediate`, `on_start_date` oppure `none`.
 - `assignment.reassignExisting` resetta i compiti esistenti per gli studenti selezionati invece di saltarli in silenzio.
 - `assignment.startDate` e `assignment.deadline` vengono applicati a ogni studente risolto in quella chiamata.
+- Un default pratico è inviare `assignment.classIds` usando `DEFAULT_CLASS_ID` preso da `.env.automation`.
+- Nell'attuale script di test, le lezioni vengono assegnate automaticamente alla classe configurata. Se non è configurato un class id, lo script cerca la classe attiva dell'insegnante chiamata `Fall 2025`.
 
 ### Regole Di Sicurezza
 
