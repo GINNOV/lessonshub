@@ -4,7 +4,8 @@ export const runtime = 'nodejs';
 import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { Role, LessonType, AssignmentNotification } from "@prisma/client";
+import { Role, LessonType } from "@prisma/client";
+import { parseMultiChoiceLessonPayload } from "@/lib/multiChoiceLessonPayload";
 
 export async function PATCH(
   request: NextRequest,
@@ -21,6 +22,13 @@ export async function PATCH(
 
   try {
     const body = await request.json();
+    const parsed = parseMultiChoiceLessonPayload(body);
+    if (!parsed.ok) {
+      return new NextResponse(
+        JSON.stringify({ error: parsed.error }),
+        { status: 400 }
+      );
+    }
     const {
       title,
       questions,
@@ -32,32 +40,10 @@ export async function PATCH(
       soundcloud_url,
       attachment_url,
       notes,
-      assignment_notification,
-      scheduled_assignment_date,
+      assignmentNotification,
+      scheduledAssignmentDate,
       isFreeForAll,
-    } = body;
-    const assignmentNotification = assignment_notification ?? AssignmentNotification.NOT_ASSIGNED;
-    const rawScheduledAssignmentDate = scheduled_assignment_date
-      ? new Date(scheduled_assignment_date)
-      : null;
-    const scheduledAssignmentDate =
-      rawScheduledAssignmentDate && !Number.isNaN(rawScheduledAssignmentDate.getTime())
-        ? rawScheduledAssignmentDate
-        : null;
-
-    if (
-      !title ||
-      !questions ||
-      !Array.isArray(questions) ||
-      questions.length === 0
-    ) {
-      return new NextResponse(
-        JSON.stringify({
-          error: "Title and at least one question are required.",
-        }),
-        { status: 400 }
-      );
-    }
+    } = parsed.data;
 
     const lesson = await prisma.lesson.findFirst({
       where: { id: lessonId, teacherId: session.user.id },
@@ -69,24 +55,6 @@ export async function PATCH(
           error: "Lesson not found or you don't have permission to edit it.",
         }),
         { status: 404 }
-      );
-    }
-
-    const difficultyValue = Number(difficulty);
-    if (!Number.isInteger(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
-      return new NextResponse(
-        JSON.stringify({ error: "Difficulty must be an integer between 1 and 5." }),
-        { status: 400 }
-      );
-    }
-
-    if (
-      assignmentNotification === AssignmentNotification.ASSIGN_ON_DATE &&
-      (!scheduledAssignmentDate || Number.isNaN(scheduledAssignmentDate.getTime()))
-    ) {
-      return new NextResponse(
-        JSON.stringify({ error: "A valid scheduled assignment date is required." }),
-        { status: 400 }
       );
     }
 
@@ -106,15 +74,15 @@ export async function PATCH(
           soundcloud_url,
           attachment_url,
           notes,
-          difficulty: difficultyValue,
+          difficulty,
           assignment_notification: assignmentNotification,
           scheduled_assignment_date: scheduledAssignmentDate,
           isFreeForAll: Boolean(isFreeForAll),
           multiChoiceQuestions: {
-            create: questions.map((q: any) => ({
+            create: questions.map((q) => ({
               question: q.question,
               options: {
-                create: q.options.map((opt: any) => ({
+                create: q.options.map((opt) => ({
                   text: opt.text,
                   isCorrect: opt.isCorrect,
                 })),

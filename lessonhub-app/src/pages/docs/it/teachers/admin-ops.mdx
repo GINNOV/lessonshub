@@ -23,6 +23,103 @@ LessonHub esegue job automatici per mantenere tutto in movimento:
 
 - **Migrazioni:** Esegui sempre tramite gli script `npm` forniti per garantire la sicurezza.
 - **Seeding:** Se mancano template predefiniti o badge, lo script di seed li ripristina senza cancellare i dati esistenti.
+- **Token di automazione:** Dopo aver aggiornato il codice relativo all'automazione, esegui l'ultima migrazione Prisma prima di emettere token o chiamare le nuove API.
+
+## Automazioni Codex Per La Creazione Delle Lezioni
+
+LessonHub supporta ora token di automazione concessi dall'amministratore, così le automazioni Codex possono creare lezioni tramite chiamate API server-to-server senza usare una sessione browser.
+
+### Configurazione Admin
+
+1. Apri **Admin > Automation Tokens**.
+2. Scegli l'account insegnante che dovrà risultare proprietario delle lezioni create dall'automazione.
+3. Crea un token e copialo subito. Il valore completo viene mostrato una sola volta.
+4. Salva il token nella tua automazione Codex o nel tuo secret manager. Non inserirlo in documenti, chat o screenshot condivisi.
+
+### Endpoint Supportati
+
+- **Lezioni standard:** `POST /api/automation/lessons`
+- **Lezioni multi-choice:** `POST /api/automation/lessons/multi-choice`
+
+Entrambi gli endpoint richiedono:
+
+- `Authorization: Bearer <token>`
+- `Content-Type: application/json`
+- un campo `topic`, così l'automazione ha un soggetto stabile per la lezione generata
+
+### Esempio Lezione Standard
+
+```bash
+curl -X POST https://your-domain.com/api/automation/lessons \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "Restaurant English",
+    "assignmentText": "Answer in complete sentences.",
+    "questions": [
+      {
+        "question": "How would you ask for the bill?",
+        "expectedAnswer": "Could I have the bill, please?"
+      }
+    ],
+    "difficulty": 2,
+    "assignment": {
+      "studentIds": ["student_cuid_here"],
+      "classIds": ["class_cuid_here"],
+      "startDate": "2026-03-27T13:00:00.000Z",
+      "deadline": "2026-03-29T21:00:00.000Z",
+      "notificationOption": "immediate",
+      "reassignExisting": false
+    }
+  }'
+```
+
+### Esempio Lezione Multi-Choice
+
+```bash
+curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "Travel vocabulary",
+    "questions": [
+      {
+        "question": "Which phrase asks for directions?",
+        "options": [
+          { "text": "Where is the station?", "isCorrect": true },
+          { "text": "I need a taxi.", "isCorrect": false }
+        ]
+      }
+    ],
+    "difficulty": 3,
+    "assignment": {
+      "classIds": ["class_cuid_here"],
+      "notificationOption": "on_start_date",
+      "reassignExisting": true
+    }
+  }'
+```
+
+### Note Sul Payload
+
+- `title` è opzionale. Se omesso, LessonHub usa `topic` come titolo.
+- `difficulty` deve essere un intero da `1` a `5`.
+- `price` è opzionale e per default vale `0`.
+- `assignment_notification` e `scheduled_assignment_date` funzionano come nelle API delle lezioni usate dagli insegnanti.
+- Le lezioni standard richiedono `assignmentText` e almeno una domanda.
+- Le lezioni multi-choice richiedono almeno una domanda, almeno due opzioni per domanda ed esattamente una risposta corretta.
+- Il blocco opzionale `assignment` permette all'automazione di colpire specifici `studentIds`, `classIds`, oppure entrambi.
+- Se `assignment` viene omesso, LessonHub usa il comportamento di auto-assegnazione definito a livello di lezione.
+- `assignment.notificationOption` supporta `immediate`, `on_start_date` oppure `none`.
+- `assignment.reassignExisting` resetta i compiti esistenti per gli studenti selezionati invece di saltarli in silenzio.
+- `assignment.startDate` e `assignment.deadline` vengono applicati a ogni studente risolto in quella chiamata.
+
+### Regole Di Sicurezza
+
+- I token sono associati a uno specifico account insegnante.
+- I token vengono salvati in forma hash, possono essere revocati dal pannello admin e registrano l'ultimo utilizzo.
+- Se un token viene esposto, revocalo subito e genera un nuovo token.
+- Mantieni i token di automazione separati dalle chiavi AI personali o dai segreti dell'app in `.env.local`.
 
 ## Sicurezza e Best Practices
 

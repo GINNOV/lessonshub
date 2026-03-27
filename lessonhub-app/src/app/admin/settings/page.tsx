@@ -39,6 +39,23 @@ export default async function SettingsPage() {
         <SettingsForm initialSettings={settings} />
       </div>
 
+      <div className="rounded-xl border border-slate-800/70 bg-slate-900/70 p-6 shadow-xl backdrop-blur">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-2xl font-bold">Automation Access</h2>
+            <p className="mt-2 text-slate-400">
+              Create and revoke Codex automation tokens for lesson creation APIs.
+            </p>
+          </div>
+          <Link
+            href="/admin/automation"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100 hover:border-teal-400/60"
+          >
+            Open automation manager
+          </Link>
+        </div>
+      </div>
+
       <div className="rounded-xl border border-rose-500/50 bg-rose-900/40 p-6 shadow-xl">
         <h2 className="text-2xl font-bold mb-3 text-rose-100">Danger Zone</h2>
         <p className="mb-4 text-rose-100/80">

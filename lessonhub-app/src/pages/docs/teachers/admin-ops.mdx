@@ -23,6 +23,103 @@ LessonHub runs automatic jobs to keep things moving:
 
 - **Migrations:** Always run via the provided `npm` scripts to ensure safety.
 - **Seeding:** If default templates or badges are missing, the seed script restores them without deleting existing data.
+- **Automation Tokens:** After pulling automation changes, run the latest Prisma migration before issuing any tokens or calling the new automation APIs.
+
+## Codex Automation For Lesson Creation
+
+LessonHub now supports admin-granted automation tokens so Codex automations can create lessons through server-to-server API calls without using a browser session.
+
+### Admin Setup
+
+1. Open **Admin > Automation Tokens**.
+2. Choose the teacher account that should own the lessons created by automation.
+3. Create a token and copy it immediately. The full token value is only shown once.
+4. Store the token in your Codex automation or secret manager. Do not paste it into docs, chats, or shared screenshots.
+
+### Supported Endpoints
+
+- **Standard lessons:** `POST /api/automation/lessons`
+- **Multi-choice lessons:** `POST /api/automation/lessons/multi-choice`
+
+Both endpoints require:
+
+- `Authorization: Bearer <token>`
+- `Content-Type: application/json`
+- a `topic` field so the automation has a stable subject for the generated lesson
+
+### Standard Lesson Example
+
+```bash
+curl -X POST https://your-domain.com/api/automation/lessons \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "Restaurant English",
+    "assignmentText": "Answer in complete sentences.",
+    "questions": [
+      {
+        "question": "How would you ask for the bill?",
+        "expectedAnswer": "Could I have the bill, please?"
+      }
+    ],
+    "difficulty": 2,
+    "assignment": {
+      "studentIds": ["student_cuid_here"],
+      "classIds": ["class_cuid_here"],
+      "startDate": "2026-03-27T13:00:00.000Z",
+      "deadline": "2026-03-29T21:00:00.000Z",
+      "notificationOption": "immediate",
+      "reassignExisting": false
+    }
+  }'
+```
+
+### Multi-Choice Lesson Example
+
+```bash
+curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "Travel vocabulary",
+    "questions": [
+      {
+        "question": "Which phrase asks for directions?",
+        "options": [
+          { "text": "Where is the station?", "isCorrect": true },
+          { "text": "I need a taxi.", "isCorrect": false }
+        ]
+      }
+    ],
+    "difficulty": 3,
+    "assignment": {
+      "classIds": ["class_cuid_here"],
+      "notificationOption": "on_start_date",
+      "reassignExisting": true
+    }
+  }'
+```
+
+### Payload Notes
+
+- `title` is optional. If omitted, LessonHub uses `topic` as the title.
+- `difficulty` must be an integer from `1` to `5`.
+- `price` is optional and defaults to `0`.
+- `assignment_notification` and `scheduled_assignment_date` work the same way as the teacher-facing lesson APIs.
+- Standard lessons require `assignmentText` and at least one question prompt.
+- Multi-choice lessons require at least one question, at least two options per question, and exactly one correct option.
+- The optional `assignment` block lets automation target specific `studentIds`, `classIds`, or both.
+- If `assignment` is omitted, LessonHub falls back to the lesson-level auto-assignment behavior.
+- `assignment.notificationOption` supports `immediate`, `on_start_date`, or `none`.
+- `assignment.reassignExisting` resets existing assignments for the targeted students instead of silently skipping them.
+- `assignment.startDate` and `assignment.deadline` apply to every resolved student in that automation call.
+
+### Security Rules
+
+- Tokens are scoped to a specific teacher account.
+- Tokens are stored hashed, can be revoked from the admin panel, and track last use.
+- If a token is leaked, revoke it immediately and issue a new one.
+- Keep automation tokens separate from personal AI keys or `.env.local` app secrets.
 
 ## Security & Best Practices
 

@@ -69,6 +69,8 @@ model User {
   couponRedemptions         CouponRedemption[]
   teacherRatingsGiven       TeacherRating[] @relation("StudentRatings")
   teacherRatingsReceived    TeacherRating[] @relation("TeacherRatings")
+  automationTokens          AutomationToken[] @relation("AutomationTokensOwned")
+  createdAutomationTokens   AutomationToken[] @relation("AutomationTokensCreated")
 
   // Customizable dashboard fields
   progressCardTitle         String?   @default("My Progress")
@@ -205,6 +207,22 @@ model MultiChoiceOption {
   isCorrect  Boolean             @default(false)
   questionId String
   question   MultiChoiceQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model AutomationToken {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  tokenPrefix String
+  label      String?
+  ownerId    String
+  owner      User     @relation("AutomationTokensOwned", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy  User     @relation("AutomationTokensCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([ownerId, revokedAt])
 }
 
 model TeacherRating {

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
+import { parseStandardLessonPayload } from "@/lib/standardLessonPayload";
 
 export async function PATCH(
   request: NextRequest,
@@ -19,20 +20,32 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { title, price, difficulty, lesson_preview, assignmentText, questions, contextText, assignment_image_url, soundcloud_url, attachment_url, notes, assignment_notification, scheduled_assignment_date, isFreeForAll } = body;
+    const parsed = parseStandardLessonPayload(body);
+    if (!parsed.ok) {
+      return new NextResponse(JSON.stringify({ error: parsed.error }), { status: 400 });
+    }
+
+    const {
+      title,
+      price,
+      difficulty,
+      lesson_preview,
+      assignmentText,
+      questions,
+      contextText,
+      assignment_image_url,
+      soundcloud_url,
+      attachment_url,
+      notes,
+      assignmentNotification,
+      scheduledAssignmentDate,
+      isFreeForAll,
+    } = parsed.data;
 
     const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
 
     if (!lesson || lesson.teacherId !== session.user.id) {
         return new NextResponse(JSON.stringify({ error: "Lesson not found or you do not have permission to edit it" }), { status: 404 });
-    }
-
-    const difficultyValue = Number(difficulty);
-    if (!Number.isInteger(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
-      return new NextResponse(
-        JSON.stringify({ error: "Difficulty must be an integer between 1 and 5." }),
-        { status: 400 }
-      );
     }
 
     const updatedLesson = await prisma.lesson.update({
@@ -48,9 +61,9 @@ export async function PATCH(
         soundcloud_url,
         attachment_url,
         notes,
-        difficulty: difficultyValue,
-        assignment_notification,
-        scheduled_assignment_date,
+        difficulty,
+        assignment_notification: assignmentNotification,
+        scheduled_assignment_date: scheduledAssignmentDate,
         isFreeForAll: Boolean(isFreeForAll),
       },
     });
