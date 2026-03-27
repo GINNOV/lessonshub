@@ -48,7 +48,7 @@ DEFAULT_CLASS_NAME=Fall 2025
 
 - `AUTOMATION_TOKEN` è obbligatorio.
 - `DEFAULT_CLASS_ID` è consigliato se l'automazione deve assegnare sempre alla stessa classe.
-- Se `DEFAULT_CLASS_ID` non è presente, l'attuale flusso di test da terminale usa come fallback la classe attiva dell'insegnante chiamata `Fall 2025`.
+- Se `DEFAULT_CLASS_ID` non è presente, l'attuale flusso di test da terminale chiama la API remota di contesto dell'automazione e usa come fallback la classe attiva dell'insegnante chiamata `Fall 2025`.
 - `DEFAULT_CLASS_NAME` può essere cambiato se vuoi un fallback basato sul nome diverso.
 
 ### Endpoint Supportati
@@ -129,7 +129,7 @@ curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
 - `assignment.reassignExisting` resetta i compiti esistenti per gli studenti selezionati invece di saltarli in silenzio.
 - `assignment.startDate` e `assignment.deadline` vengono applicati a ogni studente risolto in quella chiamata.
 - Un default pratico è inviare `assignment.classIds` usando `DEFAULT_CLASS_ID` preso da `.env.automation`.
-- Nell'attuale script di test, le lezioni vengono assegnate automaticamente alla classe configurata. Se non è configurato un class id, lo script cerca la classe attiva dell'insegnante chiamata `Fall 2025`.
+- Nell'attuale script di test, le lezioni vengono assegnate automaticamente alla classe configurata. Se non è configurato un class id, lo script risolve la classe tramite `GET /api/automation/context` e cerca la classe attiva dell'insegnante chiamata `Fall 2025`.
 
 ### Regole Di Sicurezza
 

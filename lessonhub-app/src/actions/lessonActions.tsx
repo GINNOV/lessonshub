@@ -1201,8 +1201,7 @@ export async function getAssignmentsForStudent(studentId: string) {
 
 export async function getAssignmentById(assignmentId: string, studentId: string) {
   try {
-    const assignment = await unstable_cache(
-      async () => prisma.assignment.findFirst({
+    const assignment = await prisma.assignment.findFirst({
       where: {
         id: assignmentId,
         OR: [
@@ -1240,13 +1239,7 @@ export async function getAssignmentById(assignmentId: string, studentId: string)
           },
         },
       },
-      }),
-      ['assignment-by-id', assignmentId, studentId],
-      {
-        revalidate: 60,
-        tags: [cacheTags.assignment(assignmentId), cacheTags.assignmentPage(assignmentId)],
-      }
-    )();
+    });
     return assignment;
   } catch (error) {
     console.error("Failed to fetch assignment:", error);

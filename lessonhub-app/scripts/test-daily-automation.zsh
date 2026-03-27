@@ -126,75 +126,44 @@ TITLE="${TITLE_PREFIX} — ${ITALIAN_DATE}"
 PREVIEW="$(printf "$PREVIEW_TEMPLATE" "$TOPIC")"
 INSTRUCTIONS="Leggi le domande e rispondi in modo chiaro e completo. Usa frasi semplici ma corrette."
 
-export ROOT_DIR TEACHER_EMAIL TITLE DEFAULT_CLASS_ID DEFAULT_CLASS_NAME
-LOOKUP_RESULT="$(
-  cd "$ROOT_DIR"
-  npx dotenv -e .env.local -- node --input-type=module <<'EOF'
-import { PrismaClient } from '@prisma/client'
+LOOKUP_URL="${BASE_URL}/api/automation/context?title=$(node -e 'console.log(encodeURIComponent(process.argv[1]))' "$TITLE")"
+if [[ -n "$DEFAULT_CLASS_ID" ]]; then
+  LOOKUP_URL="${LOOKUP_URL}&classId=$(node -e 'console.log(encodeURIComponent(process.argv[1]))' "$DEFAULT_CLASS_ID")"
+else
+  LOOKUP_URL="${LOOKUP_URL}&className=$(node -e 'console.log(encodeURIComponent(process.argv[1]))' "$DEFAULT_CLASS_NAME")"
+fi
 
-const prisma = new PrismaClient()
-
-try {
-  const lesson = await prisma.lesson.findFirst({
-    where: {
-      title: process.env.TITLE,
-      teacher: {
-        email: process.env.TEACHER_EMAIL,
-      },
-    },
-    select: { id: true },
-  })
-
-  if (lesson?.id) {
-    console.log(`LESSON_ID=${lesson.id}`)
-  }
-
-  if (process.env.DEFAULT_CLASS_ID) {
-    const cls = await prisma.class.findFirst({
-      where: {
-        id: process.env.DEFAULT_CLASS_ID,
-        teacher: {
-          email: process.env.TEACHER_EMAIL,
-        },
-        isActive: true,
-      },
-      select: { id: true },
-    })
-
-    if (!cls) {
-      console.error(`DEFAULT_CLASS_ID ${process.env.DEFAULT_CLASS_ID} was not found for ${process.env.TEACHER_EMAIL}`)
-      process.exit(1)
-    }
-
-    console.log(`CLASS_ID=${cls.id}`)
-  } else {
-    const cls = await prisma.class.findFirst({
-      where: {
-        name: process.env.DEFAULT_CLASS_NAME,
-        teacher: {
-          email: process.env.TEACHER_EMAIL,
-        },
-        isActive: true,
-      },
-      select: { id: true },
-      orderBy: { createdAt: 'asc' },
-    })
-
-    if (!cls) {
-      console.error(`Active class "${process.env.DEFAULT_CLASS_NAME}" was not found for ${process.env.TEACHER_EMAIL}`)
-      process.exit(1)
-    }
-
-    console.log(`CLASS_ID=${cls.id}`)
-  }
-} finally {
-  await prisma.$disconnect()
-}
-EOF
+LOOKUP_FILE="$(mktemp)"
+LOOKUP_STATUS="$(
+  curl -sS -o "$LOOKUP_FILE" -w '%{http_code}' \
+    -H "Authorization: Bearer ${AUTOMATION_TOKEN}" \
+    "$LOOKUP_URL"
 )"
 
-EXISTING_LESSON_ID="$(printf '%s\n' "$LOOKUP_RESULT" | sed -n 's/^LESSON_ID=//p' | tail -n 1)"
-CLASS_ID="$(printf '%s\n' "$LOOKUP_RESULT" | sed -n 's/^CLASS_ID=//p' | tail -n 1)"
+if [[ "$LOOKUP_STATUS" -lt 200 || "$LOOKUP_STATUS" -ge 300 ]]; then
+  echo "Failed to resolve automation context (HTTP ${LOOKUP_STATUS})." >&2
+  cat "$LOOKUP_FILE" >&2
+  echo >&2
+  rm -f "$LOOKUP_FILE"
+  exit 1
+fi
+
+LOOKUP_JSON="$(cat "$LOOKUP_FILE")"
+rm -f "$LOOKUP_FILE"
+
+export LOOKUP_JSON
+EXISTING_LESSON_ID="$(
+  node --input-type=module <<'EOF'
+const payload = JSON.parse(process.env.LOOKUP_JSON)
+if (payload.existingLessonId) console.log(payload.existingLessonId)
+EOF
+)"
+CLASS_ID="$(
+  node --input-type=module <<'EOF'
+const payload = JSON.parse(process.env.LOOKUP_JSON)
+if (payload.resolvedClassId) console.log(payload.resolvedClassId)
+EOF
+)"
 
 if [[ -n "$EXISTING_LESSON_ID" ]]; then
   echo "Lesson already exists for ${TARGET_DATE}: ${EXISTING_LESSON_ID}"
@@ -203,7 +172,7 @@ if [[ -n "$EXISTING_LESSON_ID" ]]; then
 fi
 
 if [[ -z "$CLASS_ID" ]]; then
-  echo "Unable to resolve a class id for this teacher." >&2
+  echo "Unable to resolve a class id from the remote automation context." >&2
   exit 1
 fi
 
