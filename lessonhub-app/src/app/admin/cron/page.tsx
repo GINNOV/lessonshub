@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 
-type CronTestAction = 'test-email' | 'deadline' | 'start-date' | 'weekly' | 'payment';
+type CronTestAction = 'test-email' | 'deadline' | 'start-date' | 'weekly' | 'payment' | 'daily-lessons';
 
 const formatDateTimeForInput = (date: Date) => {
   const iso = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString();
@@ -29,6 +29,7 @@ export default function CronTestPage() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [simulateStartDate, setSimulateStartDate] = useState<string>(formatDateTimeForInput(new Date()));
   const [simulateWeeklyDate, setSimulateWeeklyDate] = useState<string>('');
+  const [simulateLessonDate, setSimulateLessonDate] = useState<string>('');
   const [forceWeekly, setForceWeekly] = useState<boolean>(false);
 
   const addLog = (message: string) => {
@@ -100,6 +101,13 @@ export default function CronTestPage() {
     await runCronAction('payment');
   };
 
+  const triggerDailyLessons = async () => {
+    const payload: Record<string, unknown> = {};
+    const iso = toIsoString(simulateLessonDate);
+    if (iso) payload.simulateTime = iso;
+    await runCronAction('daily-lessons', payload);
+  };
+
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
@@ -162,6 +170,29 @@ export default function CronTestPage() {
                 </Button>
                 <Button onClick={triggerPaymentReminders} variant="secondary" className="w-full">
                   Send payment reminders
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="border border-slate-800 rounded-md p-4 space-y-4 bg-slate-950/60">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Daily Lessons</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="simulate-lesson-date">Reference date (optional)</Label>
+                <Input
+                  id="simulate-lesson-date"
+                  type="datetime-local"
+                  value={simulateLessonDate}
+                  onChange={(event) => setSimulateLessonDate(event.target.value)}
+                />
+                <p className="text-xs text-slate-400">
+                  Leave blank to use now, or choose a date to test topic rotation and duplicate prevention.
+                </p>
+              </div>
+              <div className="flex items-end">
+                <Button onClick={triggerDailyLessons} className="w-full md:w-auto">
+                  Run daily lesson automations
                 </Button>
               </div>
             </div>

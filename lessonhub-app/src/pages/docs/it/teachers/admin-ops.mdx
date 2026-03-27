@@ -8,6 +8,7 @@ Gli amministratori hanno una visione d'insieme della piattaforma tramite la [das
 - **Lezioni:** Supervisiona l'intero catalogo delle lezioni, esegui migrazioni del database o inizializza i template predefiniti.
 - **Email:** Monitora i log di tutte le email inviate (transazionali e di marketing).
 - **Impostazioni:** Configura impostazioni globali, valori dei punti e flag delle funzionalità.
+- **Automation:** Gestisci job AI ricorrenti e accessi di automazione basati su token.
 - **Cron:** Attiva manualmente i job di sistema (come le notifiche di "Data di Inizio") o simula orari per i test.
 - **Profilo:** Visualizza il tuo profilo con controlli amministrativi extra.
 
@@ -137,6 +138,34 @@ curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
 - I token vengono salvati in forma hash, possono essere revocati dal pannello admin e registrano l'ultimo utilizzo.
 - Se un token viene esposto, revocalo subito e genera un nuovo token.
 - Mantieni i token di automazione separati dalle chiavi AI personali o dai segreti dell'app in `.env.local`.
+
+## Automazioni Giornaliere Integrate
+
+LessonHub può ora generare lezioni standard giornaliere direttamente dentro l'app usando la chiave Gemini configurata e il flusso cron esistente su Vercel.
+
+### Come Funziona
+
+- Crea uno o più job da **Admin > Automation**.
+- Ogni job punta a un insegnante e a una classe attiva.
+- La route cron giornaliera esegue i job abilitati una volta al giorno.
+- Ogni job salva la propria cronologia di esecuzione e non crea una seconda lezione per lo stesso giorno.
+
+### Cosa Puoi Controllare
+
+- Nome del job
+- Insegnante
+- Classe
+- Stato abilitato o disabilitato
+- Difficoltà
+- Prezzo
+- Prompt opzionale per guidare Gemini
+- Pool opzionale di temi per controllare la rotazione degli argomenti
+
+### Operatività
+
+- Usa **Run now** nella pagina Automation per testare i job immediatamente.
+- Usa **Admin > Cron** per attivare manualmente l'automazione giornaliera delle lezioni con una data di riferimento opzionale.
+- I job giornalieri dipendono da una chiave Gemini configurata nelle impostazioni AI admin.
 
 ## Sicurezza e Best Practices
 

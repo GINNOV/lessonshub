@@ -8,6 +8,7 @@ Administrators have a bird's-eye view of the platform via the tile-based [admin 
 - **Lessons:** Oversee the entire lesson catalog, run database migrations, or seed default templates.
 - **Emails:** Monitor the logs of all sent emails (transactional and marketing).
 - **Settings:** Configure global settings, point values, and feature flags.
+- **Automation:** Manage recurring AI lesson jobs and token-based automation access.
 - **Cron:** Manually trigger system jobs (like "Start Date" notifications) or simulate time for testing.
 - **Profile:** View your own profile with extra admin controls.
 
@@ -137,6 +138,34 @@ curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
 - Tokens are stored hashed, can be revoked from the admin panel, and track last use.
 - If a token is leaked, revoke it immediately and issue a new one.
 - Keep automation tokens separate from personal AI keys or `.env.local` app secrets.
+
+## In-App Daily Lesson Automations
+
+LessonHub can now generate daily standard lessons directly inside the app using the configured Gemini API key and the existing Vercel cron flow.
+
+### How It Works
+
+- Create one or more jobs from **Admin > Automation**.
+- Each job targets one teacher and one active class.
+- The daily cron route processes enabled jobs once per day.
+- Each job stores its own run history and will not create a second lesson for the same day.
+
+### What You Can Control
+
+- Job name
+- Teacher
+- Class
+- Enabled or disabled state
+- Difficulty
+- Price
+- Optional custom prompt to steer Gemini
+- Optional theme pool to control topic rotation
+
+### Operations
+
+- Use **Run now** from the Automation page to test the jobs immediately.
+- Use **Admin > Cron** to trigger the daily lesson automation manually with an optional reference date.
+- Daily lesson jobs depend on a configured Gemini API key in the admin AI settings.
 
 ## Security & Best Practices
 

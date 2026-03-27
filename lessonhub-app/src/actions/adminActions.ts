@@ -2,7 +2,7 @@
 'use server';
 
 import prisma from "@/lib/prisma";
-import { BadgeCategory, Role } from "@prisma/client";
+import { AutomationJobKind, Role, BadgeCategory, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { unstable_cache } from "next/cache";
 import { createButton } from "@/lib/email-templates";
@@ -10,6 +10,7 @@ import { sendEmail } from "@/lib/email-templates.server";
 import { auth } from "@/auth";
 import { hasAdminPrivileges } from "@/lib/authz";
 import { cacheTags, revalidateAdminLessonViews, revalidateAdminUserViews } from "@/lib/cache-tags";
+import { runDailyLessonAutomations } from "@/lib/dailyLessonAutomation";
 
 /**
  * Fetches all users from the database.
@@ -795,6 +796,157 @@ export async function updateAiSettings(input: { geminiApiKey?: string | null }) 
   } catch (error) {
     console.error("Failed to update AI settings:", error);
     return { success: false, error: "Unable to save AI settings." };
+  }
+}
+
+export async function getDailyLessonAutomationJobs() {
+  const session = await auth();
+  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
+    return [];
+  }
+
+  return prisma.automationJob.findMany({
+    where: { kind: AutomationJobKind.DAILY_STANDARD_LESSON },
+    orderBy: { createdAt: 'asc' },
+    include: {
+      teacher: {
+        select: { id: true, name: true, email: true },
+      },
+      class: {
+        select: { id: true, name: true, teacherId: true, isActive: true },
+      },
+      runs: {
+        orderBy: { runDate: 'desc' },
+        take: 5,
+      },
+    },
+  });
+}
+
+type UpsertDailyLessonAutomationJobInput = {
+  id?: string;
+  name: string;
+  teacherId: string;
+  classId: string;
+  isEnabled: boolean;
+  customPrompt?: string | null;
+  difficulty?: number;
+  price?: number;
+  themePoolText?: string | null;
+}
+
+function parseThemePool(themePoolText?: string | null) {
+  const values = (themePoolText ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return values.length ? values : null;
+}
+
+export async function upsertDailyLessonAutomationJob(input: UpsertDailyLessonAutomationJobInput) {
+  const session = await auth();
+  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const name = input.name.trim();
+  if (!name) {
+    return { success: false, error: 'Name is required.' };
+  }
+
+  const teacher = await prisma.user.findFirst({
+    where: { id: input.teacherId, role: Role.TEACHER, isSuspended: false },
+    select: { id: true },
+  });
+  if (!teacher) {
+    return { success: false, error: 'Teacher not found or unavailable.' };
+  }
+
+  const cls = await prisma.class.findFirst({
+    where: { id: input.classId, teacherId: input.teacherId, isActive: true },
+    select: { id: true },
+  });
+  if (!cls) {
+    return { success: false, error: 'Class not found or inactive for that teacher.' };
+  }
+
+  const difficulty = Number(input.difficulty ?? 3);
+  if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 5) {
+    return { success: false, error: 'Difficulty must be an integer between 1 and 5.' };
+  }
+
+  const price = Number(input.price ?? 20);
+  if (!Number.isFinite(price) || price < 0) {
+    return { success: false, error: 'Price must be a number greater than or equal to 0.' };
+  }
+
+  const themePool = parseThemePool(input.themePoolText);
+
+  const data = {
+    kind: AutomationJobKind.DAILY_STANDARD_LESSON,
+    name,
+    teacherId: input.teacherId,
+    classId: input.classId,
+    isEnabled: Boolean(input.isEnabled),
+    customPrompt: input.customPrompt?.trim() || null,
+    difficulty,
+    price,
+    themePool: themePool ? (themePool as Prisma.InputJsonValue) : Prisma.DbNull,
+  };
+
+  try {
+    if (input.id) {
+      await prisma.automationJob.update({
+        where: { id: input.id },
+        data,
+      });
+    } else {
+      await prisma.automationJob.create({
+        data,
+      });
+    }
+    revalidatePath('/admin/automation');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save daily lesson automation job:', error);
+    return { success: false, error: 'Unable to save automation job.' };
+  }
+}
+
+export async function deleteDailyLessonAutomationJob(jobId: string) {
+  const session = await auth();
+  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  try {
+    await prisma.automationJob.delete({ where: { id: jobId } });
+    revalidatePath('/admin/automation');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete automation job:', error);
+    return { success: false, error: 'Unable to delete automation job.' };
+  }
+}
+
+export async function runDailyLessonAutomationNow(referenceDateIso?: string) {
+  const session = await auth();
+  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const referenceDate = referenceDateIso ? new Date(referenceDateIso) : new Date();
+  if (Number.isNaN(referenceDate.getTime())) {
+    return { success: false, error: 'Invalid reference date.' };
+  }
+
+  try {
+    const results = await runDailyLessonAutomations(referenceDate);
+    revalidatePath('/admin/automation');
+    return { success: true, results };
+  } catch (error) {
+    console.error('Failed to run daily lesson automations:', error);
+    return { success: false, error: 'Unable to run daily lesson automations.' };
   }
 }
 

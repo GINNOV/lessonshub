@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 
 import { auth } from "@/auth";
-import { getAllTeachers } from "@/actions/adminActions";
+import { getAllTeachers, getDailyLessonAutomationJobs } from "@/actions/adminActions";
 import AdminAutomationManager from "@/app/components/AdminAutomationManager";
+import DailyLessonAutomationManager from "@/app/components/DailyLessonAutomationManager";
 import prisma from "@/lib/prisma";
 
 export default async function AdminAutomationPage() {
@@ -14,8 +15,19 @@ export default async function AdminAutomationPage() {
     redirect("/");
   }
 
-  const [teachers, tokens] = await Promise.all([
+  const [teachers, automationJobs, classes, tokens] = await Promise.all([
     getAllTeachers(),
+    getDailyLessonAutomationJobs(),
+    prisma.class.findMany({
+      where: { isActive: true, teacher: { isSuspended: false } },
+      select: {
+        id: true,
+        name: true,
+        teacherId: true,
+        isActive: true,
+      },
+      orderBy: [{ teacherId: 'asc' }, { createdAt: 'asc' }],
+    }),
     prisma.automationToken.findMany({
       orderBy: { createdAt: "desc" },
       select: {
@@ -53,6 +65,32 @@ export default async function AdminAutomationPage() {
       email: teacher.email,
     }));
 
+  const serializableJobs = automationJobs.map((job) => ({
+    id: job.id,
+    name: job.name,
+    isEnabled: job.isEnabled,
+    teacherId: job.teacherId,
+    classId: job.classId,
+    customPrompt: job.customPrompt,
+    difficulty: job.difficulty,
+    price: job.price.toNumber(),
+    themePoolText: Array.isArray(job.themePool) ? job.themePool.join('\n') : '',
+    lastRunAt: job.lastRunAt?.toISOString() ?? null,
+    lastStatus: job.lastStatus ?? null,
+    lastMessage: job.lastMessage ?? null,
+    lastLessonId: job.lastLessonId ?? null,
+    teacher: job.teacher,
+    class: job.class,
+    runs: job.runs.map((run) => ({
+      id: run.id,
+      runDate: run.runDate.toISOString(),
+      status: run.status,
+      message: run.message ?? null,
+      lessonId: run.lessonId ?? null,
+      createdAt: run.createdAt.toISOString(),
+    })),
+  }));
+
   const serializableTokens = tokens.map((token) => ({
     ...token,
     createdAt: token.createdAt.toISOString(),
@@ -64,9 +102,9 @@ export default async function AdminAutomationPage() {
     <div className="space-y-6 text-slate-100">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold">Automation Tokens</h1>
+          <h1 className="text-3xl font-bold">Automation</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Grant Codex automations scoped access to create lessons through token-gated APIs.
+            Manage recurring AI jobs and token-gated automation access from one place.
           </p>
         </div>
         <div className="flex gap-2">
@@ -84,6 +122,11 @@ export default async function AdminAutomationPage() {
           </Link>
         </div>
       </div>
+      <DailyLessonAutomationManager
+        teachers={teacherOptions}
+        classes={classes}
+        jobs={serializableJobs}
+      />
       <AdminAutomationManager teachers={teacherOptions} initialTokens={serializableTokens} />
     </div>
   );

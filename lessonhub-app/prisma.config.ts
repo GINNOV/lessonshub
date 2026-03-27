@@ -6,6 +6,6 @@ export default defineConfig({
     seed: 'npm run prisma:seed',
   },
   datasource: {
-    url: env('DATABASE_URL'),
+    url: env('DATABASE_URL_UNPOOLED') || env('DATABASE_URL'),
   },
 });
