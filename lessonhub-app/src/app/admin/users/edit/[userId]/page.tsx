@@ -8,6 +8,7 @@ import ProfileForm from "@/app/components/ProfileForm";
 import AssignTeachersToStudent from "@/app/components/AssignTeachersToStudent";
 import { getAllTeachers, getAssignedTeachers } from "@/actions/adminActions";
 import { Button } from "@/components/ui/button";
+import { decimalToNullableNumber } from "@/lib/serializers/decimal";
 
 // This is a helper function to fetch the specific user for this page.
 async function getUserForAdmin(userId: string) {
@@ -69,7 +70,7 @@ export default async function AdminEditUserPage({
 
   const serializableUser: any = userToEdit ? { 
     ...userToEdit,
-    defaultLessonPrice: userToEdit.defaultLessonPrice?.toNumber() ?? null,
+    defaultLessonPrice: decimalToNullableNumber(userToEdit.defaultLessonPrice),
   } : null;
 
   return (

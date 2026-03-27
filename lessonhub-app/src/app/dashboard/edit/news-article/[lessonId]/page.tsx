@@ -8,6 +8,7 @@ import { getTeacherPreferences } from '@/actions/teacherActions';
 import { getInstructionBookletsForTeacher } from '@/actions/instructionBookletActions';
 import { hasAdminPrivileges } from '@/lib/authz';
 import NewsArticleLessonCreator from '@/app/components/NewsArticleLessonCreator';
+import { decimalToNumber } from '@/lib/serializers/decimal';
 
 export default async function EditNewsArticleLessonPage({
   params,
@@ -73,7 +74,7 @@ export default async function EditNewsArticleLessonPage({
   const serializablePreferences = preferences
     ? {
         ...preferences,
-        defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+        defaultLessonPrice: decimalToNumber(preferences.defaultLessonPrice),
       }
     : null;
   const serializableBooklets = instructionBooklets.map((booklet) => ({
@@ -84,7 +85,7 @@ export default async function EditNewsArticleLessonPage({
 
   const serializableLesson = {
     ...lesson,
-    price: lesson.price.toNumber(),
+    price: decimalToNumber(lesson.price),
     newsArticleConfig: lesson.newsArticleConfig
       ? {
           markdown: lesson.newsArticleConfig.markdown,

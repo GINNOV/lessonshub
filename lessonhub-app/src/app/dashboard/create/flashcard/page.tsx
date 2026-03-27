@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 import Link from "next/link";
+import { decimalToNumber } from "@/lib/serializers/decimal";
 
 export default async function CreateFlashcardPage() {
     const session = await auth();
@@ -20,7 +21,7 @@ export default async function CreateFlashcardPage() {
     
     const serializablePreferences = preferences ? {
         ...preferences,
-        defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+        defaultLessonPrice: decimalToNumber(preferences.defaultLessonPrice),
     } : null;
 
     return (

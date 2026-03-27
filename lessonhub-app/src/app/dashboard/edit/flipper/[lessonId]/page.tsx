@@ -7,6 +7,7 @@ import { getTeacherPreferences } from '@/actions/teacherActions';
 import { getInstructionBookletsForTeacher } from '@/actions/instructionBookletActions';
 import { auth } from '@/auth';
 import { hasAdminPrivileges } from '@/lib/authz';
+import { decimalToNumber } from '@/lib/serializers/decimal';
 import { Role } from '@prisma/client';
 
 export default async function EditFlipperLessonPage({ params }: { params: Promise<{ lessonId: string }> }) {
@@ -70,7 +71,7 @@ export default async function EditFlipperLessonPage({ params }: { params: Promis
   const serializablePreferences = preferences
     ? {
         ...preferences,
-        defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+        defaultLessonPrice: decimalToNumber(preferences.defaultLessonPrice),
       }
     : null;
 
@@ -82,7 +83,7 @@ export default async function EditFlipperLessonPage({ params }: { params: Promis
 
   const serializableLesson = {
     ...lesson,
-    price: lesson.price.toNumber(),
+    price: decimalToNumber(lesson.price),
     flipperConfig: lesson.flipperConfig
       ? {
           attemptsBeforePenalty: lesson.flipperConfig.attemptsBeforePenalty ?? 3,

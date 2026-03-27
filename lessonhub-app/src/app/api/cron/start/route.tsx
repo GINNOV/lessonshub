@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { failExpiredAssignments, sendStartDateNotifications } from '@/actions/cronActions';
+import { isAuthorizedCronRequest } from '@/lib/cronAuth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!isAuthorizedCronRequest(request)) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized cron request.' }, { status: 401 });
+  }
+
   try {
     const [startResult, failResult] = await Promise.all([
       sendStartDateNotifications(undefined, 60),

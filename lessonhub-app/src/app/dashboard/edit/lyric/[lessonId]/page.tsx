@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { LessonType, Role } from "@prisma/client";
 import { hasAdminPrivileges } from "@/lib/authz";
 import Link from "next/link";
+import { decimalToNumber } from "@/lib/serializers/decimal";
 
 const normalizeLines = (value: unknown): LyricLine[] => {
   if (!Array.isArray(value)) return [];
@@ -76,13 +77,13 @@ export default async function EditLyricLessonPage({ params }: { params: Promise<
   const serializablePreferences = preferences
     ? {
         ...preferences,
-        defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+        defaultLessonPrice: decimalToNumber(preferences.defaultLessonPrice),
       }
     : null;
 
   const serializableLesson = {
     ...lesson,
-    price: lesson.price.toNumber(),
+    price: decimalToNumber(lesson.price),
     lyricConfig: lesson.lyricConfig
       ? {
           ...lesson.lyricConfig,

@@ -3,13 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendCronTestEmail, sendDeadlineReminders, sendPaymentReminders, sendStartDateNotifications, sendWeeklySummaries } from '@/actions/cronActions';
 import { auth } from '@/auth';
 import { hasAdminPrivileges } from '@/lib/authz';
+import { runDailyLessonAutomations } from '@/lib/dailyLessonAutomation';
 
 type CronTestAction =
   | 'test-email'
   | 'deadline'
   | 'start-date'
   | 'weekly'
-  | 'payment';
+  | 'payment'
+  | 'daily-lessons';
 
 export async function POST(request: NextRequest) {
  const session = await auth();
@@ -72,6 +74,24 @@ export async function POST(request: NextRequest) {
    return NextResponse.json(
     { message: result.message },
     { status: result.success ? 200 : 500 },
+   );
+  }
+  case 'daily-lessons': {
+   let referenceDate: Date | undefined;
+   if (body.simulateTime) {
+    const parsed = new Date(body.simulateTime);
+    if (Number.isNaN(parsed.getTime())) {
+      return NextResponse.json({ error: 'Invalid simulateTime value.' }, { status: 400 });
+    }
+    referenceDate = parsed;
+   }
+   const results = await runDailyLessonAutomations(referenceDate);
+   return NextResponse.json(
+    {
+      message: `Processed ${results.length} daily lesson automation job(s).`,
+      results,
+    },
+    { status: 200 },
    );
   }
   case 'test-email':

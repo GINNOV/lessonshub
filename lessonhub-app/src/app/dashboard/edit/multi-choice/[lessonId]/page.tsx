@@ -8,6 +8,7 @@ import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletAc
 import { auth } from "@/auth";
 import { hasAdminPrivileges } from "@/lib/authz";
 import { Role } from "@prisma/client";
+import { decimalToNumber } from "@/lib/serializers/decimal";
 
 export default async function EditMultiChoicePage({ params }: { params: Promise<{ lessonId: string }> }) {
     const session = await auth();
@@ -69,7 +70,7 @@ export default async function EditMultiChoicePage({ params }: { params: Promise<
 
     const serializablePreferences = preferences ? {
       ...preferences,
-      defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+      defaultLessonPrice: decimalToNumber(preferences.defaultLessonPrice),
     } : null;
 
     const serializableBooklets = instructionBooklets.map((booklet) => ({
@@ -80,7 +81,7 @@ export default async function EditMultiChoicePage({ params }: { params: Promise<
 
     const serializableLesson = {
       ...lesson,
-      price: lesson.price.toNumber(),
+      price: decimalToNumber(lesson.price),
     };
 
     return (

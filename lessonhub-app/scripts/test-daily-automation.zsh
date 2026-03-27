@@ -24,19 +24,19 @@ DEFAULT_CLASS_NAME="${DEFAULT_CLASS_NAME:-Fall 2025}"
 
 if [[ -z "$AUTOMATION_TOKEN" && -f "$AUTOMATION_ENV_FILE" ]]; then
   AUTOMATION_TOKEN="$(
-    grep -E '^AUTOMATION_TOKEN=' "$AUTOMATION_ENV_FILE" | tail -n 1 | sed 's/^AUTOMATION_TOKEN=//'
+    awk -F= '/^AUTOMATION_TOKEN=/{value=$0} END{print value}' "$AUTOMATION_ENV_FILE" | sed 's/^AUTOMATION_TOKEN=//'
   )"
 fi
 
 if [[ -z "$DEFAULT_CLASS_ID" && -f "$AUTOMATION_ENV_FILE" ]]; then
   DEFAULT_CLASS_ID="$(
-    grep -E '^DEFAULT_CLASS_ID=' "$AUTOMATION_ENV_FILE" | tail -n 1 | sed 's/^DEFAULT_CLASS_ID=//'
+    awk -F= '/^DEFAULT_CLASS_ID=/{value=$0} END{print value}' "$AUTOMATION_ENV_FILE" | sed 's/^DEFAULT_CLASS_ID=//'
   )"
 fi
 
 if [[ -f "$AUTOMATION_ENV_FILE" ]]; then
   FILE_CLASS_NAME="$(
-    grep -E '^DEFAULT_CLASS_NAME=' "$AUTOMATION_ENV_FILE" | tail -n 1 | sed 's/^DEFAULT_CLASS_NAME=//'
+    awk -F= '/^DEFAULT_CLASS_NAME=/{value=$0} END{print value}' "$AUTOMATION_ENV_FILE" | sed 's/^DEFAULT_CLASS_NAME=//'
   )"
   if [[ -n "$FILE_CLASS_NAME" ]]; then
     DEFAULT_CLASS_NAME="$FILE_CLASS_NAME"

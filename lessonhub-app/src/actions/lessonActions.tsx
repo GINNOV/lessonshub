@@ -26,6 +26,7 @@ import { validateAssignmentForSubmission } from "@/lib/assignmentValidation";
 import { normalizeMultiChoiceText } from "@/lib/multiChoiceAnswers";
 import { marked } from "marked";
 import { cacheTags, revalidateStudentAssignmentViews } from '@/lib/cache-tags';
+import { decimalToNumber, decimalToNullableNumber } from '@/lib/serializers/decimal';
 import {
   assertAssignmentEditable,
   assertAssignmentSubmittable,
@@ -1331,11 +1332,11 @@ export async function getLessonByShareId(shareId: string) {
 
     return {
       ...lesson,
-      price: lesson.price.toNumber(),
+      price: decimalToNumber(lesson.price),
       teacher: lesson.teacher
         ? {
             ...lesson.teacher,
-            defaultLessonPrice: lesson.teacher.defaultLessonPrice?.toNumber() ?? null,
+            defaultLessonPrice: decimalToNullableNumber(lesson.teacher.defaultLessonPrice),
           }
         : null,
     };
@@ -1494,7 +1495,7 @@ export async function getStudentStats(studentId: string) {
     let extensionSpend = 0;
 
     assignments.forEach((a) => {
-      const price = a.lesson.price.toNumber();
+      const price = decimalToNumber(a.lesson.price);
       const isExtended = isExtendedDeadline(a.deadline, a.originalDeadline);
       if (
         a.lesson.type === LessonType.COMPOSER &&
@@ -2112,7 +2113,7 @@ export async function getFreeForAllLessons(studentId: string) {
       type: lesson.type,
       lesson_preview: lesson.lesson_preview,
       assignment_image_url: lesson.assignment_image_url,
-      price: lesson.price.toNumber(),
+      price: decimalToNumber(lesson.price),
       difficulty: lesson.difficulty,
       teacher: lesson.teacher,
       completionCount: lesson._count.assignments,

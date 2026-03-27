@@ -6,6 +6,7 @@ import { getTeacherPreferences } from '@/actions/teacherActions';
 import { getInstructionBookletsForTeacher } from '@/actions/instructionBookletActions';
 import FlipperLessonCreator from '@/app/components/FlipperLessonCreator';
 import Link from 'next/link';
+import { decimalToNumber } from '@/lib/serializers/decimal';
 
 export default async function CreateFlipperLessonPage() {
   const session = await auth();
@@ -21,7 +22,7 @@ export default async function CreateFlipperLessonPage() {
   const serializablePreferences = preferences
     ? {
         ...preferences,
-        defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+        defaultLessonPrice: decimalToNumber(preferences.defaultLessonPrice),
       }
     : null;
 

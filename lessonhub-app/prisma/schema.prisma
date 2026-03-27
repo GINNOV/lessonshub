@@ -71,6 +71,7 @@ model User {
   teacherRatingsReceived    TeacherRating[] @relation("TeacherRatings")
   automationTokens          AutomationToken[] @relation("AutomationTokensOwned")
   createdAutomationTokens   AutomationToken[] @relation("AutomationTokensCreated")
+  automationJobs            AutomationJob[]
 
   // Customizable dashboard fields
   progressCardTitle         String?   @default("My Progress")
@@ -100,6 +101,7 @@ model Class {
   teacherId String
   teacher   User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   students  TeachersForStudent[]
+  automationJobs AutomationJob[]
   createdAt DateTime @default(now())
 }
 
@@ -223,6 +225,58 @@ model AutomationToken {
   createdAt  DateTime @default(now())
 
   @@index([ownerId, revokedAt])
+}
+
+enum AutomationJobKind {
+  DAILY_STANDARD_LESSON
+}
+
+enum AutomationJobRunStatus {
+  PENDING
+  SUCCESS
+  SKIPPED
+  FAILED
+}
+
+model AutomationJob {
+  id            String              @id @default(cuid())
+  kind          AutomationJobKind
+  name          String
+  isEnabled     Boolean             @default(true)
+  teacherId     String
+  teacher       User                @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classId       String
+  class         Class               @relation(fields: [classId], references: [id], onDelete: Cascade)
+  locale        String              @default("it")
+  price         Decimal             @default(20)
+  difficulty    Int                 @default(3)
+  customPrompt  String?             @db.Text
+  themePool     Json?
+  lastRunAt     DateTime?
+  lastStatus    AutomationJobRunStatus?
+  lastMessage   String?             @db.Text
+  lastLessonId  String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  runs          AutomationJobRun[]
+
+  @@index([isEnabled, kind])
+  @@index([teacherId, classId])
+}
+
+model AutomationJobRun {
+  id         String                 @id @default(cuid())
+  jobId      String
+  job        AutomationJob          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  runDate    DateTime
+  status     AutomationJobRunStatus @default(PENDING)
+  message    String?                @db.Text
+  lessonId   String?
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  @@unique([jobId, runDate])
+  @@index([runDate, status])
 }
 
 model TeacherRating {

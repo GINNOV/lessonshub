@@ -7,6 +7,7 @@ import { Role } from "@prisma/client";
 import { getTeacherPreferences } from "@/actions/teacherActions"; // Import the new action
 import { getInstructionBookletsForTeacher } from "@/actions/instructionBookletActions";
 import Link from "next/link";
+import { decimalToNumber } from "@/lib/serializers/decimal";
 
 export default async function CreateLessonPage() {
   const session = await auth();
@@ -23,7 +24,7 @@ export default async function CreateLessonPage() {
   
   const serializablePreferences = preferences ? {
     ...preferences,
-    defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+    defaultLessonPrice: decimalToNumber(preferences.defaultLessonPrice),
   } : null;
 
   return (

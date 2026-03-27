@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { getTeacherPreferences } from '@/actions/teacherActions';
 import { getInstructionBookletsForTeacher } from '@/actions/instructionBookletActions';
 import NewsArticleLessonCreator from '@/app/components/NewsArticleLessonCreator';
+import { decimalToNumber } from '@/lib/serializers/decimal';
 
 export default async function CreateNewsArticleLessonPage() {
   const session = await auth();
@@ -20,7 +21,7 @@ export default async function CreateNewsArticleLessonPage() {
   const serializablePreferences = preferences
     ? {
         ...preferences,
-        defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+        defaultLessonPrice: decimalToNumber(preferences.defaultLessonPrice),
       }
     : null;
   const serializableBooklets = instructionBooklets.map((booklet) => ({

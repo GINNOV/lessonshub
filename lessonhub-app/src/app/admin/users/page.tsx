@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { getAllUsers } from "@/actions/adminActions";
 import UserTable from "@/app/components/UserTable";
 import { Role } from "@prisma/client";
+import { decimalToNullableNumber } from "@/lib/serializers/decimal";
 
 export default async function UserManagementPage({
   searchParams,
@@ -22,9 +23,9 @@ export default async function UserManagementPage({
 
   const serializableUsers = users.map(user => ({
     ...user,
-    defaultLessonPrice: user.defaultLessonPrice?.toNumber() ?? null,
-    referralRewardPercent: user.referralRewardPercent?.toNumber() ?? null,
-    referralRewardMonthlyAmount: user.referralRewardMonthlyAmount?.toNumber() ?? null,
+    defaultLessonPrice: decimalToNullableNumber(user.defaultLessonPrice),
+    referralRewardPercent: decimalToNullableNumber(user.referralRewardPercent),
+    referralRewardMonthlyAmount: decimalToNullableNumber(user.referralRewardMonthlyAmount),
   }));
 
   const params = await searchParams;

@@ -8,6 +8,7 @@ import { getInstructionBookletsForTeacher } from '@/actions/instructionBookletAc
 import { auth } from '@/auth';
 import { hasAdminPrivileges } from '@/lib/authz';
 import { Role } from '@prisma/client';
+import { decimalToNumber } from '@/lib/serializers/decimal';
 
 export default async function EditArkaningLessonPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const session = await auth();
@@ -70,7 +71,7 @@ export default async function EditArkaningLessonPage({ params }: { params: Promi
   const serializablePreferences = preferences
     ? {
         ...preferences,
-        defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+        defaultLessonPrice: decimalToNumber(preferences.defaultLessonPrice),
       }
     : null;
 
@@ -82,7 +83,7 @@ export default async function EditArkaningLessonPage({ params }: { params: Promi
 
   const serializableLesson = {
     ...lesson,
-    price: lesson.price.toNumber(),
+    price: decimalToNumber(lesson.price),
     arkaningConfig: lesson.arkaningConfig
       ? {
           questionBank: Array.isArray(lesson.arkaningConfig.questionBank)

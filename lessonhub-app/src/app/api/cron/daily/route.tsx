@@ -1,15 +1,22 @@
 // file: src/app/api/cron/daily/route.tsx
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { failExpiredAssignments, sendDeadlineReminders, sendStartDateNotifications, sendWeeklySummaries } from '@/actions/cronActions';
+import { runDailyLessonAutomations } from '@/lib/dailyLessonAutomation';
+import { isAuthorizedCronRequest } from '@/lib/cronAuth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!isAuthorizedCronRequest(request)) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized cron request.' }, { status: 401 });
+  }
+
   try {
     // We can run these in parallel as they don't depend on each other
-    const [remindersResult, startDateResult, weeklyResult, failExpiredResult] = await Promise.all([
+    const [remindersResult, startDateResult, weeklyResult, failExpiredResult, dailyLessonAutomationResult] = await Promise.all([
       sendDeadlineReminders(),
       sendStartDateNotifications(),
       sendWeeklySummaries(),
       failExpiredAssignments(),
+      runDailyLessonAutomations(),
     ]);
     
     return NextResponse.json({
@@ -18,6 +25,7 @@ export async function GET() {
       startDateResult,
       weeklyResult,
       failExpiredResult,
+      dailyLessonAutomationResult,
     });
   } catch (error) {
     console.error("Cron job failed:", error);

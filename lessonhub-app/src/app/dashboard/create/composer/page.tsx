@@ -6,6 +6,7 @@ import { getTeacherPreferences } from '@/actions/teacherActions';
 import { getInstructionBookletsForTeacher } from '@/actions/instructionBookletActions';
 import ComposerLessonCreator from '@/app/components/ComposerLessonCreator';
 import Link from 'next/link';
+import { decimalToNumber } from '@/lib/serializers/decimal';
 
 export default async function CreateComposerLessonPage() {
   const session = await auth();
@@ -21,7 +22,7 @@ export default async function CreateComposerLessonPage() {
   const serializablePreferences = preferences
     ? {
         ...preferences,
-        defaultLessonPrice: preferences.defaultLessonPrice?.toNumber() ?? 0,
+        defaultLessonPrice: decimalToNumber(preferences.defaultLessonPrice),
       }
     : null;
 
