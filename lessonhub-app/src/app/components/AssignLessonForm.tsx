@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Assignment, Lesson, User } from '@prisma/client';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,17 @@ import { Check, ChevronLeft, ChevronRight, RotateCw, Search } from 'lucide-react
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  convertDateTimeInputBetweenTimeZones,
+  DEFAULT_SCHEDULING_TIME_ZONE,
+  formatDateTimeForInput,
+  formatDateTimeForScheduleDisplay,
+  getDateKeyInTimeZone,
+  getDayOfMonthInTimeZone,
+  getSchedulingTimeZoneOptions,
+  parseDateTimeInputInTimeZone,
+  shiftDateKey,
+} from '@/lib/schedulingTimeZone';
 
 export type StudentWithStats = Omit<User, 'defaultLessonPrice'> & {
   totalPoints: number;
@@ -28,70 +39,40 @@ interface AssignLessonFormProps {
   classes?: { id: string; name: string; isActive: boolean }[];
 }
 
-const formatDateTimeForInput = (date: Date | null | undefined): string => {
-    if (!date) return '';
-    try {
-        const d = new Date(date);
-        const timezoneOffset = d.getTimezoneOffset() * 60000;
-        const localDate = new Date(d.getTime() - timezoneOffset);
-        return localDate.toISOString().slice(0, 16);
-    } catch (e) {
-        return '';
-    }
-};
-
-const getDefaultMidnightDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(23, 59, 0, 0);
-    return formatDateTimeForInput(tomorrow);
-}
-
-const getAvailabilityDateKey = (value: Date | string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toLocaleDateString('en-CA');
+const getDefaultMidnightDate = (timeZone: string) => {
+  const todayKey = getDateKeyInTimeZone(new Date(), timeZone);
+  if (!todayKey) return '';
+  return `${shiftDateKey(todayKey, 1)}T23:59`;
 };
 
 const getDefaultStartDate = (
-  assignments: Array<{ startDate?: Date | string | null; assignedAt?: Date | string | null }>
+  assignments: Array<{ startDate?: Date | string | null; assignedAt?: Date | string | null }>,
+  timeZone: string,
 ) => {
   const availabilityCounts = new Map<string, number>();
   assignments.forEach((assignment) => {
     const availableDate = assignment.startDate ?? assignment.assignedAt;
     if (!availableDate) return;
-    const key = getAvailabilityDateKey(availableDate);
+    const key = getDateKeyInTimeZone(availableDate, timeZone);
     if (!key) return;
     availabilityCounts.set(key, (availabilityCounts.get(key) ?? 0) + 1);
   });
 
   const now = new Date();
-  const candidate = new Date(now);
-  candidate.setHours(6, 0, 0, 0);
-  if (candidate < now) {
-    candidate.setDate(candidate.getDate() + 1);
-  }
+  const nowKey = getDateKeyInTimeZone(now, timeZone);
+  const nowLocal = formatDateTimeForInput(now, timeZone).slice(11, 16);
+  let candidateKey = nowKey ? (nowLocal >= '06:00' ? shiftDateKey(nowKey, 1) : nowKey) : null;
+  if (!candidateKey) return '';
 
   const maxDaysToCheck = 365;
   for (let i = 0; i < maxDaysToCheck; i += 1) {
-    const key = candidate.toLocaleDateString('en-CA');
-    if (!availabilityCounts.has(key)) {
-      return formatDateTimeForInput(candidate);
+    if (!availabilityCounts.has(candidateKey)) {
+      return `${candidateKey}T06:00`;
     }
-    candidate.setDate(candidate.getDate() + 1);
-    candidate.setHours(6, 0, 0, 0);
+    candidateKey = shiftDateKey(candidateKey, 1);
   }
 
-  return formatDateTimeForInput(candidate);
-};
-
-const toISOStringWithTimezone = (value: string | undefined): string | null => {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-  return parsed.toISOString();
+  return `${candidateKey}T06:00`;
 };
 
 export default function AssignLessonForm({
@@ -102,6 +83,7 @@ export default function AssignLessonForm({
   classes = [],
 }: AssignLessonFormProps) {
   const router = useRouter();
+  const [scheduleTimeZone, setScheduleTimeZone] = useState(DEFAULT_SCHEDULING_TIME_ZONE);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [deadlines, setDeadlines] = useState<Record<string, string>>({});
@@ -121,14 +103,17 @@ export default function AssignLessonForm({
     d.setHours(0, 0, 0, 0);
     return d;
   });
+  const previousTimeZoneRef = useRef(scheduleTimeZone);
+  const scheduleTimeZoneRef = useRef(scheduleTimeZone);
+  const timeZoneOptions = useMemo(() => getSchedulingTimeZoneOptions(), []);
 
   const defaultStartDate = useMemo(
-    () => getDefaultStartDate(calendarAssignments),
-    [calendarAssignments],
+    () => getDefaultStartDate(calendarAssignments, scheduleTimeZone),
+    [calendarAssignments, scheduleTimeZone],
   );
 
   // Initialize with default values first
-  const [masterDeadline, setMasterDeadline] = useState<string>(getDefaultMidnightDate());
+  const [masterDeadline, setMasterDeadline] = useState<string>(getDefaultMidnightDate(DEFAULT_SCHEDULING_TIME_ZONE));
   const [masterStartDate, setMasterStartDate] = useState<string>(defaultStartDate);
   
   const existingAssignmentsMap = useMemo(() => 
@@ -140,14 +125,19 @@ export default function AssignLessonForm({
   );
 
   useEffect(() => {
+    scheduleTimeZoneRef.current = scheduleTimeZone;
+  }, [scheduleTimeZone]);
+
+  useEffect(() => {
     // This effect runs once when the component mounts and props are available
     if (existingAssignments && (existingAssignments?.length ?? 0) > 0) {
+      const activeTimeZone = scheduleTimeZoneRef.current;
       const initialDeadlines: Record<string, string> = {};
       const initialStartDates: Record<string, string> = {};
       const initialSelected: string[] = [];
       existingAssignments.forEach(a => {
-        initialDeadlines[a.studentId] = formatDateTimeForInput(a.deadline);
-        initialStartDates[a.studentId] = formatDateTimeForInput(a.startDate);
+        initialDeadlines[a.studentId] = formatDateTimeForInput(a.deadline, activeTimeZone);
+        initialStartDates[a.studentId] = formatDateTimeForInput(a.startDate, activeTimeZone);
         initialSelected.push(a.studentId);
       });
       setDeadlines(initialDeadlines);
@@ -157,16 +147,57 @@ export default function AssignLessonForm({
       const firstAssignment = existingAssignments[0];
       if (firstAssignment) {
         // Correctly set the master dates from the loaded data
-        setMasterStartDate(formatDateTimeForInput(firstAssignment.startDate));
-        setMasterDeadline(formatDateTimeForInput(firstAssignment.deadline));
+        setMasterStartDate(formatDateTimeForInput(firstAssignment.startDate, activeTimeZone));
+        setMasterDeadline(formatDateTimeForInput(firstAssignment.deadline, activeTimeZone));
       }
     }
   }, [existingAssignments]);
 
   useEffect(() => {
+    const previousTimeZone = previousTimeZoneRef.current;
+    if (previousTimeZone === scheduleTimeZone) return;
+
+    const convertMap = (values: Record<string, string>) => {
+      const nextEntries = Object.entries(values).map(([key, value]) => [
+        key,
+        value
+          ? convertDateTimeInputBetweenTimeZones(
+              value,
+              previousTimeZone,
+              scheduleTimeZone,
+            )
+          : value,
+      ]);
+      return Object.fromEntries(nextEntries);
+    };
+
+    setMasterStartDate((prev) =>
+      prev
+        ? convertDateTimeInputBetweenTimeZones(
+            prev,
+            previousTimeZone,
+            scheduleTimeZone,
+          )
+        : prev,
+    );
+    setMasterDeadline((prev) =>
+      prev
+        ? convertDateTimeInputBetweenTimeZones(
+            prev,
+            previousTimeZone,
+            scheduleTimeZone,
+          )
+        : prev,
+    );
+    setStartDates((prev) => convertMap(prev));
+    setDeadlines((prev) => convertMap(prev));
+    previousTimeZoneRef.current = scheduleTimeZone;
+  }, [scheduleTimeZone]);
+
+  useEffect(() => {
     if (notificationOption !== 'none') return;
 
-    const now = formatDateTimeForInput(new Date());
+    const now = formatDateTimeForInput(new Date(), scheduleTimeZone);
 
     setMasterStartDate((prev) => (prev === now ? prev : now));
 
@@ -183,7 +214,7 @@ export default function AssignLessonForm({
 
       return hasChanges ? updated : prev;
     });
-  }, [notificationOption, selectedStudents]);
+  }, [notificationOption, scheduleTimeZone, selectedStudents]);
 
   const assignmentsForCalendar = calendarAssignments.length > 0 ? calendarAssignments : existingAssignments;
 
@@ -192,14 +223,16 @@ export default function AssignLessonForm({
     assignmentsForCalendar.forEach((assignment) => {
       const availableDate = assignment.startDate ?? assignment.assignedAt;
       if (!availableDate) return;
-      const dueKey = new Date(assignment.deadline).toLocaleDateString('en-CA');
+      const dueKey = getDateKeyInTimeZone(assignment.deadline, scheduleTimeZone);
+      if (!dueKey) return;
       const entry = map.get(dueKey) ?? { startDayCounts: new Map<number, number>() };
-      const startDay = new Date(availableDate).getDate();
+      const startDay = getDayOfMonthInTimeZone(availableDate, scheduleTimeZone);
+      if (!startDay) return;
       entry.startDayCounts.set(startDay, (entry.startDayCounts.get(startDay) ?? 0) + 1);
       map.set(dueKey, entry);
     });
     return map;
-  }, [assignmentsForCalendar]);
+  }, [assignmentsForCalendar, scheduleTimeZone]);
 
   const calendarDays = useMemo(() => {
     const firstOfMonth = new Date(calendarMonth);
@@ -401,8 +434,8 @@ export default function AssignLessonForm({
 
     const assignmentsWithParsedDates = selectedStudents.map((id) => ({
       studentId: id,
-      deadlineISO: toISOStringWithTimezone(deadlines[id]),
-      startDateISO: toISOStringWithTimezone(startDates[id]),
+      deadlineISO: parseDateTimeInputInTimeZone(deadlines[id], scheduleTimeZone)?.toISOString() ?? null,
+      startDateISO: parseDateTimeInputInTimeZone(startDates[id], scheduleTimeZone)?.toISOString() ?? null,
     }));
 
     const studentsWithoutDates = assignmentsWithParsedDates
@@ -444,7 +477,25 @@ export default function AssignLessonForm({
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="space-y-2">
+            <Label htmlFor="schedule-time-zone">Schedule Timezone</Label>
+            <select
+              id="schedule-time-zone"
+              className="w-full rounded-md border border-gray-300 p-2 shadow-sm"
+              value={scheduleTimeZone}
+              onChange={(e) => setScheduleTimeZone(e.target.value)}
+            >
+              {timeZoneOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Start and due times in this form use the selected timezone. Default is Central Time.
+            </p>
+        </div>
         <div className="space-y-2">
             <Label htmlFor="start-date">Set Start Date</Label>
             <Input id="start-date" type="datetime-local" value={masterStartDate} onChange={handleMasterStartDateChange} disabled={notificationOption === 'none'} className="w-full" />
@@ -741,7 +792,7 @@ export default function AssignLessonForm({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-foreground">{warning.studentName}</p>
                   <p className="text-xs">
-                    Start: {new Date(warning.startDate).toLocaleString()} · Due: {new Date(warning.deadline).toLocaleString()}
+                    Start: {formatDateTimeForScheduleDisplay(warning.startDate, scheduleTimeZone)} · Due: {formatDateTimeForScheduleDisplay(warning.deadline, scheduleTimeZone)}
                   </p>
                 </div>
               </div>
