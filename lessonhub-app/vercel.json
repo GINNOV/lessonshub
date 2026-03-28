@@ -2,11 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
-      "path": "/api/cron/daily?secret=${CRON_SECRET}",
+      "path": "/api/cron/daily",
       "schedule": "0 9 * * *"
     },
     {
-      "path": "/api/cron/start?secret=${CRON_SECRET}",
+      "path": "/api/cron/start",
       "schedule": "0 * * * *"
     }
   ]
