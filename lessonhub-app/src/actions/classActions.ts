@@ -33,7 +33,7 @@ export async function getClassesForTeacher() {
     });
     return classes;
   } catch (error: any) {
-    // Gracefully handle environments where the Class table hasn't been migrated yet
+    // Handle environments where the Class table hasn't been migrated yet
     const code = error?.code as string | undefined;
     const msg = typeof error?.message === 'string' ? error.message : '';
     if (code === 'P2021' || ('does not exist' in msg)) {

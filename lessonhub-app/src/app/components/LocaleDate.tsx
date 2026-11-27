@@ -12,7 +12,7 @@ export default function LocaleDate({ date, options }: LocaleDateProps) {
   const [formattedDate, setFormattedDate] = useState('');
 
   useEffect(() => {
-    // This effect runs only on the client-side, giving it access to the browser's locale.
+    // Runs only on the client, where the browser locale is available.
     const dateObj = new Date(date);
     const userLocale = navigator.language || 'en-US';
     

@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     } = parsed.data;
 
     // Use a nested write to create the lesson and its related questions/options
-    // in a single, transactionally-safe operation.
+    // in one transaction.
     const newLesson = await prisma.lesson.create({
       data: {
         title,

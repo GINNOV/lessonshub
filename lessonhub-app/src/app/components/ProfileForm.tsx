@@ -53,7 +53,7 @@ export default function ProfileForm({
   const normalizedTab =
     initialTabFromUrl === "billing" ? "status" : initialTabFromUrl;
 
-  // State from your original component
+  // Profile form state
   const [name, setName] = useState(user?.name ?? "");
   const [image, setImage] = useState(user?.image ?? null);
   const [isUploading, setIsUploading] = useState(false);
@@ -115,7 +115,7 @@ export default function ProfileForm({
   const [couponCode, setCouponCode] = useState("");
   const [isRedeemingCoupon, setIsRedeemingCoupon] = useState(false);
 
-  // All handlers from your original component are preserved
+  // Handlers
   const getInitials = (name: string | null | undefined): string => {
     if (!name) return "??";
     const names = name.split(" ");

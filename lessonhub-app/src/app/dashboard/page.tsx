@@ -67,7 +67,7 @@ function getWeekNumber(date: Date, timeZone?: string | null) {
   return getISOWeek(zonedDate);
 }
 
-// Correctly type searchParams as a Promise for a dynamic page
+// searchParams is a Promise on a dynamic page
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -124,7 +124,7 @@ export default async function DashboardPage({
     );
   }
 
-  // Await the searchParams promise to resolve it
+  // Await searchParams
   const resolvedSearchParams = await searchParams;
 
   const teacher = await prisma.user.findUnique({

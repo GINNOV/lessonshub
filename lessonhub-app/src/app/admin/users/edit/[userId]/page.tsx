@@ -10,7 +10,7 @@ import { getAllTeachers, getAssignedTeachers } from "@/actions/adminActions";
 import { Button } from "@/components/ui/button";
 import { decimalToNullableNumber } from "@/lib/serializers/decimal";
 
-// This is a helper function to fetch the specific user for this page.
+// Fetches the user shown on this page.
 async function getUserForAdmin(userId: string) {
   try {
     const user = await prisma.user.findUnique({ where: { id: userId } });
