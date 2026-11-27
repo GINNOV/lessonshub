@@ -870,7 +870,7 @@ export default function ComposerLessonCreator({
               onChange={(event) => setSoundcloudUrl(event.target.value)}
               value={feedTracks.find((track) => track.link === soundcloudUrl) ? soundcloudUrl : ''}
             >
-              <option value="">— Choose a track —</option>
+              <option value="">Choose a track</option>
               {feedTracks.map((track) => (
                 <option key={track.link} value={track.link}>{track.title}</option>
               ))}

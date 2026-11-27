@@ -1,12 +1,12 @@
-## LessonHub iOS Notes
+## LessonHub iOS notes
 
 ### API parity / data needs
 - `/api/profile` now returns Control Center data (progress card strings, login history, break status, password updates). If we add new fields on the web dashboard (e.g. badges, referral stats), expose them here so the app stays visually aligned.
 - Assignment payload currently derives `lessonHeroImageURL` locally by mapping `lesson.type` to `/my-lessons/*` images. If the web adds new lesson types or migrates to CMS-provided art, mirror that mapping in the model.
-- Markdown-rich fields (assignment text, lesson preview) use a lossy sanitizer. Consider shipping a tiny Markdown-to-plain converter or adopt AttributedString(markdown:) to keep bold/italic styling.
+- Markdown-rich fields (assignment text, lesson preview) use a lossy sanitizer. Consider a small Markdown-to-plain-text converter, or adopt AttributedString(markdown:) to keep bold and italic styling.
 
 ### UI polish ideas
-- Student cards still lack the share link tap target, teacher avatars, and progress bars identical to StudentLessonCard.tsx. Revisit once we introduce native share sheets + avatars.
+- Student cards still lack the share link tap target, teacher avatars, and progress bars identical to StudentLessonCard.tsx. Revisit once we add native share sheets and avatars.
 - Progress card CTA currently renders as a simple `Link`; match the web's InvestDialog behavior with a native modal/WebView for deeper parity.
 - Add `LessonType` enum locally so we can surface different actions (Flashcard practice, quiz replays) on the native card footer.
 

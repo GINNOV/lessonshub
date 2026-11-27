@@ -189,7 +189,7 @@ const CARD_STATE_LEGEND = [
   {
     label: 'Mixed progress',
     swatchClass: 'bg-slate-900/70 border border-slate-700',
-    description: 'Some students still require attention—keep working through the list.',
+    description: 'Some students still need attention. Keep working through the list.',
   },
 ] as const;
 

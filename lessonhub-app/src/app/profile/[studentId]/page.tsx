@@ -138,7 +138,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
         <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg">
           <h3 className="text-lg font-semibold text-slate-50">Recent badges</h3>
           {profile.recentBadges.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-400">No badges yet—complete lessons to start unlocking them.</p>
+            <p className="mt-4 text-sm text-slate-400">No badges yet. Complete lessons to start unlocking them.</p>
           ) : (
             <div className="mt-4 flex flex-wrap gap-3">
               {profile.recentBadges.map((badge) => (

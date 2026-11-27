@@ -61,7 +61,7 @@ interface StudentStatsHeaderProps {
 
 type StudentLessonFilter = 'all' | 'pending' | 'submitted' | 'graded' | 'past_due' | 'failed' | 'bought';
 
-// A sleek, reusable component for each individual stat in the summary
+// One stat tile in the summary header
 const StatItem = ({
   icon: Icon,
   value,

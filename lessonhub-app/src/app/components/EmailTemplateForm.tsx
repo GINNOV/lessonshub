@@ -123,7 +123,7 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
   };
 
   const previewHtml = useMemo(() => {
-    // A comprehensive set of dummy data to make any template preview correctly
+    // Dummy values for every placeholder, so any template renders in the preview
     const dummyData = {
       studentName: '[Student Name]',
       teacherName: '[Teacher Name]',
@@ -147,7 +147,7 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
 
     const finalBody = replacePlaceholders(body, dummyData);
     
-    // ✅ FIX: The full, correct HTML wrapper for the email is now restored here.
+    // Wrap the body in the full email HTML layout.
     return `
       <html lang="en">
       <head>
@@ -164,7 +164,7 @@ export default function EmailTemplateForm({ template }: EmailTemplateFormProps) 
           <div class="box">
               ${finalBody}
               <hr class="hr" />
-              <p class="footer">LessonHUB — The modern platform for modern learning.</p>
+              <p class="footer">LessonHUB</p>
           </div>
           </div>
       </body>

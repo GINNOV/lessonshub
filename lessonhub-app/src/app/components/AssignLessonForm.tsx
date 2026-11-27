@@ -146,7 +146,7 @@ export default function AssignLessonForm({
       
       const firstAssignment = existingAssignments[0];
       if (firstAssignment) {
-        // Correctly set the master dates from the loaded data
+        // Set the master dates from the loaded data
         setMasterStartDate(formatDateTimeForInput(firstAssignment.startDate, activeTimeZone));
         setMasterDeadline(formatDateTimeForInput(firstAssignment.deadline, activeTimeZone));
       }

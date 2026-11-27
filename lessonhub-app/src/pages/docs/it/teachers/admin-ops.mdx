@@ -1,43 +1,43 @@
-# Amministrazione e Operazioni
+# Amministrazione e operazioni
 
-Gli amministratori hanno una visione d'insieme della piattaforma tramite la [dashboard admin](/dashboard).
+Gli amministratori gestiscono la piattaforma dalla [dashboard admin](/dashboard).
 
-## Aree di Gestione Principali
+## Aree di gestione principali
 
 - **Utenti:** Invita nuovi utenti, sospendi account o modifica profili. Puoi anche "Mettere in pausa" un utente (uguale alla funzione "Prenditi una pausa").
-- **Lezioni:** Supervisiona l'intero catalogo delle lezioni, esegui migrazioni del database o inizializza i template predefiniti.
-- **Email:** Monitora i log di tutte le email inviate (transazionali e di marketing).
+- **Lezioni:** Gestisci l'intero catalogo delle lezioni, esegui migrazioni del database o inizializza i template predefiniti.
+- **Email:** Leggi i log di tutte le email inviate (transazionali e di marketing).
 - **Impostazioni:** Configura impostazioni globali, valori dei punti e flag delle funzionalità.
 - **Automation:** Gestisci job AI ricorrenti e accessi di automazione basati su token.
 - **Cron:** Attiva manualmente i job di sistema (come le notifiche di "Data di Inizio") o simula orari per i test.
 - **Profilo:** Visualizza il tuo profilo con controlli amministrativi extra.
 
-## Job di Sistema (Cron)
+## Job di sistema (cron)
 
-LessonHub esegue job automatici per mantenere tutto in movimento:
+LessonHub esegue questi job programmati:
 - **Ogni ora:** Invia notifiche di "Data di Inizio" (eseguito giornalmente alle 10:00 UTC su alcuni piani).
 - **Giornaliero (09:00 UTC):** Invia promemoria dei compiti e riepiloghi settimanali.
 
-**Test:** Puoi usare la pagina **Cron Test** per simulare orari specifici e assicurarti che le email partano correttamente.
+**Test:** Puoi usare la pagina **Cron Test** per simulare orari specifici e controllare che le email partano.
 
-## Database e Manutenzione
+## Database e manutenzione
 
-- **Migrazioni:** Esegui sempre tramite gli script `npm` forniti per garantire la sicurezza.
+- **Migrazioni:** Eseguile sempre con gli script `npm` forniti, che caricano le credenziali del database da `.env.local`.
 - **Seeding:** Se mancano template predefiniti o badge, lo script di seed li ripristina senza cancellare i dati esistenti.
 - **Token di automazione:** Dopo aver aggiornato il codice relativo all'automazione, esegui l'ultima migrazione Prisma prima di emettere token o chiamare le nuove API.
 
-## Automazioni Codex Per La Creazione Delle Lezioni
+## Automazioni Codex per la creazione delle lezioni
 
-LessonHub supporta ora token di automazione concessi dall'amministratore, così le automazioni Codex possono creare lezioni tramite chiamate API server-to-server senza usare una sessione browser.
+LessonHub supporta token di automazione concessi dall'amministratore, così le automazioni Codex possono creare lezioni tramite chiamate API server-to-server senza usare una sessione browser.
 
-### Configurazione Admin
+### Configurazione admin
 
 1. Apri **Admin > Automation Tokens**.
 2. Scegli l'account insegnante che dovrà risultare proprietario delle lezioni create dall'automazione.
 3. Crea un token e copialo subito. Il valore completo viene mostrato una sola volta.
 4. Salva il token in `/Users/mario/code/LessonHub/lessonhub-app/.env.automation` come `AUTOMATION_TOKEN`. Non inserirlo in documenti, chat o screenshot condivisi.
 
-### File Locale Dei Segreti
+### File locale dei segreti
 
 Usa `.env.automation` nella root del progetto per i segreti e i default dell'automazione Codex:
 
@@ -52,7 +52,7 @@ DEFAULT_CLASS_NAME=Fall 2025
 - Se `DEFAULT_CLASS_ID` non è presente, l'attuale flusso di test da terminale chiama la API remota di contesto dell'automazione e usa come fallback la classe attiva dell'insegnante chiamata `Fall 2025`.
 - `DEFAULT_CLASS_NAME` può essere cambiato se vuoi un fallback basato sul nome diverso.
 
-### Endpoint Supportati
+### Endpoint supportati
 
 - **Lezioni standard:** `POST /api/automation/lessons`
 - **Lezioni multi-choice:** `POST /api/automation/lessons/multi-choice`
@@ -63,7 +63,7 @@ Entrambi gli endpoint richiedono:
 - `Content-Type: application/json`
 - un campo `topic`, così l'automazione ha un soggetto stabile per la lezione generata
 
-### Esempio Lezione Standard
+### Esempio di lezione Standard
 
 ```bash
 curl -X POST https://your-domain.com/api/automation/lessons \
@@ -90,7 +90,7 @@ curl -X POST https://your-domain.com/api/automation/lessons \
   }'
 ```
 
-### Esempio Lezione Multi-Choice
+### Esempio di lezione Multi-Choice
 
 ```bash
 curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
@@ -116,7 +116,7 @@ curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
   }'
 ```
 
-### Note Sul Payload
+### Note sul payload
 
 - `title` è opzionale. Se omesso, LessonHub usa `topic` come titolo.
 - `difficulty` deve essere un intero da `1` a `5`.
@@ -124,7 +124,7 @@ curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
 - `assignment_notification` e `scheduled_assignment_date` funzionano come nelle API delle lezioni usate dagli insegnanti.
 - Le lezioni standard richiedono `assignmentText` e almeno una domanda.
 - Le lezioni multi-choice richiedono almeno una domanda, almeno due opzioni per domanda ed esattamente una risposta corretta.
-- Il blocco opzionale `assignment` permette all'automazione di colpire specifici `studentIds`, `classIds`, oppure entrambi.
+- Il blocco opzionale `assignment` permette all'automazione di indicare specifici `studentIds`, `classIds`, oppure entrambi.
 - Se `assignment` viene omesso, LessonHub usa il comportamento di auto-assegnazione definito a livello di lezione.
 - `assignment.notificationOption` supporta `immediate`, `on_start_date` oppure `none`.
 - `assignment.reassignExisting` resetta i compiti esistenti per gli studenti selezionati invece di saltarli in silenzio.
@@ -132,25 +132,25 @@ curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
 - Un default pratico è inviare `assignment.classIds` usando `DEFAULT_CLASS_ID` preso da `.env.automation`.
 - Nell'attuale script di test, le lezioni vengono assegnate automaticamente alla classe configurata. Se non è configurato un class id, lo script risolve la classe tramite `GET /api/automation/context` e cerca la classe attiva dell'insegnante chiamata `Fall 2025`.
 
-### Regole Di Sicurezza
+### Regole di sicurezza
 
 - I token sono associati a uno specifico account insegnante.
 - I token vengono salvati in forma hash, possono essere revocati dal pannello admin e registrano l'ultimo utilizzo.
 - Se un token viene esposto, revocalo subito e genera un nuovo token.
 - Mantieni i token di automazione separati dalle chiavi AI personali o dai segreti dell'app in `.env.local`.
 
-## Automazioni Giornaliere Integrate
+## Automazioni giornaliere integrate
 
-LessonHub può ora generare lezioni standard giornaliere direttamente dentro l'app usando la chiave Gemini configurata e il flusso cron esistente su Vercel.
+LessonHub può generare lezioni standard giornaliere dentro l'app usando la chiave Gemini configurata e il flusso cron esistente su Vercel.
 
-### Come Funziona
+### Come funziona
 
 - Crea uno o più job da **Admin > Automation**.
 - Ogni job punta a un insegnante e a una classe attiva.
 - La route cron giornaliera esegue i job abilitati una volta al giorno.
 - Ogni job salva la propria cronologia di esecuzione e non crea una seconda lezione per lo stesso giorno.
 
-### Cosa Puoi Controllare
+### Cosa puoi controllare
 
 - Nome del job
 - Insegnante
@@ -167,15 +167,15 @@ LessonHub può ora generare lezioni standard giornaliere direttamente dentro l'a
 - Usa **Admin > Cron** per attivare manualmente l'automazione giornaliera delle lezioni con una data di riferimento opzionale.
 - I job giornalieri dipendono da una chiave Gemini configurata nelle impostazioni AI admin.
 
-## Sicurezza e Best Practices
+## Sicurezza e best practices
 
 - **Segreti:** Tutte le chiavi sensibili (password database, chiavi API) sono conservate in `.env.local` e mai condivise.
-- **Dati:** I valori finanziari (come i prezzi) sono gestiti con alta precisione.
-- **Classifiche:** I risparmi sono visualizzati chiaramente con codici colore (Verde per positivo, Rosso per negativo) per evitare confusione.
+- **Dati:** I valori finanziari come i prezzi sono salvati come `Decimal` di Prisma e convertiti in numeri prima di arrivare al browser.
+- **Classifiche:** I risparmi sono verdi quando positivi e rossi quando negativi.
 
-## Playbook di Supporto
+## Playbook di supporto
 
 Compiti amministrativi comuni:
 - **Accesso Hub Guide:** Se uno studente sostiene di aver pagato ma non vede le guide, controlla lo stato del pagamento nel suo Profilo.
-- **Errori Testi:** Se gli insegnanti segnalano problemi con le lezioni con testo, spesso significa che è necessaria una migrazione del database.
-- **Fusi Orari:** Incoraggia tutti gli utenti a impostare il proprio fuso orario. Fusi orari errati sono la causa numero 1 di scadenze "mancate".
+- **Errori Testi:** Se gli insegnanti segnalano problemi con le lezioni con testo, spesso manca una migrazione del database.
+- **Fusi Orari:** Incoraggia tutti gli utenti a impostare il proprio fuso orario. Un fuso orario sbagliato è la causa più comune di scadenze "mancate".

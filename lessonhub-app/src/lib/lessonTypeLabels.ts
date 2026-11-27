@@ -1,5 +1,5 @@
 // Approved lesson type display labels for cards and badges.
-// Keep this map in sync when adding new lesson types to ensure consistent UI copy.
+// Add an entry here for each new lesson type, so cards and badges show the same label.
 import { LessonType } from "@prisma/client";
 
 export const LESSON_TYPE_SHORT_LABELS: Record<LessonType, string> = {

@@ -55,14 +55,14 @@ function getCopy(isItalian: boolean): Copy {
   if (isItalian) {
     return {
       heroTagline: '',
-      heroTitle: 'Molta meno grammatica, molti piu esempi di vita reale',
+      heroTitle: 'Molta meno grammatica, molti più esempi di vita reale',
       heroSubtitle:
         'La piattaforma flessibile e divertente per imparare le lingue pensata per chi ha una vita piena. Non è mai troppo tardi per iniziare una nuova avventura.',
       heroSecondaryCta: 'Scopri come funziona',
       heroLoginCta: 'Hai già un account? Accedi',
       heroBadge: 'Nessuna carta di credito richiesta',
       howTagline: 'Come funziona',
-      howTitle: 'Il tuo percorso verso la fluidità in 3 semplici passi',
+      howTitle: 'Parlare fluente in 3 passi',
       steps: [
         {
           title: '1. Fatti capire',
@@ -84,13 +84,13 @@ function getCopy(isItalian: boolean): Copy {
         },
       ],
       benefitsTagline: 'Perché LessonHUB?',
-      benefitsTitle: 'Più di una lingua, è una nuova te',
+      benefitsTitle: 'Cosa ti dà una nuova lingua',
       benefitsSubtitle:
         'Imparare una nuova lingua è una delle esperienze più gratificanti. La nostra piattaforma è pensata per chi ha una vita intensa: efficace, coinvolgente, concreta.',
       benefits: [
         {
           title: 'Allena il cervello',
-          description: 'Gli studi mostrano che imparare una lingua migliora memoria, problem solving e funzioni cognitive.',
+          description: 'Imparare una lingua allena la memoria e il problem solving.',
         },
         {
           title: 'Viaggia con più connessioni',
@@ -121,11 +121,11 @@ function getCopy(isItalian: boolean): Copy {
           alt: 'Ritratto di Robert, un uomo sorridente',
         },
       ],
-      finalCtaTitle: 'Pronto a iniziare il tuo viaggio?',
+      finalCtaTitle: 'Pronto a iniziare?',
       finalCtaSubtitle:
-        'Non c’è momento migliore per investire su di te. Inizia oggi la prova gratuita e scopri quanto è semplice e gratificante imparare una nuova lingua.',
+        'Inizia oggi la prova gratuita e prova le lezioni prima di pagare.',
       finalCtaButton: 'Inizia la prova gratuita',
-      finalCtaBadge: 'Prova gratuita al 100% — senza carta di credito',
+      finalCtaBadge: 'Prova gratuita, senza carta di credito',
     }
   }
 
@@ -133,12 +133,12 @@ function getCopy(isItalian: boolean): Copy {
     heroTagline: '',
     heroTitle: 'Way less grammar, way more real-life examples',
     heroSubtitle:
-      'The fun and flexible language learning platform designed for busy adults. It’s never too late to start a new adventure.',
+      'Short, practical language lessons for busy adults. It\'s never too late to start.',
     heroSecondaryCta: 'See How It Works',
     heroLoginCta: 'Already have an account? Sign in',
     heroBadge: 'No Credit Card Required',
     howTagline: 'How It Works',
-    howTitle: 'Your Journey to Fluency in 3 Simple Steps',
+    howTitle: 'Fluency in 3 Steps',
     steps: [
       {
         title: '1. Be understood',
@@ -160,17 +160,17 @@ function getCopy(isItalian: boolean): Copy {
       },
     ],
     benefitsTagline: 'Why LessonHUB?',
-    benefitsTitle: "More Than a Language, It's a New You",
+    benefitsTitle: 'What a New Language Gives You',
     benefitsSubtitle:
       'Learning a new language is one of the most rewarding things you can do. Our platform is designed specifically for mature learners to make the experience enjoyable and effective.',
     benefits: [
       {
         title: 'Boost Your Brain Health',
-        description: 'Studies show language learning improves memory, problem-solving, and cognitive function.',
+        description: 'Learning a language exercises your memory and problem-solving.',
       },
       {
         title: 'Enrich Your Travels',
-        description: 'Order food, ask for directions, and connect with locals on a deeper level during your next trip.',
+        description: 'Order food, ask for directions, and talk with locals on your next trip.',
       },
       {
         title: 'Connect with Family',
@@ -197,11 +197,11 @@ function getCopy(isItalian: boolean): Copy {
         alt: 'Portrait of Robert, a smiling man',
       },
     ],
-    finalCtaTitle: 'Ready to Start Your Journey?',
+    finalCtaTitle: 'Ready to Start?',
     finalCtaSubtitle:
-      'There\'s no better time than now to invest in yourself. Start your free trial today and see how easy and rewarding learning a new language can be.',
+      'Start your free trial today and try the lessons before you pay.',
     finalCtaButton: 'Start My Free Trial',
-    finalCtaBadge: '100% Free Trial — No Credit Card Needed',
+    finalCtaBadge: 'Free Trial, No Credit Card Needed',
   }
 }
 

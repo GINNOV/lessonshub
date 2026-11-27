@@ -1,18 +1,18 @@
 // file: src/lib/placeholder-data.ts
 
-// A type for our placeholder definitions for clarity
+// One placeholder and the text the editor shows for it.
 export type Placeholder = {
   variable: string;
   description: string;
 };
 
-// A type for our categorized list
+// A titled group of placeholders.
 export type PlaceholderCategory = {
   title: string;
   items: Placeholder[];
 };
 
-// The definitive, complete list of ALL placeholders, categorized for clarity.
+// Every placeholder, grouped by category.
 const allPlaceholders: PlaceholderCategory[] = [
   {
     title: 'General & Common',
@@ -59,7 +59,7 @@ const allPlaceholders: PlaceholderCategory[] = [
 ];
 
 
-// A simple function to export the complete list.
+// Returns every placeholder category.
 export function getAllPlaceholders(): PlaceholderCategory[] {
   return allPlaceholders;
 }

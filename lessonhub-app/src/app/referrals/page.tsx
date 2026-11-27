@@ -139,7 +139,7 @@ const referralCopy: Record<
       },
       {
         title: "Share it",
-        body: "The student enters that code at signup — share it with friends, on social, or anywhere you like.",
+        body: "The student enters that code at signup. Share it with friends, on social media, or anywhere you like.",
       },
       {
         title: "Start earning",
@@ -241,7 +241,7 @@ const referralCopy: Record<
       },
       {
         title: "Compártelo",
-        body: "El estudiante ingresa ese código al registrarse — compártelo con amigos, redes o donde quieras.",
+        body: "El estudiante ingresa ese código al registrarse. Compártelo con amigos, redes o donde quieras.",
       },
       {
         title: "Empieza a ganar",
@@ -343,7 +343,7 @@ const referralCopy: Record<
       },
       {
         title: "Condividilo",
-        body: "Lo studente inserisce il codice in fase di registrazione — condividilo con amici, sui social o dove preferisci.",
+        body: "Lo studente inserisce il codice in fase di registrazione. Condividilo con amici, sui social o dove preferisci.",
       },
       {
         title: "Inizia a guadagnare",

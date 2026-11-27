@@ -177,7 +177,7 @@ export const studentDashboardCopy: Record<
       bannerKicker: "Hub Guides",
       bannerTitle: "Always-on practice hub",
       bannerBody:
-        "Guides are always ready for practice. No deadlines, no expirations, no grading—just a pure knowledge stream into your brain vessels. Some guides are free and a ton of others are for a small token of cash. Upgrade to unlock interactive guides between lessons.",
+        "Guides are always ready for practice. No deadlines, no expirations, no grading. Just a pure knowledge stream into your brain vessels. Some guides are free and a ton of others are for a small token of cash. Upgrade to unlock interactive guides between lessons.",
       bannerCta: "Unlock Hub Guides",
       countSingle: "{count} guide available",
       countPlural: "{count} guides available",

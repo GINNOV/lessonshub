@@ -234,8 +234,8 @@ export default async function MyFinancePage({
   const summaryLine = (() => {
     if (savings >= 0) {
       return locale === 'it'
-        ? 'Ottimo lavoro — i tuoi risparmi sono positivi grazie a lezioni valutate e bonus.'
-        : 'Nice work — your savings are positive thanks to steady graded lessons and bonuses.';
+        ? 'Ottimo lavoro: i tuoi risparmi sono positivi grazie a lezioni valutate e bonus.'
+        : 'Nice work! Your savings are positive thanks to your graded lessons and bonuses.';
     }
     if (biggestDrag === 'extensions') {
       return locale === 'it'
@@ -261,7 +261,7 @@ export default async function MyFinancePage({
     if (extensionCount >= 2) {
       return locale === 'it'
         ? 'Prova a chiedere meno estensioni questa settimana: consegnare in tempo è il modo più veloce per risalire.'
-        : 'Try requesting fewer extensions this week — finishing on time is the fastest way to lift savings.';
+        : 'Try requesting fewer extensions this week. Finishing on time is the fastest way to raise your savings.';
     }
     if (failedDeduct > gradedAdd) {
       return locale === 'it'

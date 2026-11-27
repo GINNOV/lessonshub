@@ -175,7 +175,7 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
       badgeFree: "Free",
       descriptionActive: "Your plan has premium content sponsored by your assigned teacher.",
       descriptionFree:
-        "Unlock Hub Guides and personal tutoring by subscribing for just 10 euros at month or redeeming a prepaid coupon. Ask your teacher for one!",
+        "Unlock Hub Guides and personal tutoring by subscribing for 10 euros a month or redeeming a prepaid coupon. Ask your teacher for one!",
       couponPlaceholder: "Enter coupon code",
       redeem: "Redeem",
       redeeming: "Redeeming...",
@@ -187,7 +187,7 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
     ai: {
       title: "AI Assistance",
       description:
-        "AI can help you learn faster and tailor practice to your needs. Use it to understand, explore, and personalize your study plan — not to copy/paste homework answers.",
+        "AI can help you learn faster and tailor practice to your needs. Use it to understand, explore, and personalize your study plan, not to copy and paste homework answers.",
       keyLabel: "AI key",
       keyPlaceholder: "Paste your API key",
       keyHint: "Stored only on your account and used for your future AI features.",
@@ -318,7 +318,7 @@ export const profileCopy: Record<ProfileLocale, ProfileCopy> = {
     ai: {
       title: "AI per lo studio",
       description:
-        "L'AI puo aiutarti a imparare piu velocemente e in modo personalizzato. Usala per capire, esplorare e migliorare il tuo studio — non per copiare e incollare i compiti.",
+        "L'AI può aiutarti a imparare più velocemente e in modo personalizzato. Usala per capire, esplorare e migliorare il tuo studio, non per copiare e incollare i compiti.",
       keyLabel: "Chiave AI",
       keyPlaceholder: "Incolla la tua API key",
       keyHint: "Salvata solo sul tuo account e usata per future funzioni AI.",

@@ -1,12 +1,12 @@
-# Getting Started
+# Getting started
 
-LessonHub is a calm workspace for students, teachers, and admins. Set up once, then stay focused on the work that matters.
+LessonHub is where students, teachers, and admins work on lessons. This page covers sign-in, roles, navigation, and your first profile setup.
 
 ## Access requirements
 
-- **Browser:** Latest Safari, Chrome, or Edge. Mobile Safari is fully supported.
+- **Browser:** Latest Safari, Chrome, or Edge. Mobile Safari is supported.
 - **Account:** New students are invited by their teacher. Teachers and admins receive credentials from LessonHub staff.
-- **Network:** The app is optimized for low-latency connections. A stable broadband or LTE link is enough.
+- **Network:** A stable broadband or LTE connection is enough.
 
 ## Sign in
 
@@ -26,9 +26,9 @@ LessonHub is a calm workspace for students, teachers, and admins. Set up once, t
 ## Navigation basics
 
 - **Top navigation:** avatar menu for profile, sign-out, and account state.
-- **Tabs:** pill-style controls such as “Lessons / Hub Guides.” Tap or click; the active tab darkens and raises slightly.
-- **Cards:** every assignment, guide, or stat uses a consistent card grid. Hover on desktop or tap on mobile for actions.
+- **Tabs:** pill-style controls such as "Lessons / Hub Guides". Tap or click one. The active tab turns darker.
+- **Cards:** assignments, guides, and stats appear as cards in a grid. Hover on desktop or tap on mobile for actions.
 
 ## Essential first step
 
-After your first sign-in, open **Profile → Update Profile**. Set your timezone, upload a photo, and confirm your preferred name. These details power deadlines, leaderboard entries, and notifications throughout the system.
+After your first sign-in, open **Profile → Update Profile**. Set your timezone, upload a photo, and confirm your preferred name. Deadlines, leaderboard entries, and notifications use these details.

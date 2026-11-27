@@ -1,20 +1,20 @@
-# Email Template System Integration Guide
+# Email template system integration guide
 
-This document describes how to integrate the full email template system (editor + preview + sending) into another project using the same stack as this app (Next.js App Router + Prisma + Resend).
+This document describes how to move the email template system (editor, preview, and sending) into another project that uses the same stack as this app: Next.js App Router, Prisma, and Resend.
 
-## Features & Capabilities
+## Features
 
-This email template system provides a complete solution for managing transactional emails within the application admin panel.
+Admins manage transactional emails from the admin panel.
 
-*   **Visual Admin Interface:** A dedicated admin page to view, edit, and manage all system email templates without code changes.
-*   **Live Preview:** Real-time rendering of email HTML as you edit, using realistic dummy data to simulate the final look.
-*   **Dynamic Placeholders:** One-click insertion of dynamic variables (e.g., `{{studentName}}`, `{{lessonTitle}}`) directly from the editor UI.
-*   **Test Sending:** Instantly send a test version of the template to any email address to verify compatibility across different email clients.
-*   **Smart Defaults:** Comes pre-seeded with a comprehensive set of templates (Welcome, New Assignment, Graded, Reminders, etc.) that can be customized or reset.
-*   **Customizable Styling:** Granular control over email body HTML and specific elements like "Call to Action" button colors.
-*   **Categorization:** Templates are organized by category (Onboarding, Assignments, Billing, etc.) with descriptions for easy maintenance.
+*   **Admin page:** View and edit every system email template without code changes.
+*   **Live preview:** The email HTML re-renders as you type, filled with dummy data.
+*   **Placeholders:** Insert variables such as `{{studentName}}` or `{{lessonTitle}}` with one click from the editor.
+*   **Test sends:** Send a test copy of the template to any address to check how email clients render it.
+*   **Default templates:** The seed creates templates for Welcome, New Assignment, Graded, Reminders, and other events. Admins can edit or reset each one.
+*   **Styling:** Edit the email body HTML and the color of the call-to-action button.
+*   **Categories:** Templates are grouped by category (Onboarding, Assignments, Billing, and others), and each has a description.
 
-## What to bring over (files + responsibilities)
+## Files to copy
 
 ### Core template system
 - `src/lib/email-templates.ts`
@@ -39,7 +39,7 @@ This email template system provides a complete solution for managing transaction
   - `updateEmailTemplate`
   - `sendTestEmail`
 
-### Database + seed
+### Database and seed
 - `prisma/schema.prisma`
   - `EmailTemplate` model.
 - `prisma/seed.ts`
@@ -71,7 +71,7 @@ model EmailTemplate {
 - `prisma/seed.ts` upserts templates so they exist in DB.
 - `getAllEmailTemplates` and `getEmailTemplateByName` auto-create missing templates from defaults.
 
-## Editor + preview behavior
+## Editor and preview
 
 Implemented in `EmailTemplateForm`:
 - Loads subject/body/buttonColor into local state.
@@ -122,7 +122,7 @@ Notes:
 
 ## Environment variables
 
-Ensure `.env.local` includes:
+`.env.local` must include:
 - `RESEND_API_KEY`
 - `EMAIL_FROM`
 
@@ -130,11 +130,11 @@ Ensure `.env.local` includes:
 
 1) Add `EmailTemplate` model to `prisma/schema.prisma` and run migrations.
 2) Copy `src/lib/email-templates.ts` and `src/lib/placeholder-data.ts`.
-3) Copy `EmailTemplateForm` + `PlaceholderGuide` components.
+3) Copy the `EmailTemplateForm` and `PlaceholderGuide` components.
 4) Add admin routes under `src/app/admin/emails` and `.../edit/[templateName]`.
-5) Add `adminActions` for template CRUD + test send.
+5) Add `adminActions` for template CRUD and test sends.
 6) Add template upsert logic in `prisma/seed.ts`.
-7) Replace direct email HTML sends with `sendEmail()` + template name + data.
+7) Replace direct email HTML sends with `sendEmail()`, passing the template name and data.
 8) (Optional) Add nav link for the Email Editor.
 
 ## Reference paths in this repo

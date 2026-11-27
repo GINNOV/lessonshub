@@ -333,7 +333,7 @@ export async function sendPaymentReminders() {
 export async function sendWeeklySummaries(options: { referenceDate?: Date; force?: boolean } = {}) {
   const today = options.referenceDate ?? new Date();
   if (!options.force && today.getDay() != 0) {
-    return { success: true, message: 'Not Sunday — skipping weekly summaries.' };
+    return { success: true, message: 'Not Sunday, skipping weekly summaries.' };
   }
   const end = new Date(today); end.setHours(23,59,59,999);
   const start = new Date(end); start.setDate(end.getDate()-6); start.setHours(0,0,0,0);
@@ -503,9 +503,9 @@ export async function sendWeeklySummaries(options: { referenceDate?: Date; force
     savingsTotal += Number(marketplaceTotalSum._sum.amountEuro ?? 0);
     savingsTotal += Number(goldStarTotalSum._sum.amountEuro ?? 0);
 
-    const itemsHtml = weekAssignments.length ? '<ul style="padding-left:18px;color:#1d1c1d;">'+weekAssignments.map(a=>`<li style="margin:6px 0;">${a.lesson?.title||'Lesson'} — <strong>${a.status}</strong>${a.status==='GRADED'&&a.score!==null?` (score: ${a.score}/10)`:''}</li>`).join('')+'</ul>' : '<p style="color:#8898aa;">No graded activity this week — a fresh start awaits! 💪</p>'
+    const itemsHtml = weekAssignments.length ? '<ul style="padding-left:18px;color:#1d1c1d;">'+weekAssignments.map(a=>`<li style="margin:6px 0;">${a.lesson?.title||'Lesson'} — <strong>${a.status}</strong>${a.status==='GRADED'&&a.score!==null?` (score: ${a.score}/10)`:''}</li>`).join('')+'</ul>' : '<p style="color:#8898aa;">No graded activity this week. Next week is a fresh start! 💪</p>'
     const finishedCount = gradedCount + completedCount;
-    const encouragement = finishedCount>=3 ? 'Fantastic week! Your consistency is building real momentum.' : finishedCount>=1 ? 'Great job — keep that rhythm going into next week!' : 'New week, new start. Even one lesson makes a difference!'
+    const encouragement = finishedCount>=3 ? 'Great week! You finished 3 or more lessons.' : finishedCount>=1 ? 'Good job! Keep the same pace next week.' : 'New week, new start. Even one lesson makes a difference!'
     const quote = quotes[Math.floor(Math.random()*quotes.length)]
 
     const { createButton } = await import('@/lib/email-templates')

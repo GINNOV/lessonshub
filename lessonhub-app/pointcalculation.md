@@ -1,8 +1,8 @@
-# Points and Savings Calculation
+# Points and savings calculation
 
 This document describes how points, euros (savings), and awards are computed today.
 
-## Core Points
+## Core points
 
 - **Assignment grading points** are computed when a teacher grades an assignment using
   `calculateAssignmentPoints` in `src/lib/gamification.ts`. The result is stored on
@@ -10,10 +10,10 @@ This document describes how points, euros (savings), and awards are computed tod
 - **Extra points** (bonus points) can be added by the teacher at grading time. They are
   included in `pointsAwarded` and applied to `totalPoints`.
 - **Points ledger**: `pointTransaction` rows are created for grading adjustments,
-  extensions, gold stars, and composer penalties. (Note: the ledger can be cleared for
-  reset events.)
+  extensions, gold stars, and composer penalties. The ledger can be cleared for
+  reset events.
 
-## Composer Lesson Penalties
+## Composer lesson penalties
 
 - Composer lessons track per-question tries.
 - **Extra tries** above the per-question max cost **50 points per extra try**.
@@ -26,7 +26,7 @@ This document describes how points, euros (savings), and awards are computed tod
   `src/lib/lessonExtensions.ts`).
 - Only one extension per assignment is allowed.
 
-## Gold Star Award
+## Gold Star award
 
 - A gold star grants:
   - **Euro value**: `amountEuro` (rounded to a whole euro, minimum 0).
@@ -48,12 +48,12 @@ Historically, savings were calculated from assignment outcomes:
 - **Gold stars**: +gold star `amountEuro`
 - **Flipper matches**: per-match euro deltas (attempts 1/2/3: +10/+5/+1, then -5 per extra attempt)
 
-### Reset Event Notes
+### Reset event notes
 
 The new-year reset used one-off data adjustments (points and savings) to stabilize the
 leaderboard. The leaderboard now runs on live calculations again.
 
-## Related Files
+## Related files
 
 - `src/lib/points.ts` (points/euro rates and converters)
 - `src/lib/gamification.ts` (grading points logic)

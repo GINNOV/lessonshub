@@ -1,43 +1,43 @@
-# Admin & Operations
+# Admin & operations
 
-Administrators have a bird's-eye view of the platform via the tile-based [admin dashboard](/dashboard).
+Administrators manage the platform from the tile-based [admin dashboard](/dashboard).
 
-## Core Management Areas
+## Core management areas
 
 - **Users:** Invite new users, suspend accounts, or edit profiles. You can also "Pause" a user (same as the "Taking a Break" feature).
-- **Lessons:** Oversee the entire lesson catalog, run database migrations, or seed default templates.
-- **Emails:** Monitor the logs of all sent emails (transactional and marketing).
+- **Lessons:** Manage the whole lesson catalog, run database migrations, or seed default templates.
+- **Emails:** Read the logs of all sent emails (transactional and marketing).
 - **Settings:** Configure global settings, point values, and feature flags.
 - **Automation:** Manage recurring AI lesson jobs and token-based automation access.
-- **Cron:** Manually trigger system jobs (like "Start Date" notifications) or simulate time for testing.
+- **Cron:** Trigger system jobs by hand (like "Start Date" notifications) or simulate time for testing.
 - **Profile:** View your own profile with extra admin controls.
 
-## System Jobs (Cron)
+## System jobs (cron)
 
-LessonHub runs automatic jobs to keep things moving:
+LessonHub runs these scheduled jobs:
 - **Hourly:** Sends "Start Date" notifications (runs daily at 10:00 UTC on some plans).
 - **Daily (09:00 UTC):** Sends assignment reminders and weekly summaries.
 
-**Testing:** You can use the **Cron Test** page to simulate specific times and ensure emails are firing correctly.
+**Testing:** You can use the **Cron Test** page to simulate specific times and check that the emails go out.
 
-## Database & Maintenance
+## Database & maintenance
 
-- **Migrations:** Always run via the provided `npm` scripts to ensure safety.
+- **Migrations:** Always run them through the provided `npm` scripts, which load the database credentials from `.env.local`.
 - **Seeding:** If default templates or badges are missing, the seed script restores them without deleting existing data.
 - **Automation Tokens:** After pulling automation changes, run the latest Prisma migration before issuing any tokens or calling the new automation APIs.
 
-## Codex Automation For Lesson Creation
+## Codex automation for lesson creation
 
-LessonHub now supports admin-granted automation tokens so Codex automations can create lessons through server-to-server API calls without using a browser session.
+LessonHub supports admin-granted automation tokens so that Codex automations can create lessons through server-to-server API calls without using a browser session.
 
-### Admin Setup
+### Admin setup
 
 1. Open **Admin > Automation Tokens**.
 2. Choose the teacher account that should own the lessons created by automation.
-3. Create a token and copy it immediately. The full token value is only shown once.
+3. Create a token and copy it right away. The full token value is shown only once.
 4. Store the token in `/Users/mario/code/LessonHub/lessonhub-app/.env.automation` under `AUTOMATION_TOKEN`. Do not paste it into docs, chats, or shared screenshots.
 
-### Local Secret File
+### Local secret file
 
 Use `.env.automation` in the project root for Codex automation secrets and defaults:
 
@@ -52,7 +52,7 @@ DEFAULT_CLASS_NAME=Fall 2025
 - If `DEFAULT_CLASS_ID` is omitted, the current terminal test flow calls the remote automation context API and falls back to the teacher's active class named `Fall 2025`.
 - `DEFAULT_CLASS_NAME` can be changed if you want a different name-based fallback.
 
-### Supported Endpoints
+### Supported endpoints
 
 - **Standard lessons:** `POST /api/automation/lessons`
 - **Multi-choice lessons:** `POST /api/automation/lessons/multi-choice`
@@ -63,7 +63,7 @@ Both endpoints require:
 - `Content-Type: application/json`
 - a `topic` field so the automation has a stable subject for the generated lesson
 
-### Standard Lesson Example
+### Standard lesson example
 
 ```bash
 curl -X POST https://your-domain.com/api/automation/lessons \
@@ -90,7 +90,7 @@ curl -X POST https://your-domain.com/api/automation/lessons \
   }'
 ```
 
-### Multi-Choice Lesson Example
+### Multi-Choice lesson example
 
 ```bash
 curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
@@ -116,7 +116,7 @@ curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
   }'
 ```
 
-### Payload Notes
+### Payload notes
 
 - `title` is optional. If omitted, LessonHub uses `topic` as the title.
 - `difficulty` must be an integer from `1` to `5`.
@@ -127,30 +127,30 @@ curl -X POST https://your-domain.com/api/automation/lessons/multi-choice \
 - The optional `assignment` block lets automation target specific `studentIds`, `classIds`, or both.
 - If `assignment` is omitted, LessonHub falls back to the lesson-level auto-assignment behavior.
 - `assignment.notificationOption` supports `immediate`, `on_start_date`, or `none`.
-- `assignment.reassignExisting` resets existing assignments for the targeted students instead of silently skipping them.
+- `assignment.reassignExisting` resets existing assignments for the targeted students instead of skipping them without notice.
 - `assignment.startDate` and `assignment.deadline` apply to every resolved student in that automation call.
 - A practical default is to send `assignment.classIds` using `DEFAULT_CLASS_ID` from `.env.automation`.
 - In the current test script, lessons are assigned to the configured class automatically. If no class id is configured, the script resolves the class through `GET /api/automation/context` and looks for the teacher's active class named `Fall 2025`.
 
-### Security Rules
+### Security rules
 
 - Tokens are scoped to a specific teacher account.
 - Tokens are stored hashed, can be revoked from the admin panel, and track last use.
 - If a token is leaked, revoke it immediately and issue a new one.
 - Keep automation tokens separate from personal AI keys or `.env.local` app secrets.
 
-## In-App Daily Lesson Automations
+## In-app daily lesson automations
 
-LessonHub can now generate daily standard lessons directly inside the app using the configured Gemini API key and the existing Vercel cron flow.
+LessonHub can generate daily standard lessons inside the app using the configured Gemini API key and the existing Vercel cron flow.
 
-### How It Works
+### How it works
 
 - Create one or more jobs from **Admin > Automation**.
 - Each job targets one teacher and one active class.
 - The daily cron route processes enabled jobs once per day.
 - Each job stores its own run history and will not create a second lesson for the same day.
 
-### What You Can Control
+### What you can control
 
 - Job name
 - Teacher
@@ -163,19 +163,19 @@ LessonHub can now generate daily standard lessons directly inside the app using 
 
 ### Operations
 
-- Use **Run now** from the Automation page to test the jobs immediately.
-- Use **Admin > Cron** to trigger the daily lesson automation manually with an optional reference date.
+- Use **Run now** from the Automation page to test the jobs right away.
+- Use **Admin > Cron** to trigger the daily lesson automation by hand, with an optional reference date.
 - Daily lesson jobs depend on a configured Gemini API key in the admin AI settings.
 
-## Security & Best Practices
+## Security & best practices
 
 - **Secrets:** All sensitive keys (database passwords, API keys) are stored in `.env.local` and never shared.
-- **Data:** Financial values (like prices) are handled with high precision.
-- **Leaderboards:** Savings are displayed clearly with color-coding (Green for positive, Red for negative) to avoid confusion.
+- **Data:** Financial values such as prices are stored as Prisma `Decimal` and converted to numbers before they reach the browser.
+- **Leaderboards:** Savings are green when positive and red when negative.
 
-## Support Playbook
+## Support playbook
 
 Common admin tasks:
 - **Hub Guide Access:** If a student claims they paid but can't see guides, check their payment status in their Profile.
-- **Lyric Errors:** If teachers report issues with lyric lessons, it often means a database migration is needed.
-- **Timezones:** Encourage all users to set their timezone. Incorrect timezones are the #1 cause of "missed" deadlines.
+- **Lyric Errors:** If teachers report issues with lyric lessons, a database migration is often missing.
+- **Timezones:** Encourage all users to set their timezone. A wrong timezone is the most common cause of "missed" deadlines.

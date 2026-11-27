@@ -118,7 +118,7 @@ export default function FlipperGame({
     setMessage(
       eurosDelta >= 0
         ? `Match found! +€${eurosDelta}`
-        : `Match found — ${word} cost €${Math.abs(eurosDelta)}`,
+        : `Match found. ${word} cost €${Math.abs(eurosDelta)}`,
     );
     return { eurosDelta, pointsDelta };
   };
@@ -146,7 +146,7 @@ export default function FlipperGame({
       setMessage(
         eurosDelta >= 0
           ? `Match found! +€${eurosDelta}`
-          : `Match found — penalty €${Math.abs(eurosDelta)}`,
+          : `Match found. Penalty €${Math.abs(eurosDelta)}`,
       );
       return { eurosDelta, pointsDelta };
     } catch (error) {

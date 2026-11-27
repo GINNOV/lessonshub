@@ -55,7 +55,7 @@ export async function sendEmail({
           <div class="box">
             ${finalBody}
             <hr class="hr" />
-            <p class="footer">LessonHUB — The modern platform for modern learning.</p>
+            <p class="footer">LessonHUB</p>
           </div>
         </div>
       </body>

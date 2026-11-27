@@ -111,7 +111,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
     },
     deadline_reminder: {
         subject: '🔔 Reminder: Assignment "{{lessonTitle}}" is due soon',
-        description: 'Sent by the deadline reminder job 24–48 hours before due date (legacy endpoint).',
+        description: 'Sent by the deadline reminder job 24-48 hours before due date (legacy endpoint).',
         category: 'Reminders',
         body: `🇺🇸
 <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700; margin: 30px 0; padding: 0; line-height: 42px;">Assignment Reminder</h1>
@@ -212,7 +212,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
         🇺🇸
         <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">You're on a Roll!</h1>
         <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{studentName}},</p>
-        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Congratulations on completing another 10 lessons! Your dedication and hard work are paying off. Keep up the fantastic progress!</p>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Congratulations on completing another 10 lessons! Keep going!</p>
 
         <!-- Trophy in the center -->
         <div style="text-align: center; font-size: 80px; margin: 20px 0;">🏆</div>
@@ -246,7 +246,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
         category: 'Billing',
         body: `<h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">Payment Reminder</h1>
 <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{userName}},</p>
-<p style="color: #525f7f; font-size: 16px; line-height: 24px;">This is a friendly reminder that your monthly subscription fee is due. Please click the button below to complete your payment and continue your learning journey.</p>
+<p style="color: #525f7f; font-size: 16px; line-height: 24px;">Your monthly subscription fee is due. Click the button below to pay and keep your lessons going.</p>
 {{button}}
 <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Thank you!</p>`,
         buttonColor: '#00BCD4',
@@ -272,7 +272,7 @@ export const defaultEmailTemplates: Record<string, { subject: string; body: stri
         🇺🇸
         <h1 style="color: #1d1c1d; font-size: 32px; font-weight: 700;">You're on a Roll!</h1>
         <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Hi {{studentName}},</p>
-        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Congratulations on doing a fantastic job! Your dedication and hard work are paying off. Keep up the fantastic progress! You are now officially a <b>GOLD STAR member</b>!</p>
+        <p style="color: #525f7f; font-size: 16px; line-height: 24px;">Congratulations! Your teacher gave you a Gold Star for this lesson. You are now a <b>GOLD STAR member</b>!</p>
 
         <!-- Trophy in the center -->
         <div style="text-align: center; font-size: 80px; margin: 20px 0;">⭐️</div>
