@@ -17,7 +17,7 @@ export async function POST(
 
   try {
     const { assignmentId } = params;
-    const result = await completeFlashcardAssignment(assignmentId, session.user.id);
+    const result = await completeFlashcardAssignment(assignmentId);
     
     if (!result.success) {
       return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });

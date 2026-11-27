@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { failExpiredAssignments, sendStartDateNotifications } from '@/actions/cronActions';
+import { failExpiredAssignments, sendStartDateNotifications } from '@/lib/cronJobs';
 import { isAuthorizedCronRequest } from '@/lib/cronAuth';
 
 export async function GET(request: NextRequest) {

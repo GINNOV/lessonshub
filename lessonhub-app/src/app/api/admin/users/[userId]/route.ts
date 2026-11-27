@@ -1,21 +1,21 @@
 // file: src/app/api/admin/users/[userId]/route.ts
 
-import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import { hasAdminPrivileges } from "@/lib/authz";
+import { authorizeFullAdmin } from "@/lib/authz";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
-  const session = await auth();
-  const { userId } = params;
+  const { userId } = await params;
 
-  if (!session?.user?.id || !hasAdminPrivileges(session.user)) {
-    return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
+  // Changing roles can grant ADMIN, so admin-portal access alone is not enough.
+  const authz = await authorizeFullAdmin();
+  if (!authz.ok) {
+    return new NextResponse(JSON.stringify({ error: authz.error }), {
+      status: authz.status,
     });
   }
 

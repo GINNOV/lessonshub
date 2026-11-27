@@ -5,14 +5,14 @@ import prisma from "@/lib/prisma";
 import { Role, AssignmentStatus, LessonType, PointReason, Prisma } from "@prisma/client";
 import { revalidatePath } from 'next/cache';
 import { unstable_cache } from 'next/cache'
-import { getEmailTemplateByName } from '@/actions/adminActions';
+import { loadEmailTemplateByName } from '@/lib/emailTemplateStore';
 import { createButton } from '@/lib/email-templates';
 import { sendEmail } from '@/lib/email-templates.server';
 import { auth } from "@/auth";
 import { nanoid } from 'nanoid';
 import { checkAndSendMilestoneEmail } from "./studentActions";
 import { awardBadgesForStudent, calculateAssignmentPoints } from "@/lib/gamification";
-import { hasAdminPrivileges } from "@/lib/authz";
+import { authorizeAssignmentLessonOwner, authorizeLessonOwner, authorizeUser, hasAdminPrivileges } from "@/lib/authz";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 import { convertExtraPointsToEuro } from "@/lib/points";
 import {
@@ -344,7 +344,10 @@ export async function assignLessonByShareId(shareId: string, studentId: string) 
     }
 }
 
-export async function completeFlashcardAssignment(assignmentId: string, studentId: string) {
+export async function completeFlashcardAssignment(assignmentId: string) {
+  const authz = await authorizeUser();
+  if (!authz.ok) return { success: false, error: authz.error };
+  const studentId = authz.user.id;
   try {
     const assignment = await findStudentAssignment(studentId, assignmentId, {
       select: {
@@ -376,9 +379,11 @@ export async function completeFlashcardAssignment(assignmentId: string, studentI
 
 export async function completeNewsArticleAssignment(
   assignmentId: string,
-  studentId: string,
   rating?: number | null
 ) {
+  const authz = await authorizeUser();
+  if (!authz.ok) return { success: false, error: authz.error };
+  const studentId = authz.user.id;
     try {
         const assignment = await findStudentAssignment(studentId, assignmentId, {
           where: { id: assignmentId, studentId },
@@ -524,7 +529,10 @@ export async function submitFlashcardAssignment(
   }
 }
 
-export async function submitMultiChoiceAssignment(assignmentId: string, studentId: string, answers: { [key: string]: string }, rating?: number) {
+export async function submitMultiChoiceAssignment(assignmentId: string, answers: { [key: string]: string }, rating?: number) {
+  const authz = await authorizeUser();
+  if (!authz.ok) return { success: false, error: authz.error };
+  const studentId = authz.user.id;
     try {
         const assignment = await findStudentAssignment(studentId, assignmentId, {
             include: { lesson: { include: { multiChoiceQuestions: { include: { options: true }}}}}
@@ -586,9 +594,11 @@ export async function submitMultiChoiceAssignment(assignmentId: string, studentI
 
 export async function saveMultiChoiceAssignmentDraft(
   assignmentId: string,
-  studentId: string,
   data: { answers: Record<string, string>; rating?: number | undefined }
 ) {
+  const authz = await authorizeUser();
+  if (!authz.ok) return { success: false, error: authz.error };
+  const studentId = authz.user.id;
   try {
     return await saveAssignmentDraft({
       assignmentId,
@@ -607,9 +617,11 @@ export async function saveMultiChoiceAssignmentDraft(
 
 export async function saveComposerAssignmentDraft(
   assignmentId: string,
-  studentId: string,
   data: { answers: Record<number, string>; tries: Record<number, number>; rating?: number | undefined }
 ) {
+  const authz = await authorizeUser();
+  if (!authz.ok) return { success: false, error: authz.error };
+  const studentId = authz.user.id;
   try {
     return await saveAssignmentDraft({
       assignmentId,
@@ -628,9 +640,11 @@ export async function saveComposerAssignmentDraft(
 
 export async function submitComposerAssignment(
   assignmentId: string,
-  studentId: string,
   data: { answers: Array<{ index: number; word: string; prompt?: string }>; tries?: Record<number, number>; rating?: number }
 ) {
+  const authz = await authorizeUser();
+  if (!authz.ok) return { success: false, error: authz.error };
+  const studentId = authz.user.id;
   try {
     const assignment = await findStudentAssignment(studentId, assignmentId, {
       include: {
@@ -774,9 +788,11 @@ export async function submitComposerAssignment(
 
 export async function submitStandardAssignment(
   assignmentId: string,
-  studentId: string,
   data: { answers: string[]; studentNotes: string; rating?: number }
 ) {
+  const authz = await authorizeUser();
+  if (!authz.ok) return { success: false, error: authz.error };
+  const studentId = authz.user.id;
   try {
     const assignment = await findStudentAssignment(studentId, assignmentId, {
       include: {
@@ -837,9 +853,11 @@ export async function submitStandardAssignment(
 
 export async function saveStandardAssignmentDraft(
   assignmentId: string,
-  studentId: string,
   data: { answers: string[]; studentNotes: string; rating?: number }
 ) {
+  const authz = await authorizeUser();
+  if (!authz.ok) return { success: false, error: authz.error };
+  const studentId = authz.user.id;
   try {
     return await saveAssignmentDraft({
       assignmentId,
@@ -1538,10 +1556,8 @@ export async function getStudentStats(studentId: string) {
 }
 
 export async function generateShareLink(lessonId: string) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: 'Unauthorized' };
-  }
+  const authz = await authorizeLessonOwner(lessonId, { allowAdmin: true });
+  if (!authz.ok) return { success: false, error: authz.error };
 
   try {
     const lesson = await prisma.lesson.findUnique({
@@ -1614,6 +1630,8 @@ export async function ensureLessonShareLink(lessonId: string) {
 }
 
 export async function sendManualReminder(assignmentId: string) {
+  const authz = await authorizeAssignmentLessonOwner(assignmentId, { allowAdmin: true });
+  if (!authz.ok) return { success: false, error: authz.error };
   try {
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
@@ -1632,7 +1650,7 @@ export async function sendManualReminder(assignmentId: string) {
     if (assignment.status !== AssignmentStatus.PENDING) {
       return { success: false, error: 'This assignment is not pending.' };
     }
-    const template = await getEmailTemplateByName('manual_reminder');
+    const template = await loadEmailTemplateByName('manual_reminder');
     if (!template) {
         return { success: false, error: 'Manual reminder email template not found.' };
     }
@@ -1663,10 +1681,8 @@ export async function sendManualReminder(assignmentId: string) {
 }
 
 export async function failAssignment(assignmentId: string) {
-  const session = await auth();
-  if (!session?.user?.id || session.user.role !== Role.TEACHER) {
-    return { success: false, error: 'Unauthorized' };
-  }
+  const authz = await authorizeAssignmentLessonOwner(assignmentId);
+  if (!authz.ok) return { success: false, error: authz.error };
   
   try {
     const assignment = await prisma.assignment.findUnique({
@@ -1687,7 +1703,7 @@ export async function failAssignment(assignmentId: string) {
       data: { status: AssignmentStatus.FAILED, score: -1 },
     });
 
-    const template = await getEmailTemplateByName('failed');
+    const template = await loadEmailTemplateByName('failed');
     if (template && assignment.student?.email) {
       const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
       await sendEmail({
@@ -1978,7 +1994,7 @@ export async function gradeAssignment(
       };
     });
 
-    const template = await getEmailTemplateByName('graded');
+    const template = await loadEmailTemplateByName('graded');
     if (template && assignment.student?.email) {
       try {
         const assignmentUrl = `${process.env.AUTH_URL}/assignments/${assignment.id}`;
@@ -2187,13 +2203,15 @@ export async function startFreeLesson(lessonId: string) {
 
 export async function saveLyricAssignmentDraft(
   assignmentId: string,
-  studentId: string,
   data: {
     answers: Record<string, string[]>;
     mode: 'read' | 'fill';
     readModeSwitches: number;
   }
 ) {
+  const authz = await authorizeUser();
+  if (!authz.ok) return { success: false, error: authz.error };
+  const studentId = authz.user.id;
   try {
     return await saveAssignmentDraft({
       assignmentId,

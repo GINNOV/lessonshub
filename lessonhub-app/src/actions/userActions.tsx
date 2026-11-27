@@ -5,7 +5,7 @@ import { auth, signOut } from "@/auth";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
-import { getEmailTemplateByName } from "./adminActions";
+import { loadEmailTemplateByName } from "@/lib/emailTemplateStore";
 import { replacePlaceholders } from "@/lib/email-templates";
 import { nanoid } from 'nanoid';
 import { revalidatePath } from "next/cache";
@@ -14,7 +14,7 @@ async function sendDeletionAdminNotifications(deletedUser: { name: string | null
     const admins = await prisma.user.findMany({ where: { role: Role.ADMIN } });
     if (admins.length === 0) return;
 
-    const template = await getEmailTemplateByName('user_deleted_admin');
+    const template = await loadEmailTemplateByName('user_deleted_admin');
     if (!template) return;
 
     for (const admin of admins) {

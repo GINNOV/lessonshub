@@ -8,7 +8,8 @@ import { unstable_cache } from "next/cache";
 import { createButton } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email-templates.server";
 import { auth } from "@/auth";
-import { hasAdminPrivileges } from "@/lib/authz";
+import { authorizeAdmin, authorizeFullAdmin, hasAdminPrivileges, requireAdmin } from "@/lib/authz";
+import { loadEmailTemplateByName } from "@/lib/emailTemplateStore";
 import { cacheTags, revalidateAdminLessonViews, revalidateAdminUserViews } from "@/lib/cache-tags";
 import { runDailyLessonAutomations } from "@/lib/dailyLessonAutomation";
 
@@ -17,6 +18,7 @@ import { runDailyLessonAutomations } from "@/lib/dailyLessonAutomation";
  * @returns A promise that resolves to an array of all users.
  */
 export async function getAllUsers() {
+  await requireAdmin();
   try {
     const users = await unstable_cache(
       async () => prisma.user.findMany({
@@ -39,6 +41,7 @@ export async function getAllUsers() {
  * @returns A promise that resolves to an array of teacher users.
  */
 export async function getAllTeachers() {
+  await requireAdmin();
   try {
     const teachers = await unstable_cache(
       async () => prisma.user.findMany({
@@ -66,6 +69,8 @@ export async function getAllTeachers() {
  * @returns An object indicating success or failure.
  */
 export async function updateUserRole(userId: string, newRole: Role) {
+  const authz = await authorizeFullAdmin();
+  if (!authz.ok) return { success: false, error: authz.error };
   try {
     await prisma.user.update({
       where: { id: userId },
@@ -175,10 +180,8 @@ export async function stopImpersonating() {
 export { stopImpersonating as stopImpersonation };
 
 export async function setAdminPortalAccess(userId: string, enabled: boolean) {
-  const session = await auth();
-  if (!session?.user || !hasAdminPrivileges(session.user)) {
-    return { success: false, error: "Unauthorized" };
-  }
+  const authz = await authorizeFullAdmin();
+  if (!authz.ok) return { success: false, error: authz.error };
 
   try {
     await prisma.user.update({
@@ -400,6 +403,7 @@ export async function updateStudentBannerAction(formData: FormData) {
  * @returns A promise that resolves to an array of all email templates.
  */
 export async function getAllEmailTemplates() {
+  await requireAdmin();
   try {
     const { defaultEmailTemplates } = await import('@/lib/email-templates');
     const existing = await prisma.emailTemplate.findMany({ select: { name: true } });
@@ -443,47 +447,12 @@ export { getAllEmailTemplates as getEmailTemplates };
 
 
 /**
- * Fetches a single email template by its unique name.
- * @param name The unique name of the template.
- * @returns A promise that resolves to the template object or null if not found.
+ * Admin view of a single email template. Server code that only needs a template to send mail
+ * should call loadEmailTemplateByName from "@/lib/emailTemplateStore" instead.
  */
 export async function getEmailTemplateByName(name: string) {
-  try {
-    let template = await prisma.emailTemplate.findUnique({ where: { name } });
-    if (!template) {
-      const { defaultEmailTemplates } = await import('@/lib/email-templates');
-      const def = (defaultEmailTemplates as any)[name];
-      if (def) {
-        template = await prisma.emailTemplate.create({
-          data: {
-            name,
-            subject: def.subject,
-            body: def.body,
-            buttonColor: def.buttonColor,
-            description: def.description ?? null,
-            category: def.category ?? null,
-          },
-        });
-      }
-    }
-    if (template && (template.description === null || template.category === null)) {
-      const { defaultEmailTemplates } = await import('@/lib/email-templates');
-      const def = (defaultEmailTemplates as any)[name];
-      if (def) {
-        template = await prisma.emailTemplate.update({
-          where: { name },
-          data: {
-            description: template.description ?? def.description ?? null,
-            category: template.category ?? def.category ?? null,
-          },
-        });
-      }
-    }
-    return template;
-  } catch (error) {
-    console.error(`Failed to fetch email template "${name}":`, error);
-    return null;
-  }
+  await requireAdmin();
+  return loadEmailTemplateByName(name);
 }
 
 /**
@@ -496,6 +465,8 @@ export async function updateEmailTemplate(
   name: string,
   data: { subject?: string; body?: string; buttonColor?: string; description?: string; category?: string },
 ) {
+  const authz = await authorizeAdmin();
+  if (!authz.ok) return { success: false, error: authz.error };
     try {
         await prisma.emailTemplate.update({
             where: { name },
@@ -515,6 +486,7 @@ export async function updateEmailTemplate(
  * @returns A promise that resolves to an array of all lessons.
  */
 export async function getAllLessons() {
+  await requireAdmin();
   try {
     const lessons = await unstable_cache(
       async () => prisma.lesson.findMany({
@@ -543,6 +515,8 @@ export async function getAllLessons() {
  * @returns An object indicating success or failure.
  */
 export async function reassignLesson(lessonId: string, newTeacherId: string | null) {
+  const authz = await authorizeAdmin();
+  if (!authz.ok) return { success: false, error: authz.error };
     try {
         await prisma.lesson.update({
             where: { id: lessonId },
@@ -563,6 +537,8 @@ export async function reassignLesson(lessonId: string, newTeacherId: string | nu
  * @returns An object indicating success or failure.
  */
 export async function sendTestEmail(templateName: string, testEmail: string) {
+  const authz = await authorizeAdmin();
+  if (!authz.ok) return { success: false, error: authz.error };
     try {
         await sendEmail({
             to: testEmail,
@@ -632,6 +608,7 @@ export async function updateUserPayingStatus(userId: string, isPaying: boolean) 
 }
 
 export async function getAssignedStudents(teacherId: string) {
+  await requireAdmin();
     try {
         const relations = await prisma.teachersForStudent.findMany({
             where: { teacherId },
@@ -645,6 +622,7 @@ export async function getAssignedStudents(teacherId: string) {
 }
 
 export async function getAssignedTeachers(studentId: string) {
+  await requireAdmin();
     try {
         const relations = await prisma.teachersForStudent.findMany({
             where: { studentId },
@@ -658,6 +636,8 @@ export async function getAssignedTeachers(studentId: string) {
 }
 
 export async function assignStudentsToTeacher(teacherId: string, studentIds: string[]) {
+  const authz = await authorizeAdmin();
+  if (!authz.ok) return { success: false, error: authz.error };
     try {
         await prisma.$transaction(async (tx) => {
             await tx.teachersForStudent.deleteMany({

@@ -2,6 +2,7 @@
 import { auth } from "@/auth";
 import { AssignmentStatus, Prisma, Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { authorizeLessonOwner } from "@/lib/authz";
 import { createButton } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email-templates.server";
 import { AssignmentScheduleEntry, getImmediateStartStudentIds } from "@/lib/assignmentNotifications";
@@ -78,6 +79,11 @@ export async function PATCH(req: Request) {
 
     if (!lessonId) {
       return new Response(JSON.stringify({ error: "Lesson ID is required" }), { status: 400 });
+    }
+
+    const ownership = await authorizeLessonOwner(lessonId);
+    if (!ownership.ok) {
+      return new Response(JSON.stringify({ error: ownership.error }), { status: ownership.status });
     }
 
     const assignmentsToAssign = Array.isArray(studentIdsToAssign)

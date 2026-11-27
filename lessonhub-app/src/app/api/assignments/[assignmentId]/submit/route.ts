@@ -52,35 +52,35 @@ export async function POST(
     const body = await request.json();
 
     if (lessonType === LessonType.FLASHCARD) {
-      const result = await completeFlashcardAssignment(assignmentId, session.user.id);
+      const result = await completeFlashcardAssignment(assignmentId);
       if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
       return NextResponse.json(result);
     }
 
     if (lessonType === LessonType.NEWS_ARTICLE) {
       const { rating } = body;
-      const result = await completeNewsArticleAssignment(assignmentId, session.user.id, rating);
+      const result = await completeNewsArticleAssignment(assignmentId, rating);
       if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
       return NextResponse.json(result);
     }
 
     if (lessonType === LessonType.MULTI_CHOICE) {
       const { answers } = body;
-      const result = await submitMultiChoiceAssignment(assignmentId, session.user.id, answers);
+      const result = await submitMultiChoiceAssignment(assignmentId, answers);
       if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
       return NextResponse.json(result.data);
     }
     
     if (lessonType === LessonType.STANDARD) {
         const { answers, studentNotes, rating } = body;
-        const result = await submitStandardAssignment(assignmentId, session.user.id, { answers, studentNotes, rating });
+        const result = await submitStandardAssignment(assignmentId, { answers, studentNotes, rating });
         if (!result.success) return new NextResponse(JSON.stringify({ error: result.error }), { status: 400 });
         return NextResponse.json(result.data);
     }
 
     if (lessonType === LessonType.COMPOSER) {
       const { answers, rating, tries } = body;
-      const result = await submitComposerAssignment(assignmentId, session.user.id, {
+      const result = await submitComposerAssignment(assignmentId, {
         answers,
         tries,
         rating,

@@ -254,7 +254,7 @@ export default function ComposerLessonPlayer({
       word: answers[question.index] ?? '',
       prompt: question.prompt,
     }));
-    const result = await submitComposerAssignment(assignment.id, assignment.studentId, {
+    const result = await submitComposerAssignment(assignment.id, {
       answers: payload,
       tries,
       rating: rating > 0 ? rating : undefined,
@@ -284,7 +284,7 @@ export default function ComposerLessonPlayer({
       saveInFlightRef.current = true;
       if (showSpinner) setIsSavingDraft(true);
       const snapshot = draftRef.current;
-      const result = await saveComposerAssignmentDraft(assignment.id, assignment.studentId, {
+      const result = await saveComposerAssignmentDraft(assignment.id, {
         answers: snapshot.answers,
         tries: snapshot.tries,
         rating: snapshot.rating > 0 ? snapshot.rating : undefined,
@@ -307,7 +307,6 @@ export default function ComposerLessonPlayer({
     [
       assignment.id,
       assignment.status,
-      assignment.studentId,
       draftKey,
       isSubmissionLocked,
       router,

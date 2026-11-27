@@ -24,7 +24,7 @@ export async function sendEmail({
   try {
     const template = override
       ? null
-      : await (await import('@/actions/adminActions')).getEmailTemplateByName(templateName);
+      : await (await import('@/lib/emailTemplateStore')).loadEmailTemplateByName(templateName);
 
     if (!template && !override) {
       status = 'FAILED';
