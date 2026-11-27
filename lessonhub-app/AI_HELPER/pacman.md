@@ -1,9 +1,9 @@
 
 This program is a **turn-based, quiz-driven variant of Pac-Man** where control is removed from the player and given to autonomous agents (AI) based on the result of an English grammar quiz.
 
-Here is a technical breakdown of the logic for an AI analysis:
+The sections below describe the game logic:
 
-### 1. The Core Loop (Finite State Machine)
+### 1. The core loop (finite state machine)
 
 Instead of continuous real-time gameplay, the program functions as a state machine driven by user input (quiz answers):
 
@@ -26,7 +26,7 @@ Instead of continuous real-time gameplay, the program functions as a state machi
     -   **Duration:** ~2.5 seconds.
         
 
-### 2. Pac-Man's AI (Greedy Best-First Search)
+### 2. Pac-Man's AI (greedy best-first search)
 
 When the state is `RUN`, Pac-Man moves automatically using a greedy heuristic algorithm:
 
@@ -38,14 +38,14 @@ When the state is `RUN`, Pac-Man moves automatically using a greedy heuristic al
     
     1.  It identifies valid neighbors (Up, Down, Left, Right).
         
-    2.  **Constraints:** It filters out Walls (`1`) and, crucially, **Ghosts** (unless Power Mode is active).
+    2.  **Constraints:** It filters out Walls (`1`) and **Ghosts**, unless Power Mode is active.
         
     3.  **Heuristic:** It sorts the valid directions based on which one minimizes the distance to the target dot.
         
     4.  **Execution:** It commits to the best direction.
         
 
-### 3. Ghost AI (Chase Heuristic)
+### 3. Ghost AI (chase heuristic)
 
 When the state is `FREEZE`, Ghosts move automatically using a similar greedy algorithm:
 
@@ -57,10 +57,10 @@ When the state is `FREEZE`, Ghosts move automatically using a similar greedy alg
         
     2.  It sorts directions from closest to furthest.
         
-    3.  It adds a 20% randomness factor (`Math.random() < 0.2`) to prevent all ghosts from clustering on the exact same path, giving them slightly organic behavior.
+    3.  It adds a 20% randomness factor (`Math.random() < 0.2`) so that the ghosts don't all follow the same path.
         
 
-### 4. Power Mode (State Modifier)
+### 4. Power mode (state modifier)
 
 When Pac-Man eats a specific dot (Type `4`):
 
@@ -72,4 +72,4 @@ When Pac-Man eats a specific dot (Type `4`):
         
     -   **Collision:** Touching a ghost no longer triggers `handleDeath()`; instead, it triggers `handleGhostCollision()` (Ghost reset + Score).
         
-    -   **Pathfinding:** Pac-Man's AI stops treating Ghosts as "Walls," allowing him to pathfind directly through them to eat them.
+    -   **Pathfinding:** Pac-Man's AI stops treating Ghosts as "Walls," so he paths through them and eats them.

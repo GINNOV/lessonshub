@@ -1,6 +1,6 @@
-# Teacher Tools
+# Teacher tools
 
-Teachers work from `/dashboard` and related routes. The workflow is direct, predictable, and fast.
+Teachers work from `/dashboard` and related routes.
 
 ## Assign lessons
 
@@ -17,20 +17,20 @@ Teachers work from `/dashboard` and related routes. The workflow is direct, pred
 
 - Visit `/dashboard/grade/[assignmentId]`.
 - Review answers, add per-question comments, and assign scores.
-- LessonHub writes results to Prisma and updates student dashboards instantly.
-- Points awarded feed Leaderboard and Gamification without extra steps.
+- LessonHub saves the results and updates student dashboards right away.
+- The points awarded go to the Leaderboard and Gamification modules.
 
 ## Manage lessons
 
 - Lesson list shows counts and status indicators.
-- Difficulty selector uses the same filled bars as the student view, keeping expectations aligned.
+- The difficulty selector uses the same filled bars that students see.
 - Copy links via the share button or regenerate a public share ID when needed.
 
 ## Content creation quick tips
 
 - **Instruction Booklets:** reusable text blocks for assignment instructions. Replace or append with a single click.
 - **SoundCloud feed loader:** pulls the latest teacher tracks; select and insert without manual URLs.
-- **CSV imports:** each creator lists required columns. Upload via the icon button and watch LessonHub parse the file automatically.
+- **CSV imports:** each creator lists required columns. Upload the file with the icon button and LessonHub parses it.
 - **Lyric lessons:** upload audio and `.lrc` files; LessonHub informs students when timed lyrics are active.
 
 ## Hub Guide management

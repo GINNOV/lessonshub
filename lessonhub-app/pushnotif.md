@@ -4,7 +4,7 @@ Context
 - Goal: send notifications to mobile when a new lesson is available or grading has been completed.
 - Delivery should mirror current email delivery.
 - Current platform: Vercel; no push infrastructure in place yet.
-- User preference control: new `/profile` tab named “Communications”.
+- User preference control: new `/profile` tab named "Communications".
 - First notification types: grading completed, new assignment, late submission reminder.
 
 Open decisions
@@ -17,5 +17,5 @@ Open decisions
 
 Suggested next steps (if revived)
 - Add data model for push subscriptions and per-user notification prefs.
-- Add service worker + subscribe/unsubscribe UI under `/profile` → “Communications”.
+- Add service worker + subscribe/unsubscribe UI under the `/profile` "Communications" tab.
 - Mirror existing email triggers (assignment creation/start-date cron/grade/late reminder cron) to push delivery when enabled.

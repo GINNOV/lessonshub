@@ -15,23 +15,23 @@
     <circle cx="840" cy="160" r="30" />
   </g>
   <text x="64" y="100" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="600" fill="#FFFFFF">
-    Lesson Hub — What’s New
+    Lesson Hub: What's New
   </text>
   <text x="64" y="140" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="400" fill="#F9FAFB">
-    Fresh improvements to keep your classes sharp and your students ready.
+    The changes in this release for teachers and students.
   </text>
 </svg>
 
 # Sammarcarda release
 
-Welcome back! Here’s a quick look at the latest improvements rolling out across the platform.
+Welcome back! Here is what changed in this release.
 
-## ✨ Highlights
+## Highlights
 
-- **Re-take graded tests** – You can now re-take a test after it’s been graded. It won’t change your score, but it gives you a clean way to re-run the lesson and reinforce what you’ve learned.
+- **Re-take graded tests.** You can now re-take a test after it has been graded. Your score stays the same, and you get to run the lesson again to practice what you learned.
   ![Student Card Retake Example](/upgrades/studentcard.png)
 
-- **Learn English with song lyrics** – Build and follow lessons based on real song lyrics, combining music, vocabulary, and listening practice in one place.
+- **Learn English with song lyrics.** Teachers can build lessons from real song lyrics, and students practice vocabulary and listening with the song.
 
-- **Earn points from your results** – Every graded attempt now contributes points based on your performance, helping you track progress and stay motivated over time.
+- **Earn points from your results.** Every graded attempt now earns points based on your score, so you can track your progress.
 ![Student Awards Example](/upgrades/points.png)

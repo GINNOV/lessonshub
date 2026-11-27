@@ -15,7 +15,7 @@
     <circle cx="840" cy="160" r="28" />
   </g>
   <text x="64" y="100" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="600" fill="#FFFFFF">
-    Lesson Hub — Novità
+    Lesson Hub: Novità
   </text>
   <text x="64" y="140" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="400" fill="#F9FAFB">
     Miglioriamo le lezioni per insegnanti e studenti, ogni settimana.
@@ -24,14 +24,14 @@
 
 # Sammarcarda release
 
-Bentornato! Ecco una panoramica delle ultime novità introdotte sulla piattaforma.
+Bentornato! Ecco cosa cambia in questa versione.
 
-## ✨ Novità principali
+## Novità principali
 
-- **Ripeti i test già valutati** – Ora puoi rifare un test anche dopo che è stato valutato. Il punteggio non cambierà, ma avrai la possibilità di ripetere la lezione per consolidare ciò che hai imparato.
+- **Ripeti i test già valutati.** Ora puoi rifare un test anche dopo che è stato valutato. Il punteggio non cambia, ma puoi ripetere la lezione per esercitarti su ciò che hai imparato.
   ![Esempio scheda studente](/upgrades/studentcard.png)
 
-- **Impara l’inglese con i testi delle canzoni** – Crea e segui lezioni basate su testi musicali reali, combinando musica, vocabolario e pratica d’ascolto in un’unica esperienza.
+- **Impara l'inglese con i testi delle canzoni.** Gli insegnanti creano lezioni da testi di canzoni reali, e gli studenti esercitano vocabolario e ascolto con la canzone.
 
-- **Guadagna punti dai tuoi risultati** – Ogni prova completata ora ti assegna punti in base alla performance, aiutandoti a monitorare i progressi e a restare motivato nel tempo.
+- **Guadagna punti dai tuoi risultati.** Ogni prova valutata ora ti assegna punti in base al punteggio, così puoi seguire i tuoi progressi.
 ![Student Awards Example](/upgrades/points.png)

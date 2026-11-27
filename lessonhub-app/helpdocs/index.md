@@ -2,16 +2,16 @@
 title: LessonHub Help Center
 ---
 
-# LessonHub Help Center
+# LessonHub help center
 
-Welcome to LessonHub. This guide mirrors the calm, confident voice you expect from a great product manual. Each section is brief, deliberate, and ready for GitHub Pages.
+This guide explains how to use LessonHub. Each page covers one area and can be published on GitHub Pages.
 
 ## How to use this guide
 
-- **Start with [Getting Started](getting-started.md)** for access, navigation, and requirements.
-- **Visit the feature guides** for student dashboards, Hub Guides, lessons, and billing.
-- **Jump to teacher or admin sections** when you need to assign work, grade, or monitor the entire hub.
-- **Use the search bar on GitHub Pages** (or your browser’s find command) to move quickly.
+- Start with [Getting Started](getting-started.md) for access, navigation, and requirements.
+- Read the feature pages for student dashboards, Hub Guides, lessons, and billing.
+- Go to the teacher or admin pages when you need to assign work, grade, or manage the platform.
+- Use the search bar on GitHub Pages, or your browser's find command, to find a topic.
 
 ## Contents
 
@@ -24,4 +24,4 @@ Welcome to LessonHub. This guide mirrors the calm, confident voice you expect fr
 7. [Admin & Operations](admin-ops.md)
 8. [Troubleshooting & Tips](troubleshooting.md)
 
-Each page stands on its own. Read in order or skip ahead—the experience remains consistent either way.
+Each page stands on its own, so you can read them in any order.
