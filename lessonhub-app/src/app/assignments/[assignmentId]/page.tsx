@@ -781,7 +781,6 @@ export default async function AssignmentPage({
           ) : isLyric && lesson.lyricConfig ? (
             <LyricLessonPlayer
               assignmentId={serializableAssignment.id}
-              studentId={serializableAssignment.studentId}
               lessonId={lesson.id}
               audioUrl={lyricAudioUrl}
               audioStorageKey={lyricAudioStorageKey}
@@ -1055,7 +1054,6 @@ export default async function AssignmentPage({
           {lesson.type === LessonType.LYRIC && lesson.lyricConfig && (
             <LyricLessonPlayer
               assignmentId={serializableAssignment.id}
-              studentId={serializableAssignment.studentId}
               lessonId={lesson.id}
               audioUrl={lyricAudioUrl}
               audioStorageKey={lyricAudioStorageKey}

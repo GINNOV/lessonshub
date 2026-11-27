@@ -6,7 +6,6 @@ describe('LyricLessonPlayer', () => {
     render(
       <LyricLessonPlayer
         assignmentId="assignment-1"
-        studentId="student-1"
         lessonId="lesson-1"
         audioUrl={null}
         lines={[

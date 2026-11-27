@@ -38,7 +38,6 @@ type PreparedLine = {
 
 type LyricLessonPlayerProps = {
   assignmentId: string;
-  studentId: string;
   lessonId: string;
   audioUrl: string | null;
   audioStorageKey?: string | null;
@@ -256,7 +255,6 @@ const formatDuration = (seconds: number | null) => {
 
 export default function LyricLessonPlayer({
   assignmentId,
-  studentId,
   lessonId,
   audioUrl,
   audioStorageKey,
@@ -586,7 +584,7 @@ export default function LyricLessonPlayer({
       saveInFlightRef.current = true;
       if (showSpinner) setIsSavingDraft(true);
       const snapshot = draftRef.current;
-      const result = await saveLyricAssignmentDraft(assignmentId, studentId, {
+      const result = await saveLyricAssignmentDraft(assignmentId, {
         answers: snapshot.answers,
         mode: snapshot.mode,
         readModeSwitches: snapshot.readModeSwitches,
@@ -610,7 +608,6 @@ export default function LyricLessonPlayer({
       draftKey,
       isSubmitting,
       status,
-      studentId,
       t.draftError,
       t.draftSavedToast,
     ],

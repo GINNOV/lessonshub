@@ -1,6 +1,6 @@
 // file: src/app/api/cron/daily/route.tsx
 import { NextRequest, NextResponse } from 'next/server';
-import { failExpiredAssignments, sendDeadlineReminders, sendStartDateNotifications, sendWeeklySummaries } from '@/actions/cronActions';
+import { failExpiredAssignments, sendDeadlineReminders, sendStartDateNotifications, sendWeeklySummaries } from '@/lib/cronJobs';
 import { runDailyLessonAutomations } from '@/lib/dailyLessonAutomation';
 import { isAuthorizedCronRequest } from '@/lib/cronAuth';
 

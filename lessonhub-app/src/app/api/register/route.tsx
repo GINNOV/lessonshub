@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
-import { getEmailTemplateByName } from "@/actions/adminActions";
+import { loadEmailTemplateByName } from "@/lib/emailTemplateStore";
 import { createButton } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email-templates.server";
 import { Role } from '@prisma/client';
@@ -17,7 +17,7 @@ async function sendAdminNotifications(newUser: { name: string | null; email: str
     const admins = await prisma.user.findMany({ where: { role: Role.ADMIN } });
     if (admins.length === 0) return;
 
-    const template = await getEmailTemplateByName('new_user_admin');
+    const template = await loadEmailTemplateByName('new_user_admin');
     if (!template) return;
 
     for (const admin of admins) {

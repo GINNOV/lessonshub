@@ -230,7 +230,7 @@ export default function LessonResponseForm({
   const handleConfirmSubmit = async () => {
     setIsLoading(true);
 
-    const result = await submitStandardAssignment(assignment.id, assignment.studentId, {
+    const result = await submitStandardAssignment(assignment.id, {
       answers,
       studentNotes,
       rating: rating > 0 ? rating : undefined,
@@ -264,7 +264,7 @@ export default function LessonResponseForm({
       saveInFlightRef.current = true;
       if (showSpinner) setIsSavingDraft(true);
       const snapshot = draftRef.current;
-      const result = await saveStandardAssignmentDraft(assignment.id, assignment.studentId, {
+      const result = await saveStandardAssignmentDraft(assignment.id, {
         answers: snapshot.answers,
         studentNotes: snapshot.studentNotes,
         rating: snapshot.rating > 0 ? snapshot.rating : undefined,
@@ -289,7 +289,6 @@ export default function LessonResponseForm({
     [
       assignment.id,
       assignment.status,
-      assignment.studentId,
       draftKey,
       isReadOnly,
       isSubmissionLocked,

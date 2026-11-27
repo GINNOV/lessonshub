@@ -224,7 +224,6 @@ export default function MultiChoicePlayer({
     setIsSubmitting(true);
     const result = await submitMultiChoiceAssignment(
       assignment.id,
-      assignment.studentId,
       filteredAnswers,
       rating > 0 ? rating : undefined
     );
@@ -253,7 +252,7 @@ export default function MultiChoicePlayer({
       saveInFlightRef.current = true;
       if (showSpinner) setIsSavingDraft(true);
       const snapshot = draftRef.current;
-      const result = await saveMultiChoiceAssignmentDraft(assignment.id, assignment.studentId, {
+      const result = await saveMultiChoiceAssignmentDraft(assignment.id, {
         answers: snapshot.answers,
         rating: snapshot.rating > 0 ? snapshot.rating : undefined,
       });
@@ -276,7 +275,6 @@ export default function MultiChoicePlayer({
     },
     [
       assignment.id,
-      assignment.studentId,
       draftKey,
       isPending,
       isPractice,

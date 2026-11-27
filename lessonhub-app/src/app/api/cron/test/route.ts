@@ -1,6 +1,6 @@
 // file: src/app/api/cron/test/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { sendCronTestEmail, sendDeadlineReminders, sendPaymentReminders, sendStartDateNotifications, sendWeeklySummaries } from '@/actions/cronActions';
+import { sendCronTestEmail, sendDeadlineReminders, sendPaymentReminders, sendStartDateNotifications, sendWeeklySummaries } from '@/lib/cronJobs';
 import { auth } from '@/auth';
 import { hasAdminPrivileges } from '@/lib/authz';
 import { runDailyLessonAutomations } from '@/lib/dailyLessonAutomation';

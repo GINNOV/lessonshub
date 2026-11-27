@@ -9,8 +9,8 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-vi.mock('@/actions/adminActions', () => ({
-  getEmailTemplateByName: vi.fn(),
+vi.mock('@/lib/emailTemplateStore', () => ({
+  loadEmailTemplateByName: vi.fn(),
 }));
 
 vi.mock('@/lib/email-templates', () => ({
@@ -27,10 +27,10 @@ vi.mock('@/auth', () => ({
 }));
 
 import prisma from '@/lib/prisma';
-import { getEmailTemplateByName } from '@/actions/adminActions';
+import { loadEmailTemplateByName } from '@/lib/emailTemplateStore';
 import { createButton } from '@/lib/email-templates';
 import { sendEmail } from '@/lib/email-templates.server';
-import { sendStartDateNotifications } from '@/actions/cronActions';
+import { sendStartDateNotifications } from '@/lib/cronJobs';
 
 describe('sendStartDateNotifications', () => {
   const originalAuthUrl = process.env.AUTH_URL;
@@ -55,7 +55,7 @@ describe('sendStartDateNotifications', () => {
     ];
 
     vi.mocked(prisma.assignment.findMany).mockResolvedValue(assignments as never);
-    vi.mocked(getEmailTemplateByName).mockResolvedValue({ buttonColor: '#000000' } as never);
+    vi.mocked(loadEmailTemplateByName).mockResolvedValue({ buttonColor: '#000000' } as never);
 
     await sendStartDateNotifications(new Date('2026-01-20T09:00:00Z'), 60);
 

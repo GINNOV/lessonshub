@@ -10,7 +10,7 @@ import { createButton } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/email-templates.server";
 import { EXTENSION_POINT_COST, isExtendedDeadline } from "@/lib/lessonExtensions";
 import { ensureBadgeCatalog } from "@/lib/gamification";
-import { getEmailTemplateByName } from "@/actions/adminActions";
+import { loadEmailTemplateByName } from "@/lib/emailTemplateStore";
 import { convertExtraPointsToEuro, convertEuroToPoints, GOLD_STAR_POINTS, GOLD_STAR_VALUE_EURO } from "@/lib/points";
 import { getComposerExtraTries } from "@/lib/composer";
 import { cacheTags } from "@/lib/cache-tags";
@@ -178,7 +178,7 @@ export async function sendGoldStar(studentId: string, message: string, amountEur
       }
     });
 
-    const template = await getEmailTemplateByName('gold_star');
+    const template = await loadEmailTemplateByName('gold_star');
     if (template && student.email) {
       const profileUrl = `${process.env.AUTH_URL}/profile/${studentId}`;
       await sendEmail({
