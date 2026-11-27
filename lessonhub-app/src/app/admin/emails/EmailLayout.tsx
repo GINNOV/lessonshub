@@ -63,8 +63,7 @@ export const EmailLayout: React.FC<Readonly<EmailLayoutProps>> = ({
                 style={{ color: '#8898aa', textDecoration: 'underline' }}
               >
                 LessonHUB
-              </Link>{' '}
-              — The modern platform for modern learning.
+              </Link>
             </Text>
           </Section>
         </Container>

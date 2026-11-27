@@ -989,7 +989,7 @@ export default function LyricLessonEditor({
             id="title"
             value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g., Perfect by Ed Sheeran — Chorus Practice"
+          placeholder="e.g., Perfect by Ed Sheeran, chorus practice"
         />
       </div>
 
@@ -1488,7 +1488,7 @@ export default function LyricLessonEditor({
               <h3 className="font-semibold text-foreground">2. Upload in LessonHUB</h3>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li>Upload the audio track first so you can preview playback.</li>
-                <li>Upload the matching <code>.lrc</code> file—LessonHUB will parse the timestamps and populate the lyric lines.</li>
+                <li>Upload the matching <code>.lrc</code> file. LessonHUB reads the timestamps and fills in the lyric lines.</li>
                 <li>You can still fine-tune start and end times per line below the editor after the import.</li>
               </ul>
             </section>

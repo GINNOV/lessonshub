@@ -18,13 +18,13 @@ const teamMembers = [
   {
     name: "Dr. Evelyn Reed",
     role: "Founder & CEO",
-    bio: "With a Ph.D. in Educational Technology, Evelyn is passionate about creating tools that empower educators and inspire students.",
+    bio: "Evelyn has a Ph.D. in Educational Technology and builds tools for teachers and students.",
     imageUrl: "/team/evelyn.png",
   },
   {
     name: "Marcus Chen",
     role: "Lead Software Engineer",
-    bio: "Marcus brings over a decade of experience in full-stack development, ensuring LessonHUB is robust, secure, and scalable.",
+    bio: "Marcus has more than ten years of full-stack development experience and leads LessonHUB's engineering.",
     imageUrl: "/team/marcus.png",
   },
   {
@@ -54,7 +54,7 @@ export default function AboutPage() {
           </div>
           <h2 className="text-2xl font-bold">Our Mission</h2>
           <p className="mt-2 text-muted-foreground">
-            To empower educators by providing an intuitive, flexible, and powerful platform to create and deliver personalized learning experiences that captivate and inspire students.
+            To give teachers one platform to create, assign, and grade lessons that fit each student.
           </p>
         </div>
         <div className="flex flex-col items-center text-center">
@@ -63,7 +63,7 @@ export default function AboutPage() {
           </div>
           <h2 className="text-2xl font-bold">Our Vision</h2>
           <p className="mt-2 text-muted-foreground">
-            To be the leading platform for custom education, fostering a global community of lifelong learners and innovative educators who are shaping the future.
+            To be where teachers and lifelong learners everywhere go for custom lessons.
           </p>
         </div>
       </section>

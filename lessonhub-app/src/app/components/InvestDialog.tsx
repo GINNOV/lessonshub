@@ -55,7 +55,7 @@ export default function InvestDialog({ linkText, videoUrl }: InvestDialogProps) 
             <TabsContent value="benefits">
               <div className="space-y-2 rounded-lg border p-4 text-sm max-h-[200px] overflow-y-auto">
                 <p>
-                  Investing in your education is the single most powerful lever you have to enhance your career and unlock new opportunities. By expanding your skills, you not only boost your confidence but also position yourself to achieve goals you once thought were out of reach. Each new lesson is a step towards a more secure and fulfilling future, opening doors to new professional networks and personal growth.
+                  A new language opens jobs, trips, and conversations that were out of reach before. Each lesson adds words and phrases you can use the same day, and your confidence grows with them.
                 </p>
               </div>
             </TabsContent>

@@ -664,7 +664,7 @@ export default function MultiChoiceCreator({ lesson, teacherPreferences, instruc
               onChange={(e) => setSoundcloudUrl(e.target.value)}
               value={feedTracks.find(t => t.link === soundcloudUrl) ? soundcloudUrl : ''}
             >
-              <option value="">— Choose a track —</option>
+              <option value="">Choose a track</option>
               {feedTracks.map((t) => (
                 <option key={t.link} value={t.link}>{t.title}</option>
               ))}

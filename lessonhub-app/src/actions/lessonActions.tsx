@@ -738,7 +738,7 @@ export async function submitComposerAssignment(
           assignmentId,
           pointsDelta: -pointsPenalty,
           reason: PointReason.MANUAL_ADJUSTMENT,
-          note: `Composer extra tries (${totalExtraTries}) — €${pointsPenalty} fee`,
+          note: `Composer extra tries (${totalExtraTries}): €${pointsPenalty} fee`,
         });
       }
 

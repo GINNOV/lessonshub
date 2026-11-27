@@ -83,7 +83,7 @@ export default function HubGuideBanner({ guideCount = 0, className, copy, banner
           <h2 className="text-3xl font-bold text-slate-50">{activeBanner?.bannerTitle || copy?.bannerTitle || 'Always-on practice hub'}</h2>
           <p className="text-slate-300">
             {activeBanner?.bannerBody ||
-              'Guides are always ready for practice. No deadlines, no expirations, no grading—just a pure knowledge stream into your brain vessels. Some guides are free and a ton of others are for a small token of cash. Upgrade to unlock interactive guides between lessons.'}
+              'Guides are always ready for practice. No deadlines, no expirations, no grading. Just a pure knowledge stream into your brain vessels. Some guides are free and a ton of others are for a small token of cash. Upgrade to unlock interactive guides between lessons.'}
           </p>
         </div>
         <div className="flex flex-col items-start gap-2 md:items-end">

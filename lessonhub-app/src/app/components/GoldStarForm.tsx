@@ -77,7 +77,7 @@ export default function GoldStarForm({ studentId, studentName }: GoldStarFormPro
           className="min-h-[96px] border-slate-800 bg-slate-950 text-slate-100 placeholder:text-slate-500"
         />
         <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>Make it personal—short notes work best.</span>
+          <span>Make it personal. Short notes work best.</span>
           <span className="text-slate-300">{message.length}/500</span>
         </div>
         <Button type="button" onClick={handleSubmit} disabled={isPending}>

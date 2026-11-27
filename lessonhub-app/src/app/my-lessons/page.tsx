@@ -54,14 +54,12 @@ export default async function MyLessonsPage() {
         </div>
         <h2 className="text-2xl font-bold mb-3">Lessons Paused</h2>
         <p className="mx-auto max-w-prose text-slate-300">
-          🇺🇸 You&apos;ve chosen to pause your journey. Reactivate your account
-          to restart your lessons. Just click your avatar in the top right and
-          select Profile. The rest is history.
+          🇺🇸 You&apos;ve paused your lessons. To restart them, click your
+          avatar in the top right and select Profile.
         </p>
         <p className="mx-auto mt-4 max-w-prose text-slate-300">
-          🇮🇹 Hai scelto di mettere in pausa il tuo futuro. Riattiva il tuo
-          account per riprendere le lezioni. Ti basta cliccare sull’avatar in
-          alto a destra e selezionare Profilo. Il resto e&apos; storia.
+          🇮🇹 Hai messo in pausa le lezioni. Per riprenderle, clicca
+          sull’avatar in alto a destra e seleziona Profilo.
         </p>
         <div className="mx-auto mt-6 max-w-prose rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-left text-sm text-slate-300">
           <p className="font-semibold text-slate-100">Resume lessons</p>
